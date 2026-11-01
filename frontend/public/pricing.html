@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pricing — AI Interviewer</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>" />
+  <style>
+    :root {
+      --bg: #0f111a;
+      --bg2: #161929;
+      --card: #1c2136;
+      --card2: #222840;
+      --border: #2e3554;
+      --accent: #6c63ff;
+      --accent2: #5a52e0;
+      --accent-glow: rgba(108,99,255,0.25);
+      --green: #22c55e;
+      --gold: #f59e0b;
+      --text: #e8eaf6;
+      --muted: #8892b0;
+      --danger: #f87171;
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+
+    /* NAV */
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 40px;
+      background: rgba(15,17,26,0.95);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+    .nav-logo { font-size: 1.4rem; font-weight: 800; color: var(--accent); display: flex; align-items: center; gap: 8px; text-decoration: none; }
+    .nav-links { display: flex; gap: 20px; align-items: center; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: 0.95rem; transition: color .2s; }
+    .nav-links a:hover { color: var(--text); }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 22px; border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; transition: all .2s; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); box-shadow: 0 4px 20px var(--accent-glow); }
+    .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* HERO */
+    .hero {
+      text-align: center;
+      padding: 80px 20px 40px;
+    }
+    .hero h1 {
+      font-size: clamp(2.2rem, 5vw, 3.4rem);
+      font-weight: 900;
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+    .hero h1 span { color: var(--accent); }
+    .hero p { color: var(--muted); font-size: 1.1rem; max-width: 540px; margin: 0 auto 32px; }
+
+    /* TABS */
+    .tab-bar {
+      display: flex; justify-content: center; gap: 8px;
+      margin: 0 auto 56px;
+    }
+    .tab-btn {
+      padding: 10px 28px; border-radius: 50px; border: 1px solid var(--border);
+      background: var(--card); color: var(--muted); font-weight: 600; cursor: pointer;
+      transition: all .2s; font-size: 0.95rem;
+    }
+    .tab-btn.active {
+      background: var(--accent); border-color: var(--accent); color: #fff;
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+
+    /* SECTION */
+    .section { max-width: 1100px; margin: 0 auto; padding: 0 24px 80px; display: none; }
+    .section.visible { display: block; }
+
+    /* ── PAY-PER-USE ─────────────────────────────────────────── */
+    .ppu-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 32px;
+      align-items: start;
+    }
+    @media(max-width:700px){ .ppu-grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 28px;
+    }
+    .card h3 { font-size: 1rem; color: var(--muted); font-weight: 600; margin-bottom: 20px; text-transform: uppercase; letter-spacing: .05em; }
+
+    /* Duration selector */
+    .duration-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px;
+    }
+    .dur-btn {
+      padding: 14px 8px; border-radius: 12px; border: 1.5px solid var(--border);
+      background: var(--card2); color: var(--text); text-align: center;
+      cursor: pointer; transition: all .2s;
+    }
+    .dur-btn .dur-min { font-size: 1.05rem; font-weight: 700; }
+    .dur-btn .dur-price { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+    .dur-btn.active {
+      border-color: var(--accent); background: rgba(108,99,255,0.12);
+    }
+    .dur-btn:hover { border-color: var(--accent); }
+
+    /* Quantity input */
+    .qty-row { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .qty-label { font-size: 0.9rem; color: var(--muted); flex-shrink: 0; }
+    input[type=number], input[type=text], select {
+      background: var(--bg); border: 1.5px solid var(--border); color: var(--text);
+      border-radius: 10px; padding: 10px 14px; font-size: 1rem; width: 100%;
+      outline: none; transition: border-color .2s;
+    }
+    input[type=number]:focus, input[type=text]:focus, select:focus { border-color: var(--accent); }
+    .qty-row input { width: 100px; text-align: center; }
+
+    /* Quote summary */
+    .quote-box {
+      background: var(--bg); border: 1.5px solid var(--border); border-radius: 12px;
+      padding: 20px; margin-top: 4px;
+    }
+    .quote-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 0.9rem; }
+    .quote-row:last-child { margin-bottom: 0; }
+    .quote-row .ql { color: var(--muted); }
+    .quote-row .qv { color: var(--text); font-weight: 600; }
+    .quote-row.savings .qv { color: var(--green); }
+    .quote-row.total { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px; }
+    .quote-row.total .qv { font-size: 1.4rem; color: var(--accent); font-weight: 800; }
+    .free-badge {
+      background: rgba(34,197,94,0.15); color: var(--green);
+      padding: 3px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; margin-left: 8px;
+    }
+    .checkout-btn {
+      width: 100%; margin-top: 20px; padding: 15px; font-size: 1rem; border-radius: 12px;
+      background: var(--accent); color: #fff; border: none; cursor: pointer; font-weight: 700;
+      transition: all .2s;
+    }
+    .checkout-btn:hover { background: var(--accent2); transform: translateY(-1px); box-shadow: 0 8px 24px var(--accent-glow); }
+
+    /* Duration pricing table */
+    .price-table { width: 100%; border-collapse: collapse; }
+    .price-table th { text-align: left; padding: 10px 14px; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+    .price-table td { padding: 13px 14px; border-bottom: 1px solid rgba(46,53,84,0.5); font-size: 0.95rem; }
+    .price-table tr:last-child td { border-bottom: none; }
+    .price-table tr.highlighted td { background: rgba(108,99,255,0.06); }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; }
+    .badge-accent { background: rgba(108,99,255,0.2); color: var(--accent); }
+
+    /* Bulk info */
+    .bulk-info {
+      background: rgba(34,197,94,0.07); border: 1px solid rgba(34,197,94,0.25);
+      border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;
+      display: flex; align-items: flex-start; gap: 12px;
+    }
+    .bulk-info .ico { font-size: 1.4rem; flex-shrink: 0; }
+    .bulk-info p { font-size: 0.88rem; color: var(--muted); line-height: 1.6; }
+    .bulk-info p strong { color: var(--green); }
+
+    /* ── SUBSCRIPTION ─────────────────────────────────────────── */
+    .plans-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 20px; margin-bottom: 40px;
+    }
+    .plan-card {
+      background: var(--card); border: 1.5px solid var(--border);
+      border-radius: var(--radius); padding: 28px 20px; text-align: center;
+      cursor: pointer; transition: all .25s; position: relative; overflow: hidden;
+    }
+    .plan-card.popular {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent), 0 8px 32px var(--accent-glow);
+    }
+    .plan-card:hover { transform: translateY(-4px); border-color: var(--accent); }
+    .plan-card.selected { border-color: var(--green); box-shadow: 0 0 0 1px var(--green); }
+
+    .popular-tag {
+      position: absolute; top: 0; right: 0;
+      background: var(--accent); color: #fff; font-size: 0.7rem; font-weight: 800;
+      padding: 4px 12px; border-radius: 0 var(--radius) 0 12px; text-transform: uppercase;
+    }
+    .plan-label { font-size: 0.85rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 16px; }
+    .plan-price { font-size: 2.4rem; font-weight: 900; color: var(--text); line-height: 1; }
+    .plan-price sup { font-size: 1rem; vertical-align: super; }
+    .plan-interviews { font-size: 1rem; font-weight: 700; color: var(--accent); margin: 8px 0 4px; }
+    .plan-per { font-size: 0.8rem; color: var(--muted); margin-bottom: 16px; }
+    .plan-savings { font-size: 0.8rem; color: var(--green); font-weight: 600; margin-bottom: 8px; min-height: 18px; }
+    .plan-cta {
+      width: 100%; padding: 11px; border-radius: 10px; border: 1.5px solid var(--border);
+      background: transparent; color: var(--text); font-weight: 700; cursor: pointer;
+      transition: all .2s; font-size: 0.9rem; margin-top: 4px;
+    }
+    .plan-card.popular .plan-cta, .plan-card:hover .plan-cta {
+      background: var(--accent); border-color: var(--accent); color: #fff;
+    }
+    .plan-card.selected .plan-cta { background: var(--green); border-color: var(--green); color: #fff; }
+
+    /* Sub compare table */
+    .compare-table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+    .compare-table th { background: var(--card2); padding: 14px 16px; text-align: left; font-size: 0.85rem; color: var(--muted); text-transform: uppercase; }
+    .compare-table td { padding: 13px 16px; border-bottom: 1px solid var(--border); font-size: 0.92rem; }
+    .compare-table tr:last-child td { border-bottom: none; }
+    .compare-table tr:hover td { background: rgba(108,99,255,0.04); }
+    .compare-table .best { color: var(--green); font-weight: 700; }
+    .compare-table .plan-highlight td { background: rgba(108,99,255,0.06); }
+
+    /* FAQ */
+    .faq { margin-top: 60px; }
+    .faq h2 { text-align: center; font-size: 1.6rem; margin-bottom: 32px; }
+    .faq-item { border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+    .faq-q { padding: 18px 24px; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; }
+    .faq-q:hover { background: var(--card); }
+    .faq-a { padding: 0 24px; max-height: 0; overflow: hidden; transition: max-height .3s, padding .3s; color: var(--muted); font-size: 0.9rem; line-height: 1.7; }
+    .faq-item.open .faq-a { max-height: 200px; padding: 0 24px 18px; }
+    .faq-arrow { transition: transform .3s; color: var(--muted); }
+    .faq-item.open .faq-arrow { transform: rotate(180deg); }
+
+    /* MODAL */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000;
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+      opacity: 0; pointer-events: none; transition: opacity .2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 36px; max-width: 480px; width: 100%;
+      transform: scale(0.95); transition: transform .2s;
+    }
+    .modal-overlay.open .modal { transform: scale(1); }
+    .modal h2 { margin-bottom: 6px; }
+    .modal .sub-line { color: var(--muted); font-size: 0.9rem; margin-bottom: 28px; }
+    .modal-order-summary {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 12px;
+      padding: 18px; margin-bottom: 20px;
+    }
+    .modal-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; }
+    .modal-row:last-child { margin-bottom: 0; font-size: 1.1rem; font-weight: 800; color: var(--accent); border-top: 1px solid var(--border); padding-top: 10px; margin-top: 10px; }
+    .form-group { margin-bottom: 16px; }
+    .form-label { font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; display: block; }
+    .card-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .mock-notice {
+      background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3);
+      border-radius: 10px; padding: 12px 16px; font-size: 0.82rem; color: #f59e0b;
+      margin-bottom: 20px; text-align: center;
+    }
+    .modal-actions { display: flex; gap: 10px; margin-top: 4px; }
+    .modal-actions .btn { flex: 1; justify-content: center; padding: 14px; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 32px; right: 32px;
+      background: var(--card2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 22px;
+      display: flex; align-items: center; gap: 12px; z-index: 2000;
+      transform: translateY(80px); opacity: 0; transition: all .3s;
+      max-width: 360px; box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { border-color: var(--green); }
+    .toast.error { border-color: var(--danger); }
+
+    footer {
+      text-align: center; padding: 32px; color: var(--muted); font-size: 0.85rem;
+      border-top: 1px solid var(--border);
+    }
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-logo">🤖 AI Interviewer</a>
+  <div class="nav-links">
+    <a href="/">Dashboard</a>
+    <a href="/pricing.html" style="color: var(--text)">Pricing</a>
+    <a href="/index.html" class="btn btn-outline">Sign In</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <h1>Simple, Transparent<br><span>Pricing</span></h1>
+  <p>Pay only for what you use. No hidden fees. Scale up or down anytime.</p>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('ppu', this)">💳 Pay Per Interview</button>
+    <button class="tab-btn" onclick="switchTab('sub', this)">📅 Monthly / Subscription</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!--  TAB 1 — PAY PER USE                              -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section visible" id="tab-ppu">
+
+  <div class="ppu-grid">
+
+    <!-- LEFT: Configurator -->
+    <div>
+      <div class="card">
+        <h3>Configure Your Order</h3>
+
+        <!-- Duration -->
+        <p style="font-size:.85rem;color:var(--muted);margin-bottom:12px;">Interview Duration</p>
+        <div class="duration-grid" id="durationGrid"></div>
+
+        <!-- Quantity -->
+        <div class="qty-row" style="margin-bottom:16px;">
+          <span class="qty-label">Number of Interviews</span>
+          <input type="number" id="quantityInput" value="1" min="1" max="9999" oninput="updateQuote()" />
+        </div>
+
+        <!-- Bulk Banner -->
+        <div class="bulk-info" id="bulkBanner" style="display:none">
+          <span class="ico">🎁</span>
+          <p id="bulkText">Buy 10 → <strong>1 FREE interview!</strong></p>
+        </div>
+
+        <!-- Quote -->
+        <div class="quote-box" id="quoteBox">
+          <div class="quote-row"><span class="ql">Per Interview</span><span class="qv" id="qPrice">$1.00</span></div>
+          <div class="quote-row"><span class="ql">Quantity</span><span class="qv" id="qQty">1</span></div>
+          <div class="quote-row savings" id="qSavingsRow" style="display:none"><span class="ql">Free Interviews <span class="free-badge" id="qFreeCount">+1</span></span><span class="qv" id="qSavings">-$1.00</span></div>
+          <div class="quote-row"><span class="ql">Billed For</span><span class="qv" id="qBilled">1 interview</span></div>
+          <div class="quote-row total"><span class="ql">Total</span><span class="qv" id="qTotal">$1.00</span></div>
+        </div>
+
+        <button class="checkout-btn" onclick="openCheckout('ppu')">
+          💳 Proceed to Checkout
+        </button>
+      </div>
+    </div>
+
+    <!-- RIGHT: Price table + bulk rule -->
+    <div>
+      <div class="card" style="margin-bottom:20px;">
+        <h3>Pricing by Duration</h3>
+        <table class="price-table">
+          <thead>
+            <tr>
+              <th>Duration</th>
+              <th>Per Interview</th>
+              <th>Per Hour</th>
+            </tr>
+          </thead>
+          <tbody id="pricingTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3>🎁 Bulk Discount</h3>
+        <div class="bulk-info" style="margin-bottom:0">
+          <span class="ico">📦</span>
+          <div>
+            <p style="margin-bottom:10px"><strong>Every 10 interviews = 1 FREE</strong></p>
+            <p>Buy 10 → pay for 9 &nbsp;|&nbsp; Buy 20 → pay for 18<br>Buy 30 → pay for 27 &nbsp;|&nbsp; …and so on!</p>
+          </div>
+        </div>
+        <table class="price-table" style="margin-top:16px">
+          <thead>
+            <tr><th>You Buy</th><th>You Pay For</th><th>Free</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>10</td><td>9</td><td style="color:var(--green)">+1 🎁</td></tr>
+            <tr><td>20</td><td>18</td><td style="color:var(--green)">+2 🎁</td></tr>
+            <tr><td>50</td><td>45</td><td style="color:var(--green)">+5 🎁</td></tr>
+            <tr><td>100</td><td>90</td><td style="color:var(--green)">+10 🎁</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!--  TAB 2 — SUBSCRIPTION                              -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section" id="tab-sub">
+
+  <div class="plans-grid" id="plansGrid"></div>
+
+  <h3 style="margin-bottom:20px;font-size:1rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">Full Comparison</h3>
+  <table class="compare-table" id="compareTable">
+    <thead>
+      <tr>
+        <th>Plan</th>
+        <th>Duration</th>
+        <th>Price</th>
+        <th>Interviews</th>
+        <th>Per Interview</th>
+        <th>Savings vs Monthly</th>
+      </tr>
+    </thead>
+    <tbody id="compareBody"></tbody>
+  </table>
+
+  <!-- FAQ -->
+  <div class="faq">
+    <h2>Frequently Asked Questions</h2>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        What happens if I use all my included interviews?
+        <span class="faq-arrow">▼</span>
+      </div>
+      <div class="faq-a">
+        You can always top-up with a Pay-Per-Interview pack. Credits from both sources are pooled together automatically. No interview gets interrupted.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        Do unused interviews roll over?
+        <span class="faq-arrow">▼</span>
+      </div>
+      <div class="faq-a">
+        Pay-per-interview credits never expire. Subscription credits are valid through the end of your subscription period. We always use the oldest credits first.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        Can I switch plans mid-cycle?
+        <span class="faq-arrow">▼</span>
+      </div>
+      <div class="faq-a">
+        Yes! Upgrade anytime and your unused credits carry forward. Downgrades take effect at the end of your current period.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        Is the bulk discount applied automatically?
+        <span class="faq-arrow">▼</span>
+      </div>
+      <div class="faq-a">
+        Yes — the discount is applied instantly as you configure your order. For every 10 interviews in your cart, 1 is automatically marked free. No coupon codes needed.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        What payment methods are accepted?
+        <span class="faq-arrow">▼</span>
+      </div>
+      <div class="faq-a">
+        We accept all major credit and debit cards (Visa, Mastercard, Amex), UPI, net banking, and international payments via Stripe. Invoicing is available for annual plans.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!--  CHECKOUT MODAL                                    -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="checkoutModal">
+  <div class="modal">
+    <h2>🔐 Complete Purchase</h2>
+    <p class="sub-line">Credits will be added to your account immediately after payment.</p>
+
+    <div class="modal-order-summary" id="modalSummary"></div>
+
+    <div class="mock-notice">
+      ⚡ Demo Mode — No real payment is processed. Connect Stripe for production.
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Card Number</label>
+      <input type="text" placeholder="4242 4242 4242 4242" maxlength="19" oninput="formatCard(this)" />
+    </div>
+    <div class="card-row">
+      <div class="form-group">
+        <label class="form-label">Expiry</label>
+        <input type="text" placeholder="MM / YY" maxlength="7" oninput="formatExpiry(this)" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">CVC</label>
+        <input type="text" placeholder="123" maxlength="4" />
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmPayment()">
+        ✅ Pay Now
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span id="toastIcon">✅</span>
+  <span id="toastMsg">Done!</span>
+</div>
+
+<footer>
+  <p style="margin-bottom:8px">© 2026 AI Interviewer · All rights reserved</p>
+  <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a>
+</footer>
+
+<script>
+  // ── DATA ──────────────────────────────────────────────────────────────────
+  const DURATION_TIERS = [
+    { minutes: 10, priceUsd: 1.00, label: '10 min' },
+    { minutes: 20, priceUsd: 1.50, label: '20 min' },
+    { minutes: 30, priceUsd: 2.00, label: '30 min' },
+    { minutes: 40, priceUsd: 2.50, label: '40 min' },
+    { minutes: 50, priceUsd: 3.00, label: '50 min' },
+    { minutes: 60, priceUsd: 3.50, label: '60 min' },
+  ];
+
+  const SUBSCRIPTION_PLANS = [
+    { id: 'monthly_1', label: '1 Month',    months: 1,  priceUsd: 100, includedInterviews: 150,  popular: false, savingsLabel: null },
+    { id: 'monthly_2', label: '2 Months',   months: 2,  priceUsd: 160, includedInterviews: 280,  popular: false, savingsLabel: 'Save $40' },
+    { id: 'quarterly', label: '3 Months',   months: 3,  priceUsd: 220, includedInterviews: 420,  popular: false, savingsLabel: 'Save $80' },
+    { id: 'biannual',  label: '6 Months',   months: 6,  priceUsd: 450, includedInterviews: 900,  popular: true,  savingsLabel: 'Save $150' },
+    { id: 'annual',    label: '1 Year',     months: 12, priceUsd: 800, includedInterviews: 1800, popular: false, savingsLabel: 'Save $400' },
+  ];
+
+  // ── STATE ─────────────────────────────────────────────────────────────────
+  let selectedDuration = 10;
+  let currentCheckoutType = 'ppu';
+  let currentCheckoutPlan = null;
+  let currentCheckoutQuote = null;
+
+  // ── INIT ──────────────────────────────────────────────────────────────────
+  function init() {
+    renderDurationGrid();
+    renderPricingTable();
+    renderSubscriptionPlans();
+    renderCompareTable();
+    updateQuote();
+  }
+
+  function renderDurationGrid() {
+    const grid = document.getElementById('durationGrid');
+    grid.innerHTML = DURATION_TIERS.map(t => `
+      <div class="dur-btn ${t.minutes === selectedDuration ? 'active' : ''}"
+           onclick="selectDuration(${t.minutes})">
+        <div class="dur-min">${t.label}</div>
+        <div class="dur-price">$${t.priceUsd.toFixed(2)}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderPricingTable() {
+    const tbody = document.getElementById('pricingTableBody');
+    tbody.innerHTML = DURATION_TIERS.map(t => `
+      <tr class="${t.minutes === selectedDuration ? 'highlighted' : ''}">
+        <td>${t.label} ${t.minutes === selectedDuration ? '<span class="badge badge-accent">Selected</span>' : ''}</td>
+        <td><strong>$${t.priceUsd.toFixed(2)}</strong></td>
+        <td style="color:var(--muted)">$${(t.priceUsd * (60/t.minutes)).toFixed(2)}</td>
+      </tr>
+    `).join('');
+  }
+
+  function renderSubscriptionPlans() {
+    const grid = document.getElementById('plansGrid');
+    grid.innerHTML = SUBSCRIPTION_PLANS.map(p => {
+      const cpi = (p.priceUsd / p.includedInterviews).toFixed(2);
+      return `
+        <div class="plan-card ${p.popular ? 'popular' : ''}" id="planCard_${p.id}" onclick="selectPlan('${p.id}')">
+          ${p.popular ? '<div class="popular-tag">⭐ Most Popular</div>' : ''}
+          <div class="plan-label">${p.label}</div>
+          <div class="plan-price"><sup>$</sup>${p.priceUsd}</div>
+          <div class="plan-interviews">${p.includedInterviews} Interviews</div>
+          <div class="plan-per">~$${cpi} / interview</div>
+          <div class="plan-savings">${p.savingsLabel || ''}</div>
+          <button class="plan-cta">Get Started →</button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderCompareTable() {
+    const tbody = document.getElementById('compareBody');
+    const baseCpi = SUBSCRIPTION_PLANS[0].priceUsd / SUBSCRIPTION_PLANS[0].includedInterviews;
+    tbody.innerHTML = SUBSCRIPTION_PLANS.map(p => {
+      const cpi = (p.priceUsd / p.includedInterviews).toFixed(3);
+      const saved = p.months > 1 ? `$${(p.months * 100 - p.priceUsd).toFixed(0)}` : '—';
+      const isBest = p.id === 'annual';
+      return `
+        <tr class="${p.popular ? 'plan-highlight' : ''}">
+          <td><strong>${p.label}</strong>${p.popular ? ' <span class="badge badge-accent">Popular</span>' : ''}</td>
+          <td>${p.months} month${p.months > 1 ? 's' : ''}</td>
+          <td><strong>$${p.priceUsd}</strong></td>
+          <td>${p.includedInterviews.toLocaleString()}</td>
+          <td class="${isBest ? 'best' : ''}">$${cpi}</td>
+          <td style="color:var(--green)">${saved !== '—' ? saved + ' saved' : '—'}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // ── INTERACTIONS ──────────────────────────────────────────────────────────
+  function selectDuration(minutes) {
+    selectedDuration = minutes;
+    renderDurationGrid();
+    renderPricingTable();
+    updateQuote();
+  }
+
+  function updateQuote() {
+    const qty = Math.max(1, parseInt(document.getElementById('quantityInput').value) || 1);
+    const tier = DURATION_TIERS.find(t => t.minutes === selectedDuration);
+    const freeInterviews = Math.floor(qty / 10);
+    const billedFor = qty - freeInterviews;
+    const totalUsd = (billedFor * tier.priceUsd).toFixed(2);
+    const savingsUsd = (freeInterviews * tier.priceUsd).toFixed(2);
+
+    document.getElementById('qPrice').textContent = `$${tier.priceUsd.toFixed(2)}`;
+    document.getElementById('qQty').textContent = qty;
+    document.getElementById('qBilled').textContent = `${billedFor} interview${billedFor !== 1 ? 's' : ''}`;
+    document.getElementById('qTotal').textContent = `$${totalUsd}`;
+
+    const bulkBanner = document.getElementById('bulkBanner');
+    const savingsRow = document.getElementById('qSavingsRow');
+
+    if (freeInterviews > 0) {
+      bulkBanner.style.display = 'flex';
+      document.getElementById('bulkText').innerHTML =
+        `You get <strong style="color:var(--green)">${freeInterviews} FREE interview${freeInterviews > 1 ? 's' : ''}</strong> with this order! 🎉`;
+      savingsRow.style.display = 'flex';
+      document.getElementById('qFreeCount').textContent = `+${freeInterviews}`;
+      document.getElementById('qSavings').textContent = `-$${savingsUsd}`;
+    } else {
+      bulkBanner.style.display = 'none';
+      savingsRow.style.display = 'none';
+    }
+
+    currentCheckoutQuote = {
+      type: 'pay_per_use',
+      quantity: qty,
+      freeInterviews,
+      billedFor,
+      pricePerInterview: tier.priceUsd,
+      totalUsd: parseFloat(totalUsd),
+      durationMinutes: selectedDuration,
+    };
+  }
+
+  function selectPlan(planId) {
+    SUBSCRIPTION_PLANS.forEach(p => {
+      const card = document.getElementById(`planCard_${p.id}`);
+      if (card) card.classList.remove('selected');
+    });
+    document.getElementById(`planCard_${planId}`)?.classList.add('selected');
+    currentCheckoutPlan = SUBSCRIPTION_PLANS.find(p => p.id === planId);
+    openCheckout('sub');
+  }
+
+  // ── TABS ──────────────────────────────────────────────────────────────────
+  function switchTab(tab, btn) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('visible'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('visible');
+    btn.classList.add('active');
+  }
+
+  // ── CHECKOUT MODAL ────────────────────────────────────────────────────────
+  function openCheckout(type) {
+    currentCheckoutType = type;
+    const modal = document.getElementById('checkoutModal');
+    const summary = document.getElementById('modalSummary');
+
+    if (type === 'ppu') {
+      const q = currentCheckoutQuote;
+      summary.innerHTML = `
+        <div class="modal-row"><span>Interview Duration</span><span>${q.durationMinutes} minutes</span></div>
+        <div class="modal-row"><span>Quantity</span><span>${q.quantity} interviews</span></div>
+        ${q.freeInterviews > 0 ? `<div class="modal-row" style="color:var(--green)"><span>Free (Bulk Bonus)</span><span>+${q.freeInterviews} 🎁</span></div>` : ''}
+        <div class="modal-row"><span>Billed For</span><span>${q.billedFor} interviews</span></div>
+        <div class="modal-row"><span><strong>Total</strong></span><span>$${q.totalUsd.toFixed(2)}</span></div>
+      `;
+    } else {
+      const p = currentCheckoutPlan;
+      if (!p) { showToast('Please select a plan first', 'error'); return; }
+      const cpi = (p.priceUsd / p.includedInterviews).toFixed(2);
+      summary.innerHTML = `
+        <div class="modal-row"><span>Plan</span><span>${p.label} Subscription</span></div>
+        <div class="modal-row"><span>Interviews Included</span><span>${p.includedInterviews.toLocaleString()}</span></div>
+        <div class="modal-row"><span>Per Interview</span><span>~$${cpi}</span></div>
+        ${p.savingsLabel ? `<div class="modal-row" style="color:var(--green)"><span>You Save</span><span>${p.savingsLabel}</span></div>` : ''}
+        <div class="modal-row"><span><strong>Total</strong></span><span>$${p.priceUsd}</span></div>
+      `;
+    }
+
+    modal.classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('checkoutModal').classList.remove('open');
+  }
+
+  async function confirmPayment() {
+    // In production: Create order via API, get Stripe PaymentIntent, confirm payment
+    // For demo: simulate payment confirmation
+
+    const btn = document.querySelector('.modal-actions .btn-primary');
+    btn.textContent = '⏳ Processing...';
+    btn.disabled = true;
+
+    await new Promise(r => setTimeout(r, 1800));
+
+    closeModal();
+    btn.textContent = '✅ Pay Now';
+    btn.disabled = false;
+
+    const q = currentCheckoutType === 'ppu' ? currentCheckoutQuote : currentCheckoutPlan;
+    const credits = currentCheckoutType === 'ppu' ? q.quantity : q.includedInterviews;
+
+    showToast(`✅ Payment successful! ${credits} interviews credited to your account.`, 'success');
+  }
+
+  // ── FAQ ───────────────────────────────────────────────────────────────────
+  function toggleFaq(el) {
+    const item = el.closest('.faq-item');
+    item.classList.toggle('open');
+  }
+
+  // ── CARD FORMAT ───────────────────────────────────────────────────────────
+  function formatCard(input) {
+    let v = input.value.replace(/\D/g, '').substring(0, 16);
+    input.value = v.replace(/(.{4})/g, '$1 ').trim();
+  }
+  function formatExpiry(input) {
+    let v = input.value.replace(/\D/g, '').substring(0, 4);
+    if (v.length >= 2) v = v.substring(0,2) + ' / ' + v.substring(2);
+    input.value = v;
+  }
+
+  // ── TOAST ─────────────────────────────────────────────────────────────────
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    const icon = document.getElementById('toastIcon');
+    const m = document.getElementById('toastMsg');
+    icon.textContent = type === 'success' ? '✅' : '❌';
+    m.textContent = msg;
+    t.className = `toast ${type}`;
+    setTimeout(() => t.classList.add('show'), 10);
+    setTimeout(() => t.classList.remove('show'), 4000);
+  }
+
+  // Close modal on overlay click
+  document.getElementById('checkoutModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  init();
+</script>
+</body>
+</html>

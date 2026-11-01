@@ -14,6 +14,7 @@ import { generateReport } from './reports/generator.js';
 import multer from 'multer';
 import { extractTextFromBuffer, parseResumeText } from './services/resumeParser.js';
 import { getPlannedQuestions } from './interview/questionBank.js';
+import { billingRouter } from './billing/billingRoutes.js';
 
 dotenv.config();
 
@@ -34,6 +35,9 @@ const upload = multer({
 
 app.use(cors());
 app.use(express.json());
+
+// Billing routes
+app.use('/billing', billingRouter);
 
 // Serve static frontend assets
 const frontendPath = path.resolve(__dirname, '../../frontend/public');

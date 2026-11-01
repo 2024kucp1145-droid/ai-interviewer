@@ -145,9 +145,35 @@ export function initDatabase() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS billing_orders (
+      id TEXT PRIMARY KEY,
+      org_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      plan_id TEXT,
+      quantity INTEGER,
+      duration_minutes INTEGER,
+      amount_usd REAL NOT NULL,
+      status TEXT DEFAULT 'pending',
+      paid_at DATETIME,
+      quote_json TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (org_id) REFERENCES organizations(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS billing_events (
+      id TEXT PRIMARY KEY,
+      org_id TEXT NOT NULL,
+      order_id TEXT,
+      event TEXT NOT NULL,
+      amount_usd REAL DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (org_id) REFERENCES organizations(id) ON DELETE CASCADE
+    );
+
     CREATE INDEX IF NOT EXISTS idx_interviews_token ON interviews(token_hash);
     CREATE INDEX IF NOT EXISTS idx_turns_interview ON turns(interview_id);
     CREATE INDEX IF NOT EXISTS idx_candidates_org ON candidates(org_id);
+    CREATE INDEX IF NOT EXISTS idx_billing_orders_org ON billing_orders(org_id);
   `);
 
   // Auto-migration for existing tables
@@ -168,6 +194,8 @@ export function initDatabase() {
   addColumn('organizations', 'industry', 'TEXT');
   addColumn('organizations', 'company_size', 'TEXT');
   addColumn('organizations', 'country', 'TEXT');
+  addColumn('organizations', 'subscription_plan_id', 'TEXT');
+  addColumn('organizations', 'subscription_expires_at', 'DATETIME');
 
   // Multi-type interview options & custom questions
   addColumn('jobs', 'qualifications', 'TEXT');
