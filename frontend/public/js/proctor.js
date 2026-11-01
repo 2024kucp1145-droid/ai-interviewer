@@ -107,7 +107,7 @@ export class ProctorEngine {
           </div>
         </div>
         <div class="proctor-status-footer">
-          <span id="proctor-footer-detail"><i class="bi bi-eye"></i> Gaze: Screen Centered</span>
+          <span id="proctor-footer-detail"><i class="bi bi-person-check-fill"></i> Candidate Verified</span>
           <span style="font-size:0.65rem; color:var(--text-muted);"><i class="bi bi-shield-check"></i> Monitored</span>
         </div>
       </div>
@@ -287,31 +287,12 @@ export class ProctorEngine {
       this.multiFaceCounter = Math.max(0, this.multiFaceCounter - 1);
     }
 
-    // ── 3. Check Eye Gaze & Head Orientation (Looking Away) ──
-    // Center is width / 2 = 80. If centroid is drifted far left (<55) or far right (>105) or down (>75)
-    const normalizedCenterX = avgX / width; // ~0.5 is center
-    const normalizedCenterY = avgY / height; // ~0.45-0.5 is center
+    // Face is aligned & present
+    if (faceIndicator) faceIndicator.className = 'proctor-face-box';
+    if (faceTag) faceTag.textContent = 'Candidate Aligned';
+    if (footerDetail) footerDetail.innerHTML = '<i class="bi bi-shield-check"></i> Candidate Verified';
 
-    const isLookingAway = (normalizedCenterX < 0.34 || normalizedCenterX > 0.66 || normalizedCenterY > 0.65);
-
-    if (isLookingAway) {
-      this.eyesAwayCounter++;
-      if (faceIndicator) faceIndicator.className = 'proctor-face-box warning';
-      if (faceTag) faceTag.textContent = 'Gaze Deviated';
-      if (footerDetail) footerDetail.innerHTML = '<i class="bi bi-eye-slash"></i> Eyes Looking Away';
-
-      if (this.eyesAwayCounter >= 3) {
-        this.eyesAwayCounter = 0;
-        this.triggerWarning('Eyes coordination deviated / Looking away from interview screen.');
-      }
-    } else {
-      this.eyesAwayCounter = Math.max(0, this.eyesAwayCounter - 1);
-      if (faceIndicator) faceIndicator.className = 'proctor-face-box';
-      if (faceTag) faceTag.textContent = 'Face Aligned';
-      if (footerDetail) footerDetail.innerHTML = '<i class="bi bi-eye"></i> Gaze: Screen Centered';
-    }
-
-    // ── 4. Check Phone / Handheld Electronic Object ──
+    // ── 3. Check Phone / Handheld Electronic Object ──
     if (phoneIndicatorCount > (width * height * 0.12)) {
       this.phoneDetectedCounter++;
       if (this.phoneDetectedCounter >= 3) {
@@ -432,8 +413,8 @@ export class ProctorEngine {
           ${reason}
         </div>
         <div class="proctor-alert-rules">
-          • Keep your eyes focused directly on the screen at all times.<br>
-          • Mobile phones, secondary screens, or notes are strictly prohibited.<br>
+          • Remain seated in front of the camera at all times.<br>
+          • Mobile phones, secondary devices, or external assistance are strictly prohibited.<br>
           • Do not exit full-screen mode or switch windows.<br>
           <strong style="color:#ef4444;">3 warnings will automatically disqualify you and terminate the interview.</strong>
         </div>
