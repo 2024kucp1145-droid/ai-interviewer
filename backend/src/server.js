@@ -302,7 +302,9 @@ app.post('/jobs', requireAuth, (req, res) => {
       assessment_rules = '',
       leetcode_problem = '',
       compiler_languages = 'javascript,python,sql',
-      category = 'Software & Tech'
+      category = 'Software & Tech',
+      show_timer = 1,
+      auto_submit_timer = 1
     } = req.body;
 
     if (!title || !jd_text) {
@@ -328,9 +330,10 @@ app.post('/jobs', requireAuth, (req, res) => {
       INSERT INTO jobs (
         id, org_id, title, jd_text, skills, qualifications, level, max_minutes, max_questions,
         interview_type, question_mode, custom_questions, terminal_required, word_editor_required, resume_required,
-        purpose, experience_required, assessment_rules, leetcode_problem, compiler_languages, category
+        purpose, experience_required, assessment_rules, leetcode_problem, compiler_languages, category,
+        show_timer, auto_submit_timer
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       jobId, 
       req.user.org_id, 
@@ -352,7 +355,9 @@ app.post('/jobs', requireAuth, (req, res) => {
       assessment_rules ? assessment_rules.trim() : '',
       leetcode_problem ? leetcode_problem.trim() : '',
       compiler_languages,
-      category || 'Software & Tech'
+      category || 'Software & Tech',
+      show_timer ? 1 : 0,
+      auto_submit_timer ? 1 : 0
     );
 
     const created = db.prepare('SELECT * FROM jobs WHERE id = ?').get(jobId);
@@ -406,7 +411,9 @@ app.put('/jobs/:id', requireAuth, (req, res) => {
       assessment_rules = '',
       leetcode_problem = '',
       compiler_languages = 'javascript,python,sql',
-      category = 'Software & Tech'
+      category = 'Software & Tech',
+      show_timer = 1,
+      auto_submit_timer = 1
     } = req.body;
 
     if (!title) {
@@ -433,7 +440,9 @@ app.put('/jobs/:id', requireAuth, (req, res) => {
         assessment_rules = ?,
         leetcode_problem = ?,
         compiler_languages = ?,
-        category = ?
+        category = ?,
+        show_timer = ?,
+        auto_submit_timer = ?
       WHERE id = ? AND org_id = ?
     `).run(
       title.trim(),
@@ -455,6 +464,8 @@ app.put('/jobs/:id', requireAuth, (req, res) => {
       leetcode_problem ? leetcode_problem.trim() : '',
       compiler_languages,
       category || existing.category || 'Software & Tech',
+      show_timer !== undefined ? (show_timer ? 1 : 0) : (existing.show_timer ?? 1),
+      auto_submit_timer !== undefined ? (auto_submit_timer ? 1 : 0) : (existing.auto_submit_timer ?? 1),
       jobId,
       req.user.org_id
     );
@@ -656,6 +667,7 @@ app.get('/public/jobs/:id', (req, res) => {
       SELECT 
         j.id, j.title, j.category, j.purpose, j.experience_required, j.skills, 
         j.qualifications, j.jd_text, j.max_minutes, j.max_questions,
+        j.show_timer, j.auto_submit_timer,
         j.terminal_required, j.word_editor_required, j.resume_required,
         j.question_mode, j.assessment_rules, j.leetcode_problem, j.compiler_languages,
         o.name as company_name, o.industry as company_industry
@@ -729,6 +741,7 @@ app.get('/i/:token', (req, res) => {
       SELECT 
         i.id, i.state, i.expires_at, i.link_timer_minutes,
         j.id as job_id, j.title as job_title, j.skills, j.qualifications, j.level, j.max_minutes, j.max_questions,
+        j.show_timer, j.auto_submit_timer,
         j.interview_type, j.question_mode, j.terminal_required, j.word_editor_required, j.resume_required,
         j.purpose, j.experience_required, j.assessment_rules, j.leetcode_problem, j.compiler_languages,
         c.name as candidate_name, c.email as candidate_email, c.resume_text

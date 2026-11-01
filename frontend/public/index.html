@@ -1245,6 +1245,58 @@
 
             <input type="hidden" id="wiz-purpose-input" value="job">
 
+            <!-- ⏱️ STEP 1: INTERVIEW DURATION & CANDIDATE TIMER SETUP -->
+            <div style="margin-top: 1.5rem; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <strong style="font-size: 0.85rem; color: var(--text); display: flex; align-items: center; gap: 0.4rem;">
+                  <i class="bi bi-clock-history"></i> Candidate Interview Duration &amp; Timer:
+                </strong>
+                <span class="badge badge-dark" id="wiz-step1-duration-badge" style="font-size: 0.725rem;">15 Minutes (Standard)</span>
+              </div>
+              <p style="font-size: 0.725rem; color: var(--text-muted); margin-bottom: 0.85rem;">
+                Set the exact time limit for each candidate's interview session. The countdown timer will actively track and enforce this during the round.
+              </p>
+
+              <!-- One-Click Preset Chips -->
+              <div style="display: flex; flex-wrap: wrap; gap: 0.45rem; margin-bottom: 1rem;">
+                <button type="button" class="btn btn-sm btn-outline duration-pill-btn" data-mins="5" onclick="selectWizardDuration(5)">5 Min</button>
+                <button type="button" class="btn btn-sm btn-outline duration-pill-btn" data-mins="10" onclick="selectWizardDuration(10)">10 Min</button>
+                <button type="button" class="btn btn-sm duration-pill-btn active" data-mins="15" onclick="selectWizardDuration(15)" style="background:#000; color:#fff;">15 Min (Standard)</button>
+                <button type="button" class="btn btn-sm btn-outline duration-pill-btn" data-mins="20" onclick="selectWizardDuration(20)">20 Min</button>
+                <button type="button" class="btn btn-sm btn-outline duration-pill-btn" data-mins="30" onclick="selectWizardDuration(30)">30 Min</button>
+                <button type="button" class="btn btn-sm btn-outline duration-pill-btn" data-mins="45" onclick="selectWizardDuration(45)">45 Min</button>
+                <button type="button" class="btn btn-sm btn-outline duration-pill-btn" data-mins="60" onclick="selectWizardDuration(60)">60 Min (1 Hour)</button>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: center; border-top: 1px solid var(--border); padding-top: 0.85rem;">
+                <div>
+                  <label style="font-size: 0.725rem; font-weight: 600; color: var(--text); display: block; margin-bottom: 0.35rem;">
+                    Custom Duration (3 - 120 Minutes):
+                  </label>
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <input type="number" id="wiz-custom-duration-input" min="3" max="120" value="15" oninput="selectWizardDuration(this.value)" style="width: 100px; padding: 0.4rem 0.6rem; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 5px; background: var(--surface); color: var(--text);">
+                    <span style="font-size: 0.775rem; color: var(--text-muted); font-weight: 500;">Minutes per candidate</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label style="font-size: 0.725rem; font-weight: 600; color: var(--text); display: block; margin-bottom: 0.35rem;">
+                    Timer Enforcement Options:
+                  </label>
+                  <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                    <label style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.75rem; cursor: pointer; color: var(--text); margin: 0;">
+                      <input type="checkbox" id="wiz-timer-display-toggle" checked onchange="syncTimerSettings()">
+                      <span><i class="bi bi-stopwatch"></i> Display live countdown clock to candidate</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.75rem; cursor: pointer; color: var(--text); margin: 0;">
+                      <input type="checkbox" id="wiz-timer-autosubmit-toggle" checked onchange="syncTimerSettings()">
+                      <span><i class="bi bi-alarm-fill"></i> Auto-conclude and submit when timer reaches 00:00</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
               <button type="button" class="btn" onclick="goToWizardStep(2)">
                 Next: Qualifications & Experience <i class="bi bi-arrow-right"></i>
@@ -1648,6 +1700,16 @@
               </div>
             </div>
 
+            <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1rem; margin-top: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.75rem; font-weight: 600; color: var(--text);">
+                <i class="bi bi-stopwatch"></i> Active Countdown Timer Status:
+              </span>
+              <div style="display: flex; gap: 1rem; font-size: 0.75rem;">
+                <span id="step7-timer-display-badge" style="color: #16a34a; font-weight: 600;"><i class="bi bi-check-circle-fill"></i> Live Clock Visible to Candidate</span>
+                <span id="step7-timer-autosubmit-badge" style="color: #16a34a; font-weight: 600;"><i class="bi bi-check-circle-fill"></i> Auto-Submit on Expiry Active</span>
+              </div>
+            </div>
+
             <!-- Configuration Summary Review Card -->
             <div style="background: var(--surface-subtle); border: 2px solid var(--border-dark); border-radius: 8px; padding: 1.25rem; margin: 1.25rem 0;">
               <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--text); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.35rem;">
@@ -1670,6 +1732,14 @@
                 <div>
                   <span style="color: var(--text-muted);">Experience Tier:</span>
                   <strong style="color: var(--text); display: block;" id="sum-experience">0-1 Yrs</strong>
+                </div>
+                <div>
+                  <span style="color: var(--text-muted);">Session Duration:</span>
+                  <strong style="color: var(--text); display: block;" id="sum-duration">15 Minutes</strong>
+                </div>
+                <div>
+                  <span style="color: var(--text-muted);">Timer &amp; Auto-Submit:</span>
+                  <strong style="color: var(--text); display: block;" id="sum-timer-mode">Live Countdown + Auto-Submit</strong>
                 </div>
                 <div>
                   <span style="color: var(--text-muted);">DSA / LeetCode Problem:</span>

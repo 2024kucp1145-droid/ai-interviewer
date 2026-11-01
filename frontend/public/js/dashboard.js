@@ -998,6 +998,12 @@ window.startInterviewCreationWizard = function() {
   document.getElementById('view-interview-dashboard').style.display = 'none';
   document.getElementById('view-interview-wizard').style.display = 'block';
   const maxQEl = document.getElementById('wiz-max-questions'); if (maxQEl) maxQEl.value = '6';
+  selectWizardDuration(15);
+  const dispToggle = document.getElementById('wiz-timer-display-toggle');
+  if (dispToggle) dispToggle.checked = true;
+  const autoToggle = document.getElementById('wiz-timer-autosubmit-toggle');
+  if (autoToggle) autoToggle.checked = true;
+  syncTimerSettings();
   goToWizardStep(1);
   updateLeetCodePreview();
 };
@@ -1101,10 +1107,20 @@ window.editInterview = async function(jobId) {
     toggleDsaSection();
     updateLeetCodePreview();
 
-    // 7. Target Duration
-    document.getElementById('wiz-target-duration').value = String(job.max_minutes || 15);
+    // 7. Target Duration & Timer Enforcement
+    selectWizardDuration(job.max_minutes || 15);
     const maxQEl = document.getElementById('wiz-max-questions');
     if (maxQEl) maxQEl.value = String(job.max_questions || 6);
+
+    const dispToggle = document.getElementById('wiz-timer-display-toggle');
+    if (dispToggle) dispToggle.checked = job.show_timer !== 0;
+    const autoToggle = document.getElementById('wiz-timer-autosubmit-toggle');
+    if (autoToggle) autoToggle.checked = job.auto_submit_timer !== 0;
+    const linkTimerEl = document.getElementById('wiz-link-timer');
+    if (linkTimerEl && job.link_timer_minutes) {
+      linkTimerEl.value = String(job.link_timer_minutes);
+    }
+    syncTimerSettings();
 
     // Update UI for Edit Mode
     const modeBadge = document.getElementById('wizard-mode-badge');
@@ -1332,6 +1348,28 @@ function updateWizardSummaryReview() {
   document.getElementById('sum-dsa').textContent = dsaText;
   document.getElementById('sum-skills').textContent = skills;
   document.getElementById('sum-tools').textContent = tools.join(' · ') || 'Standard Voice & Audio Screening';
+
+  const durVal = parseInt(document.getElementById('wiz-target-duration')?.value || '15', 10);
+  const showTimer = document.getElementById('wiz-timer-display-toggle')?.checked;
+  const autoSubmit = document.getElementById('wiz-timer-autosubmit-toggle')?.checked;
+
+  const sumDur = document.getElementById('sum-duration');
+  if (sumDur) sumDur.textContent = `${durVal} Minutes`;
+
+  const sumTimerMode = document.getElementById('sum-timer-mode');
+  if (sumTimerMode) {
+    if (showTimer && autoSubmit) {
+      sumTimerMode.textContent = 'Live Countdown + Strict Auto-Submit';
+    } else if (showTimer && !autoSubmit) {
+      sumTimerMode.textContent = 'Live Countdown (Soft Limit)';
+    } else if (!showTimer && autoSubmit) {
+      sumTimerMode.textContent = 'Hidden Timer + Auto-Submit';
+    } else {
+      sumTimerMode.textContent = 'Untimed / Open Session';
+    }
+  }
+
+  syncTimerSettings();
 }
 
 // Wizard Final Form Submission
@@ -1379,6 +1417,9 @@ window.handleWizardFinalSubmit = async function(e) {
   }
 
   const max_minutes = parseInt(document.getElementById('wiz-target-duration').value, 10) || 15;
+  const show_timer = document.getElementById('wiz-timer-display-toggle')?.checked ? 1 : 0;
+  const auto_submit_timer = document.getElementById('wiz-timer-autosubmit-toggle')?.checked ? 1 : 0;
+  const link_timer_minutes = parseInt(document.getElementById('wiz-link-timer')?.value, 10) || 60;
   const interview_type = terminal_required ? 'coding' : (word_editor_required ? 'written' : 'technical');
   const category = document.getElementById('role-category-select')?.value || 'Software & Tech';
 
@@ -1408,7 +1449,10 @@ window.handleWizardFinalSubmit = async function(e) {
         level: 'junior',
         max_minutes,
         max_questions,
-        category
+        category,
+        show_timer,
+        auto_submit_timer,
+        link_timer_minutes
       })
     });
 
@@ -1588,7 +1632,7 @@ function renderDashboardJobsList(jobs) {
 
         <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:0.5rem; font-size:0.7rem; color:var(--text-muted);">
           <div style="display:flex; gap:0.75rem; align-items:center;">
-            <span><i class="bi bi-clock"></i> ${j.max_minutes} Mins</span>
+            <span><i class="bi bi-clock"></i> ${j.max_minutes} Mins${j.show_timer === 0 ? ' (Untimed)' : ' (Timed)'}</span>
             <span><i class="bi bi-question-circle"></i> ${j.max_questions || 6} Questions</span>
             <span><i class="bi bi-gear"></i> ${j.question_mode === 'custom_questions' ? 'Custom Questions' : 'Adaptive AI'}</span>
             <span>${tools.join(' · ')}</span>
@@ -2455,14 +2499,112 @@ const DURATION_QUESTION_MAP = {
   60: 18
 };
 
-window.handleWizardDurationChange = function() {
-  const durVal = parseInt(document.getElementById('wiz-target-duration')?.value || '15', 10);
+window.selectWizardDuration = function(mins) {
+  let m = parseInt(mins, 10);
+  if (isNaN(m) || m <= 0) m = 15;
+  if (m > 180) m = 180;
+
+  // 1. Update target duration select if present
+  const targetSelect = document.getElementById('wiz-target-duration');
+  if (targetSelect) {
+    let opt = Array.from(targetSelect.options).find(o => parseInt(o.value, 10) === m);
+    if (!opt) {
+      opt = document.createElement('option');
+      opt.value = String(m);
+      opt.textContent = `${m} Minutes (Custom)`;
+      targetSelect.appendChild(opt);
+    }
+    targetSelect.value = String(m);
+  }
+
+  // 2. Update custom duration input if not matching
+  const customInput = document.getElementById('wiz-custom-duration-input');
+  if (customInput && parseInt(customInput.value, 10) !== m) {
+    customInput.value = m;
+  }
+
+  // 3. Highlight preset pill buttons
+  document.querySelectorAll('.duration-pill-btn').forEach(btn => {
+    const btnMins = parseInt(btn.getAttribute('data-mins'), 10);
+    if (btnMins === m) {
+      btn.classList.add('active');
+      btn.style.background = '#000';
+      btn.style.color = '#fff';
+    } else {
+      btn.classList.remove('active');
+      btn.style.background = 'transparent';
+      btn.style.color = 'var(--text)';
+    }
+  });
+
+  // 4. Update Step 1 badge
+  const badge = document.getElementById('wiz-step1-duration-badge');
+  if (badge) {
+    badge.textContent = `${m} Minutes${m === 15 ? ' (Standard)' : ''}`;
+  }
+
+  // 5. Update summary review
+  const sumDur = document.getElementById('sum-duration');
+  if (sumDur) {
+    sumDur.textContent = `${m} Minutes`;
+  }
+
+  // 6. Recalculate recommended questions based on duration
   const qInput = document.getElementById('wiz-max-questions');
   if (qInput) {
-    const recommended = DURATION_QUESTION_MAP[durVal] || Math.max(2, Math.round(durVal / 3));
+    const recommended = DURATION_QUESTION_MAP[m] || Math.max(2, Math.round(m / 3));
     qInput.value = recommended;
   }
   refreshQuestionsPreview();
+};
+
+window.syncTimerSettings = function() {
+  const displayToggle = document.getElementById('wiz-timer-display-toggle');
+  const autosubmitToggle = document.getElementById('wiz-timer-autosubmit-toggle');
+
+  const showTimer = displayToggle ? displayToggle.checked : true;
+  const autoSubmit = autosubmitToggle ? autosubmitToggle.checked : true;
+
+  const displayBadge = document.getElementById('step7-timer-display-badge');
+  const autosubmitBadge = document.getElementById('step7-timer-autosubmit-badge');
+
+  if (displayBadge) {
+    if (showTimer) {
+      displayBadge.style.color = '#16a34a';
+      displayBadge.innerHTML = '<i class="bi bi-check-circle-fill"></i> Live Clock Visible to Candidate';
+    } else {
+      displayBadge.style.color = '#e11d48';
+      displayBadge.innerHTML = '<i class="bi bi-dash-circle"></i> Live Clock Hidden from Candidate';
+    }
+  }
+
+  if (autosubmitBadge) {
+    if (autoSubmit) {
+      autosubmitBadge.style.color = '#16a34a';
+      autosubmitBadge.innerHTML = '<i class="bi bi-check-circle-fill"></i> Auto-Submit on Expiry Active';
+    } else {
+      autosubmitBadge.style.color = '#f59e0b';
+      autosubmitBadge.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i> Grace Period Allowed (No Auto-Submit)';
+    }
+  }
+
+  const sumTimerMode = document.getElementById('sum-timer-mode');
+  if (sumTimerMode) {
+    if (showTimer && autoSubmit) {
+      sumTimerMode.textContent = 'Live Countdown + Strict Auto-Submit';
+    } else if (showTimer && !autoSubmit) {
+      sumTimerMode.textContent = 'Live Countdown (Soft Limit)';
+    } else if (!showTimer && autoSubmit) {
+      sumTimerMode.textContent = 'Hidden Timer + Auto-Submit';
+    } else {
+      sumTimerMode.textContent = 'Untimed / Open Session';
+    }
+  }
+};
+
+window.handleWizardDurationChange = function() {
+  const durVal = parseInt(document.getElementById('wiz-target-duration')?.value || '15', 10);
+  selectWizardDuration(durVal);
 };
 
 window.handleWizardQuestionCountChange = function() {

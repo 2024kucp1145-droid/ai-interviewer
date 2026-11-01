@@ -213,7 +213,11 @@ export function initDatabase() {
   addColumn('jobs', 'category', "TEXT DEFAULT 'Software & Tech'");
 
   // Timer & link duration
+  addColumn('jobs', 'show_timer', 'INTEGER DEFAULT 1');
+  addColumn('jobs', 'auto_submit_timer', 'INTEGER DEFAULT 1');
   addColumn('interviews', 'link_timer_minutes', 'INTEGER DEFAULT 60');
+  addColumn('interviews', 'show_timer', 'INTEGER DEFAULT 1');
+  addColumn('interviews', 'auto_submit_timer', 'INTEGER DEFAULT 1');
 
   // AI Proctoring & Anti-Cheating
   addColumn('interviews', 'proctor_warnings', 'INTEGER DEFAULT 0');

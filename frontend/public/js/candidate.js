@@ -70,44 +70,73 @@ const voice = new VoiceManager({
   }
 });
 
-// Setup Link Expiration Timer Countdown
-function startCountdownTimer(expiresAtIso) {
-  if (countdownTimerId) clearInterval(countdownTimerId);
-  if (!expiresAtIso) return;
+// Setup Active Interview Session Countdown Timer
+let activeTimerSecondsRemaining = 0;
+let hasWarnedOneMinute = false;
 
-  const targetTime = new Date(expiresAtIso).getTime();
+function startInterviewDurationTimer(minutes, showTimer = true, autoSubmit = true) {
+  if (countdownTimerId) clearInterval(countdownTimerId);
+  hasWarnedOneMinute = false;
+
+  const totalMinutes = Math.max(1, parseInt(minutes, 10) || 15);
+  activeTimerSecondsRemaining = totalMinutes * 60;
+
+  const roomBadge = document.getElementById('session-timer-badge');
+  if (!showTimer) {
+    if (headerTimer) headerTimer.style.display = 'none';
+    if (roomBadge) roomBadge.style.display = 'none';
+  } else {
+    if (headerTimer) headerTimer.style.display = 'inline-flex';
+    if (roomBadge) roomBadge.style.display = 'inline-flex';
+  }
+
+  function renderClock(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }
 
   function update() {
-    const now = Date.now();
-    const diff = targetTime - now;
+    activeTimerSecondsRemaining--;
 
-    if (diff <= 0) {
+    if (activeTimerSecondsRemaining <= 0) {
       clearInterval(countdownTimerId);
       if (headerTimerClock) headerTimerClock.textContent = '00:00';
       if (roomTimerText) roomTimerText.textContent = '00:00';
-      alert('Your interview session link has expired. The interview will now be concluded and submitted.');
-      finishInterview();
+
+      if (autoSubmit) {
+        alert(`⏱️ Time Limit Reached: The ${totalMinutes}-minute interview session has concluded. Your answers will now be evaluated.`);
+        finishInterview();
+      }
       return;
     }
 
-    const totalSeconds = Math.floor(diff / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
+    const clockStr = renderClock(activeTimerSecondsRemaining);
+    if (headerTimerClock) headerTimerClock.textContent = clockStr;
+    if (roomTimerText) roomTimerText.textContent = clockStr;
 
-    let timeString = '';
-    if (hours > 0) {
-      timeString = `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    } else {
-      timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    // 1-minute remaining alert
+    if (activeTimerSecondsRemaining <= 60) {
+      if (headerTimer) {
+        headerTimer.style.borderColor = '#ef4444';
+        headerTimer.style.color = '#ef4444';
+      }
+      if (roomBadge) {
+        roomBadge.style.borderColor = '#ef4444';
+        roomBadge.style.color = '#ef4444';
+      }
+      if (!hasWarnedOneMinute) {
+        hasWarnedOneMinute = true;
+        console.warn('[Timer] 1 minute remaining in interview');
+      }
     }
-
-    if (headerTimerClock) headerTimerClock.textContent = timeString;
-    if (roomTimerText) roomTimerText.textContent = timeString;
-    if (headerTimer) headerTimer.style.display = 'inline-flex';
   }
 
-  update();
+  // Initial display
+  const initialClock = renderClock(activeTimerSecondsRemaining);
+  if (headerTimerClock) headerTimerClock.textContent = initialClock;
+  if (roomTimerText) roomTimerText.textContent = initialClock;
+
   countdownTimerId = setInterval(update, 1000);
 }
 
@@ -503,9 +532,10 @@ async function loadInterviewData() {
       jobTitleBadge.textContent = `${interviewData.job_title} · Candidate: ${interviewData.candidate_name}`;
     }
 
-    // Start timer countdown if expiration timestamp exists
-    if (interviewData.expires_at) {
-      startCountdownTimer(interviewData.expires_at);
+    // Update duration info badges
+    const durBadge = document.getElementById('reg-duration-badge');
+    if (durBadge) {
+      durBadge.textContent = `${interviewData.max_minutes || 15} Mins · ${interviewData.max_questions || 6} Questions`;
     }
 
     // Configure candidate room tools (Terminal Sandbox / Word Document Pad / DSA LeetCode)
@@ -817,6 +847,12 @@ function showInterviewRoom() {
   consentScreen.style.display = 'none';
   micScreen.style.display = 'none';
   interviewRoomWrapper.style.display = 'block';
+
+  // Start active countdown timer for configured duration
+  const durationMins = parseInt(interviewData?.max_minutes, 10) || 15;
+  const showTimer = interviewData?.show_timer !== 0;
+  const autoSubmit = interviewData?.auto_submit_timer !== 0;
+  startInterviewDurationTimer(durationMins, showTimer, autoSubmit);
 }
 
 function setRecordingUI(recording) {
