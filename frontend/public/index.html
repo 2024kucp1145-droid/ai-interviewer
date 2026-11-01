@@ -1897,72 +1897,205 @@
 
     <!-- TAB 4: Usage & Pricing -->
     <div id="tab-metrics" class="tab-pane" style="display: none;">
-      <div class="grid-4" style="margin-bottom: 1.25rem;">
-        <div class="metric-card">
-          <div class="metric-sub">Total Interviews</div>
-          <div id="metric-interviews" class="metric-val">0</div>
-          <div style="font-size: 0.7rem; color: var(--text-muted);">Completed candidate runs</div>
+
+      <!-- SECTION HEADER -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+        <div>
+          <h2 style="font-size:1.15rem; font-weight:700; color:#000; letter-spacing:-0.02em;">Usage &amp; Billing</h2>
+          <p style="font-size:0.775rem; color:var(--text-muted); margin-top:0.15rem;">Monitor interview credits, purchase more, or upgrade your subscription plan.</p>
         </div>
-        <div class="metric-card">
-          <div class="metric-sub">Input Tokens</div>
-          <div id="metric-in-tokens" class="metric-val">0</div>
-          <div style="font-size: 0.7rem; color: var(--text-muted);">Prompt context & history</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-sub">Output Tokens</div>
-          <div id="metric-out-tokens" class="metric-val">0</div>
-          <div style="font-size: 0.7rem; color: var(--text-muted);">Generated questions & reports</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-sub">Estimated AI Cost</div>
-          <div id="metric-cost" class="metric-val">â‚¹0.00</div>
-          <div style="font-size: 0.7rem; color: var(--text-muted);">Based on standard rates</div>
+        <button class="btn btn-sm" onclick="switchBillingTab('ppu')">
+          <i class="bi bi-plus-circle"></i> Buy Credits
+        </button>
+      </div>
+
+      <!-- CREDIT BALANCE STRIP -->
+      <div class="card" style="margin-bottom:1.25rem;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:0; divide-x:1px;">
+          <div style="padding:0.25rem 1rem 0.25rem 0; border-right:1px solid var(--border); margin-right:1.5rem;">
+            <div style="font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); margin-bottom:0.3rem;">Credits Remaining</div>
+            <div style="font-size:2rem; font-weight:800; letter-spacing:-0.03em;" id="billing-credits-remaining">—</div>
+            <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.1rem;" id="billing-plan-label">Loading…</div>
+          </div>
+          <div style="padding:0.25rem 1rem; border-right:1px solid var(--border); margin-right:1.5rem;">
+            <div style="font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); margin-bottom:0.3rem;">Current Plan</div>
+            <div style="font-size:1.1rem; font-weight:700;" id="billing-plan-name">—</div>
+            <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.1rem;" id="billing-expiry-label"></div>
+          </div>
+          <div style="padding:0.25rem 1rem; border-right:1px solid var(--border); margin-right:1.5rem;">
+            <div style="font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); margin-bottom:0.3rem;">Interviews Done</div>
+            <div id="metric-interviews" class="metric-val" style="font-size:2rem; font-weight:800; letter-spacing:-0.03em;">0</div>
+            <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.1rem;">Candidate runs finished</div>
+          </div>
+          <div style="padding:0.25rem 0 0.25rem 0;">
+            <div style="font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); margin-bottom:0.3rem;">AI Cost (Est.)</div>
+            <div id="metric-cost" class="metric-val" style="font-size:2rem; font-weight:800; letter-spacing:-0.03em;">$0.00</div>
+            <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.1rem;">Based on token usage</div>
+          </div>
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-title">
-          <span><i class="bi bi-credit-card"></i> SaaS Plans (Pilot Pricing)</span>
-        </div>
-        <div class="grid-3">
-          <div style="border: 1px solid var(--border); padding: 1.25rem; border-radius: 6px; background: #fff;">
-            <h4 style="font-size: 0.875rem;">Starter Plan</h4>
-            <div style="font-size: 1.35rem; font-weight: 700; margin: 0.35rem 0;">â‚¹599<span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 400;">/mo</span></div>
-            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">10 interviews included + â‚¹50-99 per extra.</p>
-            <ul style="font-size: 0.725rem; line-height: 1.6; color: #52525b; list-style: square; padding-left: 1rem;">
-              <li>Junior roles (Python, Java, C++, SQL)</li>
-              <li>Voice & Hinglish screening</li>
-              <li>Evidence-backed reports</li>
-            </ul>
-          </div>
+      <!-- INNER TAB BAR -->
+      <div style="display:flex; gap:0.35rem; margin-bottom:1.25rem; border-bottom:1px solid var(--border); padding-bottom:0.65rem;">
+        <button class="nav-btn active" id="btab-ppu" onclick="switchBillingTab('ppu')">
+          <i class="bi bi-lightning-charge"></i> Pay Per Interview
+        </button>
+        <button class="nav-btn" id="btab-sub" onclick="switchBillingTab('sub')">
+          <i class="bi bi-calendar-check"></i> Monthly / Subscription
+        </button>
+        <button class="nav-btn" id="btab-history" onclick="switchBillingTab('history'); loadBillingHistory()">
+          <i class="bi bi-clock-history"></i> Order History
+        </button>
+      </div>
 
-          <div style="border: 2px solid #000; padding: 1.25rem; border-radius: 6px; background: #fff;">
-            <div style="display: flex; justify-content: space-between;">
-              <h4 style="font-size: 0.875rem;">Growth Plan</h4>
-              <span class="badge badge-dark">Most Popular</span>
+      <!-- PAY-PER-INTERVIEW CONTENT -->
+      <div id="btab-content-ppu">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; align-items:start;">
+
+          <!-- Configurator -->
+          <div class="card" style="margin-bottom:0;">
+            <div class="card-title"><span><i class="bi bi-sliders"></i> Configure Order</span></div>
+
+            <label style="font-size:0.75rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:.04em;">Interview Duration</label>
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:0.45rem; margin-bottom:1rem;" id="dur-grid"></div>
+
+            <label style="font-size:0.75rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:0.4rem; text-transform:uppercase; letter-spacing:.04em;">Number of Interviews</label>
+            <input type="number" id="ppu-qty" value="1" min="1" max="9999" style="width:100%; margin-bottom:1rem;" oninput="updatePPUQuote()">
+
+            <div id="ppu-bulk-notice" style="display:none; background:var(--surface-subtle); border:1px solid var(--border); border-radius:6px; padding:0.6rem 0.85rem; font-size:0.775rem; margin-bottom:0.85rem; color:var(--text-muted);">
+              <i class="bi bi-gift"></i> <span id="ppu-bulk-text"></span>
             </div>
-            <div style="font-size: 1.35rem; font-weight: 700; margin: 0.35rem 0;">â‚¹1,999<span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 400;">/mo</span></div>
-            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">50 interviews included + 3 recruiter seats.</p>
-            <ul style="font-size: 0.725rem; line-height: 1.6; color: #52525b; list-style: square; padding-left: 1rem;">
-              <li>All Starter features</li>
-              <li>BYOK custom provider key</li>
-              <li>CSV & PDF exports</li>
-            </ul>
+
+            <div style="background:var(--surface-subtle); border:1px solid var(--border); border-radius:6px; padding:0.85rem 1rem; margin-bottom:1rem; font-size:0.8rem;">
+              <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;">
+                <span style="color:var(--text-muted);">Price per interview</span><span id="q-price-per" style="font-weight:600;">$1.00</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;">
+                <span style="color:var(--text-muted);">Quantity</span><span id="q-qty-show" style="font-weight:600;">1</span>
+              </div>
+              <div id="q-free-row" style="display:none; justify-content:space-between; margin-bottom:0.4rem;">
+                <span style="color:var(--text-muted);">Free interviews 🎁</span><span id="q-free-count" style="font-weight:600; color:#16a34a;">+0</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;">
+                <span style="color:var(--text-muted);">Billed for</span><span id="q-billed" style="font-weight:600;">1 interview</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; border-top:1px solid var(--border); padding-top:0.55rem; margin-top:0.55rem;">
+                <span style="font-weight:700;">Total</span><span id="q-total" style="font-weight:800; font-size:1.05rem;">$1.00</span>
+              </div>
+            </div>
+
+            <button class="btn" style="width:100%;" onclick="openBillingCheckout('ppu')">
+              <i class="bi bi-credit-card"></i> Proceed to Checkout
+            </button>
           </div>
 
-          <div style="border: 1px solid var(--border); padding: 1.25rem; border-radius: 6px; background: #fff;">
-            <h4 style="font-size: 0.875rem;">Agency Plan</h4>
-            <div style="font-size: 1.35rem; font-weight: 700; margin: 0.35rem 0;">â‚¹4,999<span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 400;">/mo</span></div>
-            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">200 interviews included for bulk staffing.</p>
-            <ul style="font-size: 0.725rem; line-height: 1.6; color: #52525b; list-style: square; padding-left: 1rem;">
-              <li>High-volume link generation</li>
-              <li>Agency branding on reports</li>
-              <li>Priority technical support</li>
-            </ul>
+          <!-- Price table + bulk rule -->
+          <div>
+            <div class="card" style="margin-bottom:1.25rem;">
+              <div class="card-title"><span><i class="bi bi-table"></i> Pricing by Duration</span></div>
+              <table style="width:100%; border-collapse:collapse; font-size:0.8rem;">
+                <thead>
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <th style="text-align:left; padding:0.5rem; color:var(--text-muted); font-weight:600; font-size:0.72rem; text-transform:uppercase;">Duration</th>
+                    <th style="text-align:right; padding:0.5rem; color:var(--text-muted); font-weight:600; font-size:0.72rem; text-transform:uppercase;">Per Interview</th>
+                    <th style="text-align:right; padding:0.5rem; color:var(--text-muted); font-weight:600; font-size:0.72rem; text-transform:uppercase;">Hourly Rate</th>
+                  </tr>
+                </thead>
+                <tbody id="price-table-body"></tbody>
+              </table>
+            </div>
+
+            <div class="card" style="margin-bottom:0;">
+              <div class="card-title"><span><i class="bi bi-gift"></i> Bulk Discount — Auto Applied</span></div>
+              <p style="font-size:0.775rem; color:var(--text-muted); margin-bottom:0.85rem;">Every <strong style="color:var(--text);">10 interviews = 1 FREE</strong>. Applies to every multiple of 10. No codes needed.</p>
+              <table style="width:100%; border-collapse:collapse; font-size:0.8rem;">
+                <thead>
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <th style="text-align:left; padding:0.45rem; color:var(--text-muted); font-size:0.72rem; text-transform:uppercase;">You Buy</th>
+                    <th style="text-align:center; padding:0.45rem; color:var(--text-muted); font-size:0.72rem; text-transform:uppercase;">You Pay For</th>
+                    <th style="text-align:right; padding:0.45rem; color:var(--text-muted); font-size:0.72rem; text-transform:uppercase;">Free</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="border-bottom:1px solid var(--border);"><td style="padding:0.45rem;">10</td><td style="text-align:center;">9</td><td style="text-align:right; color:#16a34a; font-weight:700;">+1 🎁</td></tr>
+                  <tr style="border-bottom:1px solid var(--border);"><td style="padding:0.45rem;">20</td><td style="text-align:center;">18</td><td style="text-align:right; color:#16a34a; font-weight:700;">+2 🎁</td></tr>
+                  <tr style="border-bottom:1px solid var(--border);"><td style="padding:0.45rem;">50</td><td style="text-align:center;">45</td><td style="text-align:right; color:#16a34a; font-weight:700;">+5 🎁</td></tr>
+                  <tr><td style="padding:0.45rem;">100</td><td style="text-align:center;">90</td><td style="text-align:right; color:#16a34a; font-weight:700;">+10 🎁</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div><!-- /ppu content -->
+
+      <!-- SUBSCRIPTION CONTENT -->
+      <div id="btab-content-sub" style="display:none;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:1rem; margin-bottom:1.25rem;" id="sub-plans-grid"></div>
+
+        <div class="card">
+          <div class="card-title"><span><i class="bi bi-bar-chart-steps"></i> Full Plan Comparison</span></div>
+          <table style="width:100%; border-collapse:collapse; font-size:0.8rem;">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border);">
+                <th style="text-align:left; padding:0.5rem; color:var(--text-muted); font-size:0.72rem; text-transform:uppercase; font-weight:600;">Plan</th>
+                <th style="text-align:center; padding:0.5rem; color:var(--text-muted); font-size:0.72rem; text-transform:uppercase; font-weight:600;">Duration</th>
+                <th style="text-align:right; padding:0.5rem; color:var(--text-muted); font-size:0.72rem; text-transform:uppercase; font-weight:600;">Price</th>
+                <th style="text-align:right; padding:0.5rem; color:var(--text-muted); font-size:0.72rem; text-transform:uppercase; font-weight:600;">Interviews</th>
+                <th style="text-align:right; padding:0.5rem; color:var(--text-muted); font-size:0.72rem; text-transform:uppercase; font-weight:600;">Per Interview</th>
+                <th style="text-align:right; padding:0.5rem; color:var(--text-muted); font-size:0.72rem; text-transform:uppercase; font-weight:600;">You Save</th>
+              </tr>
+            </thead>
+            <tbody id="sub-compare-body"></tbody>
+          </table>
+        </div>
+      </div><!-- /sub content -->
+
+      <!-- ORDER HISTORY CONTENT -->
+      <div id="btab-content-history" style="display:none;">
+        <div class="card">
+          <div class="card-title"><span><i class="bi bi-receipt"></i> Order History</span></div>
+          <div id="billing-history-list">
+            <p style="font-size:0.8rem; color:var(--text-muted); text-align:center; padding:2rem 0;">Loading…</p>
+          </div>
+        </div>
+      </div><!-- /history content -->
+
+      <!-- CHECKOUT MODAL -->
+      <div id="billing-checkout-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-content" style="max-width:440px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <div style="display:flex; align-items:center; gap:0.4rem;">
+              <i class="bi bi-lock-fill" style="font-size:0.95rem;"></i>
+              <span style="font-size:0.9rem; font-weight:700; color:#000;">Complete Purchase</span>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="closeBillingModal()"><i class="bi bi-x-lg"></i></button>
+          </div>
+
+          <div style="background:var(--surface-subtle); border:1px solid var(--border); border-radius:6px; padding:0.85rem 1rem; margin-bottom:1rem; font-size:0.8rem;" id="checkout-summary"></div>
+
+          <div style="background:#fefce8; border:1px solid #fef08a; border-radius:6px; padding:0.6rem 0.85rem; font-size:0.775rem; color:#854d0e; margin-bottom:1rem; text-align:center;">
+            &#9889; Demo Mode — No real charge. Connect Stripe for production.
+          </div>
+
+          <div style="margin-bottom:0.85rem;">
+            <label>Card Number</label>
+            <input type="text" id="pay-card" placeholder="4242 4242 4242 4242" maxlength="19" oninput="fmtCard(this)">
+          </div>
+          <div class="grid-2" style="margin-bottom:1rem;">
+            <div><label>Expiry</label><input type="text" id="pay-exp" placeholder="MM / YY" maxlength="7" oninput="fmtExp(this)"></div>
+            <div><label>CVC</label><input type="text" id="pay-cvc" placeholder="123" maxlength="4"></div>
+          </div>
+          <div style="display:flex; gap:0.5rem;">
+            <button class="btn btn-outline" style="flex:1;" onclick="closeBillingModal()">Cancel</button>
+            <button class="btn" style="flex:2;" id="pay-btn" onclick="confirmBillingPayment()">
+              <i class="bi bi-check-circle"></i> Pay Now
+            </button>
           </div>
         </div>
       </div>
-    </div>
+
+    </div><!-- /tab-metrics -->
 
     <!-- TAB 5: Free Question Generator (Lead Magnet) -->
     <div id="tab-leadmagnet" class="tab-pane" style="display: none;">

@@ -2637,3 +2637,314 @@ window.closeQuestionsPreviewModal = function() {
   const modal = document.getElementById('modal-questions-preview');
   if (modal) modal.style.display = 'none';
 };
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BILLING & PRICING SECTION
+// ═══════════════════════════════════════════════════════════════════════════
+
+const DURATION_TIERS = [
+  { minutes: 10, priceUsd: 1.00, label: '10 min' },
+  { minutes: 20, priceUsd: 1.50, label: '20 min' },
+  { minutes: 30, priceUsd: 2.00, label: '30 min' },
+  { minutes: 40, priceUsd: 2.50, label: '40 min' },
+  { minutes: 50, priceUsd: 3.00, label: '50 min' },
+  { minutes: 60, priceUsd: 3.50, label: '60 min' },
+];
+
+const SUBSCRIPTION_PLANS = [
+  { id: 'monthly_1', label: '1 Month',  months: 1,  priceUsd: 100, includedInterviews: 150,  popular: false, savingsLabel: null },
+  { id: 'monthly_2', label: '2 Months', months: 2,  priceUsd: 160, includedInterviews: 280,  popular: false, savingsLabel: 'Save $40' },
+  { id: 'quarterly', label: '3 Months', months: 3,  priceUsd: 220, includedInterviews: 420,  popular: false, savingsLabel: 'Save $80' },
+  { id: 'biannual',  label: '6 Months', months: 6,  priceUsd: 450, includedInterviews: 900,  popular: true,  savingsLabel: 'Save $150' },
+  { id: 'annual',    label: '1 Year',   months: 12, priceUsd: 800, includedInterviews: 1800, popular: false, savingsLabel: 'Save $400' },
+];
+
+let billingSelectedDuration = 10;
+let billingCheckoutType = 'ppu';
+let billingCheckoutPlan = null;
+
+// ── Init billing UI when switching to metrics tab ─────────────────────────
+function initBillingTab() {
+  renderDurGrid();
+  renderPriceTable();
+  renderSubPlans();
+  renderSubCompare();
+  updatePPUQuote();
+  loadBillingBalance();
+}
+
+// ── Duration selector ─────────────────────────────────────────────────────
+function renderDurGrid() {
+  const grid = document.getElementById('dur-grid');
+  if (!grid) return;
+  grid.innerHTML = DURATION_TIERS.map(t => `
+    <button onclick="selectDuration(${t.minutes})" style="
+      padding:0.55rem 0.35rem; border-radius:5px; border:1.5px solid ${t.minutes === billingSelectedDuration ? '#000' : 'var(--border)'};
+      background:${t.minutes === billingSelectedDuration ? '#000' : 'var(--surface-subtle)'};
+      color:${t.minutes === billingSelectedDuration ? '#fff' : 'var(--text)'};
+      font-size:0.775rem; font-weight:${t.minutes === billingSelectedDuration ? '700' : '500'};
+      cursor:pointer; text-align:center; transition:all .15s;">
+      <div>${t.label}</div>
+      <div style="font-size:0.7rem; opacity:0.75; margin-top:2px;">$${t.priceUsd.toFixed(2)}</div>
+    </button>
+  `).join('');
+}
+
+window.selectDuration = function(minutes) {
+  billingSelectedDuration = minutes;
+  renderDurGrid();
+  renderPriceTable();
+  updatePPUQuote();
+};
+
+// ── Pricing table ─────────────────────────────────────────────────────────
+function renderPriceTable() {
+  const tbody = document.getElementById('price-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = DURATION_TIERS.map(t => {
+    const isSelected = t.minutes === billingSelectedDuration;
+    const hrRate = (t.priceUsd * (60 / t.minutes)).toFixed(2);
+    return `<tr style="border-bottom:1px solid var(--border); ${isSelected ? 'background:var(--surface-subtle);' : ''}">
+      <td style="padding:0.5rem;">
+        ${t.label}
+        ${isSelected ? '<span class="badge badge-dark" style="margin-left:0.35rem; font-size:0.65rem;">Selected</span>' : ''}
+      </td>
+      <td style="text-align:right; padding:0.5rem; font-weight:${isSelected ? '700' : '500'};">$${t.priceUsd.toFixed(2)}</td>
+      <td style="text-align:right; padding:0.5rem; color:var(--text-muted);">$${hrRate}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Quote calculator ──────────────────────────────────────────────────────
+window.updatePPUQuote = function() {
+  const qty = Math.max(1, parseInt(document.getElementById('ppu-qty')?.value) || 1);
+  const tier = DURATION_TIERS.find(t => t.minutes === billingSelectedDuration);
+  const freeInterviews = Math.floor(qty / 10);
+  const billedFor = qty - freeInterviews;
+  const totalUsd = (billedFor * tier.priceUsd).toFixed(2);
+
+  const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  const setStyle = (id, prop, val) => { const el = document.getElementById(id); if (el) el.style[prop] = val; };
+
+  setEl('q-price-per', `$${tier.priceUsd.toFixed(2)}`);
+  setEl('q-qty-show', qty);
+  setEl('q-billed', `${billedFor} interview${billedFor !== 1 ? 's' : ''}`);
+  setEl('q-total', `$${totalUsd}`);
+
+  const bulkNotice = document.getElementById('ppu-bulk-notice');
+  const freeRow = document.getElementById('q-free-row');
+
+  if (freeInterviews > 0) {
+    if (bulkNotice) bulkNotice.style.display = 'block';
+    document.getElementById('ppu-bulk-text').textContent =
+      `You get ${freeInterviews} FREE interview${freeInterviews > 1 ? 's' : ''} with this order! 🎉`;
+    if (freeRow) freeRow.style.display = 'flex';
+    setEl('q-free-count', `+${freeInterviews}`);
+  } else {
+    if (bulkNotice) bulkNotice.style.display = 'none';
+    if (freeRow) freeRow.style.display = 'none';
+  }
+};
+
+// ── Subscription plans ────────────────────────────────────────────────────
+function renderSubPlans() {
+  const grid = document.getElementById('sub-plans-grid');
+  if (!grid) return;
+  grid.innerHTML = SUBSCRIPTION_PLANS.map(p => {
+    const cpi = (p.priceUsd / p.includedInterviews).toFixed(2);
+    return `
+      <div onclick="selectSubPlan('${p.id}')" id="subcard-${p.id}" style="
+        border:${p.popular ? '2px solid #000' : '1px solid var(--border)'};
+        border-radius:8px; padding:1.1rem; background:var(--surface); cursor:pointer;
+        transition:all .15s; position:relative; text-align:center;">
+        ${p.popular ? '<span class="badge badge-dark" style="position:absolute;top:0.5rem;right:0.5rem;font-size:0.6rem;">Popular</span>' : ''}
+        <div style="font-size:0.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); margin-bottom:0.5rem;">${p.label}</div>
+        <div style="font-size:1.6rem; font-weight:800; letter-spacing:-0.03em; margin-bottom:0.2rem;">$${p.priceUsd}</div>
+        <div style="font-size:0.85rem; font-weight:600; margin-bottom:0.15rem;">${p.includedInterviews.toLocaleString()} Interviews</div>
+        <div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:0.5rem;">~$${cpi}/interview</div>
+        ${p.savingsLabel ? `<div style="font-size:0.72rem; color:#16a34a; font-weight:600; margin-bottom:0.5rem;">${p.savingsLabel}</div>` : '<div style="height:1rem;"></div>'}
+        <button class="btn btn-sm btn-outline" style="width:100%; font-size:0.75rem;" onclick="event.stopPropagation(); selectSubPlan('${p.id}')">
+          Get Started
+        </button>
+      </div>`;
+  }).join('');
+}
+
+window.selectSubPlan = function(planId) {
+  billingCheckoutPlan = SUBSCRIPTION_PLANS.find(p => p.id === planId);
+  // Highlight selected
+  SUBSCRIPTION_PLANS.forEach(p => {
+    const card = document.getElementById(`subcard-${p.id}`);
+    if (card) {
+      card.style.border = p.id === planId ? '2px solid #000' : (p.popular ? '2px solid #000' : '1px solid var(--border))');
+      card.style.background = p.id === planId ? 'var(--surface-subtle)' : 'var(--surface)';
+    }
+  });
+  openBillingCheckout('sub');
+};
+
+// ── Compare table ─────────────────────────────────────────────────────────
+function renderSubCompare() {
+  const tbody = document.getElementById('sub-compare-body');
+  if (!tbody) return;
+  tbody.innerHTML = SUBSCRIPTION_PLANS.map(p => {
+    const cpi = (p.priceUsd / p.includedInterviews).toFixed(3);
+    const saved = p.months > 1 ? `$${(p.months * 100 - p.priceUsd)}` : '—';
+    return `<tr style="border-bottom:1px solid var(--border); ${p.popular ? 'background:var(--surface-subtle);' : ''}">
+      <td style="padding:0.5rem;">
+        <strong>${p.label}</strong>
+        ${p.popular ? '<span class="badge badge-dark" style="margin-left:0.35rem; font-size:0.65rem;">Popular</span>' : ''}
+      </td>
+      <td style="text-align:center; padding:0.5rem;">${p.months} month${p.months > 1 ? 's' : ''}</td>
+      <td style="text-align:right; padding:0.5rem; font-weight:700;">$${p.priceUsd}</td>
+      <td style="text-align:right; padding:0.5rem;">${p.includedInterviews.toLocaleString()}</td>
+      <td style="text-align:right; padding:0.5rem; ${p.months === 12 ? 'color:#16a34a; font-weight:700;' : ''}">$${cpi}</td>
+      <td style="text-align:right; padding:0.5rem; color:#16a34a; font-weight:600;">${saved !== '—' ? saved + ' saved' : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Inner tab switcher ────────────────────────────────────────────────────
+window.switchBillingTab = function(tab) {
+  ['ppu', 'sub', 'history'].forEach(t => {
+    const btn = document.getElementById(`btab-${t}`);
+    const content = document.getElementById(`btab-content-${t}`);
+    if (btn) btn.classList.toggle('active', t === tab);
+    if (content) content.style.display = t === tab ? 'block' : 'none';
+  });
+};
+
+// ── Load balance from API ─────────────────────────────────────────────────
+async function loadBillingBalance() {
+  try {
+    const res = await apiRequest('/billing/balance');
+    if (!res.ok) return;
+    const data = await res.json();
+    const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setEl('billing-credits-remaining', (data.creditsRemaining || 0).toLocaleString());
+    setEl('billing-plan-name', data.plan ? data.plan.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Free Trial');
+    setEl('billing-plan-label', data.subscriptionPlan ? `${data.subscriptionPlan.label} Subscription` : 'Pay-as-you-go');
+    if (data.subscriptionExpiresAt) {
+      const exp = new Date(data.subscriptionExpiresAt).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+      setEl('billing-expiry-label', `Expires ${exp}`);
+    }
+  } catch (e) { /* silently fail */ }
+}
+
+// ── Load order history ────────────────────────────────────────────────────
+window.loadBillingHistory = async function() {
+  const listEl = document.getElementById('billing-history-list');
+  if (!listEl) return;
+  try {
+    const res = await apiRequest('/billing/history');
+    if (!res.ok) { listEl.innerHTML = '<p style="color:var(--text-muted);font-size:0.8rem;text-align:center;padding:2rem 0;">Sign in to view history.</p>'; return; }
+    const data = await res.json();
+    if (!data.orders || data.orders.length === 0) {
+      listEl.innerHTML = '<p style="color:var(--text-muted);font-size:0.8rem;text-align:center;padding:2rem 0;">No orders yet. Purchase interviews or a plan to get started.</p>';
+      return;
+    }
+    listEl.innerHTML = `
+      <table style="width:100%; border-collapse:collapse; font-size:0.8rem;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);">
+            <th style="text-align:left; padding:0.5rem; color:var(--text-muted); font-size:0.72rem; text-transform:uppercase;">Order ID</th>
+            <th style="text-align:left; padding:0.5rem; color:var(--text-muted); font-size:0.72rem; text-transform:uppercase;">Type</th>
+            <th style="text-align:right; padding:0.5rem; color:var(--text-muted); font-size:0.72rem; text-transform:uppercase;">Amount</th>
+            <th style="text-align:right; padding:0.5rem; color:var(--text-muted); font-size:0.72rem; text-transform:uppercase;">Status</th>
+            <th style="text-align:right; padding:0.5rem; color:var(--text-muted); font-size:0.72rem; text-transform:uppercase;">Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.orders.map(o => `
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:0.5rem; color:var(--text-muted); font-size:0.72rem;">${o.id.substring(0, 14)}…</td>
+              <td style="padding:0.5rem;">${o.type === 'pay_per_use' ? `${o.quantity} interviews (${o.duration_minutes}min)` : (o.plan_id ? o.plan_id.replace(/_/g,' ') : 'Subscription')}</td>
+              <td style="text-align:right; padding:0.5rem; font-weight:700;">$${parseFloat(o.amount_usd).toFixed(2)}</td>
+              <td style="text-align:right; padding:0.5rem;">
+                <span class="badge ${o.status === 'paid' ? 'badge-dark' : 'badge-outline'}" style="font-size:0.65rem;">${o.status}</span>
+              </td>
+              <td style="text-align:right; padding:0.5rem; color:var(--text-muted);">${new Date(o.created_at).toLocaleDateString('en-IN')}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+  } catch (e) {
+    listEl.innerHTML = '<p style="color:var(--text-muted);font-size:0.8rem;text-align:center;padding:1rem 0;">Could not load order history.</p>';
+  }
+};
+
+// ── Checkout modal ────────────────────────────────────────────────────────
+window.openBillingCheckout = function(type) {
+  billingCheckoutType = type;
+  const modal = document.getElementById('billing-checkout-modal');
+  const summary = document.getElementById('checkout-summary');
+  if (!modal || !summary) return;
+
+  if (type === 'ppu') {
+    const qty = Math.max(1, parseInt(document.getElementById('ppu-qty')?.value) || 1);
+    const tier = DURATION_TIERS.find(t => t.minutes === billingSelectedDuration);
+    const freeInterviews = Math.floor(qty / 10);
+    const billedFor = qty - freeInterviews;
+    const total = (billedFor * tier.priceUsd).toFixed(2);
+
+    summary.innerHTML = `
+      <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;"><span style="color:var(--text-muted);">Duration</span><span>${tier.label}</span></div>
+      <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;"><span style="color:var(--text-muted);">Quantity</span><span>${qty} interviews</span></div>
+      ${freeInterviews > 0 ? `<div style="display:flex; justify-content:space-between; margin-bottom:0.4rem; color:#16a34a;"><span>Free Bonus 🎁</span><span>+${freeInterviews}</span></div>` : ''}
+      <div style="display:flex; justify-content:space-between; border-top:1px solid var(--border); padding-top:0.55rem; margin-top:0.55rem; font-weight:800; font-size:0.9rem;"><span>Total</span><span>$${total}</span></div>`;
+  } else {
+    if (!billingCheckoutPlan) { alert('Please select a plan first'); return; }
+    const p = billingCheckoutPlan;
+    const cpi = (p.priceUsd / p.includedInterviews).toFixed(2);
+    summary.innerHTML = `
+      <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;"><span style="color:var(--text-muted);">Plan</span><span>${p.label}</span></div>
+      <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;"><span style="color:var(--text-muted);">Interviews Included</span><span>${p.includedInterviews.toLocaleString()}</span></div>
+      <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;"><span style="color:var(--text-muted);">Per Interview</span><span>~$${cpi}</span></div>
+      ${p.savingsLabel ? `<div style="display:flex; justify-content:space-between; margin-bottom:0.4rem; color:#16a34a;"><span>You Save</span><span>${p.savingsLabel}</span></div>` : ''}
+      <div style="display:flex; justify-content:space-between; border-top:1px solid var(--border); padding-top:0.55rem; margin-top:0.55rem; font-weight:800; font-size:0.9rem;"><span>Total</span><span>$${p.priceUsd}</span></div>`;
+  }
+  modal.style.display = 'flex';
+};
+
+window.closeBillingModal = function() {
+  const modal = document.getElementById('billing-checkout-modal');
+  if (modal) modal.style.display = 'none';
+};
+
+window.confirmBillingPayment = async function() {
+  const btn = document.getElementById('pay-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing…'; }
+
+  await new Promise(r => setTimeout(r, 1800));
+
+  closeBillingModal();
+  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-circle"></i> Pay Now'; }
+
+  const credits = billingCheckoutType === 'ppu'
+    ? Math.max(1, parseInt(document.getElementById('ppu-qty')?.value) || 1)
+    : (billingCheckoutPlan?.includedInterviews || 0);
+
+  alert(`✅ Payment confirmed! ${credits} interview credits added.`);
+  loadBillingBalance();
+};
+
+// Card input formatting
+window.fmtCard = function(el) {
+  let v = el.value.replace(/\D/g,'').substring(0,16);
+  el.value = v.replace(/(.{4})/g,'$1 ').trim();
+};
+window.fmtExp = function(el) {
+  let v = el.value.replace(/\D/g,'').substring(0,4);
+  if (v.length >= 2) v = v.substring(0,2) + ' / ' + v.substring(2);
+  el.value = v;
+};
+
+// ── Hook into existing switchTab function ─────────────────────────────────
+const _origSwitchTab = window.switchTab;
+window.switchTab = function(tab) {
+  if (_origSwitchTab) _origSwitchTab(tab);
+  if (tab === 'metrics') {
+    initBillingTab();
+  }
+};
