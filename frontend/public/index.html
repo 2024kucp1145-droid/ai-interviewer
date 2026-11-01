@@ -1,0 +1,2325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Interviewer SaaS | Technical Screening & Hiring Platform</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --surface: #ffffff;
+      --surface-subtle: #f8fafc;
+      --border: #e2e8f0;
+      --border-dark: #cbd5e1;
+      --text: #09090b;
+      --text-muted: #64748b;
+      --text-subtle: #94a3b8;
+      --accent: #18181b;
+      --accent-hover: #27272a;
+      --tag-bg: #f4f4f5;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      font-size: 0.8125rem; /* ~13px compact clean readability */
+      line-height: 1.45;
+      letter-spacing: -0.01em;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Navigation */
+    header {
+      background-color: #ffffff;
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+
+    .brand {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #000000;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      letter-spacing: -0.02em;
+    }
+    .brand-badge {
+      background: #000;
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 0.25rem;
+      background: var(--surface-subtle);
+      padding: 0.2rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .nav-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.775rem;
+      font-weight: 500;
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .nav-btn:hover {
+      color: var(--text);
+    }
+
+    .nav-btn.active {
+      background-color: #ffffff;
+      color: #000000;
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+
+    .header-user {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      background-color: #000000;
+      color: #ffffff;
+      border: 1px solid #000000;
+      border-radius: 5px;
+      padding: 0.45rem 0.85rem;
+      font-weight: 500;
+      font-size: 0.785rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background-color: #27272a;
+      border-color: #27272a;
+    }
+
+    .btn-outline {
+      background-color: #ffffff;
+      color: #18181b;
+      border: 1px solid var(--border-dark);
+    }
+
+    .btn-outline:hover {
+      background-color: var(--surface-subtle);
+      border-color: #000000;
+    }
+
+    /* Danger / Delete button variant */
+    .btn-danger-outline {
+      background-color: #ffffff;
+      color: #dc2626;
+      border: 1px solid #fca5a5;
+    }
+    .btn-danger-outline:hover {
+      background-color: #fef2f2;
+      border-color: #dc2626;
+      color: #b91c1c;
+    }
+
+    .btn-sm {
+      padding: 0.3rem 0.65rem;
+      font-size: 0.725rem;
+    }
+
+    .btn-ghost {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.35rem 0.5rem;
+    }
+    .btn-ghost:hover {
+      background: var(--surface-subtle);
+      color: #000000;
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      padding: 1.75rem 2rem;
+      max-width: 1240px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Cards */
+    .card {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.25rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    }
+
+    .card-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 0.85rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #000000;
+      letter-spacing: -0.01em;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.85rem; }
+    @media (max-width: 860px) {
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    }
+
+    /* Forms */
+    label {
+      font-size: 0.725rem;
+      font-weight: 600;
+      color: #3f3f46;
+      display: block;
+      margin-bottom: 0.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      background-color: #ffffff;
+      border: 1px solid var(--border);
+      color: #09090b;
+      padding: 0.45rem 0.65rem;
+      border-radius: 5px;
+      font-family: inherit;
+      font-size: 0.8125rem;
+      margin-bottom: 0.75rem;
+      transition: border-color 0.15s ease;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #000000;
+      box-shadow: 0 0 0 1px #000000;
+    }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+    th {
+      text-align: left;
+      padding: 0.55rem 0.75rem;
+      background-color: var(--surface-subtle);
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 0.65rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8rem;
+    }
+
+    /* Badges - Monochrome */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: var(--tag-bg);
+      color: #18181b;
+    }
+    .badge-dark { background: #000; color: #fff; border-color: #000; }
+    .badge-outline { background: #fff; border-color: var(--border-dark); color: #000; }
+
+    /* Metric Cards */
+    .metric-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem;
+    }
+    .metric-sub { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; font-weight: 600; }
+    .metric-val { font-size: 1.45rem; font-weight: 700; color: #000000; margin: 0.2rem 0; letter-spacing: -0.03em; }
+
+    /* Modals & Overlays */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(2px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+      z-index: 100;
+    }
+
+    .modal-content {
+      background-color: #ffffff;
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      padding: 1.75rem;
+      max-width: 600px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+    }
+
+    .quote-box {
+      background-color: var(--surface-subtle);
+      border-left: 2px solid #000000;
+      padding: 0.5rem 0.75rem;
+      margin-top: 0.35rem;
+      font-size: 0.775rem;
+      color: #27272a;
+    }
+
+    /* Onboarding wizard tabs */
+    .wizard-steps {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.25rem;
+    }
+    .wizard-step-item {
+      flex: 1;
+      padding: 0.65rem;
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-subtle);
+      border-bottom: 2px solid transparent;
+    }
+    .wizard-step-item.active {
+      color: #000000;
+      border-bottom-color: #000000;
+    }
+    .wizard-step-item.completed {
+      color: var(--text-muted);
+    }
+
+    /* Hero bar */
+    .hero-strip {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface-subtle);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .hero-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #000000;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.25rem;
+    }
+    /* Responses Drawer (Slide-out from right) */
+    .drawer-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(2px);
+      z-index: 90;
+      display: none;
+      justify-content: flex-end;
+    }
+    .drawer-content {
+      background: #ffffff;
+      width: 100%;
+      max-width: 640px;
+      height: 100vh;
+      box-shadow: -8px 0 30px rgba(0, 0, 0, 0.12);
+      display: flex;
+      flex-direction: column;
+      animation: slideInRight 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes slideInRight {
+      from { transform: translateX(100%); }
+      to { transform: translateX(0); }
+    }
+    .drawer-header {
+      padding: 1.15rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.25rem 1.5rem;
+    }
+    .response-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem 1.2rem;
+      margin-bottom: 1rem;
+      transition: border-color 0.15s ease;
+    }
+    .response-card:hover {
+      border-color: #000000;
+    }
+    .clarification-box {
+      background: var(--surface-subtle);
+      border-left: 3px solid #000;
+      padding: 0.6rem 0.8rem;
+      border-radius: 4px;
+      margin-top: 0.5rem;
+      font-size: 0.775rem;
+      line-height: 1.45;
+    }
+
+    /* Multi-Step Interview Creation Wizard Styles */
+    .selection-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 0.85rem;
+      margin: 0.85rem 0;
+    }
+    .selection-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.15rem 1rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .selection-card:hover {
+      border-color: #000000;
+      background: var(--surface-subtle);
+    }
+    .selection-card.selected {
+      border: 2px solid #000000;
+      background: #ffffff;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+    }
+    .selection-card.selected::after {
+      content: 'âœ“';
+      position: absolute;
+      top: 0.65rem;
+      right: 0.65rem;
+      background: #000;
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 700;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .selection-card .card-icon {
+      font-size: 1.4rem;
+      color: #000000;
+      margin-bottom: 0.4rem;
+    }
+    .selection-card .card-title-text {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #000000;
+      margin-bottom: 0.2rem;
+    }
+    .selection-card .card-desc-text {
+      font-size: 0.725rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* Chips / Tags for Qualifications & Skills */
+    .chip-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin: 0.5rem 0 1rem 0;
+    }
+    .chip-tag {
+      background: #f4f4f5;
+      color: #18181b;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 0.3rem 0.75rem;
+      font-size: 0.735rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.12s ease;
+      user-select: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .chip-tag:hover {
+      background: #e4e4e7;
+      border-color: #cbd5e1;
+    }
+    .chip-tag.selected {
+      background: #000000;
+      color: #ffffff;
+      border-color: #000000;
+      font-weight: 600;
+    }
+
+    /* Role Category Browser */
+    .role-category-group { margin-bottom: 0.5rem; }
+    .role-category-header {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 0.2rem 0.3rem;
+      margin-bottom: 0.2rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .role-item {
+      display: inline-block;
+      padding: 0.22rem 0.65rem;
+      margin: 0.18rem 0.18rem;
+      font-size: 0.735rem;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      cursor: pointer;
+      background: var(--bg);
+      color: var(--text);
+      transition: all 0.1s ease;
+      user-select: none;
+    }
+    .role-item:hover { background: #000; color: #fff; border-color: #000; }
+    .role-item.active { background: #000; color: #fff; border-color: #000; font-weight: 600; }
+    [data-theme="dark"] .role-item { background: #27272a; color: #f4f4f5; border-color: var(--border-dark); }
+    [data-theme="dark"] .role-item:hover { background: #ffffff; color: #000000; border-color: #ffffff; }
+    [data-theme="dark"] .role-item.active { background: #ffffff; color: #000000; border-color: #ffffff; font-weight: 600; }
+
+    /* Drag & Drop Resume Upload Area */
+    .resume-dropzone {
+      border: 2px dashed var(--border-dark);
+      border-radius: 8px;
+      background: var(--surface-subtle);
+      transition: all 0.15s ease;
+      margin-bottom: 1rem;
+      cursor: pointer;
+    }
+    .resume-dropzone:hover {
+      border-color: #000000;
+      background: #ffffff;
+    }
+    .resume-dropzone.dragover {
+      border-color: #000000;
+      background: #f4f4f5;
+      box-shadow: 0 0 0 3px rgba(0,0,0,0.06);
+    }
+    [data-theme="dark"] .resume-dropzone {
+      border-color: var(--border-dark);
+      background: #18181b;
+    }
+    [data-theme="dark"] .resume-dropzone:hover {
+      border-color: #ffffff;
+      background: #27272a;
+    }
+    [data-theme="dark"] .resume-dropzone.dragover {
+      border-color: #ffffff;
+      background: #27272a;
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.08);
+    }
+    .resume-skill-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      background: var(--surface-subtle);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0.2rem 0.55rem;
+      font-size: 0.72rem;
+      font-weight: 500;
+    }
+    [data-theme="dark"] .resume-skill-pill {
+      background: #27272a;
+      border-color: var(--border-dark);
+      color: #f4f4f5;
+    }
+
+    /* Wizard steps progress strip */
+    .wizard-nav-strip {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+      background: var(--surface-subtle);
+      border-radius: 6px;
+      padding: 0.25rem;
+      overflow-x: auto;
+    }
+    .wizard-nav-step {
+      flex: 1;
+      padding: 0.55rem 0.75rem;
+      font-size: 0.725rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-align: center;
+      border-radius: 4px;
+      white-space: nowrap;
+      cursor: default;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+    }
+    .wizard-nav-step.active {
+      color: #000000;
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .wizard-nav-step.done {
+      color: #18181b;
+    }
+
+    /* Switch row for Rules and Tool toggles */
+    .switch-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 0.6rem;
+      transition: border-color 0.15s ease;
+    }
+    .switch-row:hover {
+      border-color: var(--border-dark);
+    }
+    .switch-label-title {
+      font-weight: 600;
+      font-size: 0.8rem;
+      color: #000000;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .switch-label-desc {
+      font-size: 0.725rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+
+    /* LeetCode Problem Preview Card */
+    .leetcode-card {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border-dark);
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      margin-top: 0.75rem;
+    }
+
+    /* Theme Toggle Button */
+    .theme-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.35rem 0.65rem;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      background: #ffffff;
+      color: #09090b;
+      border: 1px solid var(--border-dark);
+      transition: all 0.15s ease;
+      line-height: 1;
+    }
+    .theme-toggle-btn:hover {
+      background: var(--surface-subtle);
+      border-color: #000000;
+    }
+
+    .btn-responses-top {
+      background: #000000;
+      color: #ffffff;
+      border-color: #000000;
+    }
+    .btn-responses-top:hover {
+      background: #27272a;
+    }
+    .btn-responses-top .responses-badge {
+      background: #ffffff;
+      color: #000000;
+      font-size: 0.65rem;
+      padding: 0.1rem 0.4rem;
+      margin-left: 0.2rem;
+    }
+
+    /* ========================================================
+       DARK THEME STYLES (High-Contrast Black & Deep Charcoal)
+       ======================================================== */
+    [data-theme="dark"] {
+      --bg: #09090b;
+      --surface: #121215;
+      --surface-subtle: #18181b;
+      --border: #27272a;
+      --border-dark: #3f3f46;
+      --text: #f4f4f5;
+      --text-muted: #a1a1aa;
+      --text-subtle: #71717a;
+      --accent: #ffffff;
+      --accent-hover: #e4e4e7;
+      --tag-bg: #1f1f23;
+    }
+
+    [data-theme="dark"] body {
+      background-color: var(--bg);
+      color: var(--text);
+    }
+
+    [data-theme="dark"] header {
+      background-color: #121215;
+      border-bottom-color: var(--border);
+    }
+
+    [data-theme="dark"] .brand {
+      color: #ffffff;
+    }
+
+    [data-theme="dark"] .brand-badge {
+      background: #ffffff;
+      color: #000000;
+    }
+
+    [data-theme="dark"] .nav-tabs {
+      background: #18181b;
+      border-color: var(--border);
+    }
+
+    [data-theme="dark"] .nav-btn {
+      color: var(--text-muted);
+    }
+
+    [data-theme="dark"] .nav-btn:hover {
+      color: #ffffff;
+    }
+
+    [data-theme="dark"] .nav-btn.active {
+      background-color: #27272a;
+      color: #ffffff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    }
+
+    [data-theme="dark"] .card {
+      background-color: var(--surface);
+      border-color: var(--border);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    }
+
+    [data-theme="dark"] .card-title,
+    [data-theme="dark"] h1,
+    [data-theme="dark"] h2,
+    [data-theme="dark"] h3,
+    [data-theme="dark"] h4 {
+      color: #ffffff !important;
+    }
+
+    [data-theme="dark"] .hero-strip {
+      background: #18181b;
+      border-color: var(--border);
+    }
+
+    [data-theme="dark"] .hero-title {
+      color: #ffffff;
+    }
+
+    [data-theme="dark"] label {
+      color: #d4d4d8;
+    }
+
+    [data-theme="dark"] input,
+    [data-theme="dark"] textarea,
+    [data-theme="dark"] select {
+      background-color: #18181b;
+      border-color: var(--border);
+      color: #f4f4f5;
+    }
+
+    [data-theme="dark"] input:focus,
+    [data-theme="dark"] textarea:focus,
+    [data-theme="dark"] select:focus {
+      border-color: #ffffff;
+      box-shadow: 0 0 0 1px #ffffff;
+    }
+
+    [data-theme="dark"] .btn {
+      background-color: #ffffff;
+      color: #000000;
+      border-color: #ffffff;
+    }
+
+    [data-theme="dark"] .btn:hover {
+      background-color: #e4e4e7;
+      border-color: #e4e4e7;
+    }
+
+    [data-theme="dark"] .btn-outline {
+      background-color: #18181b;
+      color: #f4f4f5;
+      border-color: var(--border-dark);
+    }
+
+    [data-theme="dark"] .btn-outline:hover {
+      background-color: #27272a;
+      border-color: #ffffff;
+      color: #ffffff;
+    }
+
+    [data-theme="dark"] .btn-danger-outline {
+      background-color: #18181b;
+      color: #f87171;
+      border-color: #7f1d1d;
+    }
+    [data-theme="dark"] .btn-danger-outline:hover {
+      background-color: #2d1515;
+      border-color: #ef4444;
+      color: #fca5a5;
+    }
+
+    [data-theme="dark"] .btn-ghost {
+      color: var(--text-muted);
+    }
+
+    [data-theme="dark"] .btn-ghost:hover {
+      background-color: #27272a;
+      color: #ffffff;
+    }
+
+    [data-theme="dark"] .btn-responses-top {
+      background: #ffffff !important;
+      color: #000000 !important;
+      border-color: #ffffff !important;
+    }
+    [data-theme="dark"] .btn-responses-top .responses-badge {
+      background: #000000 !important;
+      color: #ffffff !important;
+    }
+
+    [data-theme="dark"] .theme-toggle-btn {
+      background: #18181b;
+      color: #f4f4f5;
+      border-color: var(--border-dark);
+    }
+    [data-theme="dark"] .theme-toggle-btn:hover {
+      background: #27272a;
+      border-color: #ffffff;
+    }
+
+    [data-theme="dark"] .badge-dark {
+      background: #ffffff;
+      color: #000000;
+      border-color: #ffffff;
+    }
+
+    [data-theme="dark"] .badge-outline {
+      background: transparent;
+      border-color: var(--border-dark);
+      color: #e4e4e7;
+    }
+
+    [data-theme="dark"] table th {
+      background-color: #18181b;
+      color: var(--text-muted);
+      border-bottom-color: var(--border);
+    }
+
+    [data-theme="dark"] table td {
+      border-bottom-color: var(--border);
+      color: #f4f4f5;
+    }
+
+    [data-theme="dark"] table tr:hover td {
+      background-color: #1c1c22;
+    }
+
+    [data-theme="dark"] .metric-card {
+      background-color: #18181b;
+      border-color: var(--border);
+    }
+
+    [data-theme="dark"] .metric-val {
+      color: #ffffff;
+    }
+
+    [data-theme="dark"] .modal-overlay {
+      background-color: rgba(0, 0, 0, 0.7);
+    }
+
+    [data-theme="dark"] .modal-content {
+      background-color: #121215;
+      border-color: var(--border-dark);
+      color: var(--text);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    }
+
+    [data-theme="dark"] .drawer-content {
+      background-color: #121215;
+      color: var(--text);
+      border-left: 1px solid var(--border);
+      box-shadow: -8px 0 30px rgba(0, 0, 0, 0.6);
+    }
+
+    [data-theme="dark"] .drawer-header {
+      border-bottom-color: var(--border);
+    }
+
+    [data-theme="dark"] .response-card {
+      background-color: #18181b;
+      border-color: var(--border);
+    }
+
+    [data-theme="dark"] .response-card:hover {
+      border-color: #52525b;
+    }
+
+    [data-theme="dark"] .clarification-box {
+      background-color: #121215;
+      border-left-color: #ffffff;
+      color: #f4f4f5;
+      border: 1px solid var(--border);
+      border-left-width: 3px;
+    }
+
+    [data-theme="dark"] .quote-box {
+      background-color: #18181b;
+      border-left-color: #ffffff;
+      color: #e4e4e7;
+    }
+
+    [data-theme="dark"] .selection-card {
+      background-color: #18181b;
+      border-color: var(--border);
+    }
+
+    [data-theme="dark"] .selection-card:hover {
+      border-color: #52525b;
+      background-color: #202026;
+    }
+
+    [data-theme="dark"] .selection-card.selected {
+      border-color: #ffffff;
+      background-color: #22222a;
+    }
+
+    [data-theme="dark"] .selection-card .card-icon {
+      color: #ffffff;
+    }
+
+    [data-theme="dark"] .selection-card .card-title-text {
+      color: #ffffff;
+    }
+
+    [data-theme="dark"] .selection-card.selected::after {
+      background: #ffffff;
+      color: #000000;
+    }
+
+    [data-theme="dark"] .chip-tag {
+      background: #1f1f23;
+      color: #e4e4e7;
+      border-color: var(--border);
+    }
+
+    [data-theme="dark"] .chip-tag:hover {
+      background: #27272a;
+      border-color: #52525b;
+    }
+
+    [data-theme="dark"] .chip-tag.selected {
+      background: #ffffff;
+      color: #000000;
+      border-color: #ffffff;
+    }
+
+    [data-theme="dark"] .wizard-nav-strip {
+      background: #18181b;
+      border-color: var(--border);
+    }
+
+    [data-theme="dark"] .wizard-nav-step {
+      color: var(--text-muted);
+    }
+
+    [data-theme="dark"] .wizard-nav-step.active {
+      background: #27272a;
+      color: #ffffff;
+    }
+
+    [data-theme="dark"] .wizard-nav-step.done {
+      color: #e4e4e7;
+    }
+
+    [data-theme="dark"] .switch-row {
+      background-color: #18181b;
+      border-color: var(--border);
+    }
+
+    [data-theme="dark"] .switch-row:hover {
+      border-color: var(--border-dark);
+    }
+
+    [data-theme="dark"] .switch-label-title {
+      color: #ffffff;
+    }
+
+    [data-theme="dark"] .leetcode-card {
+      background: #18181b;
+      border-color: var(--border);
+    }
+
+    [data-theme="dark"] .wizard-steps {
+      border-bottom-color: var(--border);
+    }
+    [data-theme="dark"] .wizard-step-item.active {
+      color: #ffffff;
+      border-bottom-color: #ffffff;
+    }
+
+    /* Auto-reconcile dynamically created inline background/colors */
+    [data-theme="dark"] [style*="background:#ffffff"],
+    [data-theme="dark"] [style*="background: #ffffff"],
+    [data-theme="dark"] [style*="background:#fff"],
+    [data-theme="dark"] [style*="background: #fff"] {
+      background-color: #18181b !important;
+      color: #f4f4f5 !important;
+      border-color: var(--border) !important;
+    }
+
+    [data-theme="dark"] [style*="color:#000"],
+    [data-theme="dark"] [style*="color: #000"] {
+      color: #f4f4f5 !important;
+    }
+
+    [data-theme="dark"] [style*="border:2px solid #000"],
+    [data-theme="dark"] [style*="border: 2px solid #000"] {
+      border-color: #52525b !important;
+      background-color: #18181b !important;
+    }
+  </style>
+  <script src="/js/theme.js"></script>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header>
+    <div class="brand">
+      <i class="bi bi-cpu-fill"></i>
+      <span>AI Interviewer</span>
+      <span class="brand-badge">SaaS</span>
+    </div>
+
+    <nav class="nav-tabs" id="main-nav-tabs">
+      <button class="nav-btn active" onclick="switchTab('jobs')"><i class="bi bi-briefcase"></i> Roles & Skills</button>
+      <button class="nav-btn" onclick="switchTab('candidates')"><i class="bi bi-people"></i> Candidate Pipeline</button>
+      <button class="nav-btn" onclick="switchTab('keys')"><i class="bi bi-key"></i> API Key (BYOK)</button>
+      <button class="nav-btn" onclick="switchTab('metrics')"><i class="bi bi-graph-up"></i> Usage & Pricing</button>
+      <button class="nav-btn" onclick="switchTab('leadmagnet')"><i class="bi bi-magic"></i> Free Question Gen</button>
+    </nav>
+
+    <div class="header-user">
+      <!-- Right Top Window Trigger for Candidate Responses & AI Clarification -->
+      <button class="btn btn-sm btn-responses-top" id="btn-top-responses" onclick="openResponsesDrawer()">
+        <i class="bi bi-chat-square-quote-fill"></i> Responses & Scores
+        <span id="responses-count-badge" class="badge responses-badge">0</span>
+      </button>
+      <span id="user-display" style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">Signing in...</span>
+      <button class="btn btn-outline btn-sm" id="btn-auth-switch" onclick="openAuthModal()"><i class="bi bi-person"></i> Sign In / Out</button>
+
+      <!-- Theme Toggle (Right Corner) -->
+      <button class="theme-toggle-btn" id="btn-theme-toggle" onclick="toggleTheme()" title="Toggle Dark / Light Mode" aria-label="Toggle Dark / Light Mode">
+        <i class="bi bi-moon-stars-fill theme-toggle-icon"></i>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Top Hero Summary Banner -->
+    <div class="hero-strip">
+      <div>
+        <div style="margin-bottom: 0.35rem;">
+          <span class="badge badge-dark"><i class="bi bi-shield-check"></i> Verified Hiring Pipeline</span>
+          <span class="badge badge-outline" style="margin-left: 0.35rem;">Zero-Cost Build</span>
+          <span class="badge badge-outline" style="margin-left: 0.35rem;">DPDP 2023 Aligned</span>
+        </div>
+        <div class="hero-title">Technical First-Round Screening Platform</div>
+        <div class="hero-desc">
+          Automated voice & text screening for junior developers. Evaluate core skills with evidence-backed reports and direct transcript verification.
+        </div>
+      </div>
+      <div style="display: flex; gap: 0.5rem;">
+        <button class="btn btn-sm" onclick="quickCreateDemoJob()"><i class="bi bi-plus-lg"></i> Quick Sample JD</button>
+        <button class="btn btn-outline btn-sm" onclick="openWaitlistModal()"><i class="bi bi-stars"></i> VIP Pilot (20 Free)</button>
+      </div>
+    </div>
+
+    <!-- TAB 1: Roles, Skills & Start Hiring -->
+    <div id="tab-jobs" class="tab-pane">
+      
+      <!-- SUB-VIEW 1: Clean Interview Dashboard (Default View) -->
+      <div id="view-interview-dashboard">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+          <div>
+            <h2 style="font-size: 1.15rem; font-weight: 700; color: #000; letter-spacing: -0.02em;">Interview Management</h2>
+            <p style="font-size: 0.775rem; color: var(--text-muted); margin-top: 0.15rem;">
+              Create customized technical screening rounds with compilers, rules, and LeetCode problems.
+            </p>
+          </div>
+          <button class="btn" onclick="startInterviewCreationWizard()" style="padding: 0.6rem 1.25rem; font-size: 0.85rem; font-weight: 600;">
+            <i class="bi bi-plus-circle-fill"></i> Create New Interview
+          </button>
+        </div>
+
+        <!-- Active Interviews List -->
+        <div class="card">
+          <div class="card-title">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span><i class="bi bi-folder2-open"></i> Configured Interviews</span>
+              <span id="active-jobs-count" class="badge badge-dark">0 Active</span>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="loadJobs()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+          </div>
+
+          <!-- Category, Search & Sort Filter Bar -->
+          <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);">
+            <div style="display: flex; align-items: center; gap: 0.4rem; flex: 1; min-width: 200px; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 6px; padding: 0.25rem 0.6rem;">
+              <i class="bi bi-search" style="color: var(--text-muted); font-size: 0.8rem;"></i>
+              <input type="text" id="dashboard-job-search" placeholder="Search by role title, category, or skills..." oninput="filterDashboardJobs()" style="margin-bottom: 0; padding: 0.25rem 0.35rem; font-size: 0.8rem; border: none; background: transparent; width: 100%;">
+            </div>
+            <select id="dashboard-category-filter" onchange="filterDashboardJobs()" style="flex: 0 0 auto; width: 210px; margin-bottom: 0; padding: 0.35rem 0.6rem; font-size: 0.78rem;">
+              <option value="">All Categories (11)</option>
+              <option value="Software & Tech">Software & Tech</option>
+              <option value="Data, AI & Analytics">Data, AI & Analytics</option>
+              <option value="Security & Networking">Security & Networking</option>
+              <option value="Design & Creative">Design & Creative</option>
+              <option value="Marketing & Content">Marketing & Content</option>
+              <option value="Sales & Business">Sales & Business</option>
+              <option value="HR & Management">HR & Management</option>
+              <option value="Finance & Legal">Finance & Legal</option>
+              <option value="Operations & Core Engineering">Operations & Core Engineering</option>
+              <option value="Education, Healthcare & Others">Education, Healthcare & Others</option>
+              <option value="Non-job Interviews">Non-job Interviews</option>
+            </select>
+            <select id="dashboard-sort-filter" onchange="filterDashboardJobs()" style="flex: 0 0 auto; width: 140px; margin-bottom: 0; padding: 0.35rem 0.6rem; font-size: 0.78rem;">
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="title">Role Title (A-Z)</option>
+              <option value="duration">Duration</option>
+            </select>
+          </div>
+
+          <div id="jobs-list">
+            <p style="color: var(--text-muted); font-size: 0.775rem;">Loading active interviews...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-VIEW 2: Step-by-Step Multi-Screen Interview Creation Wizard (Shown on demand) -->
+      <div id="view-interview-wizard" style="display: none; max-width: 860px; margin: 0 auto;">
+        
+        <!-- Wizard Top Navigation & Steps Breadcrumb -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <button class="btn btn-outline btn-sm" onclick="cancelInterviewCreationWizard()" id="btn-wizard-cancel">
+              <i class="bi bi-arrow-left"></i> Exit to Dashboard
+            </button>
+            <span id="wizard-mode-badge" class="badge badge-dark" style="display: none;"><i class="bi bi-pencil-square"></i> Editing Interview</span>
+          </div>
+          <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted);" id="wizard-step-title-badge">
+            Step 1 of 7: Purpose
+          </span>
+        </div>
+
+        <div class="wizard-nav-strip" id="wizard-nav-strip">
+          <div class="wizard-nav-step active" id="wiz-tab-1">1. Purpose</div>
+          <div class="wizard-nav-step" id="wiz-tab-2">2. Qualifications</div>
+          <div class="wizard-nav-step" id="wiz-tab-3">3. Job & Skills</div>
+          <div class="wizard-nav-step" id="wiz-tab-4">4. Rules</div>
+          <div class="wizard-nav-step" id="wiz-tab-5">5. Tools & Compiler</div>
+          <div class="wizard-nav-step" id="wiz-tab-6">6. Questions & DSA</div>
+          <div class="wizard-nav-step" id="wiz-tab-7">7. Launch</div>
+        </div>
+
+        <form id="form-job-wizard" onsubmit="handleWizardFinalSubmit(event)">
+
+          <!-- SCREEN 1: Purpose of Interview -->
+          <div id="wiz-step-1" class="card">
+            <h3 style="font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 0.25rem;">
+              Step 1: What is the primary purpose of this interview?
+            </h3>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">
+              Selecting the hiring context configures the recommended question depth, tools, and evaluation standard.
+            </p>
+
+            <div class="selection-grid">
+              <div class="selection-card selected" onclick="selectPurpose('job')" id="purpose-card-job">
+                <i class="bi bi-briefcase-fill card-icon"></i>
+                <div class="card-title-text">Full-Time Job Hiring</div>
+                <div class="card-desc-text">Regular junior, mid-level, or senior technical software engineering roles.</div>
+              </div>
+
+              <div class="selection-card" onclick="selectPurpose('internship')" id="purpose-card-internship">
+                <i class="bi bi-mortarboard-fill card-icon"></i>
+                <div class="card-title-text">Internship Assessment</div>
+                <div class="card-desc-text">Summer/winter interns, technical research interns, or project trainees.</div>
+              </div>
+
+              <div class="selection-card" onclick="selectPurpose('campus')" id="purpose-card-campus">
+                <i class="bi bi-buildings-fill card-icon"></i>
+                <div class="card-title-text">Campus Placement Drive</div>
+                <div class="card-desc-text">Batch screening for college seniors, fresh engineering graduates, and university hiring.</div>
+              </div>
+
+              <div class="selection-card" onclick="selectPurpose('freelance')" id="purpose-card-freelance">
+                <i class="bi bi-laptop card-icon"></i>
+                <div class="card-title-text">Freelance / Contractor</div>
+                <div class="card-desc-text">Milestone-based, part-time contractor, or specialized consultant evaluation.</div>
+              </div>
+
+              <div class="selection-card" onclick="selectPurpose('trainee')" id="purpose-card-trainee">
+                <i class="bi bi-award-fill card-icon"></i>
+                <div class="card-title-text">Apprenticeship / Trainee</div>
+                <div class="card-desc-text">Foundational aptitude and practical skills evaluation for training programs.</div>
+              </div>
+
+              <div class="selection-card" onclick="selectPurpose('promotion')" id="purpose-card-promotion">
+                <i class="bi bi-graph-up-arrow card-icon"></i>
+                <div class="card-title-text">Internal Team Promotion</div>
+                <div class="card-desc-text">Internal role transition, stack switch, or technical level assessment.</div>
+              </div>
+            </div>
+
+            <input type="hidden" id="wiz-purpose-input" value="job">
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+              <button type="button" class="btn" onclick="goToWizardStep(2)">
+                Next: Qualifications & Experience <i class="bi bi-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- SCREEN 2: Qualifications & Experience Required -->
+          <div id="wiz-step-2" class="card" style="display: none;">
+            <h3 style="font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 0.25rem;">
+              Step 2: Qualifications & Experience Required
+            </h3>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">
+              Specify eligible academic backgrounds and years of experience needed for this round.
+            </p>
+
+            <label>Select Required Qualifications (Click to toggle):</label>
+            <div class="chip-container" id="qualifications-chip-cloud">
+              <span class="chip-tag selected" onclick="toggleQualTag(this)">B.Tech / B.E (CS / IT)</span>
+              <span class="chip-tag selected" onclick="toggleQualTag(this)">BCA / MCA</span>
+              <span class="chip-tag" onclick="toggleQualTag(this)">M.Tech / MS in CS</span>
+              <span class="chip-tag" onclick="toggleQualTag(this)">B.Sc Computer Science</span>
+              <span class="chip-tag" onclick="toggleQualTag(this)">Diploma in Engineering</span>
+              <span class="chip-tag" onclick="toggleQualTag(this)">Bootcamp / Self-Taught</span>
+              <span class="chip-tag" onclick="toggleQualTag(this)">Any Engineering Degree</span>
+              <span class="chip-tag" onclick="toggleQualTag(this)">Any Graduate Degree</span>
+            </div>
+
+            <label>Custom or Specific Qualification Details:</label>
+            <input type="text" id="wiz-qualifications-custom" placeholder="e.g. Bachelor in Computer Science / Engineering or equivalent experience" value="Bachelor in Computer Science / Engineering or equivalent experience">
+
+            <div style="margin-top: 1.25rem;">
+              <label>Experience Required for this Role:</label>
+              <div class="selection-grid">
+                <div class="selection-card selected" onclick="selectExperience('0-1 Yrs')" id="exp-card-0-1">
+                  <div class="card-title-text">0 - 1 Year</div>
+                  <div class="card-desc-text">Entry-level / Fresh graduates with foundational programming knowledge.</div>
+                </div>
+
+                <div class="selection-card" onclick="selectExperience('1-3 Yrs')" id="exp-card-1-3">
+                  <div class="card-title-text">1 - 3 Years</div>
+                  <div class="card-desc-text">Junior / Associate developers with production codebase familiarity.</div>
+                </div>
+
+                <div class="selection-card" onclick="selectExperience('3-5 Yrs')" id="exp-card-3-5">
+                  <div class="card-title-text">3 - 5 Years</div>
+                  <div class="card-desc-text">Mid-level developers proficient in architecture, databases, and APIs.</div>
+                </div>
+
+                <div class="selection-card" onclick="selectExperience('5+ Yrs')" id="exp-card-5-plus">
+                  <div class="card-title-text">5+ Years</div>
+                  <div class="card-desc-text">Senior engineers with deep system design and optimization expertise.</div>
+                </div>
+              </div>
+              <input type="hidden" id="wiz-experience-input" value="0-1 Yrs">
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+              <button type="button" class="btn btn-outline" onclick="goToWizardStep(1)">
+                <i class="bi bi-arrow-left"></i> Back
+              </button>
+              <button type="button" class="btn" onclick="goToWizardStep(3)">
+                Next: Job Requirements & Skills <i class="bi bi-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- SCREEN 3: Job Requirements & Skills Selection -->
+          <div id="wiz-step-3" class="card" style="display: none;">
+            <h3 style="font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 0.25rem;">
+              Step 3: Job Requirements & Technical Skills
+            </h3>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">
+              Choose a role preset or search and select the core technical skills to evaluate.
+            </p>
+
+            <!-- Role Category Browser -->
+            <label>Browse by Category &amp; Role (Click a role to autofill title):</label>
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center; flex-wrap: wrap;">
+              <select id="role-category-select" onchange="filterRolesByCategory()" style="flex: 0 0 auto; width: 230px; font-size: 0.78rem; padding: 0.35rem 0.55rem;">
+                <option value="">All Categories</option>
+                <option value="Software &amp; Tech">Software &amp; Tech</option>
+                <option value="Data, AI &amp; Analytics">Data, AI &amp; Analytics</option>
+                <option value="Security &amp; Networking">Security &amp; Networking</option>
+                <option value="Design &amp; Creative">Design &amp; Creative</option>
+                <option value="Marketing &amp; Content">Marketing &amp; Content</option>
+                <option value="Sales &amp; Business">Sales &amp; Business</option>
+                <option value="HR &amp; Management">HR &amp; Management</option>
+                <option value="Finance &amp; Legal">Finance &amp; Legal</option>
+                <option value="Operations &amp; Core Engineering">Operations &amp; Core Engineering</option>
+                <option value="Education, Healthcare &amp; Others">Education, Healthcare &amp; Others</option>
+                <option value="Non-job Interviews">Non-job Interviews</option>
+              </select>
+              <input type="text" id="role-search-input" placeholder="Search roles... (e.g. React, Data Scientist, HR)" oninput="filterRolesByCategory()" style="flex: 1; min-width: 160px; font-size: 0.78rem; padding: 0.35rem 0.55rem; margin-bottom: 0;">
+            </div>
+            <div id="role-category-list" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 0.6rem; background: var(--surface-subtle); margin-bottom: 1rem;">
+            </div>
+
+            <label>Role / Position Title</label>
+            <input type="text" id="wiz-job-title" placeholder="e.g. Junior Python / Backend Engineer" value="Junior Python / Backend Engineer" required>
+
+            <label>Search & Select Required Skills (Click tags to toggle):</label>
+            <input type="text" id="skill-search-input" placeholder="Search skills (e.g. Python, Docker, AWS, SQL)..." oninput="filterSkillsCloud()" style="margin-bottom: 0.4rem;">
+            <div class="chip-container" id="skills-chip-cloud">
+              <span class="chip-tag selected" onclick="toggleSkillTag(this)">Python</span>
+              <span class="chip-tag selected" onclick="toggleSkillTag(this)">SQL</span>
+              <span class="chip-tag selected" onclick="toggleSkillTag(this)">REST APIs</span>
+              <span class="chip-tag selected" onclick="toggleSkillTag(this)">Git</span>
+              <span class="chip-tag" onclick="toggleSkillTag(this)">JavaScript</span>
+              <span class="chip-tag" onclick="toggleSkillTag(this)">TypeScript</span>
+              <span class="chip-tag" onclick="toggleSkillTag(this)">React</span>
+              <span class="chip-tag" onclick="toggleSkillTag(this)">Node.js</span>
+              <span class="chip-tag" onclick="toggleSkillTag(this)">Java</span>
+              <span class="chip-tag" onclick="toggleSkillTag(this)">C++</span>
+              <span class="chip-tag" onclick="toggleSkillTag(this)">Data Structures</span>
+              <span class="chip-tag" onclick="toggleSkillTag(this)">Algorithms</span>
+              <span class="chip-tag" onclick="toggleSkillTag(this)">Docker</span>
+              <span class="chip-tag" onclick="toggleSkillTag(this)">PostgreSQL</span>
+              <span class="chip-tag" onclick="toggleSkillTag(this)">MongoDB</span>
+              <span class="chip-tag" onclick="toggleSkillTag(this)">AWS</span>
+              <span class="chip-tag" onclick="toggleSkillTag(this)">Linux / Bash</span>
+              <span class="chip-tag" onclick="toggleSkillTag(this)">System Design</span>
+            </div>
+
+            <label>Selected Skills List (Editable):</label>
+            <input type="text" id="wiz-job-skills" value="Python, SQL, REST APIs, Git" required>
+
+            <label>Job Description (JD) / Role Context</label>
+            <textarea id="wiz-job-jd" rows="4" placeholder="Paste full Job Description here..." required>Looking for a software engineer proficient in Python, SQL databases, API integration, and Git. Candidates will be assessed on foundational problem-solving, clean code execution, and database queries.</textarea>
+
+            <div style="display: flex; justify-content: space-between; margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+              <button type="button" class="btn btn-outline" onclick="goToWizardStep(2)">
+                <i class="bi bi-arrow-left"></i> Back
+              </button>
+              <button type="button" class="btn" onclick="goToWizardStep(4)">
+                Next: Assessment Rules <i class="bi bi-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- SCREEN 4: Assessment & Proctoring Rules -->
+          <div id="wiz-step-4" class="card" style="display: none;">
+            <h3 style="font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 0.25rem;">
+              Step 4: Assessment & Proctoring Rules
+            </h3>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">
+              Pre-configured standard evaluation rules are provided below. Toggle them or define custom rules for your round.
+            </p>
+
+            <label>Pre-configured Standard Rules:</label>
+            <div class="switch-row">
+              <div>
+                <div class="switch-label-title"><i class="bi bi-camera-video"></i> Camera & Microphone Active</div>
+                <div class="switch-label-desc">Candidate identity and session presence verified throughout the round.</div>
+              </div>
+              <input type="checkbox" id="rule-camera" checked style="width: auto; margin-bottom: 0;">
+            </div>
+
+            <div class="switch-row">
+              <div>
+                <div class="switch-label-title"><i class="bi bi-window-fullscreen"></i> Browser Focus & Anti-Tab Switch</div>
+                <div class="switch-label-desc">Monitors focus changes and flags potential unauthorized external lookups.</div>
+              </div>
+              <input type="checkbox" id="rule-focus" checked style="width: auto; margin-bottom: 0;">
+            </div>
+
+            <div class="switch-row">
+              <div>
+                <div class="switch-label-title"><i class="bi bi-cpu"></i> Objective Technical Scoring</div>
+                <div class="switch-label-desc">Evaluates conceptual accuracy and reasoning only; neutral to accent or fluency.</div>
+              </div>
+              <input type="checkbox" id="rule-objective" checked style="width: auto; margin-bottom: 0;">
+            </div>
+
+            <div class="switch-row">
+              <div>
+                <div class="switch-label-title"><i class="bi bi-shield-check"></i> DPDP Act 2023 Compliant Privacy</div>
+                <div class="switch-label-desc">Text transcripts retained only; zero raw audio/video files stored on servers.</div>
+              </div>
+              <input type="checkbox" id="rule-privacy" checked style="width: auto; margin-bottom: 0;">
+            </div>
+
+            <div class="switch-row">
+              <div>
+                <div class="switch-label-title"><i class="bi bi-terminal-check"></i> Verified Code Execution</div>
+                <div class="switch-label-desc">Coding tasks must pass runtime execution test cases in the sandbox compiler.</div>
+              </div>
+              <input type="checkbox" id="rule-code-exec" checked style="width: auto; margin-bottom: 0;">
+            </div>
+
+            <label style="margin-top: 1rem;">Additional Custom Rules (Optional):</label>
+            <textarea id="wiz-custom-rules" rows="3" placeholder="Add custom rules (e.g. 'Must state Big-O time and space complexity for all algorithms', 'No external third-party libraries permitted')..."></textarea>
+
+            <div style="display: flex; justify-content: space-between; margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+              <button type="button" class="btn btn-outline" onclick="goToWizardStep(3)">
+                <i class="bi bi-arrow-left"></i> Back
+              </button>
+              <button type="button" class="btn" onclick="goToWizardStep(5)">
+                Next: Tools & Compiler <i class="bi bi-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- SCREEN 5: Tools & Compiler Configuration -->
+          <div id="wiz-step-5" class="card" style="display: none;">
+            <h3 style="font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 0.25rem;">
+              Step 5: Interactive Candidate Tools & Compiler
+            </h3>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">
+              Select the interactive tools made available to the candidate during this screening round.
+            </p>
+
+            <!-- Tool 1: Interactive Compiler -->
+            <div class="switch-row">
+              <div>
+                <div class="switch-label-title"><i class="bi bi-terminal"></i> Interactive Online Compiler & Terminal Sandbox</div>
+                <div class="switch-label-desc">Candidate can write code, run runtime test executions, and view console stdout output.</div>
+              </div>
+              <input type="checkbox" id="wiz-tool-terminal" checked onchange="toggleCompilerOptions()" style="width: auto; margin-bottom: 0;">
+            </div>
+
+            <!-- Compiler Languages selector (shown if terminal is checked) -->
+            <div id="compiler-langs-box" style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 6px; padding: 0.85rem; margin-bottom: 0.85rem;">
+              <label style="margin-bottom: 0.35rem; color: #000;">Available Compiler Languages in Candidate Room:</label>
+              <div style="display: flex; flex-wrap: wrap; gap: 0.85rem; font-size: 0.75rem;">
+                <label style="display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0; cursor: pointer; text-transform: none;">
+                  <input type="checkbox" class="compiler-lang-check" value="javascript" checked style="width: auto; margin-bottom: 0;"> JavaScript / Node.js
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0; cursor: pointer; text-transform: none;">
+                  <input type="checkbox" class="compiler-lang-check" value="python" checked style="width: auto; margin-bottom: 0;"> Python 3
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0; cursor: pointer; text-transform: none;">
+                  <input type="checkbox" class="compiler-lang-check" value="sql" checked style="width: auto; margin-bottom: 0;"> SQL / Database
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0; cursor: pointer; text-transform: none;">
+                  <input type="checkbox" class="compiler-lang-check" value="cpp" checked style="width: auto; margin-bottom: 0;"> C++ (GCC)
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0; cursor: pointer; text-transform: none;">
+                  <input type="checkbox" class="compiler-lang-check" value="java" style="width: auto; margin-bottom: 0;"> Java (JDK)
+                </label>
+              </div>
+            </div>
+
+            <!-- Tool 2: Word / Architecture Pad -->
+            <div class="switch-row">
+              <div>
+                <div class="switch-label-title"><i class="bi bi-file-earmark-word"></i> Word / Document Architecture Scratchpad</div>
+                <div class="switch-label-desc">Candidate can draft system architecture blueprints, pseudo-code, and design trade-offs.</div>
+              </div>
+              <input type="checkbox" id="wiz-tool-word" style="width: auto; margin-bottom: 0;">
+            </div>
+
+            <!-- Tool 3: Resume Review -->
+            <div class="switch-row">
+              <div>
+                <div class="switch-label-title"><i class="bi bi-file-earmark-person"></i> Resume-First Screening & Fact Check</div>
+                <div class="switch-label-desc">AI specifically questions and verifies claims, GitHub projects, and skills listed on the candidate resume.</div>
+              </div>
+              <input type="checkbox" id="wiz-tool-resume" checked style="width: auto; margin-bottom: 0;">
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+              <button type="button" class="btn btn-outline" onclick="goToWizardStep(4)">
+                <i class="bi bi-arrow-left"></i> Back
+              </button>
+              <button type="button" class="btn" onclick="goToWizardStep(6)">
+                Next: Questions & DSA / LeetCode <i class="bi bi-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- SCREEN 6: Questions & DSA / LeetCode Selection -->
+          <div id="wiz-step-6" class="card" style="display: none;">
+            <h3 style="font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 0.25rem;">
+              Step 6: Questions & DSA / LeetCode Problem
+            </h3>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">
+              Select whether AI automatically formulates questions or you arrange your own, and attach a LeetCode problem if desired.
+            </p>
+
+            <label>Question Arrangement Mode:</label>
+            <div class="grid-2">
+              <div class="selection-card selected" onclick="selectQuestionMode('ai_adaptive')" id="qmode-card-adaptive">
+                <i class="bi bi-magic card-icon"></i>
+                <div class="card-title-text">AI Dynamic Question Generation</div>
+                <div class="card-desc-text">AI dynamically formulates questions and probes deeper on candidate answers based on selected skills.</div>
+              </div>
+
+              <div class="selection-card" onclick="selectQuestionMode('custom_questions')" id="qmode-card-custom">
+                <i class="bi bi-list-ol card-icon"></i>
+                <div class="card-title-text">Interviewer Custom Questions</div>
+                <div class="card-desc-text">Arrange your own sequential questions; AI will conduct deep-by-deep follow-up probing on each.</div>
+              </div>
+            </div>
+            <input type="hidden" id="wiz-question-mode-input" value="ai_adaptive">
+
+            <!-- Custom Questions Textarea (Shown if custom mode is chosen) -->
+            <div id="wiz-custom-q-box" style="display: none; margin-top: 0.75rem; background: var(--surface-subtle); padding: 0.85rem; border-radius: 6px; border: 1px solid var(--border);">
+              <label>Your Custom Questions (One per line or numbered):</label>
+              <textarea id="wiz-custom-questions-text" rows="4" placeholder="1. Walk through your experience building RESTful APIs in Python.
+2. How do you optimize slow SQL queries with indexes?
+3. How do you handle concurrency or race conditions?"></textarea>
+            </div>
+
+            <!-- DSA / LeetCode Problem Section -->
+            <div style="margin-top: 1.25rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+              <div class="switch-row" style="margin-bottom: 0.75rem;">
+                <div>
+                  <div class="switch-label-title"><i class="bi bi-code-square"></i> Attach DSA / LeetCode Problem</div>
+                  <div class="switch-label-desc">Loads an algorithmic coding challenge with test cases into the candidate's compiler sandbox.</div>
+                </div>
+                <input type="checkbox" id="wiz-dsa-toggle" checked onchange="toggleDsaSection()" style="width: auto; margin-bottom: 0;">
+              </div>
+
+              <div id="wiz-dsa-picker-box">
+                <label>Select LeetCode Problem Number / Topic:</label>
+                <select id="wiz-leetcode-select" onchange="updateLeetCodePreview()">
+                  <option value="1">LeetCode #1: Two Sum (Array, Hash Map - Easy)</option>
+                  <option value="20">LeetCode #20: Valid Parentheses (Stack, String - Easy)</option>
+                  <option value="21">LeetCode #21: Merge Two Sorted Lists (Linked List - Easy)</option>
+                  <option value="53">LeetCode #53: Maximum Subarray (Array, Dynamic Programming - Medium)</option>
+                  <option value="3">LeetCode #3: Longest Substring Without Repeating Characters (Sliding Window - Medium)</option>
+                  <option value="206">LeetCode #206: Reverse Linked List (Linked List - Easy)</option>
+                  <option value="70">LeetCode #70: Climbing Stairs (Dynamic Programming - Easy)</option>
+                  <option value="121">LeetCode #121: Best Time to Buy and Sell Stock (Array - Easy)</option>
+                  <option value="15">LeetCode #15: 3Sum (Two Pointers, Array - Medium)</option>
+                  <option value="200">LeetCode #200: Number of Islands (Graph, BFS/DFS - Medium)</option>
+                  <option value="custom">Custom Problem (Enter custom LeetCode number or title)</option>
+                </select>
+
+                <div id="wiz-custom-leetcode-input-box" style="display: none; margin-top: 0.5rem;">
+                  <label>Custom LeetCode Number or Title:</label>
+                  <input type="text" id="wiz-custom-leetcode-input" placeholder="e.g. #146 LRU Cache or #42 Trapping Rain Water" oninput="updateCustomLeetCodeText()">
+                </div>
+
+                <!-- Problem Preview Card -->
+                <div id="leetcode-preview-card" class="leetcode-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                    <strong style="color: #000; font-size: 0.825rem;" id="lc-preview-title">LeetCode #1: Two Sum</strong>
+                    <span class="badge badge-dark" id="lc-preview-diff">Easy</span>
+                  </div>
+                  <p style="font-size: 0.75rem; color: #18181b; line-height: 1.45; margin-bottom: 0.5rem;" id="lc-preview-desc">
+                    Given an array of integers <code>nums</code> and an integer <code>target</code>, return indices of the two numbers such that they add up to <code>target</code>.
+                  </p>
+                  <div style="font-size: 0.7rem; font-family: monospace; background: #fff; padding: 0.4rem 0.6rem; border-radius: 4px; border: 1px solid var(--border);" id="lc-preview-testcases">
+                    Input: nums = [2,7,11,15], target = 9 | Output: [0,1]
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+              <button type="button" class="btn btn-outline" onclick="goToWizardStep(5)">
+                <i class="bi bi-arrow-left"></i> Back
+              </button>
+              <button type="button" class="btn" onclick="goToWizardStep(7)">
+                Next: Duration & Launch <i class="bi bi-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- SCREEN 7: Target Duration, Link Expiration & Final Launch -->
+          <div id="wiz-step-7" class="card" style="display: none;">
+            <h3 style="font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 0.25rem;">
+              Step 7: Target Duration & Link Expiration
+            </h3>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">
+              Set the interview duration, candidate link expiration timer, and review the round configuration.
+            </p>
+
+            <div class="grid-3" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
+              <div>
+                <label>Interview Target Duration (3 - 60 min):</label>
+                <select id="wiz-target-duration" onchange="handleWizardDurationChange()">
+                  <option value="3">3 Minutes (Rapid Blitz - 2 Qs)</option>
+                  <option value="5">5 Minutes (Quick Screen - 3 Qs)</option>
+                  <option value="10">10 Minutes (Fast Screening - 4 Qs)</option>
+                  <option value="15" selected>15 Minutes (Standard Round - 6 Qs)</option>
+                  <option value="20">20 Minutes (Deep Evaluation - 8 Qs)</option>
+                  <option value="30">30 Minutes (Comprehensive Round - 10 Qs)</option>
+                  <option value="45">45 Minutes (Architecture & DSA - 14 Qs)</option>
+                  <option value="60">60 Minutes (Full 1-Hour Master Round - 18 Qs)</option>
+                </select>
+              </div>
+
+              <div>
+                <label>Number of Questions to Ask:</label>
+                <input type="number" id="wiz-max-questions" min="2" max="25" value="6" onchange="handleWizardQuestionCountChange()" style="width: 100%; padding: 0.5rem; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text);">
+              </div>
+
+              <div>
+                <label>Candidate Link Expiration Timer:</label>
+                <select id="wiz-link-timer">
+                  <option value="30">30 Minutes</option>
+                  <option value="60" selected>60 Minutes (1 Hour)</option>
+                  <option value="120">120 Minutes (2 Hours)</option>
+                  <option value="1440">24 Hours (1 Day)</option>
+                  <option value="2880">48 Hours (2 Days)</option>
+                  <option value="10080">7 Days (1 Week)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Configuration Summary Review Card -->
+            <div style="background: var(--surface-subtle); border: 2px solid var(--border-dark); border-radius: 8px; padding: 1.25rem; margin: 1.25rem 0;">
+              <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--text); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.35rem;">
+                <i class="bi bi-check-circle-fill"></i> Interview Summary & Specifications:
+              </h4>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.75rem;">
+                <div>
+                  <span style="color: var(--text-muted);">Purpose:</span>
+                  <strong style="color: var(--text); display: block;" id="sum-purpose">Full-Time Job Hiring</strong>
+                </div>
+                <div>
+                  <span style="color: var(--text-muted);">Role Title:</span>
+                  <strong style="color: var(--text); display: block;" id="sum-title">Junior Python / Backend Engineer</strong>
+                </div>
+                <div>
+                  <span style="color: var(--text-muted);">Category:</span>
+                  <strong style="color: var(--text); display: block;" id="sum-category">Software &amp; Tech</strong>
+                </div>
+                <div>
+                  <span style="color: var(--text-muted);">Experience Tier:</span>
+                  <strong style="color: var(--text); display: block;" id="sum-experience">0-1 Yrs</strong>
+                </div>
+                <div>
+                  <span style="color: var(--text-muted);">DSA / LeetCode Problem:</span>
+                  <strong style="color: var(--text); display: block;" id="sum-dsa">LeetCode #1: Two Sum</strong>
+                </div>
+                <div style="grid-column: 1 / -1;">
+                  <span style="color: var(--text-muted);">Evaluated Skills:</span>
+                  <strong style="color: var(--text); display: block;" id="sum-skills">Python, SQL, REST APIs, Git</strong>
+                </div>
+                <div style="grid-column: 1 / -1;">
+                  <span style="color: var(--text-muted);">Active Tools:</span>
+                  <strong style="color: var(--text); display: block;" id="sum-tools">Interactive Terminal Sandbox Â· Resume Verification</strong>
+                </div>
+              
+                <div style="grid-column: 1 / -1;">
+                  <span style="color: var(--text-muted);">Target Planned Questions:</span>
+                  <strong style="color: var(--text); display: block;" id="sum-questions-count">6 Target Questions</strong>
+                </div>
+              </div>
+
+              <!-- Real-time Planned Questions Preview Box -->
+              <div id="sum-questions-preview-container" style="margin-top: 1rem; border: 1px solid var(--border); border-radius: 6px; padding: 0.85rem; background: var(--surface);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                  <h5 style="font-size: 0.8rem; font-weight: 700; color: var(--text); margin: 0; display: flex; align-items: center; gap: 0.35rem;">
+                    <i class="bi bi-eye-fill"></i> Question Preview (Company Pre-check):
+                  </h5>
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="refreshQuestionsPreview()" style="font-size: 0.7rem; padding: 0.15rem 0.4rem;">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh Preview
+                  </button>
+                </div>
+                <p style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+                  Review the exact sequence of questions the AI will pose. Adaptive follow-up questions (1-2 max) will be generated contextually if the candidate's answer is brief or incomplete.
+                </p>
+                <div id="sum-questions-preview-list" style="display: flex; flex-direction: column; gap: 0.4rem; max-height: 220px; overflow-y: auto;">
+                  <div style="color: var(--text-muted); font-size: 0.75rem; font-style: italic;">Loading questions preview...</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+              <button type="button" class="btn btn-outline" onclick="goToWizardStep(6)">
+                <i class="bi bi-arrow-left"></i> Back
+              </button>
+              <button type="submit" id="btn-wizard-submit" class="btn" style="padding: 0.65rem 1.5rem; font-weight: 700; font-size: 0.85rem;">
+                <i class="bi bi-check2-circle"></i> <span id="btn-wizard-submit-text">Create Interview & Publish Round</span>
+              </button>
+            </div>
+          </div>
+
+        </form>
+      </div>
+
+    </div>
+
+    <!-- TAB 2: Candidate Pipeline & Evidence Reports -->
+    <div id="tab-candidates" class="tab-pane" style="display: none;">
+      <!-- Invite Candidate Card -->
+      <div class="card">
+        <div class="card-title">
+          <span><i class="bi bi-send"></i> Send Timed Interview Link to Candidate</span>
+          <span class="badge badge-dark">Secure 128-bit Link</span>
+        </div>
+
+        <!-- Drag & Drop Resume PDF/DOCX Parser -->
+        <div id="resume-dropzone" class="resume-dropzone" ondragover="handleResumeDragOver(event)" ondragleave="handleResumeDragLeave(event)" ondrop="handleResumeDrop(event)">
+          <input type="file" id="resume-file-input" accept=".pdf,.docx,.txt" style="display: none;" onchange="handleResumeFileSelect(this.files)">
+          <div style="text-align: center; padding: 1.25rem 1rem;" onclick="document.getElementById('resume-file-input').click()">
+            <div id="dropzone-idle-state">
+              <i class="bi bi-file-earmark-pdf" style="font-size: 2rem; color: var(--text-muted); display: block; margin-bottom: 0.35rem;"></i>
+              <strong style="color: var(--text); font-size: 0.85rem; display: block;">
+                Drag &amp; Drop Candidate Resume (PDF / DOCX) here, or <span style="text-decoration: underline;">click to browse</span>
+              </strong>
+              <p style="color: var(--text-muted); font-size: 0.72rem; margin-top: 0.25rem; margin-bottom: 0;">
+                AI extracts Candidate Name, Email, Skills, Experience &amp; Projects automatically
+              </p>
+            </div>
+            <div id="dropzone-loading-state" style="display: none; padding: 0.5rem 0;">
+              <div class="spinner-border spinner-border-sm" role="status" style="width: 1.5rem; height: 1.5rem; border-width: 2px; color: var(--text); display: inline-block; margin-bottom: 0.35rem;"></div>
+              <strong style="color: var(--text); font-size: 0.85rem; display: block;">Analyzing Resume with AI...</strong>
+              <p style="color: var(--text-muted); font-size: 0.72rem; margin-top: 0.2rem; margin-bottom: 0;">Parsing technical skills, verified experience, and project claims...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Parsed Resume Confirmation & Skills Pill Box (shown after parse) -->
+        <div id="resume-parsed-card" style="display: none; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 6px; padding: 0.85rem 1rem; margin-bottom: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <span class="badge badge-dark"><i class="bi bi-check-circle-fill"></i> Resume Parsed</span>
+              <strong id="parsed-candidate-name-badge" style="font-size: 0.85rem; color: var(--text);">Alex Morgan</strong>
+              <span id="parsed-experience-badge" class="badge badge-outline">3-5 Yrs Exp</span>
+              <span id="parsed-skills-count-badge" class="badge badge-outline" style="font-weight: 600;">12 Skills Detected</span>
+            </div>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="clearParsedResume()" style="font-size: 0.72rem; color: var(--text-muted);" title="Clear parsed resume">
+              <i class="bi bi-x-circle"></i> Clear
+            </button>
+          </div>
+          <div id="parsed-skills-cloud" style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.45rem;">
+            <!-- Populated dynamically with skill pills -->
+          </div>
+        </div>
+
+        <form id="form-invite" class="grid-3" style="align-items: flex-end;">
+          <div>
+            <label>Select Job Position</label>
+            <select id="invite-job-id" required>
+              <option value="">Select a role...</option>
+            </select>
+          </div>
+          <div>
+            <label>Candidate Full Name</label>
+            <input type="text" id="invite-name" placeholder="Alex Morgan" required>
+          </div>
+          <div>
+            <label>Candidate Email</label>
+            <input type="email" id="invite-email" placeholder="alex.morgan@example.com" required>
+          </div>
+
+          <div>
+            <label>Link Expiration Timer</label>
+            <select id="invite-timer-minutes">
+              <option value="30">30 Minutes</option>
+              <option value="60" selected>60 Minutes (1 Hour)</option>
+              <option value="120">120 Minutes (2 Hours)</option>
+              <option value="1440">24 Hours (1 Day)</option>
+              <option value="2880">48 Hours (2 Days)</option>
+              <option value="10080">7 Days (1 Week)</option>
+            </select>
+          </div>
+
+          <div style="grid-column: 2 / -1;">
+            <label>Candidate Qualifications / Resume Claims (Optional Context)</label>
+            <textarea id="invite-resume" rows="2" placeholder="Paste resume excerpt, key projects, or claimed skills for deep-dive questioning..."></textarea>
+          </div>
+
+          <div style="grid-column: 1 / -1;">
+            <button type="submit" class="btn" style="width: 100%;">
+              <i class="bi bi-link-45deg"></i> Generate Timed Single-Use Interview Link
+            </button>
+          </div>
+        </form>
+
+        <div id="invite-result-box" style="display: none; background: var(--surface-subtle); border: 1px solid var(--border-dark); padding: 0.85rem; border-radius: 6px; margin-top: 0.75rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.775rem; font-weight: 600; color: #000;" id="invite-timer-label">
+              <i class="bi bi-clock-history"></i> Interview Link Generated:
+            </span>
+            <button class="btn btn-outline btn-sm" onclick="copyInviteUrl()"><i class="bi bi-clipboard"></i> Copy Link</button>
+          </div>
+          <input type="text" id="invite-generated-url" readonly style="margin-top: 0.4rem; font-family: monospace; font-size: 0.75rem; background: #fff;">
+          <a id="invite-test-link" href="#" target="_blank" class="btn btn-sm" style="margin-top: 0.25rem;">
+            <i class="bi bi-box-arrow-up-right"></i> Open Candidate Room (Test Now)
+          </a>
+        </div>
+      </div>
+
+      <!-- Candidate Pipeline Table -->
+      <div class="card">
+        <div class="card-title">
+          <span><i class="bi bi-table"></i> Screening Pipeline & Reports</span>
+          <div style="display: flex; gap: 0.35rem;">
+            <button class="btn btn-outline btn-sm" onclick="exportCandidatesCsv()"><i class="bi bi-download"></i> Export CSV</button>
+            <button class="btn btn-ghost btn-sm" onclick="loadInterviews()"><i class="bi bi-arrow-clockwise"></i></button>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Candidate</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Consent</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="interviews-table-body">
+              <tr><td colspan="5" style="text-align: center; color: var(--text-muted); font-size: 0.775rem;">Select a job to view candidates</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: BYOK / Provider Key Vault -->
+    <div id="tab-keys" class="tab-pane" style="display: none;">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">
+            <span><i class="bi bi-shield-lock"></i> Provider API Key (BYOK)</span>
+            <span class="badge badge-dark">AES-256-GCM</span>
+          </div>
+          <p style="font-size: 0.785rem; color: var(--text-muted); margin-bottom: 0.85rem;">
+            Keys are encrypted on the backend with AES-256-GCM. Frontend only ever displays masked last 4 characters.
+          </p>
+
+          <div id="key-current-status" style="margin-bottom: 1rem; padding: 0.75rem; background: var(--surface-subtle); border-radius: 6px; border: 1px solid var(--border);">
+            Loading key status...
+          </div>
+
+          <form id="form-key">
+            <label>Google Gemini API Key</label>
+            <input type="password" id="input-api-key" placeholder="AIzaSy..." required>
+            <div style="display: flex; gap: 0.5rem;">
+              <button type="submit" class="btn" style="flex: 1;"><i class="bi bi-check-lg"></i> Validate & Store Key</button>
+              <button type="button" class="btn btn-outline" onclick="deleteProviderKey()"><i class="bi bi-trash"></i> Delete</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span><i class="bi bi-info-circle"></i> Security Architecture</span>
+          </div>
+          <ul style="list-style: none; font-size: 0.785rem; line-height: 1.8; color: #3f3f46;">
+            <li><i class="bi bi-check2"></i> <strong>Zero Markup:</strong> AI calls execute through your direct provider quotas.</li>
+            <li><i class="bi bi-check2"></i> <strong>Enterprise Privacy:</strong> Candidate data is not used for model training under paid API tiers.</li>
+            <li><i class="bi bi-check2"></i> <strong>Instant Health Ping:</strong> Backend tests connection before storing.</li>
+            <li><i class="bi bi-check2"></i> <strong>Revocable Anytime:</strong> Remove key instantly from database vault.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: Usage & Pricing -->
+    <div id="tab-metrics" class="tab-pane" style="display: none;">
+      <div class="grid-4" style="margin-bottom: 1.25rem;">
+        <div class="metric-card">
+          <div class="metric-sub">Total Interviews</div>
+          <div id="metric-interviews" class="metric-val">0</div>
+          <div style="font-size: 0.7rem; color: var(--text-muted);">Completed candidate runs</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-sub">Input Tokens</div>
+          <div id="metric-in-tokens" class="metric-val">0</div>
+          <div style="font-size: 0.7rem; color: var(--text-muted);">Prompt context & history</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-sub">Output Tokens</div>
+          <div id="metric-out-tokens" class="metric-val">0</div>
+          <div style="font-size: 0.7rem; color: var(--text-muted);">Generated questions & reports</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-sub">Estimated AI Cost</div>
+          <div id="metric-cost" class="metric-val">â‚¹0.00</div>
+          <div style="font-size: 0.7rem; color: var(--text-muted);">Based on standard rates</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <span><i class="bi bi-credit-card"></i> SaaS Plans (Pilot Pricing)</span>
+        </div>
+        <div class="grid-3">
+          <div style="border: 1px solid var(--border); padding: 1.25rem; border-radius: 6px; background: #fff;">
+            <h4 style="font-size: 0.875rem;">Starter Plan</h4>
+            <div style="font-size: 1.35rem; font-weight: 700; margin: 0.35rem 0;">â‚¹599<span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 400;">/mo</span></div>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">10 interviews included + â‚¹50-99 per extra.</p>
+            <ul style="font-size: 0.725rem; line-height: 1.6; color: #52525b; list-style: square; padding-left: 1rem;">
+              <li>Junior roles (Python, Java, C++, SQL)</li>
+              <li>Voice & Hinglish screening</li>
+              <li>Evidence-backed reports</li>
+            </ul>
+          </div>
+
+          <div style="border: 2px solid #000; padding: 1.25rem; border-radius: 6px; background: #fff;">
+            <div style="display: flex; justify-content: space-between;">
+              <h4 style="font-size: 0.875rem;">Growth Plan</h4>
+              <span class="badge badge-dark">Most Popular</span>
+            </div>
+            <div style="font-size: 1.35rem; font-weight: 700; margin: 0.35rem 0;">â‚¹1,999<span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 400;">/mo</span></div>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">50 interviews included + 3 recruiter seats.</p>
+            <ul style="font-size: 0.725rem; line-height: 1.6; color: #52525b; list-style: square; padding-left: 1rem;">
+              <li>All Starter features</li>
+              <li>BYOK custom provider key</li>
+              <li>CSV & PDF exports</li>
+            </ul>
+          </div>
+
+          <div style="border: 1px solid var(--border); padding: 1.25rem; border-radius: 6px; background: #fff;">
+            <h4 style="font-size: 0.875rem;">Agency Plan</h4>
+            <div style="font-size: 1.35rem; font-weight: 700; margin: 0.35rem 0;">â‚¹4,999<span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 400;">/mo</span></div>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">200 interviews included for bulk staffing.</p>
+            <ul style="font-size: 0.725rem; line-height: 1.6; color: #52525b; list-style: square; padding-left: 1rem;">
+              <li>High-volume link generation</li>
+              <li>Agency branding on reports</li>
+              <li>Priority technical support</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: Free Question Generator (Lead Magnet) -->
+    <div id="tab-leadmagnet" class="tab-pane" style="display: none;">
+      <div class="card">
+        <div class="card-title">
+          <span><i class="bi bi-magic"></i> Instant Screening Question & Rubric Generator</span>
+          <span class="badge">Free Utility</span>
+        </div>
+        <p style="font-size: 0.785rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Paste any Job Description to generate 10 structured technical interview questions with 1 / 3 / 5 evaluation rubrics.
+        </p>
+
+        <form id="form-leadmagnet" class="grid-2">
+          <div>
+            <label>Hiring Manager Name</label>
+            <input type="text" id="lm-name" placeholder="Priya Sharma" required>
+
+            <label>Work Email</label>
+            <input type="email" id="lm-email" placeholder="priya@company.com" required>
+
+            <button type="submit" class="btn" style="width: 100%;">
+              <i class="bi bi-cpu"></i> Formulate Questions & Rubrics
+            </button>
+          </div>
+          <div>
+            <label>Job Description</label>
+            <textarea id="lm-jd" rows="6" placeholder="Paste JD here (e.g. Junior Python developer with SQL)..." required></textarea>
+          </div>
+        </form>
+
+        <div id="lm-result-container" style="display: none; margin-top: 1.25rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+          <h4 style="font-size: 0.85rem; margin-bottom: 0.75rem;"><i class="bi bi-check-circle"></i> Generated Questions & Scoring Rubrics:</h4>
+          <div id="lm-questions-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ONBOARDING MODAL: Multi-Step Customer Sign-In & Verification -->
+    <div id="auth-modal" class="modal-overlay" style="display: none;">
+      <div class="modal-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <i class="bi bi-lock-fill" style="font-size: 0.95rem;"></i>
+            <span style="font-size: 0.9rem; font-weight: 700; color: #000;" id="auth-modal-title">Employer Sign In</span>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="closeAuthModal()"><i class="bi bi-x-lg"></i></button>
+        </div>
+
+        <!-- Wizard Steps Bar -->
+        <div class="wizard-steps" id="wizard-steps-indicator">
+          <div class="wizard-step-item active" id="step-tab-1">1. Account</div>
+          <div class="wizard-step-item" id="step-tab-2">2. Verification</div>
+          <div class="wizard-step-item" id="step-tab-3">3. Company</div>
+        </div>
+
+        <!-- Step 1: Account / Sign In / Register -->
+        <div id="auth-step-1">
+          <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
+            <button type="button" class="btn btn-sm" id="btn-toggle-signup" onclick="toggleAuthMode('signup')">Create Account</button>
+            <button type="button" class="btn btn-outline btn-sm" id="btn-toggle-login" onclick="toggleAuthMode('login')">Existing User Sign In</button>
+          </div>
+
+          <!-- Sign Up Form (Personal Info + Credentials) -->
+          <form id="form-signup">
+            <div class="grid-2">
+              <div>
+                <label>Your Full Name</label>
+                <input type="text" id="su-name" placeholder="Vikram Malhotra" required>
+              </div>
+              <div>
+                <label>Your Job Role / Title</label>
+                <input type="text" id="su-title" placeholder="Lead Technical Recruiter" required>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div>
+                <label>Work Email Address</label>
+                <input type="email" id="su-email" placeholder="vikram@enterprise.com" required>
+              </div>
+              <div>
+                <label>Contact Phone Number</label>
+                <input type="tel" id="su-phone" placeholder="+91 98765 43210" required>
+              </div>
+            </div>
+
+            <label>Password</label>
+            <input type="password" id="su-password" placeholder="Minimum 8 characters" required>
+
+            <button type="submit" class="btn" style="width: 100%; margin-top: 0.35rem;">
+              Continue to Verification <i class="bi bi-arrow-right"></i>
+            </button>
+          </form>
+
+          <!-- Login Form -->
+          <form id="form-login" style="display: none;">
+            <label>Work Email</label>
+            <input type="email" id="login-email" placeholder="name@company.com" required>
+
+            <label>Password</label>
+            <input type="password" id="login-password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" required>
+
+            <button type="submit" class="btn" style="width: 100%; margin-top: 0.35rem;">
+              Sign In & Enter Dashboard <i class="bi bi-box-arrow-in-right"></i>
+            </button>
+          </form>
+        </div>
+
+        <!-- Step 2: Verification (Code Confirmation) -->
+        <div id="auth-step-2" style="display: none;">
+          <div style="background: var(--surface-subtle); border: 1px solid var(--border); padding: 0.85rem; border-radius: 6px; margin-bottom: 1rem;">
+            <div style="font-weight: 600; font-size: 0.775rem; margin-bottom: 0.2rem;"><i class="bi bi-envelope-check"></i> Verification Code Sent</div>
+            <p style="color: var(--text-muted); font-size: 0.725rem;">
+              We sent a 6-digit confirmation code to your work email. Enter it below to verify your employer identity.
+            </p>
+            <div id="demo-verification-hint" style="margin-top: 0.4rem; font-size: 0.725rem; font-family: monospace; color: #000; font-weight: 600;"></div>
+          </div>
+
+          <form id="form-verify">
+            <label>6-Digit Verification Code</label>
+            <input type="text" id="verify-code" placeholder="e.g. 123456" maxlength="6" style="font-size: 1.15rem; letter-spacing: 0.25em; text-align: center; font-weight: 700;" required>
+
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+              <button type="submit" class="btn" style="flex: 1;">
+                Verify Identity <i class="bi bi-check-circle"></i>
+              </button>
+              <button type="button" class="btn btn-outline" onclick="resendVerificationCode()">
+                Resend
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Step 3: Company Profile Information -->
+        <div id="auth-step-3" style="display: none;">
+          <p style="color: var(--text-muted); font-size: 0.75rem; margin-bottom: 0.85rem;">
+            Provide details about your company so candidates see accurate branding during their technical screening interview.
+          </p>
+
+          <form id="form-company">
+            <label>Company / Agency Name</label>
+            <input type="text" id="co-name" placeholder="Apex Cloud Technologies" required>
+
+            <div class="grid-2">
+              <div>
+                <label>Company Website</label>
+                <input type="url" id="co-website" placeholder="https://company.com">
+              </div>
+              <div>
+                <label>Industry</label>
+                <select id="co-industry">
+                  <option value="IT Services & Software" selected>IT & Software Services</option>
+                  <option value="Staffing & Recruitment">Staffing / Recruitment Agency</option>
+                  <option value="FinTech">FinTech / Financial Services</option>
+                  <option value="E-Commerce">E-Commerce / Consumer Tech</option>
+                  <option value="Consulting">Consulting / Outsourcing</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div>
+                <label>Organization Size</label>
+                <select id="co-size">
+                  <option value="1-10">1 - 10 employees</option>
+                  <option value="11-50" selected>11 - 50 employees</option>
+                  <option value="51-200">51 - 200 employees</option>
+                  <option value="200+">200+ employees</option>
+                </select>
+              </div>
+              <div>
+                <label>Operating Country / Region</label>
+                <select id="co-country">
+                  <option value="India" selected>India (en-IN English support)</option>
+                  <option value="Global">United States / Global</option>
+                </select>
+              </div>
+            </div>
+
+            <button type="submit" class="btn" style="width: 100%; margin-top: 0.5rem;">
+              Complete Setup & Enter Hiring Dashboard <i class="bi bi-arrow-right"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide-out Drawer: Top Right Responses & Scores Window -->
+    <div id="responses-drawer" class="drawer-overlay" onclick="closeResponsesDrawerOnBackdrop(event)">
+      <div class="drawer-content">
+        <div class="drawer-header">
+          <div>
+            <div style="font-weight: 700; font-size: 0.95rem; color: #000; display: flex; align-items: center; gap: 0.45rem;">
+              <i class="bi bi-chat-square-quote-fill"></i> Candidate Responses & Scores
+            </div>
+            <div style="font-size: 0.725rem; color: var(--text-muted); margin-top: 0.15rem;">
+              Full conversation transcripts, AI analysis scores, and hiring clarification.
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="closeResponsesDrawer()"><i class="bi bi-x-lg"></i></button>
+        </div>
+
+        <div style="padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border); background: var(--surface-subtle); display: flex; gap: 0.5rem; align-items: center;">
+          <input type="text" id="responses-search" placeholder="Filter by candidate, email, or role..." style="margin-bottom: 0; font-size: 0.75rem; background: #fff;" oninput="filterResponsesList()">
+          <select id="responses-filter-verdict" style="margin-bottom: 0; width: auto; font-size: 0.75rem;" onchange="filterResponsesList()">
+            <option value="all">All Verdicts</option>
+            <option value="RECOMMENDED_HIRE">Recommended Hire</option>
+            <option value="POTENTIAL_HIRE">Potential Hire</option>
+            <option value="NOT_RECOMMENDED">Not Recommended</option>
+          </select>
+          <button class="btn btn-outline btn-sm" onclick="loadOrgResponses()"><i class="bi bi-arrow-clockwise"></i></button>
+        </div>
+
+        <div class="drawer-body" id="responses-drawer-list">
+          <p style="color: var(--text-muted); font-size: 0.775rem;">Loading candidate responses and evaluations...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Evidence-Backed Report Modal -->
+    <div id="report-modal" class="modal-overlay" style="display: none;">
+      <div class="modal-content" style="max-width: 720px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+          <div>
+            <span class="badge badge-dark">Evidence-Backed Report</span>
+            <div id="modal-report-candidate" style="font-size: 1.15rem; font-weight: 700; color: #000; margin-top: 0.2rem;">Candidate Name</div>
+            <div id="modal-report-meta" style="color: var(--text-muted); font-size: 0.75rem;">Role Â· Date</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="closeReportModal()"><i class="bi bi-x-lg"></i></button>
+        </div>
+
+        <div id="modal-report-body">
+          Loading report...
+        </div>
+
+        <div style="margin-top: 1.25rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 0.75rem;">
+          <button id="btn-erase-candidate" class="btn btn-outline btn-sm"><i class="bi bi-trash"></i> DPDP Erase Data</button>
+          <button class="btn btn-sm" onclick="window.print()"><i class="bi bi-printer"></i> Print / Save PDF</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Waitlist Modal -->
+    <div id="waitlist-modal" class="modal-overlay" style="display: none;">
+      <div class="modal-content" style="max-width: 480px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <span style="font-weight: 700; font-size: 0.95rem;">Apply for 20 Free Pilot Interviews</span>
+          <button class="btn btn-ghost btn-sm" onclick="closeWaitlistModal()"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.85rem;">
+          Chapter 11.6 Pilot Program: 20 free technical screens for junior roles. Evidence reports and transcript quote verification included.
+        </p>
+        <form id="form-waitlist">
+          <label>Your Name</label>
+          <input type="text" id="wl-name" placeholder="Alex Morgan" required>
+
+          <label>Company Name</label>
+          <input type="text" id="wl-company" placeholder="Apex Talent" required>
+
+          <div class="grid-2">
+            <div>
+              <label>Work Email</label>
+              <input type="email" id="wl-email" placeholder="alex@company.com" required>
+            </div>
+            <div>
+              <label>Phone / WhatsApp</label>
+              <input type="tel" id="wl-phone" placeholder="+1 555 123 4567" required>
+            </div>
+          </div>
+
+          <label>Monthly Junior Vacancies</label>
+          <select id="wl-vacancies">
+            <option value="1-5">1-5 hires per month</option>
+            <option value="5-20" selected>5-20 hires per month</option>
+            <option value="20-50">20-50 hires per month</option>
+            <option value="50+">50+ hires per month</option>
+          </select>
+
+          <button type="submit" class="btn" style="width: 100%; margin-top: 0.5rem;">
+            Claim 20 Free Pilot Interviews
+          </button>
+        </form>
+      </div>
+    </div>
+
+  
+    <!-- Shareable Interview Link Modal -->
+    <div id="modal-share-link" class="modal-overlay" style="display: none;">
+      <div class="modal-content" style="max-width: 520px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span class="badge badge-dark"><i class="bi bi-link-45deg"></i> Share Link</span>
+            <span id="share-modal-job-title" style="font-weight: 700; font-size: 0.95rem; color: var(--text);">Interview Ready</span>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="closeShareModal()"><i class="bi bi-x-lg"></i></button>
+        </div>
+        
+        <p style="font-size: 0.775rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Share this direct link with candidate(s). Candidates open the link, enter their personal info (name, email, optional resume), and immediately begin the round.
+        </p>
+
+        <label style="font-size: 0.75rem; font-weight: 600; color: var(--text); display: block; margin-bottom: 0.35rem;">
+          Direct Candidate Interview Link:
+        </label>
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+          <input type="text" id="share-modal-url" readonly style="font-family: monospace; font-size: 0.8rem; background: var(--surface-subtle); color: var(--text); flex: 1; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 6px;" value="">
+          <button id="btn-copy-share-url" class="btn" style="white-space: nowrap; padding: 0.5rem 1rem;" onclick="copyShareModalUrl()">
+            <i class="bi bi-clipboard"></i> Copy Link
+          </button>
+        </div>
+
+        <div id="share-copy-toast" style="display: none; background: #16a34a; color: #fff; font-size: 0.75rem; padding: 0.4rem 0.75rem; border-radius: 4px; margin-bottom: 1rem; text-align: center;">
+          <i class="bi bi-check-circle-fill"></i> Link copied to clipboard!
+        </div>
+
+        <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem; font-size: 0.725rem; color: var(--text-muted); line-height: 1.45;">
+          <strong>Instant Access Flow:</strong><br>
+          • Candidate enters Name &amp; Email.<br>
+          • Non-technical roles get pure voice/chat room (terminal hidden).<br>
+          • Technical roles get coding sandbox if enabled.<br>
+          • AI wraps up gracefully when target questions are completed.
+        </div>
+
+        <div style="margin-top: 1.25rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
+          <button class="btn btn-outline btn-sm" onclick="closeShareModal()">Done</button>
+          <a id="btn-open-share-candidate" href="#" target="_blank" class="btn btn-sm">
+            Open Candidate Room <i class="bi bi-box-arrow-up-right"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Question Preview Modal for Dashboard Job Card -->
+    <div id="modal-questions-preview" class="modal-overlay" style="display: none;">
+      <div class="modal-content" style="max-width: 600px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
+          <div>
+            <span class="badge badge-dark">Planned Interview Questions</span>
+            <h3 id="card-preview-job-title" style="font-size: 0.95rem; font-weight: 700; margin: 0.25rem 0 0 0; color: var(--text);">Job Title</h3>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="closeQuestionsPreviewModal()"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.85rem;">
+          Questions curated specifically for this role, skills, and duration.
+        </p>
+        <div id="card-preview-questions-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 380px; overflow-y: auto;">
+          Loading questions...
+        </div>
+        <div style="margin-top: 1.25rem; text-align: right;">
+          <button class="btn btn-outline btn-sm" onclick="closeQuestionsPreviewModal()">Close</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>
+

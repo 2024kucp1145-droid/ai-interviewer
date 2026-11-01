@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Technical Screening Interview | Candidate Room</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --surface: #ffffff;
+      --surface-subtle: #f8fafc;
+      --border: #e2e8f0;
+      --border-dark: #cbd5e1;
+      --text: #09090b;
+      --text-muted: #64748b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      font-size: 0.8125rem;
+      line-height: 1.45;
+    }
+    header {
+      background-color: #ffffff;
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand { font-size: 0.95rem; font-weight: 700; color: #000; display: flex; align-items: center; gap: 0.4rem; }
+    .status-badge {
+      background-color: #000000;
+      color: #ffffff;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+    main {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1.5rem;
+      background: var(--surface-subtle);
+    }
+    .card {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.75rem 2rem;
+      width: 100%;
+      max-width: 620px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    }
+    .title { font-size: 1.15rem; font-weight: 700; color: #000; margin-bottom: 0.35rem; letter-spacing: -0.02em; }
+    .subtitle { color: var(--text-muted); font-size: 0.775rem; margin-bottom: 1.25rem; }
+    .notice-box {
+      background-color: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-left: 3px solid #000;
+      padding: 0.85rem 1rem;
+      border-radius: 6px;
+      margin-bottom: 1.25rem;
+      font-size: 0.75rem;
+      line-height: 1.55;
+      color: #27272a;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      background-color: #000;
+      color: #fff;
+      border: 1px solid #000;
+      border-radius: 5px;
+      padding: 0.5rem 1rem;
+      font-weight: 500;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      width: 100%;
+    }
+    .btn:hover { background-color: #27272a; border-color: #27272a; }
+    .btn-secondary {
+      background-color: #fff;
+      color: #000;
+      border: 1px solid var(--border-dark);
+      margin-top: 0.5rem;
+    }
+    .btn-secondary:hover { background-color: var(--surface-subtle); }
+    .btn-record {
+      background-color: #000;
+      font-size: 0.85rem;
+      padding: 0.65rem 1.25rem;
+      border-radius: 9999px;
+      width: auto;
+      min-width: 190px;
+      margin: 1rem auto;
+      display: flex;
+    }
+    .btn-record.recording {
+      background-color: #dc2626;
+      border-color: #dc2626;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+    }
+    .ai-avatar {
+      width: 52px;
+      height: 52px;
+      background: #000;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      margin: 0 auto 1rem;
+      color: #fff;
+    }
+    .ai-avatar.speaking {
+      animation: speakPulse 0.8s infinite alternate;
+    }
+    @keyframes speakPulse {
+      from { transform: scale(1); box-shadow: 0 0 0 0 rgba(0,0,0,0.2); }
+      to { transform: scale(1.08); box-shadow: 0 0 0 6px rgba(0,0,0,0.1); }
+    }
+    .question-box {
+      background-color: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      font-weight: 500;
+      color: #000;
+    }
+    textarea {
+      width: 100%;
+      min-height: 95px;
+      background-color: #fff;
+      border: 1px solid var(--border);
+      color: #000;
+      padding: 0.65rem 0.75rem;
+      border-radius: 5px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      resize: vertical;
+      margin-bottom: 0.75rem;
+    }
+    textarea:focus { outline: none; border-color: #000; box-shadow: 0 0 0 1px #000; }
+    .progress-bar-container {
+      background-color: var(--border);
+      height: 3px;
+      border-radius: 2px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+    .progress-fill {
+      background-color: #000;
+      height: 100%;
+      width: 100%;
+      transition: width 0.25s ease;
+    }
+    .flex-row { display: flex; gap: 0.75rem; align-items: center; }
+
+    /* Coding Terminal & Word Editor Styles */
+    .room-container {
+      width: 100%;
+      max-width: 660px;
+      transition: max-width 0.2s ease;
+    }
+    .room-container.expanded {
+      max-width: 1140px;
+    }
+    .room-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+    }
+    .room-container.expanded .room-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    @media (max-width: 900px) {
+      .room-container.expanded .room-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .resume-dropzone {
+      border: 2px dashed var(--border-dark);
+      border-radius: 8px;
+      background: var(--surface-subtle);
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+    .resume-dropzone:hover {
+      border-color: #000000;
+      background: #ffffff;
+    }
+    .resume-dropzone.dragover {
+      border-color: #000000;
+      background: #f4f4f5;
+    }
+    [data-theme="dark"] .resume-dropzone {
+      border-color: var(--border-dark);
+      background: #18181b;
+    }
+    [data-theme="dark"] .resume-dropzone:hover {
+      border-color: #ffffff;
+      background: #27272a;
+    }
+    [data-theme="dark"] .resume-dropzone.dragover {
+      border-color: #ffffff;
+      background: #27272a;
+    }
+
+    .tool-panel {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+    }
+    .tool-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+    .code-textarea {
+      width: 100%;
+      min-height: 200px;
+      background: #09090b;
+      color: #f8fafc;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      padding: 0.75rem;
+      border-radius: 5px;
+      border: 1px solid #27272a;
+      resize: vertical;
+      margin-bottom: 0.5rem;
+    }
+    .code-textarea:focus {
+      outline: none;
+      border-color: #ffffff;
+    }
+    .terminal-console {
+      background: #18181b;
+      color: #10b981;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.75rem;
+      padding: 0.6rem 0.75rem;
+      border-radius: 4px;
+      min-height: 75px;
+      max-height: 150px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      line-height: 1.4;
+      border: 1px solid #27272a;
+    }
+    .word-canvas {
+      width: 100%;
+      min-height: 240px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 0.75rem;
+      font-family: inherit;
+      font-size: 0.825rem;
+      line-height: 1.55;
+      resize: vertical;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Theme Toggle Button */
+    .theme-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.35rem 0.65rem;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      background: #ffffff;
+      color: #09090b;
+      border: 1px solid var(--border-dark);
+      transition: all 0.15s ease;
+      line-height: 1;
+    }
+    .theme-toggle-btn:hover {
+      background: var(--surface-subtle);
+      border-color: #000000;
+    }
+
+    /* ========================================================
+       DARK THEME STYLES FOR CANDIDATE ROOM
+       ======================================================== */
+    [data-theme="dark"] {
+      --bg: #09090b;
+      --surface: #121215;
+      --surface-subtle: #18181b;
+      --border: #27272a;
+      --border-dark: #3f3f46;
+      --text: #f4f4f5;
+      --text-muted: #a1a1aa;
+    }
+
+    [data-theme="dark"] body {
+      background-color: var(--bg);
+      color: var(--text);
+    }
+
+    [data-theme="dark"] header {
+      background-color: #121215;
+      border-bottom-color: var(--border);
+    }
+
+    [data-theme="dark"] .brand {
+      color: #ffffff;
+    }
+
+    [data-theme="dark"] main {
+      background-color: #09090b;
+    }
+
+    [data-theme="dark"] .card {
+      background-color: var(--surface);
+      border-color: var(--border);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    [data-theme="dark"] .title,
+    [data-theme="dark"] h1,
+    [data-theme="dark"] strong {
+      color: #ffffff !important;
+    }
+
+    [data-theme="dark"] .subtitle {
+      color: var(--text-muted);
+    }
+
+    [data-theme="dark"] .notice-box {
+      background-color: #18181b;
+      border-color: var(--border);
+      border-left-color: #ffffff;
+      color: #e4e4e7;
+    }
+
+    [data-theme="dark"] .btn {
+      background-color: #ffffff;
+      color: #000000;
+      border-color: #ffffff;
+    }
+    [data-theme="dark"] .btn:hover {
+      background-color: #e4e4e7;
+    }
+
+    [data-theme="dark"] .btn-secondary {
+      background-color: #18181b;
+      color: #f4f4f5;
+      border-color: var(--border-dark);
+    }
+    [data-theme="dark"] .btn-secondary:hover {
+      background-color: #27272a;
+      border-color: #ffffff;
+    }
+
+    [data-theme="dark"] .btn-record {
+      background-color: #ffffff;
+      color: #000000;
+      border-color: #ffffff;
+    }
+
+    [data-theme="dark"] .ai-avatar {
+      background: #ffffff;
+      color: #000000;
+    }
+
+    [data-theme="dark"] .question-box {
+      background-color: #18181b;
+      border-color: var(--border);
+      color: #f4f4f5;
+    }
+
+    [data-theme="dark"] textarea {
+      background-color: #18181b;
+      border-color: var(--border);
+      color: #f4f4f5;
+    }
+
+    [data-theme="dark"] textarea:focus {
+      border-color: #ffffff;
+      box-shadow: 0 0 0 1px #ffffff;
+    }
+
+    [data-theme="dark"] .tool-panel {
+      background-color: #121215;
+      border-color: var(--border);
+    }
+
+    [data-theme="dark"] .tool-header {
+      border-bottom-color: var(--border);
+    }
+    [data-theme="dark"] .tool-header div {
+      color: #ffffff !important;
+    }
+
+    [data-theme="dark"] #terminal-lang-select {
+      background-color: #18181b;
+      border-color: var(--border);
+      color: #f4f4f5;
+    }
+
+    [data-theme="dark"] .word-canvas {
+      background-color: #18181b;
+      border-color: var(--border);
+      color: #f4f4f5;
+    }
+
+    [data-theme="dark"] .progress-fill {
+      background-color: #ffffff;
+    }
+
+    [data-theme="dark"] .status-badge {
+      background-color: #ffffff;
+      color: #000000;
+    }
+
+    [data-theme="dark"] #header-timer {
+      background-color: #18181b !important;
+      color: #ffffff !important;
+      border-color: var(--border-dark) !important;
+    }
+
+    [data-theme="dark"] #session-timer-badge {
+      background-color: #18181b !important;
+      color: #ffffff !important;
+      border-color: var(--border-dark) !important;
+    }
+
+    [data-theme="dark"] #job-title-badge {
+      color: #ffffff !important;
+    }
+
+    [data-theme="dark"] #mic-test-result {
+      color: #ffffff !important;
+    }
+
+    [data-theme="dark"] .theme-toggle-btn {
+      background: #18181b;
+      color: #f4f4f5;
+      border-color: var(--border-dark);
+    }
+    [data-theme="dark"] .theme-toggle-btn:hover {
+      background: #27272a;
+      border-color: #ffffff;
+    }
+  </style>
+  <script src="/js/theme.js"></script>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <i class="bi bi-cpu-fill"></i>
+      <span>AI Interviewer</span>
+    </div>
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+      <div id="header-timer" class="status-badge" style="background: #ffffff; color: #000; border: 1px solid var(--border-dark); font-family: monospace; display: none;">
+        <i class="bi bi-clock"></i> <span id="header-timer-clock">--:--</span>
+      </div>
+      <div id="header-status" class="status-badge">Candidate Session</div>
+      <!-- Theme Toggle (Right Corner) -->
+      <button class="theme-toggle-btn" id="btn-theme-toggle" onclick="toggleTheme()" title="Toggle Dark / Light Mode" aria-label="Toggle Dark / Light Mode">
+        <i class="bi bi-moon-stars-fill theme-toggle-icon"></i>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Screen 0: Candidate Self-Registration (Direct Share Link) -->
+    <div id="register-screen" class="card" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <span class="badge badge-dark"><i class="bi bi-shield-check"></i> Verified Assessment</span>
+        <span id="reg-duration-badge" class="badge badge-outline" style="font-family: monospace;">15 Mins · 6 Questions</span>
+      </div>
+      <h1 class="title" id="reg-job-title" style="margin-bottom: 0.25rem;">Technical Interview Screening</h1>
+      <p class="subtitle" id="reg-company-name">Please provide your details to begin your AI interview assessment.</p>
+
+      <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.75rem;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+          <div><span style="color: var(--text-muted);">Category:</span> <strong id="reg-job-category" style="color: var(--text);">Software & Tech</strong></div>
+          <div><span style="color: var(--text-muted);">Experience:</span> <strong id="reg-job-exp" style="color: var(--text);">0-1 Yrs</strong></div>
+          <div style="grid-column: 1 / -1;"><span style="color: var(--text-muted);">Core Skills:</span> <strong id="reg-job-skills" style="color: var(--text);">Python, REST APIs</strong></div>
+        </div>
+      </div>
+
+      <form id="candidate-self-reg-form" onsubmit="handleCandidateSelfRegSubmit(event)">
+        <div style="margin-bottom: 1rem;">
+          <label style="font-size: 0.75rem; font-weight: 600; color: var(--text); display: block; margin-bottom: 0.35rem;">
+            Full Legal Name <span style="color: #ef4444;">*</span>
+          </label>
+          <input type="text" id="reg-candidate-name" required placeholder="e.g. Rahul Sharma" style="width: 100%; padding: 0.6rem 0.75rem; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text);">
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <label style="font-size: 0.75rem; font-weight: 600; color: var(--text); display: block; margin-bottom: 0.35rem;">
+            Email Address <span style="color: #ef4444;">*</span>
+          </label>
+          <input type="email" id="reg-candidate-email" required placeholder="rahul@example.com" style="width: 100%; padding: 0.6rem 0.75rem; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text);">
+        </div>
+
+        <div style="margin-bottom: 1.25rem;">
+          <label style="font-size: 0.75rem; font-weight: 600; color: var(--text); display: block; margin-bottom: 0.35rem;">
+            Resume / Portfolio Summary (Optional):
+          </label>
+          <textarea id="reg-candidate-resume" rows="3" placeholder="Paste your resume summary, LinkedIn profile, or GitHub link to personalize the interview questions..." style="width: 100%; padding: 0.6rem 0.75rem; font-size: 0.8rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text);"></textarea>
+        </div>
+
+        <button type="submit" id="btn-reg-start" class="btn" style="width: 100%; padding: 0.75rem; font-weight: 700;">
+          Start Interview Assessment <i class="bi bi-arrow-right"></i>
+        </button>
+      </form>
+    </div>
+
+    <!-- Screen 1: DPDP 2023 Consent (Section 9.3) -->
+    <div id="consent-screen" class="card">
+      <h1 class="title">Candidate Consent & AI Disclosure</h1>
+      <p class="subtitle">Review interview terms before beginning your screening session.</p>
+
+      <div class="notice-box">
+        <strong style="color: #000; display: block; margin-bottom: 0.35rem;">AI Disclosure & Privacy Terms (DPDP Act 2023):</strong>
+        <p>• This technical screening is conducted by an <strong>AI system</strong>, not a human interviewer.</p>
+        <p>• Only your name, email, resume, and transcribed textual answers are processed.</p>
+        <p>• <strong>Audio recordings are never stored</strong> on servers; only text transcripts are retained.</p>
+        <p>• Final hiring decisions remain strictly with the human recruiter.</p>
+        <p>• You may request permanent deletion of your data at any time.</p>
+      </div>
+
+      <!-- Optional Candidate Resume Upload Dropzone -->
+      <div id="candidate-resume-section" style="margin-bottom: 1.25rem;">
+        <label style="font-size: 0.75rem; font-weight: 600; color: var(--text); display: block; margin-bottom: 0.35rem;">
+          <i class="bi bi-file-earmark-person"></i> Candidate Resume (Optional Update):
+        </label>
+        <div id="candidate-resume-dropzone" class="resume-dropzone" style="padding: 0.85rem; text-align: center;" ondragover="handleCandidateResumeDragOver(event)" ondragleave="handleCandidateResumeDragLeave(event)" ondrop="handleCandidateResumeDrop(event)" onclick="document.getElementById('candidate-resume-file').click()">
+          <input type="file" id="candidate-resume-file" accept=".pdf,.docx,.txt" style="display: none;" onchange="handleCandidateResumeUpload(this.files[0])">
+          <div id="candidate-resume-idle">
+            <i class="bi bi-cloud-arrow-up" style="font-size: 1.4rem; color: var(--text-muted); margin-bottom: 0.2rem; display: block;"></i>
+            <span style="font-size: 0.775rem; font-weight: 600; color: var(--text);">Drop your latest Resume PDF here, or <span style="text-decoration: underline;">click to browse</span></span>
+            <p style="font-size: 0.7rem; color: var(--text-muted); margin: 0.15rem 0 0 0;">AI interviewer will tailor technical questions directly to your actual projects &amp; background</p>
+          </div>
+          <div id="candidate-resume-loading" style="display: none; padding: 0.35rem 0;">
+            <div class="spinner-border spinner-border-sm" role="status" style="width: 1.2rem; height: 1.2rem; border-width: 2px; color: var(--text);"></div>
+            <span style="font-size: 0.775rem; font-weight: 600; margin-left: 0.35rem; color: var(--text);">Analyzing resume with AI...</span>
+          </div>
+          <div id="candidate-resume-success" style="display: none; color: #16a34a; font-weight: 600; font-size: 0.775rem;">
+            <i class="bi bi-check-circle-fill"></i> <span id="candidate-resume-status-text">Resume uploaded and analyzed!</span>
+          </div>
+        </div>
+      </div>
+
+      <label style="display: flex; gap: 0.5rem; align-items: flex-start; margin-bottom: 1.25rem; cursor: pointer; color: #18181b; font-size: 0.75rem;">
+        <input type="checkbox" id="consent-checkbox" style="margin-top: 0.15rem;">
+        <span>I have read the terms above and consent to this first-round technical screening.</span>
+      </label>
+
+      <button id="btn-consent-next" class="btn" disabled>
+        Proceed to Audio Setup <i class="bi bi-arrow-right"></i>
+      </button>
+    </div>
+
+    <!-- Screen 2: Mic Setup & Mode Selection -->
+    <div id="mic-screen" class="card" style="display: none;">
+      <h1 class="title">Audio & Microphone Setup</h1>
+      <p class="subtitle">Verify microphone input or switch to typing mode.</p>
+
+      <div class="notice-box">
+        <strong style="color: #000;">Voice Recognition Support:</strong>
+        <p style="margin-top: 0.2rem;">Configured for standard English voice recognition. You can review and edit each transcribed answer before submitting.</p>
+      </div>
+
+      <div style="text-align: center; margin: 1.5rem 0;">
+        <button id="btn-test-mic" class="btn btn-record">
+          <i class="bi bi-mic-fill"></i> Test Microphone
+        </button>
+        <p id="mic-test-status" style="margin-top: 0.65rem; color: var(--text-muted); font-size: 0.75rem;">
+          Click the button and say: <em>"Testing my microphone"</em>
+        </p>
+        <div id="mic-test-result" style="margin-top: 0.4rem; font-weight: 600; font-size: 0.775rem; color: #000;"></div>
+      </div>
+
+      <button id="btn-start-interview-voice" class="btn">
+        <i class="bi bi-mic"></i> Start Interview with Voice
+      </button>
+      <button id="btn-start-interview-text" class="btn btn-secondary">
+        <i class="bi bi-keyboard"></i> Switch to Keyboard Mode
+      </button>
+    </div>
+
+    <!-- Screen 3: Interactive Interview Room -->
+    <div id="interview-room-wrapper" class="room-container" style="display: none;">
+      <div class="room-grid">
+
+        <!-- Column 1: AI Question & Candidate Answer -->
+        <div class="card" style="margin-bottom: 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <span id="job-title-badge" style="font-size: 0.8rem; color: #000; font-weight: 700;">Technical Screening</span>
+            <div style="display: flex; gap: 0.35rem; align-items: center;">
+              <span id="session-timer-badge" class="status-badge" style="background: #ffffff; color: #000; border: 1px solid var(--border-dark); font-family: monospace; font-size: 0.725rem;">
+                <i class="bi bi-clock"></i> <span id="room-timer-text">--:--</span>
+              </span>
+              <span id="active-status-badge" class="status-badge" style="font-size: 0.7rem;"><i class="bi bi-broadcast"></i> Active</span>
+            </div>
+          </div>
+
+          <div id="avatar" class="ai-avatar">
+            <i class="bi bi-robot"></i>
+          </div>
+
+          <div class="question-box">
+            <div style="font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.35rem; display: flex; justify-content: space-between;">
+              <span>AI Technical Interviewer</span>
+              <button id="btn-repeat-audio" style="background: none; border: none; color: #000; cursor: pointer; font-size: 0.7rem;">
+                <i class="bi bi-volume-up"></i> Repeat Question
+              </button>
+            </div>
+            <div id="ai-question-text">Loading question...</div>
+          </div>
+
+          <div class="answer-input-area">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <label style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">Your Technical Response:</label>
+              <span id="voice-indicator" style="font-size: 0.7rem; color: #dc2626; display: none; font-weight: 600;">
+                <i class="bi bi-record-circle-fill"></i> Listening...
+              </span>
+            </div>
+
+            <textarea id="candidate-answer-box" placeholder="Speak or type your answer here. You can also paste code or notes from the tool panel..."></textarea>
+
+            <div class="flex-row" style="margin-bottom: 0.75rem;">
+              <button id="btn-push-to-talk" class="btn btn-secondary" style="flex: 1;">
+                <i class="bi bi-mic"></i> Push to Talk
+              </button>
+              <button id="btn-submit-answer" class="btn" style="flex: 1;">
+                Submit Answer <i class="bi bi-send-fill"></i>
+              </button>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <button id="btn-finish-early" style="background: none; border: none; color: var(--text-muted); font-size: 0.7rem; cursor: pointer;">
+                Conclude Interview Early
+              </button>
+              <span style="font-size: 0.6875rem; color: var(--text-muted);">
+                <i class="bi bi-shield-check"></i> Scored on technical knowledge & reasoning
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Column 2: Optional Interactive Terminal or Word Document Editor -->
+        <div id="interactive-tools-container" style="display: none; flex-direction: column; gap: 1rem;">
+          
+          <!-- Tool 1: Interactive Coding Terminal Sandbox -->
+          <div id="terminal-tool-panel" class="tool-panel" style="display: none;">
+            <div class="tool-header">
+              <div style="display: flex; align-items: center; gap: 0.4rem; font-weight: 700; font-size: 0.8rem; color: #000;">
+                <i class="bi bi-terminal-fill"></i> Interactive Terminal & Sandbox
+              </div>
+              <div style="display: flex; gap: 0.4rem; align-items: center;">
+                <select id="terminal-lang-select" style="margin-bottom: 0; padding: 0.2rem 0.4rem; font-size: 0.7rem; width: auto;" onchange="handleLangChange()">
+                  <option value="javascript">JavaScript / Node</option>
+                  <option value="python">Python 3</option>
+                  <option value="cpp">C++ (GCC)</option>
+                  <option value="java">Java</option>
+                  <option value="sql">SQL / Queries</option>
+                </select>
+                <button class="btn btn-sm" onclick="runSandboxCode()" style="padding: 0.2rem 0.6rem; font-size: 0.7rem;">
+                  <i class="bi bi-play-fill"></i> Run Code
+                </button>
+                <button class="btn btn-outline btn-sm" onclick="resetToStarterCode()" style="padding: 0.2rem 0.5rem; font-size: 0.7rem;" title="Reset editor to problem skeleton">
+                  <i class="bi bi-arrow-counterclockwise"></i> Reset
+                </button>
+              </div>
+            </div>
+
+            <!-- LeetCode Problem Spec Card (shown when DSA problem attached) -->
+            <div id="terminal-problem-spec" style="display: none; background: #18181b; color: #fff; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 0.65rem; border: 1px solid #27272a;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <span id="spec-problem-title" style="font-weight: 700; font-size: 0.8rem; color: #fff;">LeetCode #1: Two Sum</span>
+                <span id="spec-problem-diff" class="badge" style="background: #27272a; color: #fff; font-size: 0.65rem;">Easy</span>
+              </div>
+              <p id="spec-problem-desc" style="font-size: 0.725rem; color: #cbd5e1; line-height: 1.45; margin-bottom: 0.4rem;">
+                Problem description...
+              </p>
+              <div id="spec-problem-testcases" style="font-family: monospace; font-size: 0.6875rem; color: #a1a1aa; background: #09090b; padding: 0.35rem 0.6rem; border-radius: 4px;">
+                Input: nums = [2,7,11,15], target = 9 | Output: [0,1]
+              </div>
+            </div>
+
+            <textarea id="terminal-code-input" class="code-textarea" placeholder="// Write or test your code implementation here...
+function solution() {
+  console.log('Running candidate test execution...');
+  return true;
+}
+solution();"></textarea>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <span style="font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">
+                <i class="bi bi-terminal"></i> Console Output:
+              </span>
+              <div style="display: flex; gap: 0.4rem;">
+                <button class="btn btn-secondary btn-sm" onclick="copyCodeToAnswer()" style="padding: 0.15rem 0.5rem; font-size: 0.6875rem; margin-top: 0;">
+                  <i class="bi bi-box-arrow-down-left"></i> Insert Code in Answer
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="clearConsole()" style="padding: 0.15rem 0.5rem; font-size: 0.6875rem; margin-top: 0;">
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            <div id="terminal-console-output" class="terminal-console">Sandbox ready. Write code above and click "Run Code".</div>
+          </div>
+
+          <!-- Tool 2: Word / Document Editor Canvas -->
+          <div id="word-tool-panel" class="tool-panel" style="display: none;">
+            <div class="tool-header">
+              <div style="display: flex; align-items: center; gap: 0.4rem; font-weight: 700; font-size: 0.8rem; color: #000;">
+                <i class="bi bi-file-earmark-word-fill"></i> Word / Document Scratchpad
+              </div>
+              <div style="display: flex; gap: 0.35rem;">
+                <button class="btn btn-outline btn-sm" onclick="insertDocSnippet('bullets')" style="padding: 0.15rem 0.5rem; font-size: 0.6875rem;">• List</button>
+                <button class="btn btn-outline btn-sm" onclick="insertDocSnippet('architecture')" style="padding: 0.15rem 0.5rem; font-size: 0.6875rem;">[Arch Template]</button>
+                <button class="btn btn-sm" onclick="copyDocToAnswer()" style="padding: 0.15rem 0.5rem; font-size: 0.6875rem;">
+                  <i class="bi bi-box-arrow-down-left"></i> Insert in Answer
+                </button>
+              </div>
+            </div>
+
+            <textarea id="word-canvas-content" class="word-canvas" placeholder="Draft your system architecture notes, pseudo-code, database schema, or written trade-offs here..."></textarea>
+            <div style="font-size: 0.6875rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+              <span id="word-count-display">0 words</span>
+              <span>Draft notes remain saved during this round</span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Screen 4: Completed Screen -->
+    <div id="completed-screen" class="card" style="display: none; text-align: center;">
+      <div style="font-size: 2.5rem; color: #000; margin-bottom: 0.75rem;">
+        <i class="bi bi-check-circle"></i>
+      </div>
+      <h1 class="title">Interview Completed</h1>
+      <p class="subtitle" style="margin-bottom: 1.25rem;">
+        Thank you for completing your first-round technical screening.<br>
+        Your responses have been recorded and an evidence-backed report has been submitted to the recruiting team.
+      </p>
+      <div class="notice-box" style="text-align: left;">
+        <strong style="color: #000;">Next Steps:</strong>
+        <p style="margin-top: 0.2rem;">
+          The hiring team will review your verified transcript and contact you directly regarding next rounds.
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="/js/candidate.js"></script>
+</body>
+</html>

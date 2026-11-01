@@ -1,0 +1,18 @@
+[
+  {
+    "id": "mock_interview_1",
+    "role": "Junior Python/SQL Backend Developer",
+    "candidate_name": "Rohan Sharma",
+    "required_skills": ["Python", "SQL", "Git"],
+    "turns": [
+      {"turn": 1, "role": "ai", "text": "Hi Rohan, thanks for joining. Could you briefly introduce yourself and tell me about a recent Python project you worked on?", "skill": "General", "level": 1},
+      {"turn": 2, "role": "candidate", "text": "Hi, I recently graduated with a degree in CS. I built an e-commerce inventory tracker in Python with SQLite and Flask to track product stock.", "skill": "General", "level": 1},
+      {"turn": 3, "role": "ai", "text": "In your inventory tracker, how did you handle duplicate product entries, and what data structure did you use in Python?", "skill": "Python", "level": 2},
+      {"turn": 4, "role": "candidate", "text": "We used Python dictionaries and sets to filter out duplicate SKU numbers before inserting into the database, using unique hash keys.", "skill": "Python", "level": 2},
+      {"turn": 5, "role": "ai", "text": "What is the key difference between a Python list and a tuple, and why would you choose one over the other for inventory items?", "skill": "Python", "level": 2},
+      {"turn": 6, "role": "candidate", "text": "Lists are mutable so items can change, while tuples are immutable and have a smaller memory footprint. For fixed item categories we used tuples.", "skill": "Python", "level": 2},
+      {"turn": 7, "role": "ai", "text": "How would you write a SQL query to find the top 3 selling products by total quantity sold?", "skill": "SQL", "level": 2},
+      {"turn": 8, "role": "candidate", "text": "I would use SELECT product_id, SUM(quantity) as total_sold FROM order_items GROUP BY product_id ORDER BY total_sold DESC LIMIT 3.", "skill": "SQL", "level": 2}
+    ]
+  }
+]

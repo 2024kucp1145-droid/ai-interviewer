@@ -1,0 +1,1116 @@
+import express from 'express';
+import cors from 'cors';
+import crypto from 'crypto';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+import { db, initDatabase } from './db/database.js';
+import { hashPassword, comparePassword, signToken, requireAuth } from './auth/auth.js';
+import { encryptApiKey, maskKey } from './keys/vault.js';
+import { GeminiProvider } from './ai/gemini.js';
+import { processInterviewTurn } from './interview/engine.js';
+import { generateReport } from './reports/generator.js';
+import multer from 'multer';
+import { extractTextFromBuffer, parseResumeText } from './services/resumeParser.js';
+import { getPlannedQuestions } from './interview/questionBank.js';
+
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Initialize DB schema
+initDatabase();
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// Multer memory storage for in-memory resume parsing (PDF, DOCX, TXT up to 10MB)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }
+});
+
+app.use(cors());
+app.use(express.json());
+
+// Serve static frontend assets
+const frontendPath = path.resolve(__dirname, '../../frontend/public');
+app.use(express.static(frontendPath));
+
+// --- Health Check ---
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
+// --- Auth Endpoints ---
+app.post('/auth/signup', (req, res) => {
+  try {
+    const { 
+      email, 
+      password, 
+      fullName, 
+      phone, 
+      jobTitle, 
+      companyName, 
+      website, 
+      industry, 
+      companySize, 
+      country 
+    } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email.toLowerCase().trim());
+    if (existing) {
+      return res.status(400).json({ error: 'An account with this email already exists. Please sign in.' });
+    }
+
+    const orgId = 'org_' + crypto.randomUUID();
+    const userId = 'usr_' + crypto.randomUUID();
+    const passHash = hashPassword(password);
+    // Generate 6 digit verification code (e.g. 849201)
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    db.transaction(() => {
+      db.prepare(`
+        INSERT INTO organizations (id, name, website, industry, company_size, country, plan, included_interviews)
+        VALUES (?, ?, ?, ?, ?, ?, 'free_trial', 10)
+      `).run(
+        orgId, 
+        (companyName || 'My Organization').trim(), 
+        (website || '').trim(), 
+        (industry || 'Technology').trim(), 
+        (companySize || '1-20').trim(), 
+        (country || 'India').trim()
+      );
+
+      db.prepare(`
+        INSERT INTO users (id, org_id, full_name, phone, job_title, email, password_hash, role, is_verified, verification_code)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'owner', 0, ?)
+      `).run(
+        userId, 
+        orgId, 
+        (fullName || 'Hiring Manager').trim(), 
+        (phone || '').trim(), 
+        (jobTitle || 'Recruiter').trim(), 
+        email.toLowerCase().trim(), 
+        passHash,
+        verificationCode
+      );
+    })();
+
+    const token = signToken({ id: userId, org_id: orgId, email, role: 'owner' });
+    res.json({
+      token,
+      verificationCode, // Returned for instant demo testing & visual feedback
+      user: { id: userId, email, fullName, jobTitle, is_verified: 0 },
+      org: { id: orgId, name: companyName || 'My Organization', plan: 'free_trial' }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Verification step
+app.post('/auth/verify', requireAuth, (req, res) => {
+  try {
+    const { code } = req.body;
+    const user = db.prepare('SELECT id, verification_code, is_verified FROM users WHERE id = ?').get(req.user.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Allow user's code match or master demo code 123456
+    if (code === user.verification_code || code === '123456') {
+      db.prepare('UPDATE users SET is_verified = 1 WHERE id = ?').run(req.user.id);
+      return res.json({ success: true, message: 'Identity verified successfully!' });
+    }
+
+    return res.status(400).json({ error: 'Invalid verification code. Please check and try again.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update company profile step
+app.post('/auth/company-profile', requireAuth, (req, res) => {
+  try {
+    const { companyName, website, industry, companySize, country } = req.body;
+    db.prepare(`
+      UPDATE organizations 
+      SET name = COALESCE(?, name),
+          website = COALESCE(?, website),
+          industry = COALESCE(?, industry),
+          company_size = COALESCE(?, company_size),
+          country = COALESCE(?, country)
+      WHERE id = ?
+    `).run(
+      companyName ? companyName.trim() : null,
+      website ? website.trim() : null,
+      industry ? industry.trim() : null,
+      companySize ? companySize.trim() : null,
+      country ? country.trim() : null,
+      req.user.org_id
+    );
+
+    const updatedOrg = db.prepare('SELECT * FROM organizations WHERE id = ?').get(req.user.org_id);
+    res.json({ success: true, org: updatedOrg });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/auth/login', (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password required' });
+    }
+
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase().trim());
+    if (!user || !comparePassword(password, user.password_hash)) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    const org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(user.org_id);
+    const token = signToken({ id: user.id, org_id: user.org_id, email: user.email, role: user.role });
+
+    res.json({
+      token,
+      user: { 
+        id: user.id, 
+        email: user.email, 
+        fullName: user.full_name, 
+        jobTitle: user.job_title, 
+        role: user.role,
+        is_verified: user.is_verified 
+      },
+      org: { 
+        id: org.id, 
+        name: org.name, 
+        website: org.website, 
+        industry: org.industry, 
+        companySize: org.company_size, 
+        plan: org.plan 
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/auth/me', requireAuth, (req, res) => {
+  try {
+    const user = db.prepare('SELECT id, full_name, email, phone, job_title, role, is_verified, verification_code FROM users WHERE id = ?').get(req.user.id);
+    const org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(req.user.org_id);
+    res.json({ user, org });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Provider Key Endpoints (Customer-Owned Key Model, Section 4.3) ---
+app.post('/org/provider-key', requireAuth, async (req, res) => {
+  try {
+    const { provider = 'gemini', apiKey } = req.body;
+    if (!apiKey || typeof apiKey !== 'string') {
+      return res.status(400).json({ error: 'Valid apiKey string is required' });
+    }
+
+    // Step 2 from 4.3: Validate key immediately
+    const tempProvider = new GeminiProvider(apiKey.trim());
+    const validation = await tempProvider.validateKey();
+    if (!validation.valid) {
+      return res.status(400).json({ error: `Key validation failed: ${validation.error}` });
+    }
+
+    // Encrypt key with AES-256-GCM
+    const encrypted = encryptApiKey(apiKey.trim());
+    const last4 = apiKey.trim().slice(-4);
+    const keyId = 'pk_' + crypto.randomUUID();
+
+    db.prepare(`
+      INSERT INTO provider_keys (id, org_id, provider, key_encrypted, key_last4, status)
+      VALUES (?, ?, ?, ?, ?, 'active')
+      ON CONFLICT(id) DO UPDATE SET
+        key_encrypted = excluded.key_encrypted,
+        key_last4 = excluded.key_last4,
+        status = 'active'
+    `).run(keyId, req.user.org_id, provider, encrypted, last4);
+
+    res.json({ success: true, provider, key_last4: last4, masked: maskKey(apiKey) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/org/provider-key', requireAuth, (req, res) => {
+  try {
+    const row = db.prepare('SELECT provider, key_last4, status, created_at FROM provider_keys WHERE org_id = ? AND status = ?').get(req.user.org_id, 'active');
+    if (!row) {
+      return res.json({ configured: false, defaultFallbackAvailable: Boolean(process.env.GEMINI_API_KEY) });
+    }
+    res.json({
+      configured: true,
+      provider: row.provider,
+      masked: `****...${row.key_last4}`,
+      created_at: row.created_at
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/org/provider-key', requireAuth, (req, res) => {
+  try {
+    db.prepare('DELETE FROM provider_keys WHERE org_id = ?').run(req.user.org_id);
+    res.json({ success: true, message: 'Provider key deleted safely.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Jobs Endpoints ---
+app.post('/jobs', requireAuth, (req, res) => {
+  try {
+    const { 
+      title, 
+      jd_text, 
+      skills, 
+      qualifications,
+      level = 'junior', 
+      max_minutes = 15, 
+      max_questions = 10,
+      interview_type = 'technical',
+      question_mode = 'ai_adaptive',
+      custom_questions = '',
+      terminal_required = 0,
+      word_editor_required = 0,
+      resume_required = 1,
+      purpose = 'job',
+      experience_required = '0-2 Yrs',
+      assessment_rules = '',
+      leetcode_problem = '',
+      compiler_languages = 'javascript,python,sql',
+      category = 'Software & Tech'
+    } = req.body;
+
+    if (!title || !jd_text) {
+      return res.status(400).json({ error: 'Title and Job Description (JD) text are required' });
+    }
+
+    // Auto-extract skills if none passed
+    let skillList = skills;
+    if (!skillList) {
+      const detected = [];
+      const keywords = ['Python', 'Java', 'C++', 'SQL', 'JavaScript', 'TypeScript', 'Git', 'React', 'Node.js', 'Data Structures', 'REST APIs'];
+      for (const kw of keywords) {
+        const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        if (new RegExp(`(?:\\b|(?<=\\W))${escaped}(?:\\b|(?=\\W))`, 'i').test(jd_text)) {
+          detected.push(kw);
+        }
+      }
+      skillList = detected.length > 0 ? detected.join(', ') : 'C++, Java, Python, SQL';
+    }
+
+    const jobId = 'job_' + crypto.randomUUID();
+    db.prepare(`
+      INSERT INTO jobs (
+        id, org_id, title, jd_text, skills, qualifications, level, max_minutes, max_questions,
+        interview_type, question_mode, custom_questions, terminal_required, word_editor_required, resume_required,
+        purpose, experience_required, assessment_rules, leetcode_problem, compiler_languages, category
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      jobId, 
+      req.user.org_id, 
+      title.trim(), 
+      jd_text.trim(), 
+      skillList, 
+      qualifications ? qualifications.trim() : 'Bachelor degree in Engineering / CS or equivalent practical experience',
+      level, 
+      parseInt(max_minutes, 10) || 15, 
+      parseInt(max_questions, 10) || 6,
+      interview_type,
+      question_mode,
+      custom_questions ? custom_questions.trim() : '',
+      terminal_required ? 1 : 0,
+      word_editor_required ? 1 : 0,
+      resume_required ? 1 : 0,
+      purpose,
+      experience_required,
+      assessment_rules ? assessment_rules.trim() : '',
+      leetcode_problem ? leetcode_problem.trim() : '',
+      compiler_languages,
+      category || 'Software & Tech'
+    );
+
+    const created = db.prepare('SELECT * FROM jobs WHERE id = ?').get(jobId);
+    res.json(created);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/jobs', requireAuth, (req, res) => {
+  try {
+    const jobs = db.prepare('SELECT * FROM jobs WHERE org_id = ? ORDER BY created_at DESC').all(req.user.org_id);
+    res.json(jobs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/jobs/:id', requireAuth, (req, res) => {
+  try {
+    const job = db.prepare('SELECT * FROM jobs WHERE id = ? AND org_id = ?').get(req.params.id, req.user.org_id);
+    if (!job) return res.status(404).json({ error: 'Interview not found' });
+    res.json(job);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/jobs/:id', requireAuth, (req, res) => {
+  try {
+    const jobId = req.params.id;
+    const existing = db.prepare('SELECT * FROM jobs WHERE id = ? AND org_id = ?').get(jobId, req.user.org_id);
+    if (!existing) return res.status(404).json({ error: 'Interview not found' });
+
+    const { 
+      title, 
+      jd_text = '', 
+      skills, 
+      qualifications,
+      level = 'junior', 
+      max_minutes = 15, 
+      max_questions = 10,
+      interview_type = 'technical',
+      question_mode = 'ai_adaptive',
+      custom_questions = '',
+      terminal_required = 0,
+      word_editor_required = 0,
+      resume_required = 1,
+      purpose = 'job',
+      experience_required = '0-2 Yrs',
+      assessment_rules = '',
+      leetcode_problem = '',
+      compiler_languages = 'javascript,python,sql',
+      category = 'Software & Tech'
+    } = req.body;
+
+    if (!title) {
+      return res.status(400).json({ error: 'Interview title is required' });
+    }
+
+    db.prepare(`
+      UPDATE jobs SET
+        title = ?,
+        jd_text = ?,
+        skills = ?,
+        qualifications = ?,
+        level = ?,
+        max_minutes = ?,
+        max_questions = ?,
+        interview_type = ?,
+        question_mode = ?,
+        custom_questions = ?,
+        terminal_required = ?,
+        word_editor_required = ?,
+        resume_required = ?,
+        purpose = ?,
+        experience_required = ?,
+        assessment_rules = ?,
+        leetcode_problem = ?,
+        compiler_languages = ?,
+        category = ?
+      WHERE id = ? AND org_id = ?
+    `).run(
+      title.trim(),
+      jd_text.trim(),
+      skills ? skills.trim() : existing.skills,
+      qualifications ? qualifications.trim() : existing.qualifications,
+      level,
+      parseInt(max_minutes, 10) || existing.max_minutes || 15,
+      parseInt(max_questions, 10) || existing.max_questions || 6,
+      interview_type,
+      question_mode,
+      custom_questions ? custom_questions.trim() : '',
+      terminal_required ? 1 : 0,
+      word_editor_required ? 1 : 0,
+      resume_required ? 1 : 0,
+      purpose,
+      experience_required,
+      assessment_rules ? assessment_rules.trim() : '',
+      leetcode_problem ? leetcode_problem.trim() : '',
+      compiler_languages,
+      category || existing.category || 'Software & Tech',
+      jobId,
+      req.user.org_id
+    );
+
+    const updated = db.prepare('SELECT * FROM jobs WHERE id = ?').get(jobId);
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/jobs/:id', requireAuth, (req, res) => {
+  try {
+    const jobId = req.params.id;
+    const existing = db.prepare('SELECT * FROM jobs WHERE id = ? AND org_id = ?').get(jobId, req.user.org_id);
+    if (!existing) return res.status(404).json({ error: 'Interview not found' });
+
+    db.transaction(() => {
+      const interviews = db.prepare('SELECT id FROM interviews WHERE job_id = ?').all(jobId);
+      for (const intv of interviews) {
+        db.prepare('DELETE FROM turns WHERE interview_id = ?').run(intv.id);
+        db.prepare('DELETE FROM reports WHERE interview_id = ?').run(intv.id);
+      }
+      db.prepare('DELETE FROM interviews WHERE job_id = ?').run(jobId);
+      db.prepare('DELETE FROM jobs WHERE id = ? AND org_id = ?').run(jobId, req.user.org_id);
+    })();
+
+    res.json({ success: true, message: `Interview "${existing.title}" deleted successfully.` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Candidate & Interview Link Generation with Timer ---
+app.post('/jobs/:id/interviews', requireAuth, (req, res) => {
+  try {
+    const jobId = req.params.id;
+    const { name, email, resume_text, link_timer_minutes = 60 } = req.body;
+
+    if (!name || !email) {
+      return res.status(400).json({ error: 'Candidate name and email are required' });
+    }
+
+    const job = db.prepare('SELECT * FROM jobs WHERE id = ? AND org_id = ?').get(jobId, req.user.org_id);
+    if (!job) return res.status(404).json({ error: 'Job not found' });
+
+    // 128-bit random token hash for secure link
+    const rawToken = crypto.randomBytes(16).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+    const candidateId = 'cand_' + crypto.randomUUID();
+    const interviewId = 'int_' + crypto.randomUUID();
+
+    // Custom expiration timer (default link_timer_minutes, e.g. 60 mins or 1440 mins)
+    const timerMins = parseInt(link_timer_minutes, 10) || 60;
+    const expiresAt = new Date(Date.now() + timerMins * 60 * 1000).toISOString();
+
+    db.transaction(() => {
+      db.prepare(`
+        INSERT INTO candidates (id, org_id, name, email, resume_text)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(candidateId, req.user.org_id, name.trim(), email.toLowerCase().trim(), resume_text || '');
+
+      db.prepare(`
+        INSERT INTO interviews (id, job_id, candidate_id, token_hash, state, link_timer_minutes, expires_at)
+        VALUES (?, ?, ?, ?, 'created', ?, ?)
+      `).run(interviewId, jobId, candidateId, tokenHash, timerMins, expiresAt);
+    })();
+
+    const inviteUrl = `/interview.html?token=${rawToken}`;
+
+    res.json({
+      interviewId,
+      candidateId,
+      token: rawToken,
+      inviteUrl,
+      timerMinutes: timerMins,
+      expiresAt
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/jobs/:id/interviews', requireAuth, (req, res) => {
+  try {
+    const rows = db.prepare(`
+      SELECT 
+        i.id as interview_id,
+        i.state,
+        i.started_at,
+        i.ended_at,
+        i.expires_at,
+        c.id as candidate_id,
+        c.name as candidate_name,
+        c.email as candidate_email,
+        r.id as report_id
+      FROM interviews i
+      JOIN candidates c ON i.candidate_id = c.id
+      JOIN jobs j ON i.job_id = j.id
+      LEFT JOIN reports r ON r.interview_id = i.id
+      WHERE j.id = ? AND j.org_id = ?
+      ORDER BY i.started_at DESC, i.id DESC
+    `).all(req.params.id, req.user.org_id);
+
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/org/responses', requireAuth, (req, res) => {
+  try {
+    const rows = db.prepare(`
+      SELECT 
+        i.id as interview_id,
+        i.state,
+        i.started_at,
+        i.ended_at,
+        i.expires_at,
+        i.link_timer_minutes,
+        j.id as job_id,
+        j.title as job_title,
+        j.skills as job_skills,
+        j.interview_type,
+        c.id as candidate_id,
+        c.name as candidate_name,
+        c.email as candidate_email,
+        c.resume_text,
+        r.id as report_id,
+        r.json as report_json
+      FROM interviews i
+      JOIN candidates c ON i.candidate_id = c.id
+      JOIN jobs j ON i.job_id = j.id
+      LEFT JOIN reports r ON r.interview_id = i.id
+      WHERE j.org_id = ?
+      ORDER BY i.ended_at DESC, i.started_at DESC, i.id DESC
+    `).all(req.user.org_id);
+
+    const formatted = rows.map(r => {
+      let parsedReport = null;
+      if (r.report_json) {
+        try { parsedReport = JSON.parse(r.report_json); } catch {}
+      }
+      return {
+        interview_id: r.interview_id,
+        state: r.state,
+        started_at: r.started_at,
+        ended_at: r.ended_at,
+        expires_at: r.expires_at,
+        link_timer_minutes: r.link_timer_minutes,
+        job_id: r.job_id,
+        job_title: r.job_title,
+        job_skills: r.job_skills,
+        interview_type: r.interview_type,
+        candidate_id: r.candidate_id,
+        candidate_name: r.candidate_name,
+        candidate_email: r.candidate_email,
+        resume_text: r.resume_text,
+        report_id: r.report_id,
+        report: parsedReport
+      };
+    });
+
+    res.json(formatted);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Questions Preview Endpoint (for company/recruiter to preview questions in advance) ---
+app.post('/api/questions/preview', (req, res) => {
+  try {
+    const { role = '', category = 'Software & Tech', skills = '', leetcode = '', max_questions = 6, custom_questions = '' } = req.body;
+    const questions = getPlannedQuestions({
+      role,
+      category,
+      skills,
+      leetcode,
+      maxQuestions: parseInt(max_questions, 10) || 6,
+      customQuestions: custom_questions
+    });
+    res.json({ success: true, count: questions.length, questions });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Public Job Info & Candidate Self-Registration Direct Link Endpoints ---
+app.get('/public/jobs/:id', (req, res) => {
+  try {
+    let job = db.prepare(`
+      SELECT 
+        j.id, j.title, j.category, j.purpose, j.experience_required, j.skills, 
+        j.qualifications, j.jd_text, j.max_minutes, j.max_questions,
+        j.terminal_required, j.word_editor_required, j.resume_required,
+        j.question_mode, j.assessment_rules, j.leetcode_problem, j.compiler_languages,
+        o.name as company_name, o.industry as company_industry
+      FROM jobs j
+      LEFT JOIN organizations o ON j.org_id = o.id
+      WHERE j.id = ?
+    `).get(req.params.id);
+
+    if (!job) {
+      return res.status(404).json({ error: 'Interview round not found or has expired.' });
+    }
+
+    res.json(job);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/public/jobs/:id/start', (req, res) => {
+  try {
+    const jobId = req.params.id;
+    const { name, email, resume_text } = req.body;
+
+    if (!name || !email) {
+      return res.status(400).json({ error: 'Please enter your full name and email to proceed.' });
+    }
+
+    const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(jobId);
+    if (!job) return res.status(404).json({ error: 'Interview round not found.' });
+
+    // Generate random 128-bit token
+    const rawToken = crypto.randomBytes(16).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+    const candidateId = 'cand_' + crypto.randomUUID();
+    const interviewId = 'int_' + crypto.randomUUID();
+
+    // Link expiration: duration + 120 minutes buffer
+    const timerMins = (job.max_minutes || 15) + 120;
+    const expiresAt = new Date(Date.now() + timerMins * 60 * 1000).toISOString();
+
+    db.transaction(() => {
+      db.prepare(`
+        INSERT INTO candidates (id, org_id, name, email, resume_text)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(candidateId, job.org_id, name.trim(), email.toLowerCase().trim(), resume_text || '');
+
+      db.prepare(`
+        INSERT INTO interviews (id, job_id, candidate_id, token_hash, state, link_timer_minutes, expires_at)
+        VALUES (?, ?, ?, ?, 'created', ?, ?)
+      `).run(interviewId, jobId, candidateId, tokenHash, timerMins, expiresAt);
+    })();
+
+    res.json({
+      success: true,
+      token: rawToken,
+      interviewUrl: `/interview.html?token=${rawToken}`
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Candidate Interview Portal Endpoints ---
+app.get('/i/:token', (req, res) => {
+  try {
+    const rawToken = req.params.token;
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+    let interview = db.prepare(`
+      SELECT 
+        i.id, i.state, i.expires_at, i.link_timer_minutes,
+        j.id as job_id, j.title as job_title, j.skills, j.qualifications, j.level, j.max_minutes, j.max_questions,
+        j.interview_type, j.question_mode, j.terminal_required, j.word_editor_required, j.resume_required,
+        j.purpose, j.experience_required, j.assessment_rules, j.leetcode_problem, j.compiler_languages,
+        c.name as candidate_name, c.email as candidate_email, c.resume_text
+      FROM interviews i
+      JOIN jobs j ON i.job_id = j.id
+      JOIN candidates c ON i.candidate_id = c.id
+      WHERE i.token_hash = ? OR i.id = ?
+    `).get(tokenHash, rawToken);
+
+    if (!interview) {
+      // Check if rawToken is actually a job_id
+      const jobCheck = db.prepare('SELECT id, title FROM jobs WHERE id = ?').get(rawToken);
+      if (jobCheck) {
+        return res.json({ isJobLink: true, jobId: jobCheck.id, jobTitle: jobCheck.title });
+      }
+      return res.status(404).json({ error: 'Interview invitation link is invalid or expired.' });
+    }
+
+    if (interview.expires_at && new Date(interview.expires_at) < new Date()) {
+      return res.status(410).json({ error: 'This interview link has expired. Please contact the recruiter.' });
+    }
+
+    const turns = db.prepare('SELECT idx, role, text, skill, level FROM turns WHERE interview_id = ? ORDER BY idx ASC').all(interview.id);
+
+    res.json({
+      ...interview,
+      turns
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/i/:token/consent', (req, res) => {
+  try {
+    const rawToken = req.params.token;
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+    const interview = db.prepare('SELECT id, candidate_id, state FROM interviews WHERE token_hash = ? OR id = ?').get(tokenHash, rawToken);
+    if (!interview) return res.status(404).json({ error: 'Invalid token' });
+
+    // DPDP 2023 Consent audit trail
+    db.prepare(`
+      UPDATE candidates 
+      SET consent_at = CURRENT_TIMESTAMP, consent_version = 'v1.0_oct2026'
+      WHERE id = ?
+    `).run(interview.candidate_id);
+
+    db.prepare(`UPDATE interviews SET state = 'in_progress', started_at = COALESCE(started_at, CURRENT_TIMESTAMP) WHERE id = ?`).run(interview.id);
+
+    res.json({ success: true, state: 'in_progress' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/i/:token/answer', async (req, res) => {
+  try {
+    const rawToken = req.params.token;
+    const answerText = req.body.answerText || req.body.text || null;
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+    const interview = db.prepare('SELECT id, state FROM interviews WHERE token_hash = ? OR id = ?').get(tokenHash, rawToken);
+    if (!interview) return res.status(404).json({ error: 'Invalid token' });
+
+    if (interview.state === 'completed' || interview.state === 'report_ready') {
+      return res.json({ isCompleted: true, message: 'Interview already concluded.' });
+    }
+
+    const nextStep = await processInterviewTurn({
+      interviewId: interview.id,
+      candidateText: answerText || null
+    });
+
+    res.json(nextStep);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/i/:token/finish', async (req, res) => {
+  try {
+    const rawToken = req.params.token;
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+    const interview = db.prepare('SELECT id FROM interviews WHERE token_hash = ? OR id = ?').get(tokenHash, rawToken);
+    if (!interview) return res.status(404).json({ error: 'Invalid token' });
+
+    db.prepare(`UPDATE interviews SET state = 'completed', ended_at = CURRENT_TIMESTAMP WHERE id = ?`).run(interview.id);
+
+    // Generate evidence-backed report automatically
+    const report = await generateReport(interview.id);
+
+    res.json({ success: true, message: 'Interview completed and report generated.', report });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Recruiter Report View ---
+app.get('/interviews/:id/report', requireAuth, (req, res) => {
+  try {
+    const interview = db.prepare(`
+      SELECT i.*, j.title as job_title, j.skills as job_skills, c.name as candidate_name, c.email as candidate_email
+      FROM interviews i
+      JOIN jobs j ON i.job_id = j.id
+      JOIN candidates c ON i.candidate_id = c.id
+      WHERE i.id = ? AND j.org_id = ?
+    `).get(req.params.id, req.user.org_id);
+
+    if (!interview) return res.status(404).json({ error: 'Interview not found' });
+
+    const reportRow = db.prepare('SELECT * FROM reports WHERE interview_id = ?').get(interview.id);
+    const turns = db.prepare('SELECT idx, role, text, skill, level, created_at FROM turns WHERE interview_id = ? ORDER BY idx ASC').all(interview.id);
+
+    res.json({
+      interview,
+      report: reportRow ? JSON.parse(reportRow.json) : null,
+      turns
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Usage & Metrics Dashboard (Section 10 & 11) ---
+app.get('/usage', requireAuth, (req, res) => {
+  try {
+    const stats = db.prepare(`
+      SELECT 
+        COUNT(DISTINCT interview_id) as total_interviews,
+        COALESCE(SUM(input_tokens), 0) as total_input_tokens,
+        COALESCE(SUM(output_tokens), 0) as total_output_tokens,
+        COALESCE(SUM(est_cost), 0) as total_est_cost_inr
+      FROM usage_events
+      WHERE org_id = ?
+    `).get(req.user.org_id);
+
+    const totalJobs = db.prepare('SELECT COUNT(*) as c FROM jobs WHERE org_id = ?').get(req.user.org_id).c;
+    const completedInterviews = db.prepare(`
+      SELECT COUNT(*) as c 
+      FROM interviews i 
+      JOIN jobs j ON i.job_id = j.id 
+      WHERE j.org_id = ? AND i.state IN ('completed', 'report_ready')
+    `).get(req.user.org_id).c;
+
+    res.json({
+      stats,
+      totalJobs,
+      completedInterviews
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- DPDP 2023 Candidate Erasure Endpoint (Section 5.4 & 9.2) ---
+app.delete('/candidates/:id', requireAuth, (req, res) => {
+  try {
+    const candidate = db.prepare('SELECT id FROM candidates WHERE id = ? AND org_id = ?').get(req.params.id, req.user.org_id);
+    if (!candidate) return res.status(404).json({ error: 'Candidate not found' });
+
+    // Anonymize/Delete personal data under Right to Erasure
+    db.prepare(`
+      UPDATE candidates 
+      SET name = '[DELETED_DPDP]', email = 'deleted@erased.dpdp', resume_text = NULL, deleted_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(candidate.id);
+
+    // Audit log
+    db.prepare(`
+      INSERT INTO audit_logs (id, org_id, actor, action, target)
+      VALUES (?, ?, ?, 'DPDP_ERASURE', ?)
+    `).run('audit_' + crypto.randomUUID(), req.user.org_id, req.user.email, `Candidate ID ${candidate.id}`);
+
+    res.json({ success: true, message: 'Candidate personal records erased in compliance with DPDP Act.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Resume Parsing & Drag-and-Drop Parser Endpoint (PDF, DOCX, TXT) ---
+app.post('/api/resume/parse', upload.single('resume'), async (req, res) => {
+  try {
+    let rawText = '';
+    if (req.file) {
+      const mime = req.file.mimetype || 'application/pdf';
+      rawText = await extractTextFromBuffer(req.file.buffer, mime);
+    } else if (req.body && req.body.text) {
+      rawText = req.body.text;
+    } else {
+      return res.status(400).json({ error: 'No resume file or text provided' });
+    }
+
+    if (!rawText || rawText.trim().length === 0) {
+      return res.status(400).json({ error: 'Could not extract readable text from the provided file.' });
+    }
+
+    const parsed = parseResumeText(rawText);
+    res.json({
+      success: true,
+      message: 'Resume parsed successfully',
+      data: parsed
+    });
+  } catch (err) {
+    console.error('Resume parse error:', err);
+    res.status(500).json({ error: 'Failed to parse resume: ' + err.message });
+  }
+});
+
+// Candidate resume upload/update in candidate room
+app.post('/i/:token/resume', upload.single('resume'), async (req, res) => {
+  try {
+    const tokenHash = crypto.createHash('sha256').update(req.params.token).digest('hex');
+    const interview = db.prepare('SELECT * FROM interviews WHERE token_hash = ?').get(tokenHash);
+    if (!interview) return res.status(404).json({ error: 'Interview not found' });
+
+    let rawText = '';
+    if (req.file) {
+      const mime = req.file.mimetype || 'application/pdf';
+      rawText = await extractTextFromBuffer(req.file.buffer, mime);
+    } else if (req.body && req.body.text) {
+      rawText = req.body.text;
+    } else {
+      return res.status(400).json({ error: 'No resume file or text provided' });
+    }
+
+    const parsed = parseResumeText(rawText);
+
+    // Update candidate record with parsed structured resume summary
+    db.prepare('UPDATE candidates SET resume_text = ? WHERE id = ?').run(
+      parsed.summary,
+      interview.candidate_id
+    );
+
+    res.json({
+      success: true,
+      message: 'Resume successfully parsed and attached to interview session',
+      data: parsed
+    });
+  } catch (err) {
+    console.error('Candidate resume upload error:', err);
+    res.status(500).json({ error: 'Failed to process resume: ' + err.message });
+  }
+});
+
+// --- Lead Magnet Endpoint (Chapter 11.3 #4: Free Interview Questions & Rubric) ---
+app.post('/api/lead-magnet', async (req, res) => {
+  try {
+    const { name, email, jd_text } = req.body;
+    if (!email || !jd_text) {
+      return res.status(400).json({ error: 'Email and Job Description (JD) text are required' });
+    }
+
+    // Save lead
+    const leadId = 'lead_' + crypto.randomUUID();
+    db.prepare(`
+      INSERT INTO leads (id, name, email, vacancies, source)
+      VALUES (?, ?, ?, 'lead_magnet_user', 'lead_magnet')
+    `).run(leadId, name || 'Lead Magnet User', email.trim());
+
+    // Extract skills & generate 10 questions + rubric
+    const detected = [];
+    const keywords = ['Python', 'Java', 'C++', 'SQL', 'JavaScript', 'TypeScript', 'Git', 'React', 'Node.js', 'REST APIs', 'Data Structures'];
+    for (const kw of keywords) {
+      const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (new RegExp(`(?:\\b|(?<=\\W))${escaped}(?:\\b|(?=\\W))`, 'i').test(jd_text)) detected.push(kw);
+    }
+    const skills = detected.length > 0 ? detected : ['Core Programming', 'SQL', 'Problem Solving'];
+
+    const questionsAndRubric = skills.flatMap((sk, idx) => [
+      {
+        id: idx * 2 + 1,
+        skill: sk,
+        level: 'Basic / Core',
+        question: `Can you explain how ${sk} handles fundamental operations, and what data structures or primitives you use most frequently?`,
+        rubric: {
+          score_1: `Incorrect syntax or unable to define basic ${sk} concepts.`,
+          score_3: `Correctly defines primitives and common standard library methods.`,
+          score_5: `Explains internal memory representation, performance tradeoffs, and best practices.`
+        }
+      },
+      {
+        id: idx * 2 + 2,
+        skill: sk,
+        level: 'Practical / Scenario',
+        question: `Walk me through a bug or unexpected error you resolved while working with ${sk}. How did you trace and fix it?`,
+        rubric: {
+          score_1: `Cannot describe concrete debugging steps or error handling.`,
+          score_3: `Explains standard stack trace reading, print/logging statements, or try/catch blocks.`,
+          score_5: `Demonstrates systematic debugging, root-cause isolation, and preventative testing.`
+        }
+      }
+    ]).slice(0, 10);
+
+    res.json({
+      success: true,
+      skills,
+      questions: questionsAndRubric,
+      message: 'Here are 10 tailored technical screening questions with rubrics for your role.'
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Pilot Waitlist Endpoint (Chapter 11.5) ---
+app.post('/api/waitlist', (req, res) => {
+  try {
+    const { name, company, email, phone, vacancies } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const leadId = 'lead_' + crypto.randomUUID();
+    db.prepare(`
+      INSERT INTO leads (id, name, company, email, phone, vacancies, source)
+      VALUES (?, ?, ?, ?, ?, ?, 'pilot_waitlist')
+    `).run(leadId, name || '', company || '', email.trim(), phone || '', vacancies || '');
+
+    res.json({ success: true, message: 'Thank you! You have been added to the VIP Pilot program.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- CSV Export for ATS & Spreadsheet Integration (Week 4 / Section 14.1) ---
+app.get('/jobs/:id/export.csv', requireAuth, (req, res) => {
+  try {
+    const jobId = req.params.id;
+    const job = db.prepare('SELECT title FROM jobs WHERE id = ? AND org_id = ?').get(jobId, req.user.org_id);
+    if (!job) return res.status(404).send('Job not found');
+
+    const rows = db.prepare(`
+      SELECT 
+        c.name as candidate_name,
+        c.email as candidate_email,
+        c.consent_at,
+        i.state,
+        i.started_at,
+        i.ended_at,
+        r.json as report_json
+      FROM interviews i
+      JOIN candidates c ON i.candidate_id = c.id
+      LEFT JOIN reports r ON r.interview_id = i.id
+      WHERE i.job_id = ?
+      ORDER BY i.id DESC
+    `).all(jobId);
+
+    let csv = 'Candidate Name,Email,Status,Consent Given,Recommendation,Top Skills Evaluated,Report Summary\n';
+    for (const r of rows) {
+      let rec = 'N/A';
+      let skillsSummary = '';
+      let summary = '';
+      if (r.report_json) {
+        try {
+          const parsed = JSON.parse(r.report_json);
+          rec = (parsed.recommendation || 'N/A').toUpperCase();
+          summary = (parsed.overall_summary || '').replace(/"/g, '""');
+          skillsSummary = (parsed.skills || []).map(s => `${s.skill}:${s.score}/5`).join(' | ');
+        } catch (e) {}
+      }
+
+      csv += `"${r.candidate_name}","${r.candidate_email}","${r.state}","${r.consent_at ? 'Yes' : 'No'}","${rec}","${skillsSummary}","${summary}"\n`;
+    }
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="candidates_${job.title.replace(/[^a-z0-9]/gi, '_')}.csv"`);
+    res.send(csv);
+  } catch (err) {
+    res.status(500).send('Export error: ' + err.message);
+  }
+});
+
+// Serve candidate app or recruiter dashboard fallback for client routes
+app.use((req, res, next) => {
+  if (req.method === 'GET') {
+    return res.sendFile(path.resolve(frontendPath, 'index.html'));
+  }
+  next();
+});
+
+// JSON 404 handler for missing API endpoints
+app.use((req, res) => {
+  res.status(404).json({ error: `Cannot ${req.method} ${req.path}` });
+});
+
+app.listen(PORT, () => {
+  console.log(`=======================================================`);
+  console.log(`🚀 AI Interviewer SaaS running at http://localhost:${PORT}`);
+  console.log(`   - Recruiter Dashboard: http://localhost:${PORT}`);
+  console.log(`   - Candidate Interview: http://localhost:${PORT}/interview.html?token=<token>`);
+  console.log(`   - Health check:        http://localhost:${PORT}/health`);
+  console.log(`=======================================================`);
+});
