@@ -621,6 +621,17 @@ async function loadInterviewData() {
       }
     }
 
+    // If already disqualified
+    if (interviewData.state === 'disqualified') {
+      if (consentScreen) consentScreen.style.display = 'none';
+      if (micScreen) micScreen.style.display = 'none';
+      if (interviewRoomWrapper) interviewRoomWrapper.style.display = 'none';
+      if (completedScreen) completedScreen.style.display = 'none';
+      const proctorInst = new ProctorEngine({ token });
+      proctorInst.renderDisqualifiedScreen(interviewData.disqualified_reason || 'Security Violation: Candidate left the interview screen.');
+      return;
+    }
+
     // If already completed
     if (interviewData.state === 'completed' || interviewData.state === 'report_ready') {
       if (consentScreen) consentScreen.style.display = 'none';
@@ -826,10 +837,7 @@ async function startProctoredInterview(mode) {
     return;
   }
 
-  // 2. Maximize Window (Full-Screen Enforcement)
-  await proctor.requestFullScreen();
-
-  // 3. Show Room & begin Q&A
+  // 2. Show Room & begin Q&A
   micScreen.style.display = 'none';
   showInterviewRoom();
   fetchNextQuestion(null);
