@@ -215,5 +215,10 @@ export function initDatabase() {
   // Timer & link duration
   addColumn('interviews', 'link_timer_minutes', 'INTEGER DEFAULT 60');
 
+  // AI Proctoring & Anti-Cheating
+  addColumn('interviews', 'proctor_warnings', 'INTEGER DEFAULT 0');
+  addColumn('interviews', 'disqualified_reason', 'TEXT');
+  addColumn('interviews', 'proctor_logs', 'TEXT');
+
   console.log('✓ SQLite database initialized and migrated with interview customization options');
 }

@@ -1,8 +1,10 @@
 import { VoiceManager } from './voice.js';
+import { ProctorEngine } from './proctor.js';
 
 const urlParams = new URLSearchParams(window.location.search);
 let token = urlParams.get('token');
 const jobId = urlParams.get('job');
+let proctor = null;
 
 // DOM Elements
 const registerScreen = document.getElementById('register-screen');
@@ -744,17 +746,71 @@ btnTestMic.addEventListener('click', () => {
   }
 });
 
-btnStartVoice.addEventListener('click', () => {
+// Setup Camera Preview Helper
+window.verifySetupCamera = async function() {
+  const preview = document.getElementById('setup-camera-preview');
+  const placeholder = document.getElementById('setup-camera-placeholder');
+  const btn = document.getElementById('btn-verify-camera');
+  try {
+    if (btn) btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Testing camera...';
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: 320, height: 240, facingMode: 'user' }
+    });
+    if (preview) {
+      preview.srcObject = stream;
+      if (placeholder) placeholder.style.display = 'none';
+    }
+    if (btn) {
+      btn.className = 'btn btn-sm';
+      btn.style.backgroundColor = '#16a34a';
+      btn.style.borderColor = '#16a34a';
+      btn.style.color = '#ffffff';
+      btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Camera Verified & Ready';
+    }
+  } catch (err) {
+    alert('Camera access denied or unavailable: ' + err.message + '. Camera is mandatory for proctored screening.');
+    if (btn) btn.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Camera Error - Retry';
+  }
+};
+
+async function startProctoredInterview(mode) {
+  if (mode === 'text') {
+    btnPushToTalk.style.display = 'none';
+  }
+
+  // 1. Initialize Proctor Engine
+  try {
+    proctor = new ProctorEngine({
+      token,
+      onDisqualify: (reason, violations) => {
+        if (countdownTimerId) clearInterval(countdownTimerId);
+        voice.stopSpeaking();
+        voice.stopListening();
+        interviewRoomWrapper.style.display = 'none';
+      }
+    });
+
+    await proctor.initialize(document.body);
+  } catch (err) {
+    alert(err.message || 'Camera access is required for proctored interview.');
+    return;
+  }
+
+  // 2. Maximize Window (Full-Screen Enforcement)
+  await proctor.requestFullScreen();
+
+  // 3. Show Room & begin Q&A
   micScreen.style.display = 'none';
   showInterviewRoom();
   fetchNextQuestion(null);
+}
+
+btnStartVoice.addEventListener('click', () => {
+  startProctoredInterview('voice');
 });
 
 btnStartText.addEventListener('click', () => {
-  micScreen.style.display = 'none';
-  showInterviewRoom();
-  btnPushToTalk.style.display = 'none';
-  fetchNextQuestion(null);
+  startProctoredInterview('text');
 });
 
 function showInterviewRoom() {
@@ -850,6 +906,10 @@ btnFinishEarly.addEventListener('click', () => {
 
 async function finishInterview() {
   if (countdownTimerId) clearInterval(countdownTimerId);
+  if (proctor) proctor.stop();
+  if (document.fullscreenElement) {
+    document.exitFullscreen().catch(() => {});
+  }
   voice.stopSpeaking();
   voice.stopListening();
   interviewRoomWrapper.style.display = 'none';

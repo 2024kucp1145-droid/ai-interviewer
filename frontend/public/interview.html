@@ -450,6 +450,325 @@
       border-color: var(--border-dark) !important;
     }
 
+    /* ========================================================
+       AI PROCTORING & ANTI-CHEATING STYLES
+       ======================================================== */
+    #proctor-pip-widget {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1000;
+      width: 260px;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+    .proctor-pip-card {
+      background: #ffffff;
+      border: 1px solid var(--border-dark);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+    }
+    .proctor-pip-header {
+      background: #000000;
+      color: #ffffff;
+      padding: 0.45rem 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .proctor-pip-status {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .proctor-pip-dot {
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulseProctor 1.8s infinite;
+    }
+    @keyframes pulseProctor {
+      0% { opacity: 0.6; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.15); }
+      100% { opacity: 0.6; transform: scale(0.9); }
+    }
+    .proctor-pip-warnings {
+      display: flex;
+      gap: 0.25rem;
+    }
+    .pill-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 17px;
+      height: 17px;
+      border-radius: 50%;
+      background: #27272a;
+      color: #71717a;
+      font-size: 0.65rem;
+      font-weight: 700;
+      transition: all 0.2s ease;
+    }
+    .pill-badge.active {
+      background: #ef4444;
+      color: #ffffff;
+      box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);
+    }
+    .proctor-video-wrapper {
+      position: relative;
+      width: 100%;
+      height: 170px;
+      background: #09090b;
+      overflow: hidden;
+    }
+    #proctor-webcam-feed {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+    #proctor-tracking-canvas {
+      display: none;
+    }
+    .proctor-face-box {
+      position: absolute;
+      top: 15%;
+      left: 20%;
+      right: 20%;
+      bottom: 20%;
+      border: 2px dashed #10b981;
+      border-radius: 6px;
+      pointer-events: none;
+      transition: all 0.2s ease;
+    }
+    .proctor-face-box.warning {
+      border-color: #f59e0b;
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+    }
+    .proctor-face-box.danger {
+      border-color: #ef4444;
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.8);
+    }
+    .proctor-face-tag {
+      position: absolute;
+      top: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.85);
+      color: #ffffff;
+      padding: 0.15rem 0.4rem;
+      border-radius: 3px;
+      font-size: 0.625rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .proctor-status-footer {
+      background: var(--surface-subtle);
+      border-top: 1px solid var(--border);
+      padding: 0.35rem 0.65rem;
+      font-size: 0.6875rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--text);
+    }
+
+    /* Proctor Warning Modal Overlay */
+    .proctor-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.82);
+      backdrop-filter: blur(6px);
+      z-index: 99999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      animation: fadeInProctor 0.15s ease;
+    }
+    @keyframes fadeInProctor {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .proctor-alert-box {
+      background: #ffffff;
+      border: 3px solid #f59e0b;
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+    .proctor-alert-box.danger {
+      border-color: #ef4444;
+      animation: alertShake 0.4s ease;
+    }
+    @keyframes alertShake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+    .proctor-alert-icon {
+      font-size: 3rem;
+      color: #f59e0b;
+      margin-bottom: 0.75rem;
+    }
+    .proctor-alert-box.danger .proctor-alert-icon {
+      color: #ef4444;
+    }
+    .proctor-alert-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: #000000;
+      margin-bottom: 0.5rem;
+    }
+    .proctor-alert-desc {
+      background: #fef3c7;
+      border: 1px solid #fde68a;
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      color: #92400e;
+      font-size: 0.85rem;
+      line-height: 1.45;
+      margin-bottom: 1rem;
+    }
+    .proctor-alert-box.danger .proctor-alert-desc {
+      background: #fee2e2;
+      border-color: #fca5a5;
+      color: #991b1b;
+    }
+    .proctor-alert-rules {
+      text-align: left;
+      font-size: 0.775rem;
+      color: #4b5563;
+      line-height: 1.6;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.25rem;
+    }
+    .proctor-dismiss-btn {
+      background: #000000;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.7rem 1.5rem;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.15s ease;
+    }
+    .proctor-dismiss-btn:hover {
+      background: #27272a;
+    }
+
+    /* Proctor Disqualified Screen */
+    .proctor-disqualified-view {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #09090b;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      z-index: 999999;
+      font-family: inherit;
+    }
+    .proctor-disqualified-card {
+      background: #18181b;
+      border: 2px solid #dc2626;
+      border-radius: 12px;
+      max-width: 640px;
+      width: 100%;
+      padding: 2.25rem;
+      box-shadow: 0 0 35px rgba(220, 38, 38, 0.4);
+      text-align: center;
+    }
+    .disqualified-header i {
+      font-size: 3.5rem;
+      color: #ef4444;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+    .disqualified-header h1 {
+      font-size: 1.45rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #ef4444;
+      margin-bottom: 0.35rem;
+    }
+    .disqualified-header p {
+      color: #a1a1aa;
+      font-size: 0.825rem;
+      margin-bottom: 1.25rem;
+    }
+    .disqualified-reason-box {
+      background: #27272a;
+      border-left: 4px solid #ef4444;
+      padding: 0.85rem 1rem;
+      border-radius: 4px;
+      text-align: left;
+      margin-bottom: 1rem;
+      font-size: 0.8rem;
+    }
+    .disqualified-reason-box strong {
+      color: #ef4444;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+    .disqualified-reason-box p {
+      color: #f4f4f5;
+      margin: 0;
+    }
+    .disqualified-log {
+      background: #09090b;
+      border: 1px solid #27272a;
+      border-radius: 6px;
+      padding: 0.85rem 1rem;
+      text-align: left;
+      font-family: monospace;
+      font-size: 0.725rem;
+      color: #fca5a5;
+      margin-bottom: 1.25rem;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+    .disqualified-log ul {
+      margin: 0.35rem 0 0 1rem;
+      padding: 0;
+    }
+    .disqualified-notice {
+      color: #94a3b8;
+      font-size: 0.75rem;
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+    }
+
+    [data-theme="dark"] .proctor-pip-card {
+      background: #121215;
+      border-color: #27272a;
+    }
+    [data-theme="dark"] .proctor-status-footer {
+      background: #18181b;
+      border-top-color: #27272a;
+    }
+
     [data-theme="dark"] #session-timer-badge {
       background-color: #18181b !important;
       color: #ffffff !important;
@@ -586,32 +905,72 @@
       </button>
     </div>
 
-    <!-- Screen 2: Mic Setup & Mode Selection -->
-    <div id="mic-screen" class="card" style="display: none;">
-      <h1 class="title">Audio & Microphone Setup</h1>
-      <p class="subtitle">Verify microphone input or switch to typing mode.</p>
+    <!-- Screen 2: Mic, Camera & Anti-Cheating Setup -->
+    <div id="mic-screen" class="card" style="display: none; max-width: 680px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <span class="badge badge-dark"><i class="bi bi-shield-lock-fill"></i> AI Proctoring Enforced</span>
+        <span class="badge badge-outline" style="color: #ef4444; border-color: #fca5a5;"><i class="bi bi-camera-video-fill"></i> Camera Required</span>
+      </div>
+      <h1 class="title">Hardware Setup &amp; Proctoring Rules</h1>
+      <p class="subtitle">Verify microphone and live camera feed before entering the full-screen assessment room.</p>
 
-      <div class="notice-box">
-        <strong style="color: #000;">Voice Recognition Support:</strong>
-        <p style="margin-top: 0.2rem;">Configured for standard English voice recognition. You can review and edit each transcribed answer before submitting.</p>
+      <!-- Anti-Cheating Rules Notice -->
+      <div class="notice-box" style="border-left-color: #ef4444; background: var(--surface-subtle);">
+        <strong style="color: #ef4444; display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.35rem;">
+          <i class="bi bi-exclamation-octagon-fill"></i> Mandatory Anti-Cheating Guidelines:
+        </strong>
+        <p style="margin-bottom: 0.25rem;"><strong>1. Full-Screen Window Lock:</strong> The assessment runs strictly in full-screen. Navigating away, switching tabs, or exiting full-screen triggers <strong>immediate disqualification</strong>.</p>
+        <p style="margin-bottom: 0.25rem;"><strong>2. Live Camera Monitoring:</strong> Your web camera must remain active and focused on your face throughout the entire round.</p>
+        <p style="margin-bottom: 0.25rem;"><strong>3. Vision AI Suspicious Activity Detection:</strong> Automated proctor detects <em>cell phones</em>, <em>unauthorized objects</em>, <em>looking away from screen</em>, or <em>secondary persons</em>.</p>
+        <p style="margin: 0;"><strong>4. 3 Warnings Rule:</strong> Accumulating <strong>3 proctor warnings</strong> will automatically terminate the session, close the window, and record a <em>Disqualified (Cheating)</em> rating on your file.</p>
       </div>
 
-      <div style="text-align: center; margin: 1.5rem 0;">
-        <button id="btn-test-mic" class="btn btn-record">
-          <i class="bi bi-mic-fill"></i> Test Microphone
+      <!-- Hardware Verification Grid: Mic + Camera -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+        
+        <!-- Mic Test Box -->
+        <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; text-align: center;">
+          <div style="font-weight: 700; font-size: 0.775rem; color: var(--text); margin-bottom: 0.5rem;">
+            <i class="bi bi-mic"></i> Microphone Check
+          </div>
+          <button id="btn-test-mic" class="btn btn-record" style="margin: 0.5rem auto; padding: 0.5rem 1rem; font-size: 0.775rem;">
+            <i class="bi bi-mic-fill"></i> Test Microphone
+          </button>
+          <p id="mic-test-status" style="margin-top: 0.4rem; color: var(--text-muted); font-size: 0.7rem;">
+            Click to test voice input
+          </p>
+          <div id="mic-test-result" style="margin-top: 0.25rem; font-weight: 600; font-size: 0.725rem; color: #000;"></div>
+        </div>
+
+        <!-- Camera Test Box -->
+        <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; text-align: center;">
+          <div style="font-weight: 700; font-size: 0.775rem; color: var(--text); margin-bottom: 0.5rem;">
+            <i class="bi bi-camera-video"></i> Camera Preview
+          </div>
+          <div style="width: 100%; height: 95px; background: #09090b; border-radius: 5px; overflow: hidden; position: relative; margin-bottom: 0.5rem;">
+            <video id="setup-camera-preview" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+            <div id="setup-camera-placeholder" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #a1a1aa; font-size: 0.7rem;">
+              <i class="bi bi-camera-video-off" style="margin-right: 0.25rem;"></i> Camera Standby
+            </div>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm" id="btn-verify-camera" onclick="verifySetupCamera()" style="width: 100%; font-size: 0.725rem;">
+            <i class="bi bi-check2-circle"></i> Verify Camera Access
+          </button>
+        </div>
+
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <button id="btn-start-interview-voice" class="btn" style="padding: 0.75rem; font-size: 0.85rem; font-weight: 700;">
+          <i class="bi bi-arrows-fullscreen"></i> Maximize &amp; Start with Voice
         </button>
-        <p id="mic-test-status" style="margin-top: 0.65rem; color: var(--text-muted); font-size: 0.75rem;">
-          Click the button and say: <em>"Testing my microphone"</em>
-        </p>
-        <div id="mic-test-result" style="margin-top: 0.4rem; font-weight: 600; font-size: 0.775rem; color: #000;"></div>
+        <button id="btn-start-interview-text" class="btn btn-secondary" style="padding: 0.65rem; font-size: 0.8rem;">
+          <i class="bi bi-keyboard"></i> Maximize &amp; Start with Keyboard Mode
+        </button>
       </div>
-
-      <button id="btn-start-interview-voice" class="btn">
-        <i class="bi bi-mic"></i> Start Interview with Voice
-      </button>
-      <button id="btn-start-interview-text" class="btn btn-secondary">
-        <i class="bi bi-keyboard"></i> Switch to Keyboard Mode
-      </button>
+      <p style="text-align: center; font-size: 0.7rem; color: var(--text-muted); margin-top: 0.65rem;">
+        <i class="bi bi-lock-fill"></i> Clicking either button enters Full-Screen Mode and activates Vision AI Proctoring.
+      </p>
     </div>
 
     <!-- Screen 3: Interactive Interview Room -->

@@ -1829,6 +1829,7 @@ async function loadInterviews() {
       let stateBadge = `<span class="badge">${item.state}</span>`;
       if (item.state === 'in_progress') stateBadge = `<span class="badge badge-dark"><i class="bi bi-mic"></i> In Progress</span>`;
       if (item.state === 'completed' || item.state === 'report_ready') stateBadge = `<span class="badge badge-dark"><i class="bi bi-check2"></i> Report Ready</span>`;
+      if (item.state === 'disqualified') stateBadge = `<span class="badge" style="background:#dc2626; color:#fff;"><i class="bi bi-shield-x-fill"></i> Disqualified (Cheating)</span>`;
 
       return `
         <tr>
@@ -1840,7 +1841,7 @@ async function loadInterviews() {
           <td>${stateBadge}</td>
           <td><span class="badge badge-outline"><i class="bi bi-shield-check"></i> Consent Recorded</span></td>
           <td>
-            ${item.report_id || item.state === 'completed' || item.state === 'report_ready' 
+            ${item.report_id || item.state === 'completed' || item.state === 'report_ready' || item.state === 'disqualified'
               ? `<button class="btn btn-sm" onclick="openReportModal('${item.interview_id}')"><i class="bi bi-file-earmark-text"></i> View Report & AI Clarification</button>`
               : `<a href="/interview.html?token=${item.interview_id}" target="_blank" class="btn btn-outline btn-sm"><i class="bi bi-play"></i> Simulate Room</a>`
             }
@@ -1930,13 +1931,17 @@ function renderResponsesList(list) {
 
   listEl.innerHTML = list.map(item => {
     const report = item.report;
-    const isCompleted = item.state === 'completed' || item.state === 'report_ready' || Boolean(report);
+    const isCompleted = item.state === 'completed' || item.state === 'report_ready' || item.state === 'disqualified' || Boolean(report);
 
     let verdictBadge = `<span class="badge badge-outline">Session Created</span>`;
     let scoreDisplay = `<span style="font-size:0.75rem; color:var(--text-muted);">Score Pending</span>`;
     let clarificationText = `Interview link active (Expires in ${item.link_timer_minutes || 60}m). Candidate has not finished the screening evaluation yet.`;
 
-    if (report) {
+    if (item.state === 'disqualified' || (report && (report.disqualified || report.candidate_verdict === 'DISQUALIFIED'))) {
+      verdictBadge = `<span class="badge" style="background:#dc2626; color:#ffffff; font-weight:700;"><i class="bi bi-shield-x-fill"></i> DISQUALIFIED (CHEATING)</span>`;
+      scoreDisplay = `<strong style="font-size:1.15rem; color:#dc2626;">0</strong><span style="font-size:0.7rem; color:#dc2626;"> / 100</span>`;
+      clarificationText = `SECURITY TERMINATION: Candidate was disqualified by Vision AI Proctoring for cheating: ${item.disqualified_reason || report?.disqualified_reason || 'Anti-cheating policy violation'}.`;
+    } else if (report) {
       const verdict = report.candidate_verdict || (report.recommendation === 'advance' ? 'RECOMMENDED_HIRE' : (report.recommendation === 'reject' ? 'NOT_RECOMMENDED' : 'POTENTIAL_HIRE'));
       const score = report.overall_score || (report.recommendation === 'advance' ? 84 : 68);
 
@@ -2076,21 +2081,41 @@ window.openReportModal = async function(interviewId) {
           <div style="font-size:0.7rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">AI Hiring Verdict</div>
           <div style="margin-top:0.25rem;">
             ${
-              verdict === 'NOT_RECOMMENDED' || report.recommendation === 'reject'
-                ? '<span class="badge" style="background:#dc2626; color:#fff; font-size:0.85rem; padding:0.4rem 0.85rem; font-weight:700;"><i class="bi bi-x-circle-fill"></i> NOT RECOMMENDED (REJECT)</span>'
-                : (verdict === 'POTENTIAL_HIRE' || report.recommendation === 'maybe'
-                    ? '<span class="badge" style="background:#d97706; color:#fff; font-size:0.85rem; padding:0.4rem 0.85rem; font-weight:700;"><i class="bi bi-question-circle-fill"></i> POTENTIAL HIRE (BORDERLINE)</span>'
-                    : '<span class="badge badge-dark" style="font-size:0.85rem; padding:0.4rem 0.85rem; font-weight:700;"><i class="bi bi-check-circle-fill"></i> RECOMMENDED HIRE</span>')
+              report.disqualified || verdict === 'DISQUALIFIED' || interview.state === 'disqualified'
+                ? '<span class="badge" style="background:#dc2626; color:#fff; font-size:0.85rem; padding:0.4rem 0.85rem; font-weight:700;"><i class="bi bi-shield-x-fill"></i> DISQUALIFIED (CHEATING DETECTED)</span>'
+                : (verdict === 'NOT_RECOMMENDED' || report.recommendation === 'reject'
+                    ? '<span class="badge" style="background:#dc2626; color:#fff; font-size:0.85rem; padding:0.4rem 0.85rem; font-weight:700;"><i class="bi bi-x-circle-fill"></i> NOT RECOMMENDED (REJECT)</span>'
+                    : (verdict === 'POTENTIAL_HIRE' || report.recommendation === 'maybe'
+                        ? '<span class="badge" style="background:#d97706; color:#fff; font-size:0.85rem; padding:0.4rem 0.85rem; font-weight:700;"><i class="bi bi-question-circle-fill"></i> POTENTIAL HIRE (BORDERLINE)</span>'
+                        : '<span class="badge badge-dark" style="font-size:0.85rem; padding:0.4rem 0.85rem; font-weight:700;"><i class="bi bi-check-circle-fill"></i> RECOMMENDED HIRE</span>'))
             }
           </div>
         </div>
         <div style="text-align:right;">
           <div style="font-size:0.7rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Overall Technical Score</div>
-          <div style="font-size:1.45rem; font-weight:700; color:var(--text); margin-top:0.1rem;">
+          <div style="font-size:1.45rem; font-weight:700; color:${report.disqualified || verdict === 'DISQUALIFIED' ? '#dc2626' : 'var(--text)'}; margin-top:0.1rem;">
             ${score} <span style="font-size:0.75rem; color:var(--text-muted); font-weight:400;">/ 100</span>
           </div>
         </div>
       </div>
+
+      ${(report.disqualified || (report.proctor_violations && report.proctor_violations.length > 0) || interview.disqualified_reason) ? `
+        <!-- Anti-Cheating & Proctoring Security Incident Box -->
+        <div style="background: rgba(220, 38, 38, 0.08); border: 2px solid #dc2626; border-radius: 6px; padding: 1rem; margin-bottom: 1.25rem;">
+          <strong style="color: #dc2626; font-size: 0.85rem; text-transform: uppercase; display: flex; align-items: center; gap: 0.4rem;">
+            <i class="bi bi-shield-x-fill"></i> Vision AI Proctoring Security Breach:
+          </strong>
+          <p style="font-size: 0.8rem; color: #b91c1c; margin: 0.35rem 0 0.5rem 0; font-weight: 600;">
+            Candidate was disqualified: ${interview.disqualified_reason || report.disqualified_reason || 'Cheating detected by AI Vision Proctor'}
+          </p>
+          <div style="font-family: monospace; font-size: 0.725rem; color: #991b1b; background: #fff; padding: 0.6rem 0.75rem; border-radius: 4px; border: 1px solid #fca5a5;">
+            <strong style="color: #dc2626;">Recorded Security Violations (${(report.proctor_violations || []).length}):</strong>
+            <ul style="margin: 0.35rem 0 0 1rem; padding: 0;">
+              ${(report.proctor_violations || []).map(v => `<li>[${v.time || 'Logged'}] Warning ${v.warningNumber || '!'}: ${v.reason}</li>`).join('')}
+            </ul>
+          </div>
+        </div>
+      ` : ''}
 
       <!-- Hiring Clarification Box -->
       <div class="clarification-box" style="margin-bottom:1.25rem; padding:1rem; border-radius:6px; ${verdict === 'NOT_RECOMMENDED' || report.recommendation === 'reject' ? 'border-left: 4px solid #dc2626; background: rgba(220,38,38,0.04);' : ''}">

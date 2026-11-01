@@ -572,6 +572,9 @@ app.get('/org/responses', requireAuth, (req, res) => {
       SELECT 
         i.id as interview_id,
         i.state,
+        i.proctor_warnings,
+        i.disqualified_reason,
+        i.proctor_logs,
         i.started_at,
         i.ended_at,
         i.expires_at,
@@ -602,6 +605,9 @@ app.get('/org/responses', requireAuth, (req, res) => {
       return {
         interview_id: r.interview_id,
         state: r.state,
+        proctor_warnings: r.proctor_warnings || 0,
+        disqualified_reason: r.disqualified_reason || null,
+        proctor_logs: r.proctor_logs ? JSON.parse(r.proctor_logs) : [],
         started_at: r.started_at,
         ended_at: r.ended_at,
         expires_at: r.expires_at,
@@ -817,6 +823,104 @@ app.post('/i/:token/finish', async (req, res) => {
     const report = await generateReport(interview.id);
 
     res.json({ success: true, message: 'Interview completed and report generated.', report });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- AI Proctoring & Disqualification Endpoints ---
+app.post('/i/:token/disqualify', async (req, res) => {
+  try {
+    const rawToken = req.params.token;
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const { reason, warnings, violations } = req.body || {};
+
+    const interview = db.prepare('SELECT id, job_id, candidate_id FROM interviews WHERE token_hash = ? OR id = ?').get(tokenHash, rawToken);
+    if (!interview) return res.status(404).json({ error: 'Invalid token' });
+
+    const disqualificationReason = reason || 'Proctoring breach / Cheating detected';
+    const violationsJson = JSON.stringify(violations || []);
+
+    db.prepare(`
+      UPDATE interviews 
+      SET state = 'disqualified', 
+          disqualified_reason = ?, 
+          proctor_warnings = ?,
+          proctor_logs = ?,
+          ended_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `).run(disqualificationReason, warnings || 3, violationsJson, interview.id);
+
+    // Record system turn in transcript
+    const maxTurn = db.prepare('SELECT COALESCE(MAX(idx), 0) as m FROM turns WHERE interview_id = ?').get(interview.id).m;
+    db.prepare(`
+      INSERT INTO turns (id, interview_id, idx, role, text, skill, level)
+      VALUES (?, ?, ?, 'system', ?, 'proctor', 0)
+    `).run('turn_' + crypto.randomUUID(), interview.id, maxTurn + 1, `[SECURITY ALERT] Candidate DISQUALIFIED. Reason: ${disqualificationReason}`);
+
+    // Create Disqualified Report immediately
+    const reportId = 'rep_' + crypto.randomUUID();
+    const disqualifiedReport = {
+      candidate_verdict: 'DISQUALIFIED',
+      recommendation: 'reject',
+      overall_score: 0,
+      disqualified: true,
+      disqualified_reason: disqualificationReason,
+      hiring_clarification: `STRONG REJECT / DISQUALIFIED: Candidate was disqualified by the AI Proctoring System for severe policy violations (${disqualificationReason}).`,
+      overall_summary: `Candidate failed and was disqualified during the technical screening due to proctoring violations: ${disqualificationReason}. Total warnings issued: ${warnings || 3}.`,
+      red_flags: [
+        `Proctoring Violation: ${disqualificationReason}`,
+        ...(violations || []).map(v => `Proctor Event: ${v.reason || v.type} (${v.time || 'active session'})`)
+      ],
+      proctor_violations: violations || [],
+      skills: [],
+      question_evaluations: [],
+      meta: { disqualified: true, warnings: warnings || 3 }
+    };
+
+    db.prepare(`
+      INSERT INTO reports (id, interview_id, json, model)
+      VALUES (?, ?, ?, 'ai-proctor-v1')
+      ON CONFLICT(interview_id) DO UPDATE SET
+        json = excluded.json,
+        model = excluded.model,
+        created_at = CURRENT_TIMESTAMP
+    `).run(reportId, interview.id, JSON.stringify(disqualifiedReport));
+
+    res.json({ success: true, message: 'Candidate disqualified', reason: disqualificationReason });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/i/:token/proctor-event', (req, res) => {
+  try {
+    const rawToken = req.params.token;
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const { type, reason, warningsCount } = req.body || {};
+
+    const interview = db.prepare('SELECT id, proctor_logs FROM interviews WHERE token_hash = ? OR id = ?').get(tokenHash, rawToken);
+    if (!interview) return res.status(404).json({ error: 'Invalid token' });
+
+    let existingLogs = [];
+    try {
+      if (interview.proctor_logs) existingLogs = JSON.parse(interview.proctor_logs);
+    } catch (e) {}
+
+    existingLogs.push({
+      type: type || 'suspicious_activity',
+      reason: reason || 'Detected by vision engine',
+      warningNumber: warningsCount || 1,
+      time: new Date().toLocaleTimeString('en-US', { hour12: false })
+    });
+
+    db.prepare(`
+      UPDATE interviews 
+      SET proctor_warnings = ?, proctor_logs = ? 
+      WHERE id = ?
+    `).run(warningsCount || 0, JSON.stringify(existingLogs), interview.id);
+
+    res.json({ success: true, logged: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
