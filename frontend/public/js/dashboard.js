@@ -1555,34 +1555,63 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+const CATEGORY_STYLES = {
+  'Software & Tech': { color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe', icon: 'bi-code-slash' },
+  'Data, AI & Analytics': { color: '#6d28d9', bg: '#f5f3ff', border: '#ddd6fe', icon: 'bi-cpu' },
+  'Security & Networking': { color: '#b91c1c', bg: '#fef2f2', border: '#fecaca', icon: 'bi-shield-lock' },
+  'Design & Creative': { color: '#c2410c', bg: '#fff7ed', border: '#fed7aa', icon: 'bi-palette' },
+  'Marketing & Content': { color: '#b45309', bg: '#fffbeb', border: '#fde68a', icon: 'bi-megaphone' },
+  'Sales & Business': { color: '#047857', bg: '#ecfdf5', border: '#a7f3d0', icon: 'bi-graph-up-arrow' },
+  'HR & Management': { color: '#0e7490', bg: '#ecfeff', border: '#a5f3fc', icon: 'bi-people' },
+  'Finance & Legal': { color: '#4338ca', bg: '#eef2ff', border: '#c7d2fe', icon: 'bi-bank' },
+  'Operations & Core Engineering': { color: '#0f766e', bg: '#f0fdfa', border: '#99f6e4', icon: 'bi-gear-wide-connected' },
+  'Education, Healthcare & Others': { color: '#be123c', bg: '#fff1f2', border: '#fecdd3', icon: 'bi-heart-pulse' },
+  'Non-job Interviews': { color: '#475569', bg: '#f8fafc', border: '#cbd5e1', icon: 'bi-mortarboard' }
+};
+
+window.getCategoryBadge = function(category) {
+  const cat = category || 'Software & Tech';
+  const meta = CATEGORY_STYLES[cat] || { color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', icon: 'bi-tag' };
+  return `<span class="category-badge-pill" onclick="event.stopPropagation(); setCategoryFilter('${escapeHtml(cat)}')" style="--cat-color:${meta.color}; --cat-bg:${meta.bg}; --cat-border:${meta.border};" title="Click to filter by ${escapeHtml(cat)}"><i class="bi ${meta.icon}"></i> ${escapeHtml(cat)}</span>`;
+};
+
 function renderConfiguredJobCard(j) {
-  const purposeBadge = j.purpose ? `<span class="badge badge-dark">${j.purpose.toUpperCase()}</span>` : '';
-  const expBadge = j.experience_required ? `<span class="badge badge-outline">${j.experience_required}</span>` : '';
-  const dsaBadge = j.leetcode_problem ? `<span class="badge badge-outline" style="border-color:#000; font-weight:700;"><i class="bi bi-code-slash"></i> ${j.leetcode_problem.split(':')[0]}</span>` : '';
-  const categoryBadge = j.category ? `<span class="badge badge-outline" style="font-weight:600; cursor:pointer;" onclick="setCategoryFilter('${j.category}')" title="Click to filter by category"><i class="bi bi-tag"></i> ${j.category}</span>` : '';
+  const categoryBadge = getCategoryBadge(j.category);
+  const purposeBadge = `<span class="badge" style="background:#0f172a; color:#fff; font-size:0.62rem; font-weight:700; padding:0.18rem 0.45rem; border-radius:4px;">${escapeHtml((j.purpose || 'JOB').toUpperCase())}</span>`;
+  const expBadge = j.experience_required ? `<span class="badge" style="background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; font-size:0.65rem; font-weight:600; padding:0.18rem 0.45rem; border-radius:4px;">${escapeHtml(j.experience_required)}</span>` : '';
+  const dsaBadge = j.leetcode_problem ? `<span class="badge" style="background:#fefce8; color:#854d0e; border:1px solid #fef08a; font-weight:700; font-size:0.65rem; padding:0.18rem 0.45rem; border-radius:4px;"><i class="bi bi-code-slash"></i> ${escapeHtml(j.leetcode_problem.split(':')[0])}</span>` : '';
 
   const tools = [];
-  if (j.terminal_required) tools.push('<i class="bi bi-terminal"></i> Compiler');
-  if (j.word_editor_required) tools.push('<i class="bi bi-file-earmark-word"></i> Word Pad');
-  if (j.resume_required) tools.push('<i class="bi bi-file-earmark-person"></i> Resume');
+  if (j.terminal_required) tools.push('<i class="bi bi-terminal" style="color:#2563eb;"></i> Compiler');
+  if (j.word_editor_required) tools.push('<i class="bi bi-file-earmark-word" style="color:#059669;"></i> Word Pad');
+  if (j.resume_required) tools.push('<i class="bi bi-file-earmark-person" style="color:#7c3aed;"></i> Resume');
+
+  const skillsList = (j.skills || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+  const skillsHtml = skillsList.length > 0
+    ? skillsList.map(s => `<span class="skill-pill">${escapeHtml(s)}</span>`).join('')
+    : '<span style="color:var(--text-muted); font-size:0.75rem;">General Knowledge</span>';
 
   return `
-    <div class="card" style="padding:1.15rem 1.25rem; margin-bottom:0.85rem; transition: border-color 0.15s ease;">
-      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-        <div>
-          <div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.25rem; flex-wrap:wrap;">
-            <strong style="color:var(--text); font-size:0.95rem;">${j.title}</strong>
+    <div class="configured-job-card">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap;">
+        <div style="flex:1; min-width:260px;">
+          <div style="display:flex; align-items:center; gap:0.45rem; margin-bottom:0.35rem; flex-wrap:wrap;">
+            <span class="pulse-live-dot" title="Active & Ready for Screening"></span>
+            <strong style="color:var(--text); font-size:1.05rem; font-weight:700; letter-spacing:-0.01em;">${escapeHtml(j.title)}</strong>
             ${categoryBadge}
             ${purposeBadge}
             ${expBadge}
             ${dsaBadge}
           </div>
           <div style="font-size:0.75rem; color:var(--text-muted);">
-            Qualifications: <strong style="color:var(--text);">${j.qualifications || 'Standard Engineering / CS'}</strong>
+            Qualifications: <strong style="color:var(--text); font-weight:600;">${escapeHtml(j.qualifications || 'Standard Engineering / CS')}</strong>
           </div>
         </div>
         <div style="display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap;">
-          <button class="btn btn-sm" onclick="openShareModalForJob('${j.id}', '${encodeURIComponent(j.title)}')" style="background: #000; color: #fff;" title="Get direct shareable link for candidates">
+          <button class="btn btn-sm btn-share-link" onclick="openShareModalForJob('${j.id}', '${encodeURIComponent(j.title)}')" title="Get direct shareable link for candidates">
             <i class="bi bi-link-45deg"></i> Share Link
           </button>
           <button class="btn btn-outline btn-sm" onclick="previewJobQuestions('${j.id}', '${encodeURIComponent(j.title)}')" title="Preview questions AI will ask">
@@ -1591,27 +1620,28 @@ function renderConfiguredJobCard(j) {
           <button class="btn btn-outline btn-sm" onclick="editInterview('${j.id}')" title="Edit interview specifications and rules">
             <i class="bi bi-pencil-square"></i> Edit
           </button>
-          <button class="btn btn-outline btn-sm btn-danger-outline" onclick="deleteInterview('${j.id}', '${encodeURIComponent(j.title)}')" title="Delete this interview round">
+          <button class="btn btn-sm btn-delete-job" onclick="deleteInterview('${j.id}', '${encodeURIComponent(j.title)}')" title="Delete this interview round">
             <i class="bi bi-trash3"></i> Delete
           </button>
-          <button class="btn btn-outline btn-sm" onclick="selectJobForCandidates('${j.id}')">
+          <button class="btn btn-sm btn-view-candidates" onclick="selectJobForCandidates('${j.id}')">
             Candidates <i class="bi bi-arrow-right"></i>
           </button>
         </div>
       </div>
 
-      <div style="color:var(--text); font-size:0.775rem; margin:0.45rem 0 0.65rem 0;">
-        Skills: <strong>${j.skills}</strong>
+      <div style="margin:0.55rem 0 0.75rem 0; display:flex; align-items:center; flex-wrap:wrap; gap:0.3rem;">
+        <span style="font-size:0.72rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; margin-right:0.25rem;">Skills:</span>
+        ${skillsHtml}
       </div>
 
-      <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:0.5rem; font-size:0.7rem; color:var(--text-muted);">
-        <div style="display:flex; gap:0.75rem; align-items:center;">
-          <span><i class="bi bi-clock"></i> ${j.max_minutes} Mins${j.show_timer === 0 ? ' (Untimed)' : ' (Timed)'}</span>
-          <span><i class="bi bi-question-circle"></i> ${j.max_questions || 6} Questions</span>
-          <span><i class="bi bi-gear"></i> ${j.question_mode === 'custom_questions' ? 'Custom Questions' : 'Adaptive AI'}</span>
-          <span>${tools.join(' · ')}</span>
+      <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:0.6rem; font-size:0.72rem; color:var(--text-muted); flex-wrap:wrap; gap:0.5rem;">
+        <div style="display:flex; gap:0.85rem; align-items:center; flex-wrap:wrap;">
+          <span style="display:inline-flex; align-items:center; gap:0.3rem;"><i class="bi bi-clock-history" style="color:#2563eb;"></i> <strong>${j.max_minutes || 15} Mins</strong>${j.show_timer === 0 ? ' (Untimed)' : ' (Timed)'}</span>
+          <span style="display:inline-flex; align-items:center; gap:0.3rem;"><i class="bi bi-question-circle" style="color:#7c3aed;"></i> <strong>${j.max_questions || 6}</strong> Questions</span>
+          <span style="display:inline-flex; align-items:center; gap:0.3rem;"><i class="bi bi-robot" style="color:#059669;"></i> ${j.question_mode === 'custom_questions' ? 'Custom Questions' : 'Adaptive AI'}</span>
+          ${tools.length ? `<span>${tools.join(' · ')}</span>` : ''}
         </div>
-        <span>Created on ${new Date(j.created_at || Date.now()).toLocaleDateString()}</span>
+        <span style="display:inline-flex; align-items:center; gap:0.3rem;"><i class="bi bi-calendar3"></i> Created on ${new Date(j.created_at || Date.now()).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'})}</span>
       </div>
     </div>
   `;
@@ -1619,20 +1649,27 @@ function renderConfiguredJobCard(j) {
 
 function renderCatalogRoleCard(role) {
   const isConfigured = allLoadedJobs.some(j => (j.title || '').toLowerCase() === role.title.toLowerCase());
-  const skills = getSkillsForRole(role.title, role.category);
+  const skillsStr = getSkillsForRole(role.title, role.category);
+  const skillsList = skillsStr.split(',').map(s => s.trim()).filter(Boolean);
+  const skillsPills = skillsList.slice(0, 3).map(s => `<span class="skill-pill">${escapeHtml(s)}</span>`).join('');
+  const extraSkillsCount = skillsList.length > 3 ? `<span style="font-size:0.65rem; color:var(--text-muted); font-weight:600;">+${skillsList.length - 3}</span>` : '';
+  const categoryBadge = getCategoryBadge(role.category);
+
   return `
-    <div class="card" style="padding:0.85rem 1.1rem; margin-bottom:0; display:flex; justify-content:space-between; align-items:center; background:var(--surface); border:1px solid var(--border); transition:all .15s ease;">
-      <div style="padding-right:0.75rem; overflow:hidden;">
-        <div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.25rem; flex-wrap:wrap;">
-          <strong style="color:var(--text); font-size:0.9rem; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${role.title}</strong>
-          <span class="badge badge-outline" style="font-size:0.65rem; font-weight:600;"><i class="bi bi-tag"></i> ${role.category}</span>
-          ${isConfigured ? '<span class="badge badge-dark" style="font-size:0.62rem;"><i class="bi bi-check-circle-fill" style="color:#10b981;"></i> Configured</span>' : ''}
+    <div class="catalog-role-card">
+      <div style="padding-right:0.85rem; overflow:hidden; flex:1;">
+        <div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.35rem; flex-wrap:wrap;">
+          <strong style="color:var(--text); font-size:0.92rem; font-weight:700; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;" title="${escapeHtml(role.title)}">${escapeHtml(role.title)}</strong>
+          ${categoryBadge}
+          ${isConfigured ? '<span class="badge" style="background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; font-size:0.62rem; font-weight:700; padding:0.18rem 0.45rem; border-radius:4px;"><i class="bi bi-check-circle-fill" style="color:#10b981;"></i> Configured</span>' : ''}
         </div>
-        <div style="font-size:0.72rem; color:var(--text-muted); text-overflow:ellipsis; overflow:hidden; white-space:nowrap; max-width:320px;">
-          Skills: <span style="color:var(--text);">${skills}</span>
+        <div style="display:flex; align-items:center; flex-wrap:wrap; gap:0.2rem;">
+          <span style="font-size:0.7rem; color:var(--text-muted); font-weight:600; margin-right:0.2rem;">Skills:</span>
+          ${skillsPills}
+          ${extraSkillsCount}
         </div>
       </div>
-      <button class="btn btn-sm" onclick="startInterviewCreationWizardWithRole('${role.title.replace(/'/g, "\\'")}', '${role.category.replace(/'/g, "\\'")}')" style="background:#000; color:#fff; font-weight:700; white-space:nowrap; flex-shrink:0;">
+      <button class="btn btn-sm btn-create-catalog" onclick="startInterviewCreationWizardWithRole('${role.title.replace(/'/g, "\\'")}', '${role.category.replace(/'/g, "\\'")}')" title="1-Click Create Interview for ${escapeHtml(role.title)}">
         <i class="bi bi-plus-lg"></i> Create Interview
       </button>
     </div>
@@ -1790,12 +1827,16 @@ function renderDashboardJobsList(jobs, catalogMatches = [], searchQ = '', catego
         </div>
 
         <!-- Quick Category Selector Pills -->
-        <div style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-bottom:1rem;">
-          ${ROLE_CATEGORIES.map(g => `
-            <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('dashboard-category-filter').value='${g.category}'; filterDashboardJobs();" style="font-size:0.72rem; padding:0.25rem 0.55rem;">
-              ${g.category} (${g.roles.length})
-            </button>
-          `).join('')}
+        <div style="display:flex; flex-wrap:wrap; gap:0.45rem; margin-bottom:1.15rem;">
+          ${ROLE_CATEGORIES.map(g => {
+            const meta = CATEGORY_STYLES[g.category] || { color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', icon: 'bi-tag' };
+            const isActive = categoryQ === g.category;
+            return `
+              <button type="button" class="btn btn-sm" onclick="document.getElementById('dashboard-category-filter').value='${isActive ? '' : g.category}'; filterDashboardJobs();" style="font-size:0.72rem; padding:0.3rem 0.65rem; border-radius:6px; font-weight:600; display:inline-flex; align-items:center; gap:0.35rem; transition:all 0.15s ease; ${isActive ? 'background:#0f172a; color:#fff; border:1px solid #0f172a;' : 'background:' + meta.bg + '; color:' + meta.color + '; border:1px solid ' + meta.border + ';'}">
+                <i class="bi ${meta.icon}"></i> ${escapeHtml(g.category)} <span style="opacity:0.75; font-size:0.65rem;">(${g.roles.length})</span>
+              </button>
+            `;
+          }).join('')}
         </div>
 
         <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(360px, 1fr)); gap:0.75rem;">

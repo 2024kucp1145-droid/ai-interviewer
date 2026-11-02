@@ -1050,6 +1050,230 @@
       border-color: #52525b !important;
       background-color: #18181b !important;
     }
+    /* Professional High-Contrast Dashboard & Interview Management Styles */
+    .pulse-live-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #10b981;
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      animation: pulse-green 2s infinite;
+      flex-shrink: 0;
+    }
+    @keyframes pulse-green {
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      }
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+      }
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+      }
+    }
+
+    .configured-job-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 4px solid #2563eb;
+      border-radius: 10px;
+      padding: 1.15rem 1.35rem;
+      margin-bottom: 0.9rem;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    }
+    .configured-job-card:hover {
+      border-color: #93c5fd;
+      border-left-color: #1d4ed8;
+      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.08);
+      transform: translateY(-1px);
+    }
+    [data-theme="dark"] .configured-job-card {
+      background: #18181b;
+      border-color: #27272a;
+      border-left-color: #3b82f6;
+    }
+    [data-theme="dark"] .configured-job-card:hover {
+      border-color: #3f3f46;
+      border-left-color: #60a5fa;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+    }
+
+    .catalog-role-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 0.95rem 1.15rem;
+      margin-bottom: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.18s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    }
+    .catalog-role-card:hover {
+      border-color: #60a5fa;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.09);
+      transform: translateY(-1px);
+      background: #fafcff;
+    }
+    [data-theme="dark"] .catalog-role-card {
+      background: #18181b;
+      border-color: #27272a;
+    }
+    [data-theme="dark"] .catalog-role-card:hover {
+      border-color: #3b82f6;
+      background: #1e1e24;
+    }
+
+    .dashboard-search-box {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex: 1;
+      min-width: 260px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 0.42rem 0.85rem;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    }
+    .dashboard-search-box:focus-within {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+      background: #ffffff;
+    }
+    [data-theme="dark"] .dashboard-search-box {
+      background: #18181b;
+      border-color: #27272a;
+    }
+    [data-theme="dark"] .dashboard-search-box:focus-within {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+      background: #18181b;
+    }
+
+    .category-badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--cat-color);
+      background: var(--cat-bg);
+      border: 1px solid var(--cat-border);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .category-badge-pill:hover {
+      filter: brightness(0.94);
+      transform: translateY(-0.5px);
+    }
+    [data-theme="dark"] .category-badge-pill {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.14);
+      color: #e4e4e7;
+    }
+
+    .skill-pill {
+      display: inline-flex;
+      align-items: center;
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #e2e8f0;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin-right: 0.35rem;
+      margin-bottom: 0.25rem;
+      white-space: nowrap;
+    }
+    [data-theme="dark"] .skill-pill {
+      background: #27272a;
+      color: #e4e4e7;
+      border-color: #3f3f46;
+    }
+
+    .btn-share-link {
+      background: #2563eb !important;
+      color: #ffffff !important;
+      font-weight: 600;
+      border: none !important;
+      box-shadow: 0 2px 4px rgba(37, 99, 235, 0.25);
+      transition: all 0.15s ease;
+    }
+    .btn-share-link:hover {
+      background: #1d4ed8 !important;
+      box-shadow: 0 4px 8px rgba(37, 99, 235, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .btn-view-candidates {
+      background: #ecfdf5 !important;
+      color: #047857 !important;
+      border: 1px solid #a7f3d0 !important;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+    .btn-view-candidates:hover {
+      background: #d1fae5 !important;
+      color: #065f46 !important;
+      border-color: #6ee7b7 !important;
+      transform: translateY(-1px);
+    }
+    [data-theme="dark"] .btn-view-candidates {
+      background: rgba(16, 185, 129, 0.12) !important;
+      color: #34d399 !important;
+      border-color: rgba(16, 185, 129, 0.3) !important;
+    }
+    [data-theme="dark"] .btn-view-candidates:hover {
+      background: rgba(16, 185, 129, 0.2) !important;
+    }
+
+    .btn-delete-job {
+      background: #fff !important;
+      color: #dc2626 !important;
+      border: 1px solid #fecaca !important;
+      transition: all 0.15s ease;
+    }
+    .btn-delete-job:hover {
+      background: #fef2f2 !important;
+      color: #b91c1c !important;
+      border-color: #fca5a5 !important;
+    }
+    [data-theme="dark"] .btn-delete-job {
+      background: #18181b !important;
+      color: #f87171 !important;
+      border-color: #7f1d1d !important;
+    }
+    [data-theme="dark"] .btn-delete-job:hover {
+      background: rgba(220, 38, 38, 0.15) !important;
+    }
+
+    .btn-create-catalog {
+      background: #0f172a !important;
+      color: #ffffff !important;
+      font-weight: 600;
+      border: none;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .btn-create-catalog:hover {
+      background: #2563eb !important;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+      transform: translateY(-1px);
+    }
   </style>
   <script src="/js/theme.js"></script>
 </head>
@@ -1116,30 +1340,30 @@
           </div>
 
           <!-- Category, Search & Sort Filter Bar -->
-          <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);">
-            <div style="display: flex; align-items: center; gap: 0.4rem; flex: 1; min-width: 240px; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 6px; padding: 0.35rem 0.75rem;">
-              <i class="bi bi-search" style="color: var(--text-muted); font-size: 0.85rem;"></i>
-              <input type="text" id="dashboard-job-search" placeholder="Search any job to create interview (e.g. Python, Doctor, Mechanical, Sales, Marketing, Nurse)..." oninput="filterDashboardJobs()" style="margin-bottom: 0; padding: 0.25rem 0.35rem; font-size: 0.82rem; border: none; background: transparent; width: 100%;">
+          <div style="display: flex; gap: 0.6rem; align-items: center; margin-bottom: 1.15rem; flex-wrap: wrap; padding-bottom: 0.85rem; border-bottom: 1px solid var(--border);">
+            <div class="dashboard-search-box">
+              <i class="bi bi-search" style="color: #2563eb; font-size: 0.9rem;"></i>
+              <input type="text" id="dashboard-job-search" placeholder="Search any role to configure or browse 100+ roles (e.g. Python, Doctor, Mechanical, Sales, Marketing, Nurse)..." oninput="filterDashboardJobs()" style="margin-bottom: 0; padding: 0.2rem 0.25rem; font-size: 0.82rem; border: none; background: transparent; width: 100%; outline: none; color: var(--text);">
             </div>
-            <select id="dashboard-category-filter" onchange="filterDashboardJobs()" style="flex: 0 0 auto; width: 210px; margin-bottom: 0; padding: 0.35rem 0.6rem; font-size: 0.78rem;">
+            <select id="dashboard-category-filter" onchange="filterDashboardJobs()" style="flex: 0 0 auto; width: 220px; margin-bottom: 0; padding: 0.45rem 0.65rem; font-size: 0.78rem; font-weight: 500; border-radius: 8px; border: 1.5px solid var(--border);">
               <option value="">All Categories (11)</option>
-              <option value="Software & Tech">Software & Tech</option>
-              <option value="Data, AI & Analytics">Data, AI & Analytics</option>
-              <option value="Security & Networking">Security & Networking</option>
-              <option value="Design & Creative">Design & Creative</option>
-              <option value="Marketing & Content">Marketing & Content</option>
-              <option value="Sales & Business">Sales & Business</option>
-              <option value="HR & Management">HR & Management</option>
-              <option value="Finance & Legal">Finance & Legal</option>
-              <option value="Operations & Core Engineering">Operations & Core Engineering</option>
-              <option value="Education, Healthcare & Others">Education, Healthcare & Others</option>
-              <option value="Non-job Interviews">Non-job Interviews</option>
+              <option value="Software & Tech">💻 Software & Tech</option>
+              <option value="Data, AI & Analytics">🤖 Data, AI & Analytics</option>
+              <option value="Security & Networking">🛡️ Security & Networking</option>
+              <option value="Design & Creative">🎨 Design & Creative</option>
+              <option value="Marketing & Content">📢 Marketing & Content</option>
+              <option value="Sales & Business">📈 Sales & Business</option>
+              <option value="HR & Management">👥 HR & Management</option>
+              <option value="Finance & Legal">🏦 Finance & Legal</option>
+              <option value="Operations & Core Engineering">⚙️ Operations & Engineering</option>
+              <option value="Education, Healthcare & Others">🩺 Healthcare & Education</option>
+              <option value="Non-job Interviews">🎓 Non-job Interviews</option>
             </select>
-            <select id="dashboard-sort-filter" onchange="filterDashboardJobs()" style="flex: 0 0 auto; width: 140px; margin-bottom: 0; padding: 0.35rem 0.6rem; font-size: 0.78rem;">
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-              <option value="title">Role Title (A-Z)</option>
-              <option value="duration">Duration</option>
+            <select id="dashboard-sort-filter" onchange="filterDashboardJobs()" style="flex: 0 0 auto; width: 145px; margin-bottom: 0; padding: 0.45rem 0.65rem; font-size: 0.78rem; font-weight: 500; border-radius: 8px; border: 1.5px solid var(--border);">
+              <option value="newest">🕒 Newest First</option>
+              <option value="oldest">⏳ Oldest First</option>
+              <option value="title">🔤 Title (A-Z)</option>
+              <option value="duration">⏱️ Duration</option>
             </select>
           </div>
 
