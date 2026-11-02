@@ -82,10 +82,20 @@ async function checkAuthSession() {
 
 function updateUserBadge() {
   if (currentUser && currentOrg) {
-    userDisplayEl.textContent = `${currentUser.full_name || currentUser.email} · ${currentOrg.name}`;
+    userDisplayEl.innerHTML = `
+      <span style="display:inline-flex; align-items:center; gap:0.4rem; font-weight:600; color:var(--text);">
+        <span style="width:24px; height:24px; border-radius:50%; background:#eff6ff; color:#2563eb; font-weight:700; font-size:0.65rem; display:inline-flex; align-items:center; justify-content:center; border:1px solid #bfdbfe;">
+          ${escapeHtml((currentUser.full_name || currentUser.email || 'U')[0].toUpperCase())}
+        </span>
+        <span style="font-size:0.775rem;">${escapeHtml(currentUser.full_name || currentUser.email)}</span>
+        <span class="badge" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; font-size:0.65rem; padding:0.15rem 0.45rem;">
+          <i class="bi bi-building"></i> ${escapeHtml(currentOrg.name)}
+        </span>
+      </span>
+    `;
     document.getElementById('btn-auth-switch').innerHTML = `<i class="bi bi-box-arrow-right"></i> Sign Out`;
   } else {
-    userDisplayEl.textContent = `Not Signed In`;
+    userDisplayEl.innerHTML = `<span class="badge" style="background:#fff1f2; color:#be123c; border:1px solid #fecdd3;"><i class="bi bi-person-x"></i> Not Signed In</span>`;
     document.getElementById('btn-auth-switch').innerHTML = `<i class="bi bi-box-arrow-in-right"></i> Sign In / Register`;
   }
 }
@@ -2078,24 +2088,44 @@ async function loadInterviews() {
     }
 
     interviewsTableBody.innerHTML = list.map(item => {
-      let stateBadge = `<span class="badge">${item.state}</span>`;
-      if (item.state === 'in_progress') stateBadge = `<span class="badge badge-dark"><i class="bi bi-mic"></i> In Progress</span>`;
-      if (item.state === 'completed' || item.state === 'report_ready') stateBadge = `<span class="badge badge-dark"><i class="bi bi-check2"></i> Report Ready</span>`;
-      if (item.state === 'disqualified') stateBadge = `<span class="badge" style="background:#dc2626; color:#fff;"><i class="bi bi-shield-x-fill"></i> Disqualified (Cheating)</span>`;
+      let stateBadge = `<span class="badge" style="background:#f8fafc; color:#475569; border:1px solid #cbd5e1;"><i class="bi bi-clock"></i> Link Sent</span>`;
+      if (item.state === 'in_progress') {
+        stateBadge = `<span class="badge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;"><i class="bi bi-mic-fill" style="color:#2563eb;"></i> In Progress</span>`;
+      } else if (item.state === 'completed' || item.state === 'report_ready') {
+        stateBadge = `<span class="badge" style="background:#ecfdf5; color:#047857; border:1px solid #a7f3d0;"><i class="bi bi-check2-circle" style="color:#10b981;"></i> Report Ready</span>`;
+      } else if (item.state === 'disqualified') {
+        stateBadge = `<span class="badge" style="background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; font-weight:700;"><i class="bi bi-shield-x-fill" style="color:#dc2626;"></i> Disqualified</span>`;
+      }
+
+      const initials = (item.candidate_name || 'Candidate')
+        .split(' ')
+        .map(p => p[0])
+        .join('')
+        .substring(0, 2)
+        .toUpperCase();
 
       return `
         <tr>
           <td>
-            <strong style="color:#000;">${item.candidate_name}</strong><br>
-            <span style="font-size:0.725rem; color:var(--text-muted);">${item.candidate_email}</span>
+            <div style="display:flex; align-items:center; gap:0.6rem;">
+              <div style="width:34px; height:34px; border-radius:50%; background:#eff6ff; color:#2563eb; font-weight:700; font-size:0.75rem; display:flex; align-items:center; justify-content:center; border:1px solid #bfdbfe; flex-shrink:0;">
+                ${initials}
+              </div>
+              <div>
+                <strong style="color:var(--text); font-size:0.88rem;">${escapeHtml(item.candidate_name)}</strong><br>
+                <span style="font-size:0.725rem; color:var(--text-muted);">${escapeHtml(item.candidate_email)}</span>
+              </div>
+            </div>
           </td>
-          <td>Junior Developer</td>
+          <td>
+            <strong style="font-size:0.8rem; color:var(--text);">${escapeHtml(item.job_title || 'Technical Candidate')}</strong>
+          </td>
           <td>${stateBadge}</td>
-          <td><span class="badge badge-outline"><i class="bi bi-shield-check"></i> Consent Recorded</span></td>
+          <td><span class="badge" style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0;"><i class="bi bi-shield-check"></i> Consent Recorded</span></td>
           <td>
             ${item.report_id || item.state === 'completed' || item.state === 'report_ready' || item.state === 'disqualified'
-              ? `<button class="btn btn-sm" onclick="openReportModal('${item.interview_id}')"><i class="bi bi-file-earmark-text"></i> View Report & AI Clarification</button>`
-              : `<a href="/interview.html?token=${item.interview_id}" target="_blank" class="btn btn-outline btn-sm"><i class="bi bi-play"></i> Simulate Room</a>`
+              ? `<button class="btn btn-sm btn-primary" onclick="openReportModal('${item.interview_id}')"><i class="bi bi-file-earmark-text"></i> View Report & AI Clarification</button>`
+              : `<a href="/interview.html?token=${item.interview_id}" target="_blank" class="btn btn-outline btn-sm"><i class="bi bi-play-circle" style="color:#2563eb;"></i> Simulate Room</a>`
             }
           </td>
         </tr>
@@ -2185,39 +2215,46 @@ function renderResponsesList(list) {
     const report = item.report;
     const isCompleted = item.state === 'completed' || item.state === 'report_ready' || item.state === 'disqualified' || Boolean(report);
 
-    let verdictBadge = `<span class="badge badge-outline">Session Created</span>`;
-    let scoreDisplay = `<span style="font-size:0.75rem; color:var(--text-muted);">Score Pending</span>`;
+    let verdictBadge = `<span class="badge" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;"><i class="bi bi-clock"></i> Session Created</span>`;
+    let scoreDisplay = `<span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Score Pending</span>`;
     let clarificationText = `Interview link active (Expires in ${item.link_timer_minutes || 60}m). Candidate has not finished the screening evaluation yet.`;
+    let cardLeftColor = '#94a3b8';
 
     if (item.state === 'disqualified' || (report && (report.disqualified || report.candidate_verdict === 'DISQUALIFIED'))) {
-      verdictBadge = `<span class="badge" style="background:#dc2626; color:#ffffff; font-weight:700;"><i class="bi bi-shield-x-fill"></i> DISQUALIFIED (CHEATING)</span>`;
-      scoreDisplay = `<strong style="font-size:1.15rem; color:#dc2626;">0</strong><span style="font-size:0.7rem; color:#dc2626;"> / 100</span>`;
+      cardLeftColor = '#dc2626';
+      verdictBadge = `<span class="badge" style="background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; font-weight:700;"><i class="bi bi-shield-x-fill" style="color:#dc2626;"></i> DISQUALIFIED (CHEATING)</span>`;
+      scoreDisplay = `<strong style="font-size:1.25rem; color:#dc2626; font-weight:800;">0</strong><span style="font-size:0.75rem; color:#dc2626;"> / 100</span>`;
       clarificationText = `SECURITY TERMINATION: Candidate was disqualified by Vision AI Proctoring for cheating: ${item.disqualified_reason || report?.disqualified_reason || 'Anti-cheating policy violation'}.`;
     } else if (report) {
       const verdict = report.candidate_verdict || (report.recommendation === 'advance' ? 'RECOMMENDED_HIRE' : (report.recommendation === 'reject' ? 'NOT_RECOMMENDED' : 'POTENTIAL_HIRE'));
       const score = report.overall_score || (report.recommendation === 'advance' ? 84 : 68);
 
       if (verdict === 'RECOMMENDED_HIRE') {
-        verdictBadge = `<span class="badge badge-dark"><i class="bi bi-check-circle-fill"></i> RECOMMENDED HIRE</span>`;
+        cardLeftColor = '#10b981';
+        verdictBadge = `<span class="badge" style="background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; font-weight:700;"><i class="bi bi-check-circle-fill" style="color:#10b981;"></i> RECOMMENDED HIRE</span>`;
+        scoreDisplay = `<strong style="font-size:1.25rem; color:#059669; font-weight:800;">${score}</strong><span style="font-size:0.75rem; color:var(--text-muted);"> / 100</span>`;
       } else if (verdict === 'POTENTIAL_HIRE') {
-        verdictBadge = `<span class="badge badge-outline" style="border-color:#000; font-weight:700;"><i class="bi bi-question-circle"></i> POTENTIAL HIRE</span>`;
+        cardLeftColor = '#f59e0b';
+        verdictBadge = `<span class="badge" style="background:#fffbeb; color:#b45309; border:1px solid #fde68a; font-weight:700;"><i class="bi bi-question-circle-fill" style="color:#d97706;"></i> POTENTIAL HIRE</span>`;
+        scoreDisplay = `<strong style="font-size:1.25rem; color:#d97706; font-weight:800;">${score}</strong><span style="font-size:0.75rem; color:var(--text-muted);"> / 100</span>`;
       } else {
-        verdictBadge = `<span class="badge" style="background:#f4f4f5; color:#52525b;"><i class="bi bi-x-circle"></i> NOT RECOMMENDED</span>`;
+        cardLeftColor = '#64748b';
+        verdictBadge = `<span class="badge" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; font-weight:700;"><i class="bi bi-x-circle-fill" style="color:#64748b;"></i> NOT RECOMMENDED</span>`;
+        scoreDisplay = `<strong style="font-size:1.25rem; color:#475569; font-weight:800;">${score}</strong><span style="font-size:0.75rem; color:var(--text-muted);"> / 100</span>`;
       }
 
-      scoreDisplay = `<strong style="font-size:1.15rem; color:#000;">${score}</strong><span style="font-size:0.7rem; color:var(--text-muted);"> / 100</span>`;
       clarificationText = report.hiring_clarification || report.overall_summary || 'Evaluation report ready.';
     }
 
-    const typeBadge = item.interview_type ? `<span class="badge badge-outline" style="font-size:0.65rem;">${item.interview_type.toUpperCase()}</span>` : '';
+    const typeBadge = item.interview_type ? `<span class="badge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-size:0.65rem; font-weight:700;">${item.interview_type.toUpperCase()}</span>` : '';
 
     return `
-      <div class="response-card">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.5rem;">
+      <div class="response-card" style="border-left: 4px solid ${cardLeftColor};">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.5rem; gap:0.5rem;">
           <div>
-            <strong style="font-size:0.875rem; color:#000;">${item.candidate_name}</strong>
-            <div style="font-size:0.725rem; color:var(--text-muted); margin-top:0.1rem;">
-              ${item.candidate_email} · ${item.job_title} ${typeBadge}
+            <strong style="font-size:0.95rem; color:var(--text); font-weight:700;">${escapeHtml(item.candidate_name)}</strong>
+            <div style="font-size:0.725rem; color:var(--text-muted); margin-top:0.15rem;">
+              ${escapeHtml(item.candidate_email)} · <strong style="color:var(--text);">${escapeHtml(item.job_title || 'Candidate')}</strong> ${typeBadge}
             </div>
           </div>
           <div style="text-align:right;">
@@ -2226,21 +2263,21 @@ function renderResponsesList(list) {
           </div>
         </div>
 
-        <div class="clarification-box">
-          <div style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; color:#000; margin-bottom:0.15rem;">
-            <i class="bi bi-cpu"></i> AI Hiring Clarification & Recommendation:
+        <div class="clarification-box" style="border-left-color:${cardLeftColor};">
+          <div style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; color:var(--text); margin-bottom:0.2rem; display:flex; align-items:center; gap:0.35rem;">
+            <i class="bi bi-robot" style="color:#7c3aed;"></i> AI Hiring Clarification & Recommendation:
           </div>
-          ${clarificationText}
+          <p style="margin:0; font-size:0.775rem; line-height:1.5; color:var(--text);">${escapeHtml(clarificationText)}</p>
         </div>
 
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.75rem; border-top:1px solid var(--border); padding-top:0.6rem;">
-          <span style="font-size:0.6875rem; color:var(--text-muted);">
-            ${item.ended_at ? 'Completed on ' + new Date(item.ended_at).toLocaleDateString() : 'Awaiting completion'}
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.75rem; border-top:1px solid var(--border); padding-top:0.65rem;">
+          <span style="font-size:0.7rem; color:var(--text-muted);">
+            <i class="bi bi-calendar3"></i> ${item.ended_at ? 'Completed on ' + new Date(item.ended_at).toLocaleDateString() : 'Awaiting completion'}
           </span>
           <div style="display:flex; gap:0.4rem;">
             ${isCompleted
-              ? `<button class="btn btn-sm" onclick="openReportModal('${item.interview_id}')"><i class="bi bi-journal-text"></i> Full Conversation & Analysis</button>`
-              : `<a href="/interview.html?token=${item.interview_id}" target="_blank" class="btn btn-outline btn-sm"><i class="bi bi-play"></i> Open Room</a>`
+              ? `<button class="btn btn-sm btn-primary" onclick="openReportModal('${item.interview_id}')"><i class="bi bi-journal-text"></i> Full Conversation & Analysis</button>`
+              : `<a href="/interview.html?token=${item.interview_id}" target="_blank" class="btn btn-outline btn-sm"><i class="bi bi-play-circle" style="color:#2563eb;"></i> Open Room</a>`
             }
           </div>
         </div>
