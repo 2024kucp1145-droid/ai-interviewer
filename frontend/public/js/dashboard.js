@@ -908,6 +908,39 @@ const CATEGORY_ROLE_DEFAULTS = {
   }
 };
 
+const CATEGORY_DEFAULT_SKILLS = {
+  'Software & Tech': 'Problem Solving, Algorithms, Clean Code, Git, Software Architecture, Debugging',
+  'Data, AI & Analytics': 'Python, SQL, Data Analysis, Machine Learning, Statistics, Data Modeling',
+  'Security & Networking': 'Network Protocols, Cybersecurity, Firewalls, Threat Analysis, Linux',
+  'Design & Creative': 'UI/UX Principles, Figma, Adobe Suite, Visual Design, User Research, Prototyping',
+  'Marketing & Content': 'SEO, Content Strategy, Social Media Marketing, Copywriting, Campaign Analytics',
+  'Sales & Business': 'Client Communication, Negotiation, Lead Generation, CRM, Presentation, Closing',
+  'HR & Management': 'Talent Sourcing, Behavioral Screening, Employee Relations, Communication, HR Policy',
+  'Finance & Legal': 'Financial Modeling, Accounting, Auditing, Compliance, Taxation, Excel & Reporting',
+  'Operations & Core Engineering': 'Engineering Principles, Process Optimization, Quality Control, CAD, Safety Standards',
+  'Education, Healthcare & Others': 'Subject Knowledge, Clinical/Pedagogical Skills, Communication, Documentation',
+  'Non-job Interviews': 'Personal Background, Problem Solving, Motivation & Goals, Communication, Situational Judgment'
+};
+
+window.getSkillsForRole = function(roleTitle, category) {
+  if (CATEGORY_ROLE_DEFAULTS[roleTitle]?.skills) {
+    return CATEGORY_ROLE_DEFAULTS[roleTitle].skills;
+  }
+  return CATEGORY_DEFAULT_SKILLS[category] || 'Domain Knowledge, Communication, Problem Solving';
+};
+
+window.startInterviewCreationWizardWithRole = function(roleTitle, category) {
+  startInterviewCreationWizard();
+  if (roleTitle) {
+    selectRoleFromCategory(roleTitle);
+  }
+  if (category) {
+    const catSelect = document.getElementById('role-category-select');
+    if (catSelect) catSelect.value = category;
+  }
+  window.scrollTo({ top: 80, behavior: 'smooth' });
+};
+
 // Called when a role pill is clicked in the browser
 window.selectRoleFromCategory = function(roleTitle) {
   const titleInput = document.getElementById('wiz-job-title');
@@ -963,9 +996,16 @@ window.selectRoleFromCategory = function(roleTitle) {
       updateLeetCodePreview();
     }
   } else {
+    const defaultSkills = getSkillsForRole(roleTitle, foundCategory);
+    const skillsInput = document.getElementById('wiz-job-skills');
+    if (skillsInput) skillsInput.value = defaultSkills;
+    const jdInput = document.getElementById('wiz-job-jd');
+    if (jdInput) jdInput.value = `Seeking a qualified candidate for the position of ${roleTitle}. The candidate will be evaluated on core domain expertise, practical problem-solving, and communication skills.`;
+
     const isTech = foundCategory === 'Software & Tech' || foundCategory === 'Data, AI & Analytics';
     document.getElementById('wiz-tool-terminal').checked = isTech;
     document.getElementById('wiz-tool-word').checked = !isTech;
+    document.getElementById('wiz-tool-resume').checked = true;
     toggleCompilerOptions();
   }
 };
@@ -1505,6 +1545,100 @@ window.setCategoryFilter = function(cat) {
   filterDashboardJobs();
 };
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function renderConfiguredJobCard(j) {
+  const purposeBadge = j.purpose ? `<span class="badge badge-dark">${j.purpose.toUpperCase()}</span>` : '';
+  const expBadge = j.experience_required ? `<span class="badge badge-outline">${j.experience_required}</span>` : '';
+  const dsaBadge = j.leetcode_problem ? `<span class="badge badge-outline" style="border-color:#000; font-weight:700;"><i class="bi bi-code-slash"></i> ${j.leetcode_problem.split(':')[0]}</span>` : '';
+  const categoryBadge = j.category ? `<span class="badge badge-outline" style="font-weight:600; cursor:pointer;" onclick="setCategoryFilter('${j.category}')" title="Click to filter by category"><i class="bi bi-tag"></i> ${j.category}</span>` : '';
+
+  const tools = [];
+  if (j.terminal_required) tools.push('<i class="bi bi-terminal"></i> Compiler');
+  if (j.word_editor_required) tools.push('<i class="bi bi-file-earmark-word"></i> Word Pad');
+  if (j.resume_required) tools.push('<i class="bi bi-file-earmark-person"></i> Resume');
+
+  return `
+    <div class="card" style="padding:1.15rem 1.25rem; margin-bottom:0.85rem; transition: border-color 0.15s ease;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+          <div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.25rem; flex-wrap:wrap;">
+            <strong style="color:var(--text); font-size:0.95rem;">${j.title}</strong>
+            ${categoryBadge}
+            ${purposeBadge}
+            ${expBadge}
+            ${dsaBadge}
+          </div>
+          <div style="font-size:0.75rem; color:var(--text-muted);">
+            Qualifications: <strong style="color:var(--text);">${j.qualifications || 'Standard Engineering / CS'}</strong>
+          </div>
+        </div>
+        <div style="display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap;">
+          <button class="btn btn-sm" onclick="openShareModalForJob('${j.id}', '${encodeURIComponent(j.title)}')" style="background: #000; color: #fff;" title="Get direct shareable link for candidates">
+            <i class="bi bi-link-45deg"></i> Share Link
+          </button>
+          <button class="btn btn-outline btn-sm" onclick="previewJobQuestions('${j.id}', '${encodeURIComponent(j.title)}')" title="Preview questions AI will ask">
+            <i class="bi bi-eye"></i> Questions
+          </button>
+          <button class="btn btn-outline btn-sm" onclick="editInterview('${j.id}')" title="Edit interview specifications and rules">
+            <i class="bi bi-pencil-square"></i> Edit
+          </button>
+          <button class="btn btn-outline btn-sm btn-danger-outline" onclick="deleteInterview('${j.id}', '${encodeURIComponent(j.title)}')" title="Delete this interview round">
+            <i class="bi bi-trash3"></i> Delete
+          </button>
+          <button class="btn btn-outline btn-sm" onclick="selectJobForCandidates('${j.id}')">
+            Candidates <i class="bi bi-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <div style="color:var(--text); font-size:0.775rem; margin:0.45rem 0 0.65rem 0;">
+        Skills: <strong>${j.skills}</strong>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:0.5rem; font-size:0.7rem; color:var(--text-muted);">
+        <div style="display:flex; gap:0.75rem; align-items:center;">
+          <span><i class="bi bi-clock"></i> ${j.max_minutes} Mins${j.show_timer === 0 ? ' (Untimed)' : ' (Timed)'}</span>
+          <span><i class="bi bi-question-circle"></i> ${j.max_questions || 6} Questions</span>
+          <span><i class="bi bi-gear"></i> ${j.question_mode === 'custom_questions' ? 'Custom Questions' : 'Adaptive AI'}</span>
+          <span>${tools.join(' · ')}</span>
+        </div>
+        <span>Created on ${new Date(j.created_at || Date.now()).toLocaleDateString()}</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderCatalogRoleCard(role) {
+  const isConfigured = allLoadedJobs.some(j => (j.title || '').toLowerCase() === role.title.toLowerCase());
+  const skills = getSkillsForRole(role.title, role.category);
+  return `
+    <div class="card" style="padding:0.85rem 1.1rem; margin-bottom:0; display:flex; justify-content:space-between; align-items:center; background:var(--surface); border:1px solid var(--border); transition:all .15s ease;">
+      <div style="padding-right:0.75rem; overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.25rem; flex-wrap:wrap;">
+          <strong style="color:var(--text); font-size:0.9rem; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${role.title}</strong>
+          <span class="badge badge-outline" style="font-size:0.65rem; font-weight:600;"><i class="bi bi-tag"></i> ${role.category}</span>
+          ${isConfigured ? '<span class="badge badge-dark" style="font-size:0.62rem;"><i class="bi bi-check-circle-fill" style="color:#10b981;"></i> Configured</span>' : ''}
+        </div>
+        <div style="font-size:0.72rem; color:var(--text-muted); text-overflow:ellipsis; overflow:hidden; white-space:nowrap; max-width:320px;">
+          Skills: <span style="color:var(--text);">${skills}</span>
+        </div>
+      </div>
+      <button class="btn btn-sm" onclick="startInterviewCreationWizardWithRole('${role.title.replace(/'/g, "\\'")}', '${role.category.replace(/'/g, "\\'")}')" style="background:#000; color:#fff; font-weight:700; white-space:nowrap; flex-shrink:0;">
+        <i class="bi bi-plus-lg"></i> Create Interview
+      </button>
+    </div>
+  `;
+}
+
 window.filterDashboardJobs = function() {
   const searchQ = (document.getElementById('dashboard-job-search')?.value || '').toLowerCase().trim();
   const categoryQ = document.getElementById('dashboard-category-filter')?.value || '';
@@ -1539,109 +1673,142 @@ window.filterDashboardJobs = function() {
     filtered.sort((a, b) => (b.max_minutes || 0) - (a.max_minutes || 0));
   }
 
-  renderDashboardJobsList(filtered);
-};
-
-function renderDashboardJobsList(jobs) {
-  const countBadge = document.getElementById('active-jobs-count');
-  if (countBadge) {
-    if (jobs.length === allLoadedJobs.length) {
-      countBadge.textContent = `${allLoadedJobs.length} Configured`;
-    } else {
-      countBadge.textContent = `${jobs.length} of ${allLoadedJobs.length} Configured`;
+  // Search in 100+ Catalog Roles
+  let catalogMatches = [];
+  for (const group of ROLE_CATEGORIES) {
+    if (categoryQ && group.category !== categoryQ) continue;
+    for (const r of group.roles) {
+      if (!searchQ || r.toLowerCase().includes(searchQ) || group.category.toLowerCase().includes(searchQ)) {
+        catalogMatches.push({
+          title: r,
+          category: group.category
+        });
+      }
     }
   }
 
-  if (!jobs || jobs.length === 0) {
-    if (allLoadedJobs.length === 0) {
-      jobsListEl.innerHTML = `
-        <div style="text-align: center; padding: 3rem 1rem;">
-          <i class="bi bi-folder-plus" style="font-size: 2.2rem; color: var(--text-muted); display: block; margin-bottom: 0.5rem;"></i>
-          <h4 style="font-size: 0.95rem; font-weight: 700; color: #000;">No interviews created yet</h4>
-          <p style="color: var(--text-muted); font-size: 0.775rem; max-width: 420px; margin: 0.25rem auto 1.25rem;">
-            Click the "Create New Interview" button to start the guided setup with custom compilers, rules, and questions.
-          </p>
-          <button class="btn" onclick="startInterviewCreationWizard()"><i class="bi bi-plus-lg"></i> Create First Interview</button>
+  renderDashboardJobsList(filtered, catalogMatches, searchQ, categoryQ);
+};
+
+function renderDashboardJobsList(jobs, catalogMatches = [], searchQ = '', categoryQ = '') {
+  const countBadge = document.getElementById('active-jobs-count');
+  if (countBadge) {
+    if (!searchQ && !categoryQ) {
+      countBadge.textContent = `${allLoadedJobs.length} Configured · 100+ Roles Available`;
+    } else {
+      countBadge.textContent = `${jobs.length} Configured · ${catalogMatches.length} Roles Found`;
+    }
+  }
+
+  if (!jobsListEl) return;
+
+  let html = '';
+
+  // 1. Configured Interviews Section (if any match)
+  if (jobs.length > 0) {
+    html += `
+      <div style="margin-bottom:1.5rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
+          <strong style="font-size:0.8rem; text-transform:uppercase; letter-spacing:.05em; color:var(--text); display:flex; align-items:center; gap:0.4rem;">
+            <i class="bi bi-folder-check"></i> Your Configured Interviews (${jobs.length})
+          </strong>
+        </div>
+        ${jobs.map(j => renderConfiguredJobCard(j)).join('')}
+      </div>
+    `;
+  }
+
+  // 2. Roles Catalog Section (Search or Browse)
+  if (searchQ || categoryQ) {
+    // When searching or filtering by category
+    if (catalogMatches.length > 0) {
+      html += `
+        <div style="margin-top:1.25rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; border-bottom:1px solid var(--border); padding-bottom:0.4rem; flex-wrap:wrap; gap:0.5rem;">
+            <div>
+              <strong style="font-size:0.85rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--text); display:flex; align-items:center; gap:0.4rem;">
+                <i class="bi bi-stars" style="color:#eab308;"></i> Ready-to-Launch Role Catalog (${catalogMatches.length} Found)
+              </strong>
+              <span style="font-size:0.72rem; color:var(--text-muted);">Click "Create Interview" to launch any round</span>
+            </div>
+            <span class="badge badge-dark" style="font-size:0.68rem;">1-Click Setup</span>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(360px, 1fr)); gap:0.75rem;">
+            ${catalogMatches.slice(0, 40).map(r => renderCatalogRoleCard(r)).join('')}
+          </div>
+          ${catalogMatches.length > 40 ? `<p style="font-size:0.72rem; color:var(--text-muted); text-align:center; margin-top:0.75rem;">Showing top 40 of ${catalogMatches.length} matching roles. Type more specific keywords to narrow down.</p>` : ''}
         </div>
       `;
-    } else {
-      jobsListEl.innerHTML = `
-        <div style="text-align: center; padding: 2.5rem 1rem;">
-          <i class="bi bi-search" style="font-size: 1.8rem; color: var(--text-muted); display: block; margin-bottom: 0.5rem;"></i>
-          <h4 style="font-size: 0.9rem; font-weight: 700; color: var(--text);">No interviews match your search or category filter</h4>
-          <p style="color: var(--text-muted); font-size: 0.75rem; margin: 0.25rem auto 1rem;">
-            Try clearing the search query or selecting "All Categories".
+    }
+
+    // Custom Query card if exact match isn't in catalog
+    const hasExact = catalogMatches.some(r => r.title.toLowerCase() === searchQ);
+    if (searchQ && !hasExact) {
+      html += `
+        <div class="card" style="margin-top:1.25rem; padding:1.25rem; background:var(--surface-subtle); border:2px dashed var(--border-dark); text-align:center;">
+          <div style="font-size:0.95rem; font-weight:800; color:var(--text); margin-bottom:0.25rem;">
+            <i class="bi bi-magic" style="color:#000;"></i> Create Custom Interview for "${escapeHtml(searchQ)}"
+          </div>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.85rem;">
+            Can't find the exact job title? You can create a fully customized AI interview round for <strong>"${escapeHtml(searchQ)}"</strong> with adaptive questions and scoring.
           </p>
-          <button class="btn btn-outline btn-sm" onclick="document.getElementById('dashboard-job-search').value=''; document.getElementById('dashboard-category-filter').value=''; filterDashboardJobs();">
-            Clear Filters
+          <button class="btn btn-sm" onclick="startInterviewCreationWizardWithRole('${escapeHtml(searchQ).replace(/'/g, "\\'")}', '${categoryQ}')" style="background:#000; color:#fff; font-weight:700;">
+            <i class="bi bi-plus-lg"></i> Launch Interview for "${escapeHtml(searchQ)}"
           </button>
         </div>
       `;
     }
-    return;
-  }
+  } else {
+    // No search query and no category filter
+    if (jobs.length === 0) {
+      html += `
+        <div style="text-align: center; padding: 2.25rem 1rem 1.5rem; background: var(--surface-subtle); border-radius: 8px; border: 1px dashed var(--border); margin-bottom: 1.5rem;">
+          <i class="bi bi-folder-plus" style="font-size: 2.2rem; color: var(--text-muted); display: block; margin-bottom: 0.5rem;"></i>
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text);">No interviews created yet</h4>
+          <p style="color: var(--text-muted); font-size: 0.775rem; max-width: 440px; margin: 0.25rem auto 1rem;">
+            Search any job role above or pick from 100+ pre-built industry role templates below to launch your first round.
+          </p>
+          <button class="btn" onclick="startInterviewCreationWizard()"><i class="bi bi-plus-lg"></i> Create Custom Interview</button>
+        </div>
+      `;
+    }
 
-  jobsListEl.innerHTML = jobs.map(j => {
-    const purposeBadge = j.purpose ? `<span class="badge badge-dark">${j.purpose.toUpperCase()}</span>` : '';
-    const expBadge = j.experience_required ? `<span class="badge badge-outline">${j.experience_required}</span>` : '';
-    const dsaBadge = j.leetcode_problem ? `<span class="badge badge-outline" style="border-color:#000; font-weight:700;"><i class="bi bi-code-slash"></i> ${j.leetcode_problem.split(':')[0]}</span>` : '';
-    const categoryBadge = j.category ? `<span class="badge badge-outline" style="font-weight:600; cursor:pointer;" onclick="setCategoryFilter('${j.category}')" title="Click to filter by category"><i class="bi bi-tag"></i> ${j.category}</span>` : '';
-
-    const tools = [];
-    if (j.terminal_required) tools.push('<i class="bi bi-terminal"></i> Compiler');
-    if (j.word_editor_required) tools.push('<i class="bi bi-file-earmark-word"></i> Word Pad');
-    if (j.resume_required) tools.push('<i class="bi bi-file-earmark-person"></i> Resume');
-
-    return `
-      <div class="card" style="padding:1.15rem 1.25rem; margin-bottom:0.85rem; transition: border-color 0.15s ease;">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+    // Always provide quick browse library of 100+ roles
+    html += `
+      <div style="margin-top:1.5rem; border-top:1px solid var(--border); padding-top:1rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
           <div>
-            <div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.25rem; flex-wrap:wrap;">
-              <strong style="color:var(--text); font-size:0.95rem;">${j.title}</strong>
-              ${categoryBadge}
-              ${purposeBadge}
-              ${expBadge}
-              ${dsaBadge}
-            </div>
-            <div style="font-size:0.75rem; color:var(--text-muted);">
-              Qualifications: <strong style="color:var(--text);">${j.qualifications || 'Standard Engineering / CS'}</strong>
-            </div>
+            <strong style="font-size:0.85rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--text); display:flex; align-items:center; gap:0.4rem;">
+              <i class="bi bi-grid-3x3-gap-fill" style="color:#000;"></i> Role Library — Instant Interview Creation (100+ Roles)
+            </strong>
+            <p style="font-size:0.725rem; color:var(--text-muted); margin:0.15rem 0 0 0;">
+              Pick any role to start an automated AI screening round with pre-configured skills and questions.
+            </p>
           </div>
-          <div style="display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap;">
-            <button class="btn btn-sm" onclick="openShareModalForJob('${j.id}', '${encodeURIComponent(j.title)}')" style="background: #000; color: #fff;" title="Get direct shareable link for candidates">
-              <i class="bi bi-link-45deg"></i> Share Link
-            </button>
-            <button class="btn btn-outline btn-sm" onclick="previewJobQuestions('${j.id}', '${encodeURIComponent(j.title)}')" title="Preview questions AI will ask">
-              <i class="bi bi-eye"></i> Questions
-            </button>
-            <button class="btn btn-outline btn-sm" onclick="editInterview('${j.id}')" title="Edit interview specifications and rules">
-              <i class="bi bi-pencil-square"></i> Edit
-            </button>
-            <button class="btn btn-outline btn-sm btn-danger-outline" onclick="deleteInterview('${j.id}', '${encodeURIComponent(j.title)}')" title="Delete this interview round">
-              <i class="bi bi-trash3"></i> Delete
-            </button>
-            <button class="btn btn-outline btn-sm" onclick="selectJobForCandidates('${j.id}')">
-              Candidates <i class="bi bi-arrow-right"></i>
-            </button>
-          </div>
+          <span class="badge badge-dark" style="font-size:0.7rem;">11 Industry Categories</span>
         </div>
 
-        <div style="color:var(--text); font-size:0.775rem; margin:0.45rem 0 0.65rem 0;">
-          Skills: <strong>${j.skills}</strong>
+        <!-- Quick Category Selector Pills -->
+        <div style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-bottom:1rem;">
+          ${ROLE_CATEGORIES.map(g => `
+            <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('dashboard-category-filter').value='${g.category}'; filterDashboardJobs();" style="font-size:0.72rem; padding:0.25rem 0.55rem;">
+              ${g.category} (${g.roles.length})
+            </button>
+          `).join('')}
         </div>
 
-        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:0.5rem; font-size:0.7rem; color:var(--text-muted);">
-          <div style="display:flex; gap:0.75rem; align-items:center;">
-            <span><i class="bi bi-clock"></i> ${j.max_minutes} Mins${j.show_timer === 0 ? ' (Untimed)' : ' (Timed)'}</span>
-            <span><i class="bi bi-question-circle"></i> ${j.max_questions || 6} Questions</span>
-            <span><i class="bi bi-gear"></i> ${j.question_mode === 'custom_questions' ? 'Custom Questions' : 'Adaptive AI'}</span>
-            <span>${tools.join(' · ')}</span>
-          </div>
-          <span>Created on ${new Date(j.created_at || Date.now()).toLocaleDateString()}</span>
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(360px, 1fr)); gap:0.75rem;">
+          ${catalogMatches.slice(0, 18).map(r => renderCatalogRoleCard(r)).join('')}
+        </div>
+        <div style="text-align:center; margin-top:1rem;">
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.4rem;">Use the search bar above to instantly find any role across all 11 categories.</p>
         </div>
       </div>
     `;
-  }).join('');
+  }
+
+  jobsListEl.innerHTML = html;
 }
 
 window.selectJobForCandidates = function(jobId) {
