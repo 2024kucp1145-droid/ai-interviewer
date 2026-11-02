@@ -15,6 +15,7 @@ import multer from 'multer';
 import { extractTextFromBuffer, parseResumeText } from './services/resumeParser.js';
 import { getPlannedQuestions } from './interview/questionBank.js';
 import { billingRouter } from './billing/billingRoutes.js';
+import { dispatchCandidateNotification, buildInterviewRulesText } from './services/dispatchService.js';
 
 dotenv.config();
 
@@ -499,18 +500,25 @@ app.delete('/jobs/:id', requireAuth, (req, res) => {
   }
 });
 
-// --- Candidate & Interview Link Generation with Timer ---
-app.post('/jobs/:id/interviews', requireAuth, (req, res) => {
+// --- Candidate & Interview Link Generation with Timer & Dispatch ---
+app.post('/jobs/:id/interviews', requireAuth, async (req, res) => {
   try {
     const jobId = req.params.id;
-    const { name, email, resume_text, link_timer_minutes = 60 } = req.body;
+    const { name, email, phone, resume_text, link_timer_minutes = 60, dispatch_channel = 'both', send_notification = false } = req.body;
 
-    if (!name || !email) {
-      return res.status(400).json({ error: 'Candidate name and email are required' });
+    if (!email && !phone) {
+      return res.status(400).json({ error: 'Either Candidate Email or WhatsApp Number is required.' });
     }
 
     const job = db.prepare('SELECT * FROM jobs WHERE id = ? AND org_id = ?').get(jobId, req.user.org_id);
     if (!job) return res.status(404).json({ error: 'Job not found' });
+
+    const org = db.prepare('SELECT name FROM organizations WHERE id = ?').get(req.user.org_id);
+    const companyName = org ? org.name : 'Technical Hiring Team';
+
+    const cleanName = (name || '').trim() || (email ? email.split('@')[0] : 'Candidate');
+    const cleanEmail = (email || '').trim().toLowerCase() || (phone ? `wa_${phone.replace(/\D/g, '')}@candidate.local` : '');
+    const cleanPhone = (phone || '').trim();
 
     // 128-bit random token hash for secure link
     const rawToken = crypto.randomBytes(16).toString('hex');
@@ -525,17 +533,34 @@ app.post('/jobs/:id/interviews', requireAuth, (req, res) => {
 
     db.transaction(() => {
       db.prepare(`
-        INSERT INTO candidates (id, org_id, name, email, resume_text)
-        VALUES (?, ?, ?, ?, ?)
-      `).run(candidateId, req.user.org_id, name.trim(), email.toLowerCase().trim(), resume_text || '');
+        INSERT INTO candidates (id, org_id, name, email, phone, resume_text, source)
+        VALUES (?, ?, ?, ?, ?, ?, 'direct_invite')
+      `).run(candidateId, req.user.org_id, cleanName, cleanEmail, cleanPhone || null, resume_text || '');
 
       db.prepare(`
-        INSERT INTO interviews (id, job_id, candidate_id, token_hash, state, link_timer_minutes, expires_at)
-        VALUES (?, ?, ?, ?, 'created', ?, ?)
-      `).run(interviewId, jobId, candidateId, tokenHash, timerMins, expiresAt);
+        INSERT INTO interviews (id, job_id, candidate_id, token_hash, state, link_timer_minutes, expires_at, dispatch_status, dispatch_channel, source)
+        VALUES (?, ?, ?, ?, 'created', ?, ?, 'created', ?, 'direct_invite')
+      `).run(interviewId, jobId, candidateId, tokenHash, timerMins, expiresAt, dispatch_channel);
     })();
 
     const inviteUrl = `/interview.html?token=${rawToken}`;
+    let dispatchRes = null;
+
+    if (send_notification) {
+      const rules = buildInterviewRulesText(job);
+      dispatchRes = await dispatchCandidateNotification({
+        channel: dispatch_channel,
+        candidateName: cleanName,
+        email: email ? cleanEmail : null,
+        phone: cleanPhone || null,
+        jobTitle: job.title,
+        companyName,
+        interviewUrl: inviteUrl,
+        timerMinutes: timerMins,
+        rules
+      });
+      db.prepare("UPDATE interviews SET dispatch_status = 'dispatched' WHERE id = ?").run(interviewId);
+    }
 
     res.json({
       interviewId,
@@ -543,7 +568,99 @@ app.post('/jobs/:id/interviews', requireAuth, (req, res) => {
       token: rawToken,
       inviteUrl,
       timerMinutes: timerMins,
-      expiresAt
+      expiresAt,
+      whatsappUrl: dispatchRes?.channels?.whatsapp?.url || null,
+      whatsappText: dispatchRes?.waMessageText || null,
+      emailSent: dispatchRes?.channels?.email?.sent || false
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Batch Candidate Dispatch (Email & WhatsApp with Rules & Instructions) ---
+app.post('/jobs/:id/dispatch-batch', requireAuth, async (req, res) => {
+  try {
+    const jobId = req.params.id;
+    const { candidates = [], link_timer_minutes = 60, channel = 'both' } = req.body;
+
+    if (!Array.isArray(candidates) || candidates.length === 0) {
+      return res.status(400).json({ error: 'Please provide at least one candidate in the list.' });
+    }
+
+    const job = db.prepare('SELECT * FROM jobs WHERE id = ? AND org_id = ?').get(jobId, req.user.org_id);
+    if (!job) return res.status(404).json({ error: 'Job position not found.' });
+
+    const org = db.prepare('SELECT name FROM organizations WHERE id = ?').get(req.user.org_id);
+    const companyName = org ? org.name : 'Technical Hiring Team';
+    const rules = buildInterviewRulesText(job);
+
+    const timerMins = parseInt(link_timer_minutes, 10) || 60;
+    const expiresAt = new Date(Date.now() + timerMins * 60 * 1000).toISOString();
+    const dispatchedCandidates = [];
+
+    for (const c of candidates) {
+      const email = (c.email || '').trim().toLowerCase();
+      const phone = (c.phone || '').trim();
+      const name = (c.name || '').trim() || (email ? email.split('@')[0] : 'Candidate');
+
+      if (!email && !phone) {
+        continue; // Skip invalid row without email or phone
+      }
+
+      // Generate secure 128-bit link token
+      const rawToken = crypto.randomBytes(16).toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+      const candidateId = 'cand_' + crypto.randomUUID();
+      const interviewId = 'int_' + crypto.randomUUID();
+
+      const effectiveEmail = email || `cand_${phone.replace(/\D/g, '')}@interviewer.local`;
+      const inviteUrl = `/interview.html?token=${rawToken}`;
+
+      db.transaction(() => {
+        db.prepare(`
+          INSERT INTO candidates (id, org_id, name, email, phone, resume_text, source)
+          VALUES (?, ?, ?, ?, ?, ?, 'batch_dispatch')
+        `).run(candidateId, req.user.org_id, name, effectiveEmail, phone || null, c.resume_text || '');
+
+        db.prepare(`
+          INSERT INTO interviews (id, job_id, candidate_id, token_hash, state, link_timer_minutes, expires_at, dispatch_status, dispatch_channel, source)
+          VALUES (?, ?, ?, ?, 'created', ?, ?, 'dispatched', ?, 'batch_dispatch')
+        `).run(interviewId, jobId, candidateId, tokenHash, timerMins, expiresAt, channel);
+      })();
+
+      // Send Email & WhatsApp notification
+      const dispatchRes = await dispatchCandidateNotification({
+        channel,
+        candidateName: name,
+        email: email || null,
+        phone: phone || null,
+        jobTitle: job.title,
+        companyName,
+        interviewUrl: inviteUrl,
+        timerMinutes: timerMins,
+        rules
+      });
+
+      dispatchedCandidates.push({
+        candidateId,
+        interviewId,
+        name,
+        email,
+        phone,
+        inviteUrl,
+        token: rawToken,
+        whatsappUrl: dispatchRes.channels.whatsapp.url,
+        whatsappText: dispatchRes.waMessageText,
+        emailSent: dispatchRes.channels.email.sent,
+        status: 'dispatched'
+      });
+    }
+
+    res.json({
+      success: true,
+      count: dispatchedCandidates.length,
+      candidates: dispatchedCandidates
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -559,9 +676,14 @@ app.get('/jobs/:id/interviews', requireAuth, (req, res) => {
         i.started_at,
         i.ended_at,
         i.expires_at,
+        i.dispatch_status,
+        i.dispatch_channel,
+        i.source as interview_source,
         c.id as candidate_id,
         c.name as candidate_name,
         c.email as candidate_email,
+        c.phone as candidate_phone,
+        c.source as candidate_source,
         r.id as report_id
       FROM interviews i
       JOIN candidates c ON i.candidate_id = c.id
@@ -686,17 +808,24 @@ app.get('/public/jobs/:id', (req, res) => {
   }
 });
 
-app.post('/public/jobs/:id/start', (req, res) => {
+app.post('/public/jobs/:id/start', async (req, res) => {
   try {
     const jobId = req.params.id;
-    const { name, email, resume_text } = req.body;
+    const { name, email, phone, resume_text, source = 'external_link' } = req.body;
 
-    if (!name || !email) {
-      return res.status(400).json({ error: 'Please enter your full name and email to proceed.' });
+    if (!email && !phone) {
+      return res.status(400).json({ error: 'Please enter at least an Email address or WhatsApp number to proceed.' });
     }
 
     const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(jobId);
-    if (!job) return res.status(404).json({ error: 'Interview round not found.' });
+    if (!job) return res.status(404).json({ error: 'Interview round not found or has expired.' });
+
+    const org = db.prepare('SELECT name FROM organizations WHERE id = ?').get(job.org_id);
+    const companyName = org ? org.name : 'Technical Hiring Team';
+
+    const cleanName = (name || '').trim() || (email ? email.split('@')[0] : 'Candidate');
+    const cleanEmail = (email || '').trim().toLowerCase() || (phone ? `wa_${phone.replace(/\D/g, '')}@applicant.local` : '');
+    const cleanPhone = (phone || '').trim();
 
     // Generate random 128-bit token
     const rawToken = crypto.randomBytes(16).toString('hex');
@@ -711,20 +840,39 @@ app.post('/public/jobs/:id/start', (req, res) => {
 
     db.transaction(() => {
       db.prepare(`
-        INSERT INTO candidates (id, org_id, name, email, resume_text)
-        VALUES (?, ?, ?, ?, ?)
-      `).run(candidateId, job.org_id, name.trim(), email.toLowerCase().trim(), resume_text || '');
+        INSERT INTO candidates (id, org_id, name, email, phone, resume_text, source)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(candidateId, job.org_id, cleanName, cleanEmail, cleanPhone || null, resume_text || '', source);
 
       db.prepare(`
-        INSERT INTO interviews (id, job_id, candidate_id, token_hash, state, link_timer_minutes, expires_at)
-        VALUES (?, ?, ?, ?, 'created', ?, ?)
-      `).run(interviewId, jobId, candidateId, tokenHash, timerMins, expiresAt);
+        INSERT INTO interviews (id, job_id, candidate_id, token_hash, state, link_timer_minutes, expires_at, source, dispatch_status)
+        VALUES (?, ?, ?, ?, 'created', ?, ?, ?, 'dispatched')
+      `).run(interviewId, jobId, candidateId, tokenHash, timerMins, expiresAt, source);
     })();
+
+    const interviewUrl = `/interview.html?token=${rawToken}`;
+
+    // Auto-dispatch confirmation to candidate's email or WhatsApp so they have the link saved!
+    try {
+      const rules = buildInterviewRulesText(job);
+      await dispatchCandidateNotification({
+        candidateName: cleanName,
+        email: email ? cleanEmail : null,
+        phone: cleanPhone || null,
+        jobTitle: job.title,
+        companyName,
+        interviewUrl,
+        timerMinutes: timerMins,
+        rules
+      });
+    } catch (e) {
+      console.warn('Auto-dispatch error on external registration:', e.message);
+    }
 
     res.json({
       success: true,
       token: rawToken,
-      interviewUrl: `/interview.html?token=${rawToken}`
+      interviewUrl
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

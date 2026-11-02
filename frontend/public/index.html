@@ -2111,7 +2111,7 @@
           </div>
         </div>
 
-        <form id="form-invite" class="grid-3" style="align-items: flex-end;">
+        <form id="form-invite" class="grid-4" style="align-items: flex-end;">
           <div>
             <label>Select Job Position</label>
             <select id="invite-job-id" required>
@@ -2119,12 +2119,16 @@
             </select>
           </div>
           <div>
-            <label>Candidate Full Name</label>
-            <input type="text" id="invite-name" placeholder="Alex Morgan" required>
+            <label>Candidate Name</label>
+            <input type="text" id="invite-name" placeholder="Alex Morgan">
           </div>
           <div>
             <label>Candidate Email</label>
-            <input type="email" id="invite-email" placeholder="alex.morgan@example.com" required>
+            <input type="email" id="invite-email" placeholder="alex@example.com">
+          </div>
+          <div>
+            <label>WhatsApp / Phone</label>
+            <input type="tel" id="invite-phone" placeholder="+91 98765 43210">
           </div>
 
           <div>
@@ -2140,38 +2144,50 @@
           </div>
 
           <div style="grid-column: 2 / -1;">
-            <label>Candidate Qualifications / Resume Claims (Optional Context)</label>
-            <textarea id="invite-resume" rows="2" placeholder="Paste resume excerpt, key projects, or claimed skills for deep-dive questioning..."></textarea>
+            <label>Qualifications / Resume Claims (Context)</label>
+            <input type="text" id="invite-resume" placeholder="e.g. 2 yrs Python, FastAPI, Docker experience...">
           </div>
 
-          <div style="grid-column: 1 / -1;">
-            <button type="submit" class="btn" style="width: 100%;">
-              <i class="bi bi-link-45deg"></i> Generate Timed Single-Use Interview Link
+          <div style="grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.25rem;">
+            <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; margin-bottom: 0; font-size: 0.775rem; text-transform: none;">
+              <input type="checkbox" id="invite-send-notification" checked>
+              <span><strong>Send invitation immediately</strong> via Email &amp; WhatsApp (with full rules &amp; instructions)</span>
+            </label>
+            <button type="submit" class="btn btn-primary" style="padding: 0.55rem 1.45rem; font-weight: 700;">
+              <i class="bi bi-send-fill"></i> Generate &amp; Dispatch Interview Link
             </button>
           </div>
         </form>
 
-        <div id="invite-result-box" style="display: none; background: var(--surface-subtle); border: 1px solid var(--border-dark); padding: 0.85rem; border-radius: 6px; margin-top: 0.75rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 0.775rem; font-weight: 600; color: #000;" id="invite-timer-label">
-              <i class="bi bi-clock-history"></i> Interview Link Generated:
+        <div id="invite-result-box" style="display: none; background: #fafcff; border: 1.5px solid #bfdbfe; padding: 1rem 1.25rem; border-radius: 8px; margin-top: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span style="font-size: 0.8rem; font-weight: 700; color: #1e3a8a;" id="invite-timer-label">
+              <i class="bi bi-check-circle-fill" style="color: #10b981;"></i> Interview Link Ready:
             </span>
-            <button class="btn btn-outline btn-sm" onclick="copyInviteUrl()"><i class="bi bi-clipboard"></i> Copy Link</button>
+            <div style="display: flex; gap: 0.4rem;">
+              <button class="btn btn-outline btn-sm" onclick="copyInviteUrl()"><i class="bi bi-clipboard"></i> Copy Link</button>
+              <a id="invite-whatsapp-btn" href="#" target="_blank" class="btn btn-sm" style="display: none; background: #059669; color: #fff; font-weight: 600;">
+                <i class="bi bi-whatsapp"></i> Chat on WhatsApp
+              </a>
+            </div>
           </div>
-          <input type="text" id="invite-generated-url" readonly style="margin-top: 0.4rem; font-family: monospace; font-size: 0.75rem; background: #fff;">
-          <a id="invite-test-link" href="#" target="_blank" class="btn btn-sm" style="margin-top: 0.25rem;">
-            <i class="bi bi-box-arrow-up-right"></i> Open Candidate Room (Test Now)
-          </a>
+          <input type="text" id="invite-generated-url" readonly style="margin-top: 0.2rem; margin-bottom: 0.5rem; font-family: monospace; font-size: 0.78rem; background: #fff;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span id="invite-dispatch-note" style="font-size: 0.725rem; color: #047857; font-weight: 600;"></span>
+            <a id="invite-test-link" href="#" target="_blank" class="btn btn-sm btn-outline">
+              <i class="bi bi-box-arrow-up-right"></i> Open Candidate Room (Test Now)
+            </a>
+          </div>
         </div>
       </div>
 
       <!-- Candidate Pipeline Table -->
       <div class="card">
         <div class="card-title">
-          <span><i class="bi bi-table"></i> Screening Pipeline & Reports</span>
+          <span><i class="bi bi-table"></i> Screening Pipeline &amp; Candidate Tracking</span>
           <div style="display: flex; gap: 0.35rem;">
             <button class="btn btn-outline btn-sm" onclick="exportCandidatesCsv()"><i class="bi bi-download"></i> Export CSV</button>
-            <button class="btn btn-ghost btn-sm" onclick="loadInterviews()"><i class="bi bi-arrow-clockwise"></i></button>
+            <button class="btn btn-ghost btn-sm" onclick="loadInterviews()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
           </div>
         </div>
 
@@ -2181,13 +2197,14 @@
               <tr>
                 <th>Candidate</th>
                 <th>Role</th>
+                <th>Source / Channel</th>
                 <th>Status</th>
                 <th>Consent</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody id="interviews-table-body">
-              <tr><td colspan="5" style="text-align: center; color: var(--text-muted); font-size: 0.775rem;">Select a job to view candidates</td></tr>
+              <tr><td colspan="6" style="text-align: center; color: var(--text-muted); font-size: 0.775rem;">Select a job to view candidates</td></tr>
             </tbody>
           </table>
         </div>
@@ -2847,48 +2864,186 @@
     </div>
 
   
-    <!-- Shareable Interview Link Modal -->
+    <!-- Shareable Interview Link & Email / WhatsApp Dispatch Modal -->
     <div id="modal-share-link" class="modal-overlay" style="display: none;">
-      <div class="modal-content" style="max-width: 520px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <span class="badge badge-dark"><i class="bi bi-link-45deg"></i> Share Link</span>
-            <span id="share-modal-job-title" style="font-weight: 700; font-size: 0.95rem; color: var(--text);">Interview Ready</span>
+      <div class="modal-content" style="max-width: 680px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; border-bottom: 1px solid var(--border); padding-bottom: 0.65rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <span class="badge badge-dark"><i class="bi bi-share-fill"></i> Share &amp; Dispatch</span>
+            <span id="share-modal-job-title" style="font-weight: 800; font-size: 1rem; color: var(--text);">Interview Ready</span>
           </div>
           <button class="btn btn-ghost btn-sm" onclick="closeShareModal()"><i class="bi bi-x-lg"></i></button>
         </div>
-        
-        <p style="font-size: 0.775rem; color: var(--text-muted); margin-bottom: 1rem;">
-          Share this direct link with candidate(s). Candidates open the link, enter their personal info (name, email, optional resume), and immediately begin the round.
-        </p>
 
-        <label style="font-size: 0.75rem; font-weight: 600; color: var(--text); display: block; margin-bottom: 0.35rem;">
-          Direct Candidate Interview Link:
-        </label>
-        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-          <input type="text" id="share-modal-url" readonly style="font-family: monospace; font-size: 0.8rem; background: var(--surface-subtle); color: var(--text); flex: 1; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 6px;" value="">
-          <button id="btn-copy-share-url" class="btn" style="white-space: nowrap; padding: 0.5rem 1rem;" onclick="copyShareModalUrl()">
-            <i class="bi bi-clipboard"></i> Copy Link
+        <!-- Modal Sub-Navigation Tabs -->
+        <div style="display: flex; gap: 0.4rem; background: var(--surface-subtle); padding: 0.3rem; border-radius: 8px; margin-bottom: 1.15rem; border: 1px solid var(--border);">
+          <button type="button" class="btn btn-sm" id="tab-btn-share-direct" onclick="switchShareModalTab('direct')" style="flex: 1; font-weight: 700; background: #2563eb; color: #fff; border: none;">
+            <i class="bi bi-link-45deg"></i> Direct &amp; Social Links (LinkedIn)
+          </button>
+          <button type="button" class="btn btn-sm btn-outline" id="tab-btn-share-dispatch" onclick="switchShareModalTab('dispatch')" style="flex: 1; font-weight: 700;">
+            <i class="bi bi-send-fill" style="color: #059669;"></i> Send via Email &amp; WhatsApp
           </button>
         </div>
 
-        <div id="share-copy-toast" style="display: none; background: #16a34a; color: #fff; font-size: 0.75rem; padding: 0.4rem 0.75rem; border-radius: 4px; margin-bottom: 1rem; text-align: center;">
-          <i class="bi bi-check-circle-fill"></i> Link copied to clipboard!
+        <!-- SUB-TAB 1: Direct Link & External Job Postings (LinkedIn, Campus, Job Boards) -->
+        <div id="share-subtab-direct">
+          <p style="font-size: 0.775rem; color: var(--text-muted); margin-bottom: 0.85rem;">
+            Copy this direct assessment link or share tracking links across social platforms. When an external applicant clicks, their Name, Email, or WhatsApp number is <strong>mandatorily noted</strong> to track their application.
+          </p>
+
+          <label style="font-size: 0.75rem; font-weight: 700; color: var(--text); display: block; margin-bottom: 0.35rem;">
+            Direct Candidate Screening Link:
+          </label>
+          <div style="display: flex; gap: 0.5rem; margin-bottom: 0.85rem;">
+            <input type="text" id="share-modal-url" readonly style="font-family: monospace; font-size: 0.8rem; background: var(--surface-subtle); color: var(--text); flex: 1; padding: 0.5rem 0.75rem; border: 1.5px solid var(--border); border-radius: 6px;" value="">
+            <button id="btn-copy-share-url" class="btn" style="white-space: nowrap; padding: 0.5rem 1rem; background: #2563eb; color: #fff;" onclick="copyShareModalUrl()">
+              <i class="bi bi-clipboard"></i> Copy Link
+            </button>
+          </div>
+
+          <div id="share-copy-toast" style="display: none; background: #16a34a; color: #fff; font-size: 0.75rem; padding: 0.45rem 0.75rem; border-radius: 6px; margin-bottom: 0.85rem; text-align: center; font-weight: 600;">
+            <i class="bi bi-check-circle-fill"></i> Link copied to clipboard!
+          </div>
+
+          <!-- Pre-Configured Social Tracking Links -->
+          <div style="background: #fafcff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1rem;">
+            <strong style="font-size: 0.75rem; color: #1e3a8a; display: block; margin-bottom: 0.45rem;">
+              <i class="bi bi-geo-alt-fill"></i> Platform-Specific Tracking Links (With Mandatory Contact Capture):
+            </strong>
+            <div style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.735rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 0.4rem 0.65rem; border-radius: 5px; border: 1px solid #e2e8f0;">
+                <span><i class="bi bi-linkedin" style="color: #0a66c2;"></i> <strong>LinkedIn Post / InMail:</strong> <code>?source=linkedin</code></span>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="copyTrackingUrl('linkedin')" style="color: #0a66c2; font-weight: 600;"><i class="bi bi-clipboard"></i> Copy</button>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 0.4rem 0.65rem; border-radius: 5px; border: 1px solid #e2e8f0;">
+                <span><i class="bi bi-briefcase-fill" style="color: #d97706;"></i> <strong>Job Boards (Indeed/Naukri):</strong> <code>?source=job_board</code></span>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="copyTrackingUrl('job_board')" style="color: #d97706; font-weight: 600;"><i class="bi bi-clipboard"></i> Copy</button>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 0.4rem 0.65rem; border-radius: 5px; border: 1px solid #e2e8f0;">
+                <span><i class="bi bi-mortarboard-fill" style="color: #059669;"></i> <strong>Campus / Placement Drive:</strong> <code>?source=campus</code></span>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="copyTrackingUrl('campus')" style="color: #059669; font-weight: 600;"><i class="bi bi-clipboard"></i> Copy</button>
+              </div>
+            </div>
+          </div>
+
+          <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1rem; font-size: 0.725rem; color: var(--text-muted); line-height: 1.5;">
+            <strong>Automated Applicant Flow:</strong><br>
+            • Candidates enter their legal Name, Email, or WhatsApp number.<br>
+            • Contact info is saved directly into your <strong>Candidate Pipeline</strong> with platform source tags.<br>
+            • Candidate automatically receives an interview confirmation with rules &amp; instructions.
+          </div>
+
+          <div style="margin-top: 1.15rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
+            <button class="btn btn-outline btn-sm" onclick="closeShareModal()">Done</button>
+            <a id="btn-open-share-candidate" href="#" target="_blank" class="btn btn-sm btn-primary">
+              Open Candidate Room <i class="bi bi-box-arrow-up-right"></i>
+            </a>
+          </div>
         </div>
 
-        <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem; font-size: 0.725rem; color: var(--text-muted); line-height: 1.45;">
-          <strong>Instant Access Flow:</strong><br>
-          • Candidate enters Name &amp; Email.<br>
-          • Non-technical roles get pure voice/chat room (terminal hidden).<br>
-          • Technical roles get coding sandbox if enabled.<br>
-          • AI wraps up gracefully when target questions are completed.
-        </div>
+        <!-- SUB-TAB 2: Quick Candidate Dispatch List (Email OR WhatsApp) -->
+        <div id="share-subtab-dispatch" style="display: none;">
+          <p style="font-size: 0.775rem; color: var(--text-muted); margin-bottom: 0.85rem;">
+            Add candidates to the list below (<strong>Email OR WhatsApp Number</strong> — either one is sufficient). When ready, click send to immediately dispatch invitations with full rules &amp; instructions.
+          </p>
 
-        <div style="margin-top: 1.25rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
-          <button class="btn btn-outline btn-sm" onclick="closeShareModal()">Done</button>
-          <a id="btn-open-share-candidate" href="#" target="_blank" class="btn btn-sm">
-            Open Candidate Room <i class="bi bi-box-arrow-up-right"></i>
-          </a>
+          <!-- Add Candidate Input Row -->
+          <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 8px; padding: 0.85rem; margin-bottom: 1rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 0.5rem; align-items: flex-end;">
+              <div>
+                <label style="font-size: 0.7rem; font-weight: 700; color: var(--text); display: block; margin-bottom: 0.25rem;">Candidate Name</label>
+                <input type="text" id="dispatch-input-name" placeholder="Rahul Sharma" style="margin-bottom: 0; padding: 0.4rem 0.6rem; font-size: 0.78rem;">
+              </div>
+              <div>
+                <label style="font-size: 0.7rem; font-weight: 700; color: var(--text); display: block; margin-bottom: 0.25rem;">Email Address</label>
+                <input type="email" id="dispatch-input-email" placeholder="rahul@example.com" style="margin-bottom: 0; padding: 0.4rem 0.6rem; font-size: 0.78rem;">
+              </div>
+              <div>
+                <label style="font-size: 0.7rem; font-weight: 700; color: var(--text); display: block; margin-bottom: 0.25rem;">WhatsApp / Phone</label>
+                <input type="tel" id="dispatch-input-phone" placeholder="+91 98765 43210" style="margin-bottom: 0; padding: 0.4rem 0.6rem; font-size: 0.78rem;">
+              </div>
+              <div>
+                <button type="button" class="btn btn-sm btn-primary" onclick="addCandidateToDispatchQueue()" style="padding: 0.45rem 0.85rem; font-weight: 700;">
+                  <i class="bi bi-plus-lg"></i> Add
+                </button>
+              </div>
+            </div>
+            <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.4rem;">
+              <i class="bi bi-check2-circle" style="color: #10b981;"></i> Enter <strong>Email OR WhatsApp</strong> — only 1 is required!
+            </div>
+          </div>
+
+          <!-- Batch Candidates Queue Table -->
+          <div style="margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+              <strong style="font-size: 0.78rem; color: var(--text); text-transform: uppercase; letter-spacing: 0.04em;">
+                Dispatch Queue (<span id="dispatch-queue-count">0</span> Candidates)
+              </strong>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="clearDispatchQueue()" style="font-size: 0.72rem; color: #dc2626;">
+                <i class="bi bi-trash3"></i> Clear List
+              </button>
+            </div>
+
+            <div style="border: 1px solid var(--border); border-radius: 6px; overflow: hidden; max-height: 220px; overflow-y: auto;">
+              <table style="margin-top: 0; font-size: 0.75rem;">
+                <thead>
+                  <tr>
+                    <th>Candidate</th>
+                    <th>Email</th>
+                    <th>WhatsApp</th>
+                    <th>Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="dispatch-queue-tbody">
+                  <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.25rem;">
+                      Queue is empty. Enter candidate info above to build your dispatch list.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Channel Selection & Expiration -->
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 0.85rem; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="display: flex; gap: 1rem; align-items: center;">
+              <label style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; margin-bottom: 0;">
+                <input type="checkbox" id="dispatch-channel-email" checked> <i class="bi bi-envelope-fill" style="color: #2563eb;"></i> Email
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; margin-bottom: 0;">
+                <input type="checkbox" id="dispatch-channel-wa" checked> <i class="bi bi-whatsapp" style="color: #059669;"></i> WhatsApp
+              </label>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+              <span style="font-size: 0.725rem; color: var(--text-muted);">Link Validity:</span>
+              <select id="dispatch-link-timer" style="margin-bottom: 0; padding: 0.25rem 0.5rem; font-size: 0.75rem; width: auto;">
+                <option value="60">1 Hour</option>
+                <option value="120">2 Hours</option>
+                <option value="1440" selected>24 Hours (1 Day)</option>
+                <option value="2880">48 Hours (2 Days)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Dispatched Action Results -->
+          <div id="dispatch-results-container" style="display: none; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1rem;">
+            <div style="font-weight: 700; color: #047857; font-size: 0.82rem; margin-bottom: 0.35rem;">
+              <i class="bi bi-check-circle-fill"></i> Invitations Dispatched Successfully!
+            </div>
+            <p style="font-size: 0.735rem; color: #065f46; margin: 0 0 0.5rem 0;">
+              All candidates received their unique timed link and screening instructions. Click below to open direct WhatsApp chats if needed:
+            </p>
+            <div id="dispatch-whatsapp-links" style="display: flex; flex-direction: column; gap: 0.35rem;"></div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+            <button class="btn btn-outline btn-sm" onclick="closeShareModal()">Close</button>
+            <button type="button" id="btn-submit-dispatch" class="btn btn-sm btn-primary" onclick="submitBatchDispatch()" style="padding: 0.55rem 1.25rem; font-weight: 700;">
+              <i class="bi bi-send-fill"></i> Send All Invitations (Email &amp; WhatsApp)
+            </button>
+          </div>
         </div>
       </div>
     </div>

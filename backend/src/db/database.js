@@ -224,5 +224,12 @@ export function initDatabase() {
   addColumn('interviews', 'disqualified_reason', 'TEXT');
   addColumn('interviews', 'proctor_logs', 'TEXT');
 
+  // Candidate Dispatch (Email/WhatsApp) & External Tracking (LinkedIn/Job boards)
+  addColumn('candidates', 'phone', 'TEXT');
+  addColumn('candidates', 'source', "TEXT DEFAULT 'direct'");
+  addColumn('interviews', 'dispatch_status', "TEXT DEFAULT 'created'");
+  addColumn('interviews', 'dispatch_channel', "TEXT DEFAULT 'link'");
+  addColumn('interviews', 'source', "TEXT DEFAULT 'direct'");
+
   console.log('✓ SQLite database initialized and migrated with interview customization options');
 }

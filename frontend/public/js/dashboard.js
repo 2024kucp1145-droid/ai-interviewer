@@ -2023,25 +2023,41 @@ window.clearParsedResume = function() {
   if (resumeInput) resumeInput.value = '';
 };
 
-// Form: Candidate Invite Link Generation with Timer
+// Form: Candidate Invite Link Generation with Timer & Dispatch
 document.getElementById('form-invite').addEventListener('submit', async (e) => {
   e.preventDefault();
   const jobId = inviteJobSelect.value;
   const name = document.getElementById('invite-name').value.trim();
   const email = document.getElementById('invite-email').value.trim();
+  const phone = document.getElementById('invite-phone')?.value.trim() || '';
   const resume_text = document.getElementById('invite-resume').value.trim();
   const link_timer_minutes = parseInt(document.getElementById('invite-timer-minutes')?.value, 10) || 60;
+  const send_notification = document.getElementById('invite-send-notification')?.checked ?? true;
 
   if (!jobId) {
     alert('Please select or create an interview role first.');
     return;
   }
 
+  if (!email && !phone) {
+    alert('Please enter either a Candidate Email address or WhatsApp Number.');
+    return;
+  }
+
   try {
     const res = await apiRequest(`/jobs/${jobId}/interviews`, {
       method: 'POST',
-      body: JSON.stringify({ name, email, resume_text, link_timer_minutes })
+      body: JSON.stringify({ 
+        name, 
+        email, 
+        phone, 
+        resume_text, 
+        link_timer_minutes, 
+        send_notification,
+        dispatch_channel: (email && phone) ? 'both' : (phone ? 'whatsapp' : 'email')
+      })
     });
+
     if (res.ok) {
       const data = await res.json();
       const fullUrl = `${window.location.origin}${data.inviteUrl}`;
@@ -2051,7 +2067,30 @@ document.getElementById('form-invite').addEventListener('submit', async (e) => {
       const timerLabel = document.getElementById('invite-timer-label');
       if (timerLabel) {
         const expTime = data.expiresAt ? new Date(data.expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-        timerLabel.innerHTML = `<i class="bi bi-clock-history"></i> Timed Interview Link (Valid for ${data.timerMinutes} mins${expTime ? ' · until ' + expTime : ''}):`;
+        timerLabel.innerHTML = `<i class="bi bi-check-circle-fill" style="color:#10b981;"></i> Timed Link Generated (${data.timerMinutes} mins${expTime ? ' · valid until ' + expTime : ''}):`;
+      }
+
+      const waBtn = document.getElementById('invite-whatsapp-btn');
+      if (waBtn) {
+        if (data.whatsappUrl) {
+          waBtn.href = data.whatsappUrl;
+          waBtn.style.display = 'inline-flex';
+        } else if (phone) {
+          const cleanP = phone.replace(/[^0-9]/g, '');
+          waBtn.href = `https://api.whatsapp.com/send?phone=${cleanP}&text=${encodeURIComponent('Here is your interview screening link: ' + fullUrl)}`;
+          waBtn.style.display = 'inline-flex';
+        } else {
+          waBtn.style.display = 'none';
+        }
+      }
+
+      const noteEl = document.getElementById('invite-dispatch-note');
+      if (noteEl) {
+        if (send_notification) {
+          noteEl.innerHTML = `<i class="bi bi-send-check-fill"></i> Dispatched to candidate via ${email && phone ? 'Email & WhatsApp' : (phone ? 'WhatsApp' : 'Email')}.`;
+        } else {
+          noteEl.innerHTML = `<i class="bi bi-info-circle"></i> Link ready for manual sharing.`;
+        }
       }
 
       document.getElementById('invite-result-box').style.display = 'block';
@@ -2083,7 +2122,7 @@ async function loadInterviews() {
     const list = await res.json();
 
     if (!list || list.length === 0) {
-      interviewsTableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); font-size: 0.775rem;">No candidates invited yet for this role. Generate an interview link above.</td></tr>`;
+      interviewsTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); font-size: 0.775rem;">No candidates invited yet for this role. Generate an interview link above.</td></tr>`;
       return;
     }
 
@@ -2097,12 +2136,28 @@ async function loadInterviews() {
         stateBadge = `<span class="badge" style="background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; font-weight:700;"><i class="bi bi-shield-x-fill" style="color:#dc2626;"></i> Disqualified</span>`;
       }
 
+      let sourceBadge = `<span class="badge" style="background:#f8fafc; color:#475569; border:1px solid #cbd5e1; font-size:0.65rem;"><i class="bi bi-link-45deg"></i> Direct Invite</span>`;
+      const src = (item.interview_source || item.candidate_source || '').toLowerCase();
+      if (src.includes('linkedin')) {
+        sourceBadge = `<span class="badge" style="background:#eff6ff; color:#0a66c2; border:1px solid #bfdbfe; font-size:0.65rem; font-weight:700;"><i class="bi bi-linkedin"></i> LinkedIn</span>`;
+      } else if (src.includes('job_board') || src.includes('indeed') || src.includes('naukri')) {
+        sourceBadge = `<span class="badge" style="background:#fffbeb; color:#d97706; border:1px solid #fde68a; font-size:0.65rem; font-weight:700;"><i class="bi bi-briefcase-fill"></i> Job Board</span>`;
+      } else if (src.includes('campus')) {
+        sourceBadge = `<span class="badge" style="background:#ecfdf5; color:#059669; border:1px solid #a7f3d0; font-size:0.65rem; font-weight:700;"><i class="bi bi-mortarboard-fill"></i> Campus Drive</span>`;
+      } else if (src.includes('batch')) {
+        sourceBadge = `<span class="badge" style="background:#f5f3ff; color:#7c3aed; border:1px solid #ddd6fe; font-size:0.65rem; font-weight:700;"><i class="bi bi-send-fill"></i> Batch Dispatch</span>`;
+      }
+
       const initials = (item.candidate_name || 'Candidate')
         .split(' ')
         .map(p => p[0])
         .join('')
         .substring(0, 2)
         .toUpperCase();
+
+      const contactDisplay = item.candidate_phone 
+        ? `${item.candidate_email && !item.candidate_email.endsWith('@candidate.local') ? escapeHtml(item.candidate_email) + '<br>' : ''}<span style="color:#059669; font-weight:600; font-size:0.72rem;"><i class="bi bi-whatsapp"></i> ${escapeHtml(item.candidate_phone)}</span>`
+        : `<span style="font-size:0.725rem; color:var(--text-muted);">${escapeHtml(item.candidate_email || 'No email')}</span>`;
 
       return `
         <tr>
@@ -2113,13 +2168,14 @@ async function loadInterviews() {
               </div>
               <div>
                 <strong style="color:var(--text); font-size:0.88rem;">${escapeHtml(item.candidate_name)}</strong><br>
-                <span style="font-size:0.725rem; color:var(--text-muted);">${escapeHtml(item.candidate_email)}</span>
+                ${contactDisplay}
               </div>
             </div>
           </td>
           <td>
             <strong style="font-size:0.8rem; color:var(--text);">${escapeHtml(item.job_title || 'Technical Candidate')}</strong>
           </td>
+          <td>${sourceBadge}</td>
           <td>${stateBadge}</td>
           <td><span class="badge" style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0;"><i class="bi bi-shield-check"></i> Consent Recorded</span></td>
           <td>
@@ -2938,20 +2994,29 @@ window.refreshQuestionsPreview = async function() {
   }
 };
 
+let currentShareJobId = null;
+let dispatchQueue = [];
+
 window.openShareModalForJob = function(jobId, rawTitle) {
+  currentShareJobId = jobId;
   const title = decodeURIComponent(rawTitle || 'Interview Round');
   const titleEl = document.getElementById('share-modal-job-title');
   const urlInput = document.getElementById('share-modal-url');
   const openLink = document.getElementById('btn-open-share-candidate');
   const modal = document.getElementById('modal-share-link');
   const toast = document.getElementById('share-copy-toast');
+  const resultsContainer = document.getElementById('dispatch-results-container');
 
   if (toast) toast.style.display = 'none';
+  if (resultsContainer) resultsContainer.style.display = 'none';
   if (titleEl) titleEl.textContent = title;
 
   const shareUrl = `${window.location.origin}/interview.html?job=${jobId}`;
   if (urlInput) urlInput.value = shareUrl;
   if (openLink) openLink.href = shareUrl;
+
+  switchShareModalTab('direct');
+  renderDispatchQueue();
 
   if (modal) modal.style.display = 'flex';
 };
@@ -2959,6 +3024,41 @@ window.openShareModalForJob = function(jobId, rawTitle) {
 window.closeShareModal = function() {
   const modal = document.getElementById('modal-share-link');
   if (modal) modal.style.display = 'none';
+};
+
+window.switchShareModalTab = function(tab) {
+  const btnDirect = document.getElementById('tab-btn-share-direct');
+  const btnDispatch = document.getElementById('tab-btn-share-dispatch');
+  const subtabDirect = document.getElementById('share-subtab-direct');
+  const subtabDispatch = document.getElementById('share-subtab-dispatch');
+
+  if (tab === 'dispatch') {
+    if (btnDispatch) {
+      btnDispatch.style.background = '#059669';
+      btnDispatch.style.color = '#fff';
+      btnDispatch.style.border = 'none';
+    }
+    if (btnDirect) {
+      btnDirect.style.background = 'transparent';
+      btnDirect.style.color = 'var(--text)';
+      btnDirect.style.border = '1px solid var(--border)';
+    }
+    if (subtabDirect) subtabDirect.style.display = 'none';
+    if (subtabDispatch) subtabDispatch.style.display = 'block';
+  } else {
+    if (btnDirect) {
+      btnDirect.style.background = '#2563eb';
+      btnDirect.style.color = '#fff';
+      btnDirect.style.border = 'none';
+    }
+    if (btnDispatch) {
+      btnDispatch.style.background = 'transparent';
+      btnDispatch.style.color = 'var(--text)';
+      btnDispatch.style.border = '1px solid var(--border)';
+    }
+    if (subtabDirect) subtabDirect.style.display = 'block';
+    if (subtabDispatch) subtabDispatch.style.display = 'none';
+  }
 };
 
 window.copyShareModalUrl = async function() {
@@ -2974,6 +3074,7 @@ window.copyShareModalUrl = async function() {
       document.execCommand('copy');
     }
     if (toast) {
+      toast.textContent = '✓ Direct candidate link copied to clipboard!';
       toast.style.display = 'block';
       setTimeout(() => { toast.style.display = 'none'; }, 3500);
     }
@@ -2981,8 +3082,220 @@ window.copyShareModalUrl = async function() {
     urlInput.select();
     document.execCommand('copy');
     if (toast) {
+      toast.textContent = '✓ Direct candidate link copied to clipboard!';
       toast.style.display = 'block';
       setTimeout(() => { toast.style.display = 'none'; }, 3500);
+    }
+  }
+};
+
+window.copyTrackingUrl = async function(source) {
+  if (!currentShareJobId) {
+    alert('Please select an active interview round.');
+    return;
+  }
+  const trackingUrl = `${window.location.origin}/interview.html?job=${currentShareJobId}&source=${source}`;
+  const toast = document.getElementById('share-copy-toast');
+
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(trackingUrl);
+    } else {
+      const tempInput = document.createElement('input');
+      tempInput.value = trackingUrl;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempInput);
+    }
+    if (toast) {
+      const sourceName = source === 'linkedin' ? 'LinkedIn' : (source === 'job_board' ? 'Job Board' : 'Campus');
+      toast.innerHTML = `<i class="bi bi-check-circle-fill"></i> Copied ${sourceName} tracking link! Applicants will be recorded with source: <strong>${source}</strong>`;
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 4000);
+    }
+  } catch (err) {
+    alert(`Tracking URL copied:\n${trackingUrl}`);
+  }
+};
+
+window.addCandidateToDispatchQueue = function() {
+  const nameInput = document.getElementById('dispatch-input-name');
+  const emailInput = document.getElementById('dispatch-input-email');
+  const phoneInput = document.getElementById('dispatch-input-phone');
+
+  const name = nameInput ? nameInput.value.trim() : '';
+  const email = emailInput ? emailInput.value.trim() : '';
+  const phone = phoneInput ? phoneInput.value.trim() : '';
+
+  if (!name) {
+    alert('Please enter the candidate\'s full name.');
+    if (nameInput) nameInput.focus();
+    return;
+  }
+
+  if (!email && !phone) {
+    alert('Please enter at least an Email address OR a WhatsApp/phone number. (Either one is sufficient)');
+    if (emailInput) emailInput.focus();
+    return;
+  }
+
+  dispatchQueue.push({
+    id: 'disp_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+    name,
+    email,
+    phone
+  });
+
+  if (nameInput) nameInput.value = '';
+  if (emailInput) emailInput.value = '';
+  if (phoneInput) phoneInput.value = '';
+
+  renderDispatchQueue();
+  if (nameInput) nameInput.focus();
+};
+
+window.removeCandidateFromDispatchQueue = function(id) {
+  dispatchQueue = dispatchQueue.filter(c => c.id !== id);
+  renderDispatchQueue();
+};
+
+window.clearDispatchQueue = function() {
+  dispatchQueue = [];
+  renderDispatchQueue();
+  const resultsContainer = document.getElementById('dispatch-results-container');
+  if (resultsContainer) resultsContainer.style.display = 'none';
+};
+
+window.renderDispatchQueue = function() {
+  const countEl = document.getElementById('dispatch-queue-count');
+  const tbody = document.getElementById('dispatch-queue-tbody');
+
+  if (countEl) countEl.textContent = dispatchQueue.length;
+  if (!tbody) return;
+
+  if (dispatchQueue.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.25rem;">
+          Queue is empty. Enter candidate info above to build your dispatch list.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = dispatchQueue.map(c => `
+    <tr style="border-bottom: 1px solid var(--border);">
+      <td style="font-weight: 600; color: var(--text); padding: 0.5rem 0.65rem;">
+        ${c.name}
+      </td>
+      <td style="color: var(--text-muted); padding: 0.5rem 0.65rem; font-size: 0.735rem;">
+        ${c.email ? `<span style="color: #2563eb; font-weight: 500;"><i class="bi bi-envelope"></i> ${c.email}</span>` : '<span style="color:#94a3b8; font-style:italic;">Not provided</span>'}
+      </td>
+      <td style="color: var(--text-muted); padding: 0.5rem 0.65rem; font-size: 0.735rem;">
+        ${c.phone ? `<span style="color: #059669; font-weight: 500;"><i class="bi bi-whatsapp"></i> ${c.phone}</span>` : '<span style="color:#94a3b8; font-style:italic;">Not provided</span>'}
+      </td>
+      <td style="padding: 0.5rem 0.65rem;">
+        <span class="badge badge-outline" style="font-size: 0.65rem; color: #16a34a; border-color: #bbf7d0; background: #f0fdf4;">Ready</span>
+      </td>
+      <td style="text-align: right; padding: 0.5rem 0.65rem;">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="removeCandidateFromDispatchQueue('${c.id}')" style="color: #dc2626; padding: 0.2rem 0.45rem;" title="Remove candidate">
+          <i class="bi bi-trash"></i>
+        </button>
+      </td>
+    </tr>
+  `).join('');
+};
+
+window.submitBatchDispatch = async function() {
+  if (!currentShareJobId) {
+    alert('Please select an active interview round first.');
+    return;
+  }
+
+  if (dispatchQueue.length === 0) {
+    alert('Please add at least 1 candidate to the dispatch list above before sending.');
+    return;
+  }
+
+  const sendEmail = document.getElementById('dispatch-channel-email')?.checked;
+  const sendWa = document.getElementById('dispatch-channel-wa')?.checked;
+  const expiresInMinutes = parseInt(document.getElementById('dispatch-link-timer')?.value || '1440', 10);
+
+  let channel = 'both';
+  if (sendEmail && !sendWa) channel = 'email';
+  else if (!sendEmail && sendWa) channel = 'whatsapp';
+  else if (!sendEmail && !sendWa) {
+    alert('Please select at least one dispatch channel (Email or WhatsApp).');
+    return;
+  }
+
+  const btn = document.getElementById('btn-submit-dispatch');
+  const originalHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" style="width:0.8rem;height:0.8rem;"></span> Dispatching to ' + dispatchQueue.length + ' Candidate(s)...';
+  }
+
+  try {
+    const res = await apiRequest(`/jobs/${currentShareJobId}/dispatch-batch`, {
+      method: 'POST',
+      body: JSON.stringify({
+        candidates: dispatchQueue,
+        channel,
+        expiresInMinutes
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to dispatch batch invitations.');
+    }
+
+    const data = await res.json();
+    const container = document.getElementById('dispatch-results-container');
+    const waLinksDiv = document.getElementById('dispatch-whatsapp-links');
+
+    if (container && waLinksDiv) {
+      container.style.display = 'block';
+      let html = '';
+      if (data.results && data.results.length > 0) {
+        data.results.forEach(r => {
+          if (r.wa_direct_link) {
+            html += `
+              <a href="${r.wa_direct_link}" target="_blank" class="btn btn-sm btn-outline" style="color: #059669; border-color: #a7f3d0; text-align: left; display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0.75rem; background: #ffffff; text-decoration: none; border-radius: 6px;">
+                <span><i class="bi bi-whatsapp"></i> Chat & Send Invite to <strong>${r.candidate_name || 'Candidate'}</strong> (${r.phone})</span>
+                <span style="font-size: 0.72rem; font-weight: 700; color: #047857; display: flex; align-items: center; gap: 0.25rem;">
+                  Open WhatsApp Web <i class="bi bi-box-arrow-up-right"></i>
+                </span>
+              </a>
+            `;
+          }
+        });
+      }
+
+      if (!html) {
+        html = '<div style="font-size:0.75rem; color:#065f46; font-weight: 600;"><i class="bi bi-check-all"></i> All invitations and assessment rules successfully dispatched to registered candidate email addresses.</div>';
+      }
+
+      waLinksDiv.innerHTML = html;
+    }
+
+    // Reset dispatch queue on success
+    dispatchQueue = [];
+    renderDispatchQueue();
+
+    // Reload candidate table in Candidates tab
+    if (typeof loadInterviews === 'function') {
+      loadInterviews();
+    }
+  } catch (err) {
+    alert('Dispatch Error: ' + err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
     }
   }
 };

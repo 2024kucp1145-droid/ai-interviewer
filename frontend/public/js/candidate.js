@@ -438,13 +438,17 @@ window.handleCandidateSelfRegSubmit = async function(e) {
 
   const name = document.getElementById('reg-candidate-name')?.value.trim();
   const email = document.getElementById('reg-candidate-email')?.value.trim();
+  const phone = document.getElementById('reg-candidate-phone')?.value.trim();
   const resume_text = document.getElementById('reg-candidate-resume')?.value.trim();
   const btn = document.getElementById('btn-reg-start');
 
-  if (!name || !email) {
-    alert('Please enter your full name and email address.');
+  if (!email && !phone) {
+    alert('Please enter at least an Email address or WhatsApp number.');
     return;
   }
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const source = urlParams.get('source') || urlParams.get('utm_source') || 'direct_link';
 
   if (btn) {
     btn.disabled = true;
@@ -455,7 +459,7 @@ window.handleCandidateSelfRegSubmit = async function(e) {
     const res = await fetch(`/public/jobs/${activeJobId}/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, resume_text })
+      body: JSON.stringify({ name, email, phone, resume_text, source })
     });
 
     if (!res.ok) {
@@ -485,6 +489,15 @@ async function loadJobPublicDetails(targetJobId) {
   if (registerScreen) registerScreen.style.display = 'block';
 
   try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sourceParam = urlParams.get('source') || urlParams.get('utm_source');
+    const sourceBadgeContainer = document.getElementById('reg-source-badge-container');
+    const sourceBadge = document.getElementById('reg-source-badge');
+    if (sourceBadgeContainer && sourceBadge && sourceParam) {
+      sourceBadgeContainer.style.display = 'block';
+      sourceBadge.innerHTML = `<i class="bi bi-link-45deg"></i> Applying via ${sourceParam.toUpperCase()}`;
+    }
+
     const res = await fetch(`/public/jobs/${targetJobId}`);
     if (!res.ok) {
       alert('Interview round not found or has expired. Please verify the link with the recruiter.');

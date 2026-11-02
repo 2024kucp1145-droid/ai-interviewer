@@ -863,25 +863,43 @@
       </div>
 
       <form id="candidate-self-reg-form" onsubmit="handleCandidateSelfRegSubmit(event)">
-        <div style="margin-bottom: 1rem;">
-          <label style="font-size: 0.75rem; font-weight: 600; color: var(--text); display: block; margin-bottom: 0.35rem;">
+        <div id="reg-source-badge-container" style="margin-bottom: 0.75rem; display: none;">
+          <span id="reg-source-badge" class="badge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-size:0.72rem; font-weight:700;">
+            <i class="bi bi-box-arrow-up-right"></i> External Candidate Application
+          </span>
+        </div>
+
+        <div style="margin-bottom: 0.85rem;">
+          <label style="font-size: 0.75rem; font-weight: 700; color: var(--text); display: block; margin-bottom: 0.35rem;">
             Full Legal Name <span style="color: #ef4444;">*</span>
           </label>
-          <input type="text" id="reg-candidate-name" required placeholder="e.g. Rahul Sharma" style="width: 100%; padding: 0.6rem 0.75rem; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text);">
+          <input type="text" id="reg-candidate-name" required placeholder="e.g. Rahul Sharma" style="width: 100%; padding: 0.6rem 0.75rem; font-size: 0.85rem; border: 1.5px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text);">
         </div>
 
-        <div style="margin-bottom: 1rem;">
-          <label style="font-size: 0.75rem; font-weight: 600; color: var(--text); display: block; margin-bottom: 0.35rem;">
-            Email Address <span style="color: #ef4444;">*</span>
-          </label>
-          <input type="email" id="reg-candidate-email" required placeholder="rahul@example.com" style="width: 100%; padding: 0.6rem 0.75rem; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text);">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.85rem;">
+          <div>
+            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text); display: block; margin-bottom: 0.35rem;">
+              Email Address <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 500;">(or WhatsApp)</span>
+            </label>
+            <input type="email" id="reg-candidate-email" placeholder="rahul@example.com" style="width: 100%; padding: 0.6rem 0.75rem; font-size: 0.85rem; border: 1.5px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text);">
+          </div>
+          <div>
+            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text); display: block; margin-bottom: 0.35rem;">
+              WhatsApp / Phone <span style="color: #2563eb;">*</span>
+            </label>
+            <input type="tel" id="reg-candidate-phone" placeholder="+91 98765 43210" style="width: 100%; padding: 0.6rem 0.75rem; font-size: 0.85rem; border: 1.5px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text);">
+          </div>
         </div>
 
-        <div style="margin-bottom: 1.25rem;">
-          <label style="font-size: 0.75rem; font-weight: 600; color: var(--text); display: block; margin-bottom: 0.35rem;">
+        <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: -0.35rem; margin-bottom: 0.85rem;">
+          <i class="bi bi-info-circle"></i> We will send your interview link &amp; results directly to your Email or WhatsApp.
+        </p>
+
+        <div style="margin-bottom: 1.15rem;">
+          <label style="font-size: 0.75rem; font-weight: 700; color: var(--text); display: block; margin-bottom: 0.35rem;">
             Resume / Portfolio Summary (Optional):
           </label>
-          <textarea id="reg-candidate-resume" rows="3" placeholder="Paste your resume summary, LinkedIn profile, or GitHub link to personalize the interview questions..." style="width: 100%; padding: 0.6rem 0.75rem; font-size: 0.8rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text);"></textarea>
+          <textarea id="reg-candidate-resume" rows="2" placeholder="Paste your resume summary, LinkedIn profile, or GitHub link to personalize the interview questions..." style="width: 100%; padding: 0.6rem 0.75rem; font-size: 0.8rem; border: 1.5px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text);"></textarea>
         </div>
 
         <button type="submit" id="btn-reg-start" class="btn" style="width: 100%; padding: 0.75rem; font-weight: 700;">
