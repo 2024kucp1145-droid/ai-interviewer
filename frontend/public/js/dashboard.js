@@ -2811,20 +2811,20 @@ window.closeQuestionsPreviewModal = function() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const DURATION_TIERS = [
-  { minutes: 10, priceUsd: 1.00, label: '10 min' },
-  { minutes: 20, priceUsd: 1.50, label: '20 min' },
-  { minutes: 30, priceUsd: 2.00, label: '30 min' },
-  { minutes: 40, priceUsd: 2.50, label: '40 min' },
-  { minutes: 50, priceUsd: 3.00, label: '50 min' },
-  { minutes: 60, priceUsd: 3.50, label: '60 min' },
+  { minutes: 10, priceUsd: 1.00, label: '10 Min', subtitle: 'Rapid Screening', desc: 'Short initial filter round' },
+  { minutes: 20, priceUsd: 1.50, label: '20 Min', subtitle: 'Core Technical', desc: 'Standard technical filter' },
+  { minutes: 30, priceUsd: 2.00, label: '30 Min', subtitle: 'Standard Full Round', desc: 'Balanced Q&A + Coding' },
+  { minutes: 40, priceUsd: 2.50, label: '40 Min', subtitle: 'Architecture & System', desc: 'Deep dive + System concepts' },
+  { minutes: 50, priceUsd: 3.00, label: '50 Min', subtitle: 'Staff / Senior', desc: 'Advanced engineering assessment' },
+  { minutes: 60, priceUsd: 3.50, label: '60 Min', subtitle: 'Master 1-Hour', desc: 'Full length evaluation round' },
 ];
 
 const SUBSCRIPTION_PLANS = [
-  { id: 'monthly_1', label: '1 Month',  months: 1,  priceUsd: 100, includedInterviews: 150,  popular: false, savingsLabel: null },
-  { id: 'monthly_2', label: '2 Months', months: 2,  priceUsd: 160, includedInterviews: 280,  popular: false, savingsLabel: 'Save $40' },
-  { id: 'quarterly', label: '3 Months', months: 3,  priceUsd: 220, includedInterviews: 420,  popular: false, savingsLabel: 'Save $80' },
-  { id: 'biannual',  label: '6 Months', months: 6,  priceUsd: 450, includedInterviews: 900,  popular: true,  savingsLabel: 'Save $150' },
-  { id: 'annual',    label: '1 Year',   months: 12, priceUsd: 800, includedInterviews: 1800, popular: false, savingsLabel: 'Save $400' },
+  { id: 'monthly_1', label: '1 Month',  months: 1,  priceUsd: 100, includedInterviews: 150,  popular: false, savingsLabel: null, subtitle: 'Individual hiring' },
+  { id: 'monthly_2', label: '2 Months', months: 2,  priceUsd: 160, includedInterviews: 280,  popular: false, savingsLabel: 'Save $40', subtitle: 'Growing startup' },
+  { id: 'quarterly', label: '3 Months', months: 3,  priceUsd: 220, includedInterviews: 420,  popular: false, savingsLabel: 'Save $80', subtitle: 'Quarterly hiring' },
+  { id: 'biannual',  label: '6 Months', months: 6,  priceUsd: 450, includedInterviews: 900,  popular: true,  savingsLabel: 'Save $150 (Popular)', subtitle: 'Recruiting agency' },
+  { id: 'annual',    label: '1 Year',   months: 12, priceUsd: 800, includedInterviews: 1800, popular: false, savingsLabel: 'Save $400 (Best Value)', subtitle: 'Enterprise scale' },
 ];
 
 let billingSelectedDuration = 10;
@@ -2845,17 +2845,24 @@ function initBillingTab() {
 function renderDurGrid() {
   const grid = document.getElementById('dur-grid');
   if (!grid) return;
-  grid.innerHTML = DURATION_TIERS.map(t => `
-    <button onclick="selectDuration(${t.minutes})" style="
-      padding:0.55rem 0.35rem; border-radius:5px; border:1.5px solid ${t.minutes === billingSelectedDuration ? '#000' : 'var(--border)'};
-      background:${t.minutes === billingSelectedDuration ? '#000' : 'var(--surface-subtle)'};
-      color:${t.minutes === billingSelectedDuration ? '#fff' : 'var(--text)'};
-      font-size:0.775rem; font-weight:${t.minutes === billingSelectedDuration ? '700' : '500'};
-      cursor:pointer; text-align:center; transition:all .15s;">
-      <div>${t.label}</div>
-      <div style="font-size:0.7rem; opacity:0.75; margin-top:2px;">$${t.priceUsd.toFixed(2)}</div>
-    </button>
-  `).join('');
+  grid.innerHTML = DURATION_TIERS.map(t => {
+    const isSelected = t.minutes === billingSelectedDuration;
+    return `
+      <div onclick="selectDuration(${t.minutes})" style="
+        padding:0.75rem 0.65rem; border-radius:8px; border:2px solid ${isSelected ? '#000' : 'var(--border)'};
+        background:${isSelected ? '#000' : 'var(--surface)'};
+        color:${isSelected ? '#fff' : 'var(--text)'};
+        cursor:pointer; transition:all .15s ease; position:relative; display:flex; flex-direction:column; justify-content:space-between; box-shadow:${isSelected ? '0 4px 12px rgba(0,0,0,0.1)' : 'none'};">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
+          <strong style="font-size:0.92rem;">${t.label}</strong>
+          <span style="font-size:0.9rem; font-weight:800; color:${isSelected ? '#fff' : 'var(--text)'};">$${t.priceUsd.toFixed(2)}</span>
+        </div>
+        <div style="font-size:0.7rem; color:${isSelected ? 'rgba(255,255,255,0.75)' : 'var(--text-muted)'}; line-height:1.2;">
+          ${t.subtitle || ''}
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 window.selectDuration = function(minutes) {
@@ -2863,6 +2870,24 @@ window.selectDuration = function(minutes) {
   renderDurGrid();
   renderPriceTable();
   updatePPUQuote();
+};
+
+window.setPPUQuantityPreset = function(qty) {
+  const input = document.getElementById('ppu-qty');
+  if (input) {
+    input.value = qty;
+    updatePPUQuote();
+  }
+};
+
+window.stepPPUQuantity = function(delta) {
+  const input = document.getElementById('ppu-qty');
+  if (input) {
+    let curr = parseInt(input.value, 10) || 1;
+    curr = Math.max(1, curr + delta);
+    input.value = curr;
+    updatePPUQuote();
+  }
 };
 
 // ── Pricing table ─────────────────────────────────────────────────────────
@@ -2873,44 +2898,76 @@ function renderPriceTable() {
     const isSelected = t.minutes === billingSelectedDuration;
     const hrRate = (t.priceUsd * (60 / t.minutes)).toFixed(2);
     return `<tr style="border-bottom:1px solid var(--border); ${isSelected ? 'background:var(--surface-subtle);' : ''}">
-      <td style="padding:0.5rem;">
-        ${t.label}
+      <td style="padding:0.6rem 0.5rem;">
+        <strong>${t.label}</strong> <span style="font-size:0.75rem; color:var(--text-muted);">(${t.subtitle})</span>
         ${isSelected ? '<span class="badge badge-dark" style="margin-left:0.35rem; font-size:0.65rem;">Selected</span>' : ''}
       </td>
-      <td style="text-align:right; padding:0.5rem; font-weight:${isSelected ? '700' : '500'};">$${t.priceUsd.toFixed(2)}</td>
-      <td style="text-align:right; padding:0.5rem; color:var(--text-muted);">$${hrRate}</td>
+      <td style="text-align:right; padding:0.6rem 0.5rem; font-weight:${isSelected ? '800' : '600'}; font-size:0.85rem;">$${t.priceUsd.toFixed(2)}</td>
+      <td style="text-align:right; padding:0.6rem 0.5rem; color:var(--text-muted);">$${hrRate}/hr</td>
     </tr>`;
   }).join('');
 }
 
 // ── Quote calculator ──────────────────────────────────────────────────────
 window.updatePPUQuote = function() {
-  const qty = Math.max(1, parseInt(document.getElementById('ppu-qty')?.value) || 1);
-  const tier = DURATION_TIERS.find(t => t.minutes === billingSelectedDuration);
+  const input = document.getElementById('ppu-qty');
+  const qty = Math.max(1, parseInt(input?.value, 10) || 1);
+  const tier = DURATION_TIERS.find(t => t.minutes === billingSelectedDuration) || DURATION_TIERS[0];
   const freeInterviews = Math.floor(qty / 10);
   const billedFor = qty - freeInterviews;
+  const baseCost = (qty * tier.priceUsd).toFixed(2);
+  const freeDiscountUsd = (freeInterviews * tier.priceUsd).toFixed(2);
   const totalUsd = (billedFor * tier.priceUsd).toFixed(2);
+  const effectivePerInterview = (parseFloat(totalUsd) / qty).toFixed(2);
 
   const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-  const setStyle = (id, prop, val) => { const el = document.getElementById(id); if (el) el.style[prop] = val; };
 
+  setEl('q-dur-show', `${tier.label} (${tier.subtitle || ''})`);
   setEl('q-price-per', `$${tier.priceUsd.toFixed(2)}`);
-  setEl('q-qty-show', qty);
+  setEl('q-qty-show', `${qty} candidate${qty !== 1 ? 's' : ''}`);
+  setEl('q-base-cost', `$${baseCost}`);
   setEl('q-billed', `${billedFor} interview${billedFor !== 1 ? 's' : ''}`);
   setEl('q-total', `$${totalUsd}`);
+  setEl('q-effective-rate', `$${effectivePerInterview} / interview`);
 
-  const bulkNotice = document.getElementById('ppu-bulk-notice');
   const freeRow = document.getElementById('q-free-row');
+  const bulkNotice = document.getElementById('ppu-bulk-notice');
 
   if (freeInterviews > 0) {
-    if (bulkNotice) bulkNotice.style.display = 'block';
-    document.getElementById('ppu-bulk-text').textContent =
-      `You get ${freeInterviews} FREE interview${freeInterviews > 1 ? 's' : ''} with this order! 🎉`;
     if (freeRow) freeRow.style.display = 'flex';
-    setEl('q-free-count', `+${freeInterviews}`);
+    setEl('q-free-count', `+${freeInterviews} FREE 🎁`);
+    setEl('q-free-savings', `(-$${freeDiscountUsd})`);
+    if (bulkNotice) {
+      bulkNotice.style.display = 'block';
+      const textEl = document.getElementById('ppu-bulk-text');
+      if (textEl) {
+        textEl.innerHTML = `<strong>Bulk Bonus Active:</strong> You get <strong>${freeInterviews} FREE interview${freeInterviews > 1 ? 's' : ''}</strong>! You pay for only ${billedFor} candidates.`;
+      }
+    }
   } else {
-    if (bulkNotice) bulkNotice.style.display = 'none';
     if (freeRow) freeRow.style.display = 'none';
+    if (bulkNotice) bulkNotice.style.display = 'none';
+  }
+
+  // Highlight active preset chip if matches
+  document.querySelectorAll('.ppu-preset-chip').forEach(chip => {
+    const chipQty = parseInt(chip.getAttribute('data-qty'), 10);
+    if (chipQty === qty) {
+      chip.classList.add('active');
+      chip.style.background = '#000';
+      chip.style.color = '#fff';
+      chip.style.borderColor = '#000';
+    } else {
+      chip.classList.remove('active');
+      chip.style.background = 'transparent';
+      chip.style.color = 'var(--text)';
+      chip.style.borderColor = 'var(--border)';
+    }
+  });
+
+  const btnPay = document.getElementById('btn-ppu-checkout');
+  if (btnPay) {
+    btnPay.innerHTML = `<i class="bi bi-shield-lock-fill"></i> Proceed to Checkout ($${totalUsd})`;
   }
 };
 
@@ -2920,19 +2977,44 @@ function renderSubPlans() {
   if (!grid) return;
   grid.innerHTML = SUBSCRIPTION_PLANS.map(p => {
     const cpi = (p.priceUsd / p.includedInterviews).toFixed(2);
+    const isPopular = p.popular;
     return `
       <div onclick="selectSubPlan('${p.id}')" id="subcard-${p.id}" style="
-        border:${p.popular ? '2px solid #000' : '1px solid var(--border)'};
-        border-radius:8px; padding:1.1rem; background:var(--surface); cursor:pointer;
-        transition:all .15s; position:relative; text-align:center;">
-        ${p.popular ? '<span class="badge badge-dark" style="position:absolute;top:0.5rem;right:0.5rem;font-size:0.6rem;">Popular</span>' : ''}
-        <div style="font-size:0.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); margin-bottom:0.5rem;">${p.label}</div>
-        <div style="font-size:1.6rem; font-weight:800; letter-spacing:-0.03em; margin-bottom:0.2rem;">$${p.priceUsd}</div>
-        <div style="font-size:0.85rem; font-weight:600; margin-bottom:0.15rem;">${p.includedInterviews.toLocaleString()} Interviews</div>
-        <div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:0.5rem;">~$${cpi}/interview</div>
-        ${p.savingsLabel ? `<div style="font-size:0.72rem; color:#16a34a; font-weight:600; margin-bottom:0.5rem;">${p.savingsLabel}</div>` : '<div style="height:1rem;"></div>'}
-        <button class="btn btn-sm btn-outline" style="width:100%; font-size:0.75rem;" onclick="event.stopPropagation(); selectSubPlan('${p.id}')">
-          Get Started
+        border:2px solid ${isPopular ? '#000' : 'var(--border)'};
+        border-radius:10px; padding:1.25rem; background:var(--surface); cursor:pointer;
+        transition:all .15s ease; position:relative; display:flex; flex-direction:column; justify-content:space-between;
+        box-shadow:${isPopular ? '0 8px 24px -4px rgba(0,0,0,0.12)' : 'none'};">
+        ${isPopular ? '<div style="position:absolute; top:-10px; left:50%; transform:translateX(-50%); background:#000; color:#fff; font-size:0.65rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; padding:0.2rem 0.65rem; border-radius:20px; white-space:nowrap;"><i class="bi bi-star-fill" style="color:#f59e0b;"></i> Most Popular</div>' : ''}
+        
+        <div>
+          <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); margin-bottom:0.4rem;">
+            ${p.label} Package
+          </div>
+          <div style="display:flex; align-items:baseline; gap:0.25rem; margin-bottom:0.25rem;">
+            <span style="font-size:2rem; font-weight:900; letter-spacing:-0.03em; color:var(--text);">$${p.priceUsd}</span>
+            <span style="font-size:0.75rem; color:var(--text-muted);">/ ${p.months === 1 ? 'month' : `${p.months} mos`}</span>
+          </div>
+          
+          <div style="background:var(--surface-subtle); border-radius:6px; padding:0.6rem; margin:0.75rem 0; text-align:center;">
+            <div style="font-size:1.05rem; font-weight:800; color:var(--text);">${p.includedInterviews.toLocaleString()} Interviews</div>
+            <div style="font-size:0.72rem; color:var(--text-muted); font-weight:600;">Only <strong>$${cpi}</strong> per interview</div>
+          </div>
+
+          ${p.savingsLabel ? `
+            <div style="display:inline-block; font-size:0.7rem; color:#16a34a; background:#dcfce7; font-weight:700; padding:0.2rem 0.5rem; border-radius:4px; margin-bottom:0.75rem;">
+              <i class="bi bi-tag-fill"></i> ${p.savingsLabel}
+            </div>` : '<div style="height:1.6rem;"></div>'}
+
+          <ul style="list-style:none; padding:0; margin:0 0 1rem 0; font-size:0.75rem; color:var(--text-muted); line-height:1.7;">
+            <li><i class="bi bi-check2" style="color:#16a34a; font-weight:bold;"></i> Full AI Voice &amp; Screening</li>
+            <li><i class="bi bi-check2" style="color:#16a34a; font-weight:bold;"></i> Real-Time Proctoring &amp; Screen Lock</li>
+            <li><i class="bi bi-check2" style="color:#16a34a; font-weight:bold;"></i> Instant ATS Scoring &amp; PDF Reports</li>
+            <li><i class="bi bi-check2" style="color:#16a34a; font-weight:bold;"></i> Priority API &amp; Server Concurrency</li>
+          </ul>
+        </div>
+
+        <button class="btn btn-sm ${isPopular ? '' : 'btn-outline'}" style="width:100%; font-size:0.8rem; font-weight:700; padding:0.5rem; ${isPopular ? 'background:#000; color:#fff;' : ''}" onclick="event.stopPropagation(); selectSubPlan('${p.id}')">
+          Choose ${p.label} Plan <i class="bi bi-arrow-right"></i>
         </button>
       </div>`;
   }).join('');
@@ -2940,11 +3022,10 @@ function renderSubPlans() {
 
 window.selectSubPlan = function(planId) {
   billingCheckoutPlan = SUBSCRIPTION_PLANS.find(p => p.id === planId);
-  // Highlight selected
   SUBSCRIPTION_PLANS.forEach(p => {
     const card = document.getElementById(`subcard-${p.id}`);
     if (card) {
-      card.style.border = p.id === planId ? '2px solid #000' : (p.popular ? '2px solid #000' : '1px solid var(--border))');
+      card.style.border = p.id === planId ? '2px solid #000' : (p.popular ? '2px solid #000' : '1px solid var(--border)');
       card.style.background = p.id === planId ? 'var(--surface-subtle)' : 'var(--surface)';
     }
   });
@@ -2959,15 +3040,15 @@ function renderSubCompare() {
     const cpi = (p.priceUsd / p.includedInterviews).toFixed(3);
     const saved = p.months > 1 ? `$${(p.months * 100 - p.priceUsd)}` : '—';
     return `<tr style="border-bottom:1px solid var(--border); ${p.popular ? 'background:var(--surface-subtle);' : ''}">
-      <td style="padding:0.5rem;">
+      <td style="padding:0.6rem 0.5rem;">
         <strong>${p.label}</strong>
         ${p.popular ? '<span class="badge badge-dark" style="margin-left:0.35rem; font-size:0.65rem;">Popular</span>' : ''}
       </td>
-      <td style="text-align:center; padding:0.5rem;">${p.months} month${p.months > 1 ? 's' : ''}</td>
-      <td style="text-align:right; padding:0.5rem; font-weight:700;">$${p.priceUsd}</td>
-      <td style="text-align:right; padding:0.5rem;">${p.includedInterviews.toLocaleString()}</td>
-      <td style="text-align:right; padding:0.5rem; ${p.months === 12 ? 'color:#16a34a; font-weight:700;' : ''}">$${cpi}</td>
-      <td style="text-align:right; padding:0.5rem; color:#16a34a; font-weight:600;">${saved !== '—' ? saved + ' saved' : '—'}</td>
+      <td style="text-align:center; padding:0.6rem 0.5rem;">${p.months} month${p.months > 1 ? 's' : ''}</td>
+      <td style="text-align:right; padding:0.6rem 0.5rem; font-weight:800; font-size:0.85rem;">$${p.priceUsd}</td>
+      <td style="text-align:right; padding:0.6rem 0.5rem; font-weight:600;">${p.includedInterviews.toLocaleString()}</td>
+      <td style="text-align:right; padding:0.6rem 0.5rem; ${p.months === 12 ? 'color:#16a34a; font-weight:800;' : ''}">$${cpi}</td>
+      <td style="text-align:right; padding:0.6rem 0.5rem; color:#16a34a; font-weight:700;">${saved !== '—' ? saved + ' saved' : 'Standard'}</td>
     </tr>`;
   }).join('');
 }
