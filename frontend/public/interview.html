@@ -1008,15 +1008,12 @@
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-        <button id="btn-start-interview-voice" class="btn" style="padding: 0.75rem; font-size: 0.85rem; font-weight: 700;">
-          <i class="bi bi-play-circle-fill"></i> Start Interview with Voice
-        </button>
-        <button id="btn-start-interview-text" class="btn btn-secondary" style="padding: 0.65rem; font-size: 0.8rem;">
-          <i class="bi bi-keyboard"></i> Start Interview with Keyboard Mode
+        <button id="btn-start-interview-voice" class="btn" style="padding: 0.85rem; font-size: 0.95rem; font-weight: 700; background: #2563eb; color: #fff;">
+          <i class="bi bi-mic-fill"></i> Enter Live Conversational Interview
         </button>
       </div>
       <p style="text-align: center; font-size: 0.7rem; color: var(--text-muted); margin-top: 0.65rem;">
-        <i class="bi bi-shield-check"></i> Live camera and active screen monitoring will remain active during the interview.
+        <i class="bi bi-shield-check"></i> Hands-free voice interview: AI speaks questions and listens to your spoken answers in real time.
       </p>
     </div>
 
@@ -1027,7 +1024,12 @@
         <!-- Column 1: AI Question & Candidate Answer -->
         <div class="card" style="margin-bottom: 0;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-            <span id="job-title-badge" style="font-size: 0.8rem; color: #000; font-weight: 700;">Technical Screening</span>
+            <div style="display: flex; align-items: center; gap: 0.45rem;">
+              <span id="job-title-badge" style="font-size: 0.8rem; color: #000; font-weight: 700;">Technical Screening</span>
+              <button type="button" id="btn-toggle-tools-panel" class="btn btn-outline btn-sm" onclick="toggleInteractiveToolsManual()" style="font-size: 0.68rem; padding: 0.15rem 0.5rem; display: none;">
+                <i class="bi bi-code-slash"></i> Sandbox
+              </button>
+            </div>
             <div style="display: flex; gap: 0.35rem; align-items: center;">
               <span id="session-timer-badge" class="status-badge" style="background: #ffffff; color: #000; border: 1px solid var(--border-dark); font-family: monospace; font-size: 0.725rem;">
                 <i class="bi bi-clock"></i> <span id="room-timer-text">--:--</span>
@@ -1052,29 +1054,34 @@
 
           <div class="answer-input-area">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-              <label style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">Your Technical Response:</label>
-              <span id="voice-indicator" style="font-size: 0.7rem; color: #dc2626; display: none; font-weight: 600;">
-                <i class="bi bi-record-circle-fill"></i> Listening...
+              <label style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">Your Technical Response (Spoken / Transcribed):</label>
+              <span id="voice-indicator" style="font-size: 0.7rem; color: #10b981; display: none; font-weight: 600;">
+                <i class="bi bi-record-circle-fill"></i> Live
               </span>
             </div>
 
-            <textarea id="candidate-answer-box" placeholder="Speak or type your answer here. You can also paste code or notes from the tool panel..."></textarea>
-
-            <div class="flex-row" style="margin-bottom: 0.75rem;">
-              <button id="btn-push-to-talk" class="btn btn-secondary" style="flex: 1;">
-                <i class="bi bi-mic"></i> Push to Talk
-              </button>
-              <button id="btn-submit-answer" class="btn" style="flex: 1;">
-                Submit Answer <i class="bi bi-send-fill"></i>
+            <!-- Conversational Hands-Free Voice Control Bar -->
+            <div id="conversational-voice-bar" style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 8px; padding: 0.65rem 0.85rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span id="voice-status-pulse" style="width: 10px; height: 10px; border-radius: 50%; background: #10b981; display: inline-block; box-shadow: 0 0 8px #10b981;"></span>
+                <div>
+                  <div id="voice-state-title" style="font-weight: 700; font-size: 0.775rem; color: var(--text);">Live Mic Active · Listening to your voice</div>
+                  <div id="voice-state-subtitle" style="font-size: 0.6875rem; color: var(--text-muted);">Speak freely · Auto-submits after speaking</div>
+                </div>
+              </div>
+              <button id="btn-submit-answer" class="btn btn-sm btn-primary" style="padding: 0.4rem 0.85rem; font-weight: 700; font-size: 0.75rem; white-space: nowrap;">
+                Submit Now <i class="bi bi-send-fill"></i>
               </button>
             </div>
 
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <textarea id="candidate-answer-box" placeholder="Your live spoken words will stream here automatically. For coding challenges, use the coding sandbox on the right..."></textarea>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
               <button id="btn-finish-early" style="background: none; border: none; color: var(--text-muted); font-size: 0.7rem; cursor: pointer;">
                 Conclude Interview Early
               </button>
               <span style="font-size: 0.6875rem; color: var(--text-muted);">
-                <i class="bi bi-shield-check"></i> Scored on technical knowledge & reasoning
+                <i class="bi bi-shield-check"></i> Continuous voice monitoring active
               </span>
             </div>
           </div>

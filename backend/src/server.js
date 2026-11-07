@@ -647,13 +647,17 @@ app.post('/jobs/:id/dispatch-batch', requireAuth, async (req, res) => {
         candidateId,
         interviewId,
         name,
+        candidate_name: name,
         email,
         phone,
         inviteUrl,
         token: rawToken,
+        wa_direct_link: dispatchRes.channels.whatsapp.url,
         whatsappUrl: dispatchRes.channels.whatsapp.url,
         whatsappText: dispatchRes.waMessageText,
         emailSent: dispatchRes.channels.email.sent,
+        email_method: dispatchRes.channels.email.method,
+        mailto_url: dispatchRes.channels.email.mailtoUrl,
         status: 'dispatched'
       });
     }
@@ -661,6 +665,7 @@ app.post('/jobs/:id/dispatch-batch', requireAuth, async (req, res) => {
     res.json({
       success: true,
       count: dispatchedCandidates.length,
+      results: dispatchedCandidates,
       candidates: dispatchedCandidates
     });
   } catch (err) {

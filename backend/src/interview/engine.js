@@ -233,6 +233,18 @@ export async function processInterviewTurn({ interviewId, candidateText = null }
     if (!parsedQuestion) {
       parsedQuestion = generateAdaptiveQuestion(context);
     }
+
+    // If a coding/DSA challenge is attached to this interview, ensure it is presented directly on Turn 2
+    if (job.leetcode_problem && job.leetcode_problem !== 'None') {
+      const hasAskedCoding = turns.some(t => t.role === 'ai' && (t.skill === 'LeetCode DSA Challenge' || t.text.includes(job.leetcode_problem)));
+      if (!hasAskedCoding && mainQuestionsAsked >= 1) {
+        parsedQuestion = {
+          question: `Here is your live coding challenge: ${job.leetcode_problem}. Please open the coding terminal on your right, write your solution, and click "Run Test Cases" to test against our automated judge.`,
+          skill: 'LeetCode DSA Challenge',
+          level: 2
+        };
+      }
+    }
   }
 
   // Save AI Turn

@@ -398,17 +398,17 @@ export function generateAdaptiveQuestion({ role, category, skills, leetcode, can
 
   // DSA Problem specific progression if LeetCode problem attached
   if (leetcode && (candidateTurnIndex === 1 || candidateTurnIndex === 2)) {
-    const probName = leetcode.split(':')[0] || 'the coding problem';
+    const probName = leetcode || 'the coding challenge';
     if (candidateTurnIndex === 1) {
       return {
-        question: `For the attached coding challenge (${probName}), could you walk me through your initial algorithmic approach and the expected time and space complexity before writing the code?`,
-        skill: "Algorithmic Approach & Big-O",
+        question: `Here is your coding challenge: ${probName}. Please open your online compiler on the right, implement your solution, and run your test cases against our automated judge.`,
+        skill: "LeetCode DSA Challenge",
         level: 2
       };
     } else if (candidateTurnIndex === 2) {
       return {
-        question: `What edge cases (such as empty inputs, negative values, or boundary limits) need to be handled for this algorithm, and how would you optimize memory allocation?`,
-        skill: "Edge Cases & Optimization",
+        question: `For ${probName}, what are the expected time and space complexities (Big-O) of your solution, and what edge cases (such as empty inputs or boundary limits) did you consider?`,
+        skill: "Algorithmic Complexity & Edge Cases",
         level: 3
       };
     }

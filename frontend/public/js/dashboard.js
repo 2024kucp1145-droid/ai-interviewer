@@ -3285,23 +3285,59 @@ window.submitBatchDispatch = async function() {
     if (container && waLinksDiv) {
       container.style.display = 'block';
       let html = '';
+
       if (data.results && data.results.length > 0) {
+        // If single WhatsApp recipient, open WhatsApp Web immediately in a new tab!
+        const waRecipients = data.results.filter(r => r.wa_direct_link);
+        if (waRecipients.length === 1) {
+          try {
+            window.open(waRecipients[0].wa_direct_link, '_blank');
+          } catch (e) {}
+        }
+
         data.results.forEach(r => {
           if (r.wa_direct_link) {
             html += `
-              <a href="${r.wa_direct_link}" target="_blank" class="btn btn-sm btn-outline" style="color: #059669; border-color: #a7f3d0; text-align: left; display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0.75rem; background: #ffffff; text-decoration: none; border-radius: 6px;">
-                <span><i class="bi bi-whatsapp"></i> Chat & Send Invite to <strong>${r.candidate_name || 'Candidate'}</strong> (${r.phone})</span>
-                <span style="font-size: 0.72rem; font-weight: 700; color: #047857; display: flex; align-items: center; gap: 0.25rem;">
-                  Open WhatsApp Web <i class="bi bi-box-arrow-up-right"></i>
-                </span>
-              </a>
+              <div style="background: #ffffff; border: 1.5px solid #10b981; border-radius: 8px; padding: 0.65rem 0.85rem; margin-bottom: 0.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                  <span style="font-weight: 700; color: #047857; font-size: 0.82rem;">
+                    <i class="bi bi-whatsapp"></i> WhatsApp for ${r.candidate_name || 'Candidate'} (${r.phone})
+                  </span>
+                  <a href="${r.wa_direct_link}" target="_blank" class="btn btn-sm" style="background: #059669; color: #fff; font-weight: 700; padding: 0.35rem 0.85rem; text-decoration: none;">
+                    Open WhatsApp Web & Send &rarr;
+                  </a>
+                </div>
+                <div style="font-size: 0.72rem; color: #065f46;">
+                  Message with interview link &amp; instructions is ready. Click above to send directly via WhatsApp.
+                </div>
+              </div>
+            `;
+          }
+
+          if (r.email) {
+            html += `
+              <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.65rem 0.85rem; margin-bottom: 0.5rem; font-size: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span><i class="bi bi-envelope-fill" style="color: #2563eb;"></i> <strong>Email:</strong> ${r.email}</span>
+                  <span class="badge ${r.email_method === 'live_smtp' ? 'badge-dark' : 'badge-outline'}" style="font-size: 0.68rem;">
+                    ${r.email_method === 'live_smtp' ? 'Sent via Live SMTP' : 'Email Invitation Ready'}
+                  </span>
+                </div>
+                ${r.mailto_url ? `
+                  <div style="margin-top: 0.4rem;">
+                    <a href="${r.mailto_url}" target="_blank" class="btn btn-sm btn-outline" style="padding: 0.25rem 0.6rem; font-size: 0.7rem;">
+                      <i class="bi bi-send"></i> Open in Mail Client (Gmail / Outlook)
+                    </a>
+                  </div>
+                ` : ''}
+              </div>
             `;
           }
         });
       }
 
       if (!html) {
-        html = '<div style="font-size:0.75rem; color:#065f46; font-weight: 600;"><i class="bi bi-check-all"></i> All invitations and assessment rules successfully dispatched to registered candidate email addresses.</div>';
+        html = '<div style="font-size:0.75rem; color:#065f46; font-weight: 600;"><i class="bi bi-check-all"></i> All invitations and assessment rules successfully dispatched.</div>';
       }
 
       waLinksDiv.innerHTML = html;

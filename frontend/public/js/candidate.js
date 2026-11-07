@@ -20,20 +20,23 @@ const micTestStatus = document.getElementById('mic-test-status');
 const micTestResult = document.getElementById('mic-test-result');
 
 const btnStartVoice = document.getElementById('btn-start-interview-voice');
-const btnStartText = document.getElementById('btn-start-interview-text');
 
 const jobTitleBadge = document.getElementById('job-title-badge');
+const btnToggleToolsPanel = document.getElementById('btn-toggle-tools-panel');
 const headerTimer = document.getElementById('header-timer');
 const headerTimerClock = document.getElementById('header-timer-clock');
 const roomTimerText = document.getElementById('room-timer-text');
 const aiQuestionText = document.getElementById('ai-question-text');
 const candidateAnswerBox = document.getElementById('candidate-answer-box');
-const btnPushToTalk = document.getElementById('btn-push-to-talk');
 const btnSubmitAnswer = document.getElementById('btn-submit-answer');
 const btnRepeatAudio = document.getElementById('btn-repeat-audio');
 const btnFinishEarly = document.getElementById('btn-finish-early');
 const voiceIndicator = document.getElementById('voice-indicator');
 const avatar = document.getElementById('avatar');
+
+const voiceStatusPulse = document.getElementById('voice-status-pulse');
+const voiceStateTitle = document.getElementById('voice-state-title');
+const voiceStateSubtitle = document.getElementById('voice-state-subtitle');
 
 // Interactive tool elements
 const interactiveToolsContainer = document.getElementById('interactive-tools-container');
@@ -46,29 +49,81 @@ const wordCanvasContent = document.getElementById('word-canvas-content');
 const wordCountDisplay = document.getElementById('word-count-display');
 
 let interviewData = null;
-let isRecording = false;
 let countdownTimerId = null;
+let silenceTimer = null;
+let isSubmitting = false;
 
-// Setup Voice Manager
+// Setup Voice Manager (Hands-Free Continuous Conversational Loop)
 const voice = new VoiceManager({
   onInterimResult: (interim) => {
+    if (silenceTimer) clearTimeout(silenceTimer);
+    if (voiceIndicator) voiceIndicator.style.display = 'inline-block';
     candidateAnswerBox.placeholder = interim;
   },
   onFinalResult: (final) => {
-    const prev = candidateAnswerBox.value;
+    const prev = candidateAnswerBox.value.trim();
     candidateAnswerBox.value = prev ? `${prev} ${final}` : final;
+    if (voiceIndicator) voiceIndicator.style.display = 'inline-block';
+
+    // Automated Silence Detection / VAD:
+    // If candidate has spoken and pauses for 2.4 seconds, auto-submit response!
+    if (silenceTimer) clearTimeout(silenceTimer);
+    silenceTimer = setTimeout(() => {
+      const text = candidateAnswerBox.value.trim();
+      const wordCount = text.split(/\s+/).filter(Boolean).length;
+      if (wordCount >= 3 && !isSubmitting) {
+        console.log('[VoiceVAD] Silence detected after speech. Auto-submitting response...');
+        submitCurrentAnswer();
+      }
+    }, 2400);
   },
   onError: (err) => {
     console.warn('Voice error:', err);
-    setRecordingUI(false);
+    // If recognition times out while listening, auto-restart if still candidate turn
+    if (interviewRoomWrapper && interviewRoomWrapper.style.display !== 'none' && !isSubmitting && !avatar.classList.contains('speaking')) {
+      setTimeout(() => {
+        try { voice.startListening(); } catch (e) {}
+      }, 500);
+    }
   },
   onSpeakStart: () => {
-    avatar.classList.add('speaking');
+    setVoiceBarState('speaking');
+    try { voice.stopListening(); } catch (e) {}
   },
   onSpeakEnd: () => {
-    avatar.classList.remove('speaking');
+    setVoiceBarState('listening');
+    try { voice.startListening(); } catch (e) {}
   }
 });
+
+function setVoiceBarState(state) {
+  if (!voiceStatusPulse || !voiceStateTitle) return;
+  if (state === 'speaking') {
+    voiceStatusPulse.style.background = '#2563eb';
+    voiceStatusPulse.style.boxShadow = '0 0 8px #2563eb';
+    voiceStatusPulse.style.animation = 'none';
+    voiceStateTitle.textContent = 'AI Interviewer Speaking...';
+    voiceStateSubtitle.textContent = 'Please listen to the question carefully.';
+    if (voiceIndicator) voiceIndicator.style.display = 'none';
+    avatar.classList.add('speaking');
+  } else if (state === 'listening') {
+    voiceStatusPulse.style.background = '#10b981';
+    voiceStatusPulse.style.boxShadow = '0 0 10px #10b981';
+    voiceStatusPulse.style.animation = 'pulse 1.5s infinite';
+    voiceStateTitle.textContent = 'Live Mic Active · Listening to your voice';
+    voiceStateSubtitle.textContent = 'Speak freely · Auto-submits after speaking';
+    if (voiceIndicator) voiceIndicator.style.display = 'inline-block';
+    avatar.classList.remove('speaking');
+  } else if (state === 'submitting') {
+    voiceStatusPulse.style.background = '#d97706';
+    voiceStatusPulse.style.boxShadow = '0 0 8px #d97706';
+    voiceStatusPulse.style.animation = 'none';
+    voiceStateTitle.textContent = 'AI Evaluating Response...';
+    voiceStateSubtitle.textContent = 'Analyzing technical depth and reasoning...';
+    if (voiceIndicator) voiceIndicator.style.display = 'none';
+    avatar.classList.remove('speaking');
+  }
+}
 
 // Setup Active Interview Session Countdown Timer
 let activeTimerSecondsRemaining = 0;
@@ -292,6 +347,120 @@ function isDefaultTemplate(text) {
   return false;
 }
 
+function resolveProblemDetails(probString) {
+  if (!probString) return null;
+  const pStr = probString.trim();
+
+  // 1. Check in LEETCODE_CATALOG by ID or Title
+  for (const [key, prob] of Object.entries(LEETCODE_CATALOG)) {
+    if (
+      pStr === key ||
+      pStr.toLowerCase() === prob.title.toLowerCase() ||
+      pStr.includes(prob.title) ||
+      pStr.includes(`#${key}:`) ||
+      pStr.includes(`#${key} `)
+    ) {
+      return prob;
+    }
+  }
+
+  // 2. Custom problem fallback: format custom string into rich problem spec
+  const cleanTitle = pStr.startsWith('LeetCode') ? pStr : `LeetCode Challenge: ${pStr}`;
+  return {
+    title: cleanTitle,
+    difficulty: 'Medium / Technical Screening',
+    description: `Problem Challenge: ${pStr}.\nImplement an optimal, production-ready solution. Analyze time & space complexities and handle all edge cases.`,
+    testcases: `Input: Standard sample test case for ${pStr} | Output: Verified optimal result`,
+    templates: {
+      javascript: `/**\n * Solution for: ${cleanTitle}\n * @param {*} input\n * @return {*}\n */\nfunction solution(input) {\n  // TODO: Implement your solution here\n  \n}\n\n// Test execution:\nconsole.log('Running test for ${cleanTitle}...');`,
+      python: `# Solution for: ${cleanTitle}\ndef solution(input):\n    # TODO: Implement your solution here\n    pass\n\n# Test execution:\nprint('Running test for ${cleanTitle}...')`,
+      cpp: `// Solution for: ${cleanTitle}\n#include <iostream>\n#include <vector>\nusing namespace std;\n\nint main() {\n    // TODO: Implement solution\n    cout << "Testing ${cleanTitle}" << endl;\n    return 0;\n}`,
+      java: `// Solution for: ${cleanTitle}\nimport java.util.*;\n\npublic class Solution {\n    public static void main(String[] args) {\n        // TODO: Implement solution\n        System.out.println("Testing ${cleanTitle}");\n    }\n}`,
+      sql: `-- SQL Solution for: ${cleanTitle}\nSELECT * FROM data_table\nLIMIT 10;`
+    }
+  };
+}
+
+function isCodingOrWritingQuestion(qText = '', skill = '') {
+  const text = (qText + ' ' + (skill || '')).toLowerCase();
+  const codingKeywords = [
+    'code', 'function', 'implement', 'algorithm', 'leetcode', 'array', 'string',
+    'tree', 'graph', 'dynamic programming', 'pointer', 'binary search', 'write a function',
+    'write a program', 'write code', 'solve', 'data structure', 'complexity', 'time complexity',
+    'space complexity', 'two sum', 'valid parenthes', 'linked list', 'sql query', 'database query',
+    'class ', 'def ', 'return ', 'test cases', 'scratchpad', 'diagram', 'design a system',
+    'architecture', 'schema'
+  ];
+  return codingKeywords.some(k => text.includes(k));
+}
+
+function updateToolVisibilityForQuestion(qText = '', skill = '') {
+  const isCoding = isCodingOrWritingQuestion(qText, skill);
+  const hasTerminal = Boolean(interviewData?.terminal_required);
+  const hasWordEditor = Boolean(interviewData?.word_editor_required);
+  const hasDsa = Boolean(interviewData?.leetcode_problem);
+
+  if ((hasTerminal || hasDsa || hasWordEditor) && isCoding) {
+    if (interactiveToolsContainer) interactiveToolsContainer.style.display = 'flex';
+    if (interviewRoomWrapper) interviewRoomWrapper.classList.add('expanded');
+    if (hasTerminal || hasDsa) {
+      if (terminalToolPanel) terminalToolPanel.style.display = 'flex';
+      if (wordToolPanel) wordToolPanel.style.display = 'none';
+    } else if (hasWordEditor) {
+      if (wordToolPanel) wordToolPanel.style.display = 'flex';
+      if (terminalToolPanel) terminalToolPanel.style.display = 'none';
+    }
+    if (btnToggleToolsPanel) {
+      btnToggleToolsPanel.style.display = 'inline-flex';
+      btnToggleToolsPanel.innerHTML = '<i class="bi bi-code-slash"></i> Hide Coding Sandbox';
+      btnToggleToolsPanel.classList.add('btn-primary');
+      btnToggleToolsPanel.classList.remove('btn-outline-secondary');
+    }
+  } else {
+    // Pure verbal/conversational question: Keep tools hidden for full-width immersive interview
+    if (interactiveToolsContainer) interactiveToolsContainer.style.display = 'none';
+    if (interviewRoomWrapper) interviewRoomWrapper.classList.remove('expanded');
+    if (terminalToolPanel) terminalToolPanel.style.display = 'none';
+    if (wordToolPanel) wordToolPanel.style.display = 'none';
+    if (btnToggleToolsPanel && (hasTerminal || hasDsa || hasWordEditor)) {
+      btnToggleToolsPanel.style.display = 'inline-flex';
+      btnToggleToolsPanel.innerHTML = '<i class="bi bi-code-slash"></i> Open Coding Sandbox';
+      btnToggleToolsPanel.classList.remove('btn-primary');
+      btnToggleToolsPanel.classList.add('btn-outline-secondary');
+    }
+  }
+}
+
+window.toggleInteractiveToolsManual = function() {
+  if (!interactiveToolsContainer || !interviewRoomWrapper) return;
+  const isCurrentlyOpen = interactiveToolsContainer.style.display !== 'none';
+  if (isCurrentlyOpen) {
+    interactiveToolsContainer.style.display = 'none';
+    interviewRoomWrapper.classList.remove('expanded');
+    if (btnToggleToolsPanel) {
+      btnToggleToolsPanel.innerHTML = '<i class="bi bi-code-slash"></i> Open Coding Sandbox';
+      btnToggleToolsPanel.classList.remove('btn-primary');
+      btnToggleToolsPanel.classList.add('btn-outline-secondary');
+    }
+  } else {
+    interactiveToolsContainer.style.display = 'flex';
+    interviewRoomWrapper.classList.add('expanded');
+    const hasWordOnly = interviewData?.word_editor_required && !interviewData?.terminal_required && !interviewData?.leetcode_problem;
+    if (hasWordOnly) {
+      if (wordToolPanel) wordToolPanel.style.display = 'flex';
+      if (terminalToolPanel) terminalToolPanel.style.display = 'none';
+    } else {
+      if (terminalToolPanel) terminalToolPanel.style.display = 'flex';
+      if (wordToolPanel) wordToolPanel.style.display = 'none';
+    }
+    if (btnToggleToolsPanel) {
+      btnToggleToolsPanel.innerHTML = '<i class="bi bi-code-slash"></i> Hide Coding Sandbox';
+      btnToggleToolsPanel.classList.add('btn-primary');
+      btnToggleToolsPanel.classList.remove('btn-outline-secondary');
+    }
+  }
+};
+
 window.updateStarterCodeForLanguage = function(lang, force = false) {
   if (!terminalCodeInput) return;
   const currentCode = terminalCodeInput.value.trim();
@@ -299,17 +468,7 @@ window.updateStarterCodeForLanguage = function(lang, force = false) {
   // Determine if active LeetCode problem exists
   let matchedProblem = null;
   if (interviewData && interviewData.leetcode_problem) {
-    const lcStr = interviewData.leetcode_problem;
-    for (const [key, prob] of Object.entries(LEETCODE_CATALOG)) {
-      if (
-        lcStr.includes(prob.title) ||
-        lcStr.includes(`#${key}:`) ||
-        lcStr.includes(`#${key} `)
-      ) {
-        matchedProblem = prob;
-        break;
-      }
-    }
+    matchedProblem = resolveProblemDetails(interviewData.leetcode_problem);
   }
 
   let newTemplate = '';
@@ -701,42 +860,23 @@ async function loadInterviewData() {
     const hasTerminal = Boolean(interviewData.terminal_required);
     const hasWordEditor = Boolean(interviewData.word_editor_required);
     const hasDsa = Boolean(interviewData.leetcode_problem);
+    const btnToggle = document.getElementById('btn-toggle-tools-panel');
+
+    // Default to clean, full-width conversational mode (tools hidden until coding question arrives)
+    interviewRoomWrapper.classList.remove('expanded');
+    interactiveToolsContainer.style.display = 'none';
+    if (terminalToolPanel) terminalToolPanel.style.display = 'none';
+    if (wordToolPanel) wordToolPanel.style.display = 'none';
 
     if (hasTerminal || hasWordEditor || hasDsa) {
-      interviewRoomWrapper.classList.add('expanded');
-      interactiveToolsContainer.style.display = 'flex';
-      if ((hasTerminal || hasDsa) && terminalToolPanel) {
-        terminalToolPanel.style.display = 'flex';
-      } else if (terminalToolPanel) {
-        terminalToolPanel.style.display = 'none';
-      }
-      if (hasWordEditor && wordToolPanel) {
-        wordToolPanel.style.display = 'flex';
-      } else if (wordToolPanel) {
-        wordToolPanel.style.display = 'none';
-      }
+      if (btnToggle) btnToggle.style.display = 'inline-flex';
     } else {
-      // STRICTLY hide compiler / interactive tools for non-coding roles!
-      interviewRoomWrapper.classList.remove('expanded');
-      interactiveToolsContainer.style.display = 'none';
-      if (terminalToolPanel) terminalToolPanel.style.display = 'none';
-      if (wordToolPanel) wordToolPanel.style.display = 'none';
+      if (btnToggle) btnToggle.style.display = 'none';
     }
 
     if (hasDsa) {
       const lcStr = (interviewData.leetcode_problem || '').trim();
-      let matched = null;
-      for (const [key, prob] of Object.entries(LEETCODE_CATALOG)) {
-        if (
-          lcStr.toLowerCase() === key.toLowerCase() ||
-          lcStr.toLowerCase().includes(prob.title.toLowerCase()) ||
-          lcStr.includes(`#${key}:`) ||
-          lcStr.includes(`#${key} `)
-        ) {
-          matched = prob;
-          break;
-        }
-      }
+      let matched = resolveProblemDetails(lcStr);
 
       const problemSpec = document.getElementById('terminal-problem-spec');
       if (problemSpec) {
@@ -752,15 +892,6 @@ async function loadInterviewData() {
           if (specTestcases) specTestcases.textContent = matched.testcases;
           const activeLang = terminalLangSelect ? terminalLangSelect.value : 'javascript';
           updateStarterCodeForLanguage(activeLang, true);
-        } else {
-          const specTitle = document.getElementById('spec-problem-title');
-          const specDiff = document.getElementById('spec-problem-diff');
-          const specDesc = document.getElementById('spec-problem-desc');
-          const specTestcases = document.getElementById('spec-problem-testcases');
-          if (specTitle) specTitle.textContent = lcStr;
-          if (specDiff) specDiff.textContent = 'Custom Challenge';
-          if (specDesc) specDesc.textContent = 'Solve and implement the algorithmic solution in the editor below.';
-          if (specTestcases) specTestcases.textContent = 'Write comprehensive unit tests in the editor and verify in the console.';
         }
       }
     }
@@ -973,11 +1104,7 @@ window.verifySetupCamera = async function() {
   }
 };
 
-async function startProctoredInterview(mode) {
-  if (mode === 'text') {
-    btnPushToTalk.style.display = 'none';
-  }
-
+async function startProctoredInterview() {
   // 1. Initialize Proctor Engine
   try {
     proctor = new ProctorEngine({
@@ -1002,13 +1129,11 @@ async function startProctoredInterview(mode) {
   fetchNextQuestion(null);
 }
 
-btnStartVoice.addEventListener('click', () => {
-  startProctoredInterview('voice');
-});
-
-btnStartText.addEventListener('click', () => {
-  startProctoredInterview('text');
-});
+if (btnStartVoice) {
+  btnStartVoice.addEventListener('click', () => {
+    startProctoredInterview();
+  });
+}
 
 function showInterviewRoom() {
   consentScreen.style.display = 'none';
@@ -1022,53 +1147,65 @@ function showInterviewRoom() {
   startInterviewDurationTimer(durationMins, showTimer, autoSubmit);
 }
 
-function setRecordingUI(recording) {
-  isRecording = recording;
-  if (recording) {
-    btnPushToTalk.innerHTML = '<i class="bi bi-stop-circle-fill"></i> Stop Recording (Finished Speaking)';
-    btnPushToTalk.style.backgroundColor = '#dc2626';
-    voiceIndicator.style.display = 'inline-block';
-  } else {
-    btnPushToTalk.innerHTML = '<i class="bi bi-mic-fill"></i> Push to Talk (Start Speaking)';
-    btnPushToTalk.style.backgroundColor = '#000000';
-    voiceIndicator.style.display = 'none';
-  }
-}
-
-// 3. Interview Q&A Loop
-btnPushToTalk.addEventListener('click', () => {
-  if (!isRecording) {
-    voice.startListening();
-    setRecordingUI(true);
-  } else {
-    voice.stopListening();
-    setRecordingUI(false);
-  }
-});
-
-btnSubmitAnswer.addEventListener('click', async () => {
-  const answer = candidateAnswerBox.value.trim();
+// 3. Hands-Free Conversational Voice Q&A Loop
+async function submitCurrentAnswer() {
+  if (isSubmitting) return;
+  const answer = candidateAnswerBox ? candidateAnswerBox.value.trim() : '';
   if (!answer) {
-    alert('Please enter or speak an answer before submitting.');
     return;
   }
 
-  if (isRecording) {
-    voice.stopListening();
-    setRecordingUI(false);
+  isSubmitting = true;
+  if (silenceTimer) {
+    clearTimeout(silenceTimer);
+    silenceTimer = null;
   }
 
-  btnSubmitAnswer.disabled = true;
-  btnSubmitAnswer.innerHTML = '<i class="bi bi-hourglass-split"></i> AI Analyzing...';
-  
+  try {
+    voice.stopListening();
+  } catch (e) {}
+
+  setVoiceBarState('submitting');
+  if (btnSubmitAnswer) {
+    btnSubmitAnswer.disabled = true;
+    btnSubmitAnswer.innerHTML = '<i class="bi bi-hourglass-split"></i> AI Analyzing...';
+  }
+
   await fetchNextQuestion(answer);
-  candidateAnswerBox.value = '';
-  btnSubmitAnswer.disabled = false;
-  btnSubmitAnswer.innerHTML = 'Submit Answer <i class="bi bi-send-fill"></i>';
-});
+
+  if (candidateAnswerBox) {
+    candidateAnswerBox.value = '';
+    candidateAnswerBox.placeholder = 'AI is speaking... your answer will be transcribed here when it finishes.';
+  }
+  isSubmitting = false;
+
+  if (btnSubmitAnswer) {
+    btnSubmitAnswer.disabled = false;
+    btnSubmitAnswer.innerHTML = 'Submit Answer <i class="bi bi-send-fill"></i>';
+  }
+}
+
+if (btnSubmitAnswer) {
+  btnSubmitAnswer.addEventListener('click', () => {
+    const answer = candidateAnswerBox ? candidateAnswerBox.value.trim() : '';
+    if (!answer) {
+      alert('Please speak or type an answer before submitting.');
+      return;
+    }
+    submitCurrentAnswer();
+  });
+}
+
+if (btnToggleToolsPanel) {
+  btnToggleToolsPanel.addEventListener('click', () => {
+    window.toggleInteractiveToolsManual();
+  });
+}
 
 async function fetchNextQuestion(answerText) {
-  aiQuestionText.textContent = 'AI is preparing the next question...';
+  if (aiQuestionText) {
+    aiQuestionText.textContent = 'AI is preparing the next question...';
+  }
   
   try {
     const res = await fetch(`/i/${token}/answer`, {
@@ -1084,28 +1221,41 @@ async function fetchNextQuestion(answerText) {
       return;
     }
 
-    aiQuestionText.textContent = data.question;
+    if (aiQuestionText) {
+      aiQuestionText.textContent = data.question;
+    }
+
+    // Check question content to dynamically open or close tools
+    updateToolVisibilityForQuestion(data.question, data.skill);
 
     // Speak question aloud using browser speech synthesis
     voice.speak(data.question);
   } catch (err) {
-    aiQuestionText.textContent = 'Network or AI connection error. Please click Repeat Question or Submit again.';
+    if (aiQuestionText) {
+      aiQuestionText.textContent = 'Network or AI connection error. Please click Repeat Question or Submit again.';
+    }
     console.error(err);
+    setVoiceBarState('listening');
+    try { voice.startListening(); } catch (e) {}
   }
 }
 
-btnRepeatAudio.addEventListener('click', () => {
-  const currentText = aiQuestionText.textContent;
-  if (currentText) {
-    voice.speak(currentText);
-  }
-});
+if (btnRepeatAudio) {
+  btnRepeatAudio.addEventListener('click', () => {
+    const currentText = aiQuestionText ? aiQuestionText.textContent : '';
+    if (currentText) {
+      voice.speak(currentText);
+    }
+  });
+}
 
-btnFinishEarly.addEventListener('click', () => {
-  if (confirm('Are you sure you want to conclude the interview now? Your answers will be submitted for evaluation.')) {
-    finishInterview();
-  }
-});
+if (btnFinishEarly) {
+  btnFinishEarly.addEventListener('click', () => {
+    if (confirm('Are you sure you want to conclude the interview now? Your answers will be submitted for evaluation.')) {
+      finishInterview();
+    }
+  });
+}
 
 async function finishInterview() {
   if (countdownTimerId) clearInterval(countdownTimerId);
@@ -1115,8 +1265,8 @@ async function finishInterview() {
   }
   voice.stopSpeaking();
   voice.stopListening();
-  interviewRoomWrapper.style.display = 'none';
-  completedScreen.style.display = 'block';
+  if (interviewRoomWrapper) interviewRoomWrapper.style.display = 'none';
+  if (completedScreen) completedScreen.style.display = 'block';
 
   try {
     await fetch(`/i/${token}/finish`, { method: 'POST' });
