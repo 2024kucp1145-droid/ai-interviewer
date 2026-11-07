@@ -16,6 +16,7 @@ import { extractTextFromBuffer, parseResumeText } from './services/resumeParser.
 import { getPlannedQuestions } from './interview/questionBank.js';
 import { billingRouter } from './billing/billingRoutes.js';
 import { dispatchCandidateNotification, buildInterviewRulesText } from './services/dispatchService.js';
+import { judgeLeetCodeSolution } from './services/leetcodeJudge.js';
 
 dotenv.config();
 
@@ -779,6 +780,46 @@ app.post('/api/questions/preview', (req, res) => {
     res.json({ success: true, count: questions.length, questions });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Automated LeetCode & Coding Judge Runner Endpoint ---
+app.post('/api/compiler/judge', async (req, res) => {
+  try {
+    const { problemId = '1', lang = 'javascript', code = '', token = '' } = req.body;
+    if (!code || !code.trim()) {
+      return res.status(400).json({ error: 'Please enter code to evaluate against test cases.' });
+    }
+
+    const result = await judgeLeetCodeSolution(String(problemId), lang, code);
+
+    // If an interview session token is provided, persist result in the database
+    if (token) {
+      try {
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+        const interview = db.prepare('SELECT id FROM interviews WHERE token_hash = ? OR id = ?').get(tokenHash, token);
+        if (interview) {
+          const dsaSummary = {
+            problemId,
+            lang,
+            verdict: result.verdict,
+            passedCount: result.passedCount,
+            totalCount: result.totalCount,
+            runtimeMs: result.runtimeMs,
+            memoryMb: result.memoryMb,
+            timestamp: new Date().toISOString()
+          };
+          db.prepare('UPDATE interviews SET dsa_result = ? WHERE id = ?').run(JSON.stringify(dsaSummary), interview.id);
+        }
+      } catch (saveErr) {
+        console.warn('[Judge] Failed to save dsa_result to interview:', saveErr.message);
+      }
+    }
+
+    res.json({ success: true, result });
+  } catch (err) {
+    console.error('[Judge Error]:', err);
+    res.status(500).json({ error: err.message || 'Judge execution failed' });
   }
 });
 

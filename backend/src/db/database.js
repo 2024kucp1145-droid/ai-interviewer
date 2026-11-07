@@ -231,5 +231,8 @@ export function initDatabase() {
   addColumn('interviews', 'dispatch_channel', "TEXT DEFAULT 'link'");
   addColumn('interviews', 'source', "TEXT DEFAULT 'direct'");
 
+  // Automated LeetCode Judge & Coding Sandbox Results
+  addColumn('interviews', 'dsa_result', 'TEXT');
+
   console.log('✓ SQLite database initialized and migrated with interview customization options');
 }

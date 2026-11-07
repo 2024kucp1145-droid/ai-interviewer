@@ -1100,6 +1100,9 @@
                 <button class="btn btn-sm" onclick="runSandboxCode()" style="padding: 0.2rem 0.6rem; font-size: 0.7rem;">
                   <i class="bi bi-play-fill"></i> Run Code
                 </button>
+                <button id="btn-judge-testcases" class="btn btn-sm" onclick="runLeetCodeJudge()" style="padding: 0.2rem 0.65rem; font-size: 0.7rem; background: #059669; color: #ffffff; font-weight: 700; border-color: #059669;" title="Submit to automated judge (Public & Hidden Test Cases)">
+                  <i class="bi bi-check2-all"></i> Run Test Cases (Hidden &amp; Public)
+                </button>
                 <button class="btn btn-outline btn-sm" onclick="resetToStarterCode()" style="padding: 0.2rem 0.5rem; font-size: 0.7rem;" title="Reset editor to problem skeleton">
                   <i class="bi bi-arrow-counterclockwise"></i> Reset
                 </button>
@@ -1131,7 +1134,10 @@ solution();"></textarea>
               <span style="font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">
                 <i class="bi bi-terminal"></i> Console Output:
               </span>
-              <div style="display: flex; gap: 0.4rem;">
+              <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                <button id="btn-insert-judge-result" class="btn btn-secondary btn-sm" onclick="copyJudgeResultToAnswer()" style="padding: 0.15rem 0.5rem; font-size: 0.6875rem; margin-top: 0; display: none;">
+                  <i class="bi bi-clipboard-check"></i> Insert Test Results
+                </button>
                 <button class="btn btn-secondary btn-sm" onclick="copyCodeToAnswer()" style="padding: 0.15rem 0.5rem; font-size: 0.6875rem; margin-top: 0;">
                   <i class="bi bi-box-arrow-down-left"></i> Insert Code in Answer
                 </button>

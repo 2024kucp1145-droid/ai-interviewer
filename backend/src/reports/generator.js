@@ -250,6 +250,37 @@ ${transcriptFormatted}
   validatedReport = enforceStrictScoringAudit(validatedReport, turns, job);
   validatedReport.question_evaluations = questionEvaluations;
 
+  // Attach LeetCode & DSA Automated Judge Evaluation if available
+  if (interview.dsa_result) {
+    try {
+      const dsaData = JSON.parse(interview.dsa_result);
+      validatedReport.dsa_evaluation = {
+        problem_id: dsaData.problemId,
+        language: dsaData.lang,
+        verdict: dsaData.verdict,
+        passed_tests: dsaData.passedCount,
+        total_tests: dsaData.totalCount,
+        runtime_ms: dsaData.runtimeMs,
+        memory_mb: dsaData.memoryMb,
+        summary: `LeetCode Problem #${dsaData.problemId}: ${dsaData.verdict} (${dsaData.passedCount}/${dsaData.totalCount} Test Cases Passed)`
+      };
+
+      if (dsaData.verdict === 'ACCEPTED') {
+        if (!validatedReport.skills.some(s => s.skill.toLowerCase().includes('data structure') || s.skill.toLowerCase().includes('dsa') || s.skill.toLowerCase().includes('algorithms'))) {
+          validatedReport.skills.unshift({
+            skill: 'Data Structures & Algorithms (DSA)',
+            score: 5,
+            confidence: 'high',
+            evidence: [{ quote: `Passed ${dsaData.passedCount}/${dsaData.totalCount} automated hidden test cases for LeetCode Problem #${dsaData.problemId}`, turn: 0, verified_in_transcript: true }],
+            gaps: []
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('[ReportGenerator] Failed to attach dsa_result:', e.message);
+    }
+  }
+
   // Save report in DB
   const reportId = 'rep_' + crypto.randomUUID();
   db.prepare(`
