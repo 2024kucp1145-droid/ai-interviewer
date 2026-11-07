@@ -1,0 +1,637 @@
+/* ========================================================
+   HACKERRANK-INSPIRED MODERN CODE ASSESSMENT THEME
+   With Floating Widgets, Glassmorphism & Cyber Aesthetics
+   ======================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  --hr-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --hr-font-mono: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
+
+  --hr-bg: #090d16;
+  --hr-bg-subtle: #0f172a;
+  --hr-surface: #111827;
+  --hr-surface-glass: rgba(17, 24, 39, 0.88);
+  --hr-surface-subtle: #1e293b;
+  --hr-border: #1f293d;
+  --hr-border-bright: #334155;
+  --hr-text: #f8fafc;
+  --hr-text-muted: #94a3b8;
+  --hr-text-subtle: #64748b;
+
+  --hr-green: #00ea64;
+  --hr-green-hover: #00c853;
+  --hr-green-dim: rgba(0, 234, 100, 0.12);
+  --hr-green-glow: 0 0 16px rgba(0, 234, 100, 0.35);
+
+  --hr-cyan: #38bdf8;
+  --hr-cyan-glow: 0 0 14px rgba(56, 189, 248, 0.35);
+
+  --hr-amber: #f59e0b;
+  --hr-rose: #f43f5e;
+  --hr-blue: #3b82f6;
+
+  --hr-radius-sm: 6px;
+  --hr-radius-md: 10px;
+  --hr-radius-lg: 16px;
+  --hr-radius-pill: 9999px;
+
+  --hr-shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --hr-shadow-float: 0 20px 45px -10px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+/* Light Theme Variables */
+[data-theme="light"] {
+  --hr-bg: #f8fafc;
+  --hr-bg-subtle: #f1f5f9;
+  --hr-surface: #ffffff;
+  --hr-surface-glass: rgba(255, 255, 255, 0.92);
+  --hr-surface-subtle: #f8fafc;
+  --hr-border: #e2e8f0;
+  --hr-border-bright: #cbd5e1;
+  --hr-text: #0f172a;
+  --hr-text-muted: #64748b;
+  --hr-text-subtle: #94a3b8;
+  --hr-green: #059669;
+  --hr-green-hover: #047857;
+  --hr-green-dim: rgba(5, 150, 105, 0.1);
+  --hr-green-glow: 0 0 12px rgba(5, 150, 105, 0.25);
+  --hr-shadow-card: 0 4px 20px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  --hr-shadow-float: 0 20px 40px -10px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+/* Global Reset */
+body {
+  font-family: var(--hr-font-sans);
+  background: var(--hr-bg);
+  color: var(--hr-text);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Monospace font everywhere appropriate */
+code, pre, .font-mono, #terminal-code-input, #terminal-console-output, .badge-mono {
+  font-family: var(--hr-font-mono) !important;
+}
+
+/* ========================================================
+   1. FLOATING DYNAMIC ISLAND / AI AUDIO HUD DOCK
+   ======================================================== */
+.floating-hud-dock {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.65rem 1.25rem;
+  background: var(--hr-surface-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--hr-radius-pill);
+  box-shadow: var(--hr-shadow-float);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 95vw;
+}
+
+[data-theme="light"] .floating-hud-dock {
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+.floating-hud-dock:hover {
+  box-shadow: 0 25px 50px -8px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(0, 234, 100, 0.25);
+}
+
+/* Audio Soundwave Equalizer */
+.hud-equalizer {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+  padding: 0 4px;
+}
+
+.hud-equalizer .bar {
+  width: 3.5px;
+  height: 6px;
+  background: var(--hr-green);
+  border-radius: 9999px;
+  transition: height 0.15s ease;
+}
+
+.hud-equalizer.active .bar {
+  animation: hudWave 0.9s ease-in-out infinite alternate;
+}
+
+.hud-equalizer.active .bar:nth-child(1) { animation-delay: 0.0s; height: 16px; }
+.hud-equalizer.active .bar:nth-child(2) { animation-delay: 0.2s; height: 22px; }
+.hud-equalizer.active .bar:nth-child(3) { animation-delay: 0.4s; height: 12px; }
+.hud-equalizer.active .bar:nth-child(4) { animation-delay: 0.1s; height: 20px; }
+.hud-equalizer.active .bar:nth-child(5) { animation-delay: 0.3s; height: 14px; }
+
+@keyframes hudWave {
+  0% { height: 4px; }
+  50% { height: 22px; }
+  100% { height: 8px; }
+}
+
+.hud-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.hud-meta-title {
+  font-size: 0.775rem;
+  font-weight: 700;
+  color: var(--hr-text);
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  letter-spacing: -0.01em;
+}
+
+.hud-meta-title .hud-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--hr-green);
+  box-shadow: var(--hr-green-glow);
+  display: inline-block;
+  animation: hudPulse 1.6s infinite;
+}
+
+@keyframes hudPulse {
+  0% { transform: scale(0.95); opacity: 0.7; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.7; }
+}
+
+.hud-meta-subtitle {
+  font-size: 0.675rem;
+  color: var(--hr-text-muted);
+}
+
+.hud-divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="light"] .hud-divider {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* Floating Dock Action Buttons */
+.hud-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.hud-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--hr-text);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--hr-radius-pill);
+  padding: 0.4rem 0.8rem;
+  font-size: 0.725rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+[data-theme="light"] .hud-pill-btn {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.hud-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+.hud-pill-btn.primary {
+  background: var(--hr-green) !important;
+  color: #000000 !important;
+  font-weight: 800;
+  border-color: var(--hr-green) !important;
+  box-shadow: var(--hr-green-glow);
+}
+
+.hud-pill-btn.primary:hover {
+  background: var(--hr-green-hover) !important;
+  transform: translateY(-1px) scale(1.02);
+}
+
+/* ========================================================
+   2. FLOATING ENGINEERING SCRATCHPAD / NOTES DRAWER
+   ======================================================== */
+.floating-scratchpad {
+  position: fixed;
+  bottom: 88px;
+  left: 24px;
+  z-index: 999;
+  width: 360px;
+  background: var(--hr-surface-glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--hr-radius-lg);
+  box-shadow: var(--hr-shadow-float);
+  overflow: hidden;
+  animation: slideUpScratch 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpScratch {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.scratchpad-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 0.95rem;
+  background: rgba(0, 0, 0, 0.35);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.scratchpad-title {
+  font-size: 0.775rem;
+  font-weight: 700;
+  color: var(--hr-text);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.scratchpad-toolbar {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.scratchpad-tool-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--hr-text);
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.scratchpad-tool-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.scratchpad-tool-btn.primary {
+  background: var(--hr-green);
+  color: #000;
+  border-color: var(--hr-green);
+  font-weight: 700;
+}
+
+.scratchpad-body textarea {
+  width: 100%;
+  height: 180px;
+  background: transparent;
+  color: var(--hr-text);
+  border: none;
+  padding: 0.75rem 0.95rem;
+  font-family: var(--hr-font-mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.scratchpad-body textarea:focus {
+  outline: none;
+}
+
+/* ========================================================
+   3. HACKERRANK SPLIT WORKSTATION & CODE STUDIO
+   ======================================================== */
+.hr-workstation-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  transition: max-width 0.3s ease;
+}
+
+.hr-workstation-grid.expanded {
+  max-width: 1400px;
+  grid-template-columns: 460px 1fr;
+}
+
+@media (max-width: 1024px) {
+  .hr-workstation-grid.expanded {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Card Styling */
+.hr-card {
+  background: var(--hr-surface);
+  border: 1px solid var(--hr-border);
+  border-radius: var(--hr-radius-md);
+  padding: 1.35rem 1.65rem;
+  box-shadow: var(--hr-shadow-card);
+  transition: all 0.2s ease;
+}
+
+/* Problem Specification HackerRank Banner */
+.hr-problem-banner {
+  background: linear-gradient(135deg, rgba(17, 24, 39, 0.95), rgba(30, 41, 59, 0.9));
+  border: 1px solid var(--hr-border);
+  border-radius: var(--hr-radius-md);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.hr-problem-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.hr-difficulty-badge {
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.hr-difficulty-badge.easy {
+  background: rgba(0, 234, 100, 0.15);
+  color: var(--hr-green);
+  border: 1px solid rgba(0, 234, 100, 0.3);
+}
+
+.hr-difficulty-badge.medium {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--hr-amber);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.hr-difficulty-badge.hard {
+  background: rgba(244, 63, 94, 0.15);
+  color: var(--hr-rose);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+/* HackerRank IDE Top Bar */
+.hr-ide-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 0.95rem;
+  background: #090d16;
+  border-bottom: 1px solid var(--hr-border);
+  border-radius: var(--hr-radius-md) var(--hr-radius-md) 0 0;
+}
+
+.hr-lang-select {
+  background: #111827;
+  color: var(--hr-text);
+  border: 1px solid var(--hr-border);
+  padding: 0.35rem 0.65rem;
+  border-radius: 5px;
+  font-size: 0.75rem;
+  font-family: var(--hr-font-mono);
+  font-weight: 600;
+}
+
+.hr-ide-btn-run {
+  background: var(--hr-green) !important;
+  color: #000000 !important;
+  font-weight: 800 !important;
+  border: none !important;
+  padding: 0.35rem 0.85rem !important;
+  border-radius: 5px !important;
+  font-size: 0.75rem !important;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  box-shadow: var(--hr-green-glow);
+  transition: all 0.15s ease;
+}
+
+.hr-ide-btn-run:hover {
+  background: var(--hr-green-hover) !important;
+  transform: translateY(-1px);
+}
+
+.hr-ide-btn-judge {
+  background: #1f293d !important;
+  color: var(--hr-cyan) !important;
+  border: 1px solid rgba(56, 189, 248, 0.3) !important;
+  font-weight: 700 !important;
+  padding: 0.35rem 0.85rem !important;
+  border-radius: 5px !important;
+  font-size: 0.75rem !important;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.15s ease;
+}
+
+.hr-ide-btn-judge:hover {
+  background: rgba(56, 189, 248, 0.1) !important;
+  border-color: var(--hr-cyan) !important;
+}
+
+/* HackerRank Dark Editor Textarea */
+.hr-code-editor {
+  width: 100%;
+  min-height: 260px;
+  background: #06090f;
+  color: #e2e8f0;
+  font-family: var(--hr-font-mono);
+  font-size: 0.825rem;
+  line-height: 1.55;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--hr-border);
+  border-top: none;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.hr-code-editor:focus {
+  outline: none;
+  border-color: var(--hr-cyan);
+  box-shadow: 0 0 0 1px var(--hr-cyan);
+}
+
+/* Tabbed Test Case Output Drawer */
+.hr-testcase-drawer {
+  background: #090d16;
+  border: 1px solid var(--hr-border);
+  border-radius: 0 0 var(--hr-radius-md) var(--hr-radius-md);
+  margin-top: -1px;
+}
+
+.hr-testcase-nav {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.4rem 0.75rem;
+  background: #06090f;
+  border-bottom: 1px solid var(--hr-border);
+}
+
+.hr-testcase-tab {
+  background: transparent;
+  color: var(--hr-text-muted);
+  border: none;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.3rem 0.65rem;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.hr-testcase-tab.active {
+  background: var(--hr-surface);
+  color: var(--hr-green);
+  font-weight: 700;
+}
+
+.hr-testcase-content {
+  padding: 0.75rem 1rem;
+  font-family: var(--hr-font-mono);
+  font-size: 0.75rem;
+  min-height: 80px;
+  max-height: 160px;
+  overflow-y: auto;
+  color: var(--hr-green);
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+/* ========================================================
+   4. FLOATING PROCTOR PIP CAMERA WIDGET REFINEMENT
+   ======================================================== */
+#proctor-pip-widget {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+  width: 260px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#proctor-pip-widget.minimized {
+  width: 170px;
+  height: 40px;
+  overflow: hidden;
+}
+
+#proctor-pip-widget .proctor-pip-card {
+  background: var(--hr-surface-glass);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--hr-radius-md);
+  box-shadow: var(--hr-shadow-float);
+  overflow: hidden;
+}
+
+#proctor-pip-widget .proctor-pip-header {
+  background: #090d16;
+  padding: 0.45rem 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Cyber targeting frame on face */
+.proctor-face-box {
+  border: 2px dashed var(--hr-green) !important;
+  box-shadow: 0 0 10px rgba(0, 234, 100, 0.3) !important;
+}
+
+/* Top Navbar HackerRank Elements */
+.hr-top-navbar {
+  background: var(--hr-surface-glass);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--hr-border);
+  padding: 0.75rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.hr-brand-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.hr-brand-logo {
+  font-weight: 800;
+  font-size: 1rem;
+  color: var(--hr-text);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  letter-spacing: -0.02em;
+}
+
+.hr-brand-logo i {
+  color: var(--hr-green);
+  font-size: 1.25rem;
+}
+
+.hr-proctored-pill {
+  background: rgba(0, 234, 100, 0.1);
+  color: var(--hr-green);
+  border: 1px solid rgba(0, 234, 100, 0.25);
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  letter-spacing: 0.02em;
+}
+
+.hr-timer-pill {
+  background: #090d16;
+  color: var(--hr-text);
+  border: 1px solid var(--hr-border-bright);
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--hr-radius-pill);
+  font-family: var(--hr-font-mono);
+  font-size: 0.775rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}

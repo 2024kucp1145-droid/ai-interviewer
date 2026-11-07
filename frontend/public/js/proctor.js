@@ -98,10 +98,15 @@ export class ProctorEngine {
             <span class="proctor-pip-dot" id="proctor-status-dot" style="background: #3b82f6; box-shadow: 0 0 8px #3b82f6;"></span>
             <span id="proctor-status-title">Warmup (15s)</span>
           </div>
-          <div class="proctor-pip-warnings" id="proctor-pip-warning-pills">
-            <span class="pill-badge" id="pip-pill-1">1</span>
-            <span class="pill-badge" id="pip-pill-2">2</span>
-            <span class="pill-badge" id="pip-pill-3">3</span>
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <div class="proctor-pip-warnings" id="proctor-pip-warning-pills">
+              <span class="pill-badge" id="pip-pill-1">1</span>
+              <span class="pill-badge" id="pip-pill-2">2</span>
+              <span class="pill-badge" id="pip-pill-3">3</span>
+            </div>
+            <button type="button" id="btn-minimize-pip" style="background: none; border: none; color: #94a3b8; cursor: pointer; padding: 0 0.15rem; font-size: 0.75rem;" title="Minimize / Restore Camera">
+              <i class="bi bi-dash-lg" id="pip-toggle-icon"></i>
+            </button>
           </div>
         </div>
         <div class="proctor-video-wrapper">
@@ -119,6 +124,17 @@ export class ProctorEngine {
     `;
 
     parent.appendChild(wrapper);
+
+    const minBtn = wrapper.querySelector('#btn-minimize-pip');
+    if (minBtn) {
+      minBtn.addEventListener('click', () => {
+        const isMin = wrapper.classList.toggle('minimized');
+        const icon = wrapper.querySelector('#pip-toggle-icon');
+        if (icon) {
+          icon.className = isMin ? 'bi bi-plus-lg' : 'bi bi-dash-lg';
+        }
+      });
+    }
 
     this.videoEl = document.getElementById('proctor-webcam-feed');
     if (this.videoEl && this.videoStream) {

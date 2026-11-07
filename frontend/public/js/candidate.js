@@ -97,33 +97,85 @@ const voice = new VoiceManager({
 });
 
 function setVoiceBarState(state) {
+  const soundwave = document.getElementById('hud-soundwave');
   if (!voiceStatusPulse || !voiceStateTitle) return;
   if (state === 'speaking') {
-    voiceStatusPulse.style.background = '#2563eb';
-    voiceStatusPulse.style.boxShadow = '0 0 8px #2563eb';
+    voiceStatusPulse.style.background = '#38bdf8';
+    voiceStatusPulse.style.boxShadow = '0 0 10px #38bdf8';
     voiceStatusPulse.style.animation = 'none';
     voiceStateTitle.textContent = 'AI Interviewer Speaking...';
     voiceStateSubtitle.textContent = 'Please listen to the question carefully.';
     if (voiceIndicator) voiceIndicator.style.display = 'none';
     avatar.classList.add('speaking');
+    if (soundwave) soundwave.classList.add('active');
   } else if (state === 'listening') {
-    voiceStatusPulse.style.background = '#10b981';
-    voiceStatusPulse.style.boxShadow = '0 0 10px #10b981';
+    voiceStatusPulse.style.background = '#00ea64';
+    voiceStatusPulse.style.boxShadow = '0 0 12px #00ea64';
     voiceStatusPulse.style.animation = 'pulse 1.5s infinite';
     voiceStateTitle.textContent = 'Live Mic Active · Listening to your voice';
-    voiceStateSubtitle.textContent = 'Speak freely · Auto-submits after speaking';
+    voiceStateSubtitle.textContent = 'Speak freely · Auto-submits on silence';
     if (voiceIndicator) voiceIndicator.style.display = 'inline-block';
     avatar.classList.remove('speaking');
+    if (soundwave) soundwave.classList.add('active');
   } else if (state === 'submitting') {
-    voiceStatusPulse.style.background = '#d97706';
-    voiceStatusPulse.style.boxShadow = '0 0 8px #d97706';
+    voiceStatusPulse.style.background = '#f59e0b';
+    voiceStatusPulse.style.boxShadow = '0 0 10px #f59e0b';
     voiceStatusPulse.style.animation = 'none';
     voiceStateTitle.textContent = 'AI Evaluating Response...';
     voiceStateSubtitle.textContent = 'Analyzing technical depth and reasoning...';
     if (voiceIndicator) voiceIndicator.style.display = 'none';
     avatar.classList.remove('speaking');
+    if (soundwave) soundwave.classList.remove('active');
   }
 }
+
+// Floating Widgets & HackerRank Studio Helpers
+window.toggleFullscreen = function() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(err => {
+      console.warn('Error enabling fullscreen mode:', err);
+    });
+  } else {
+    document.exitFullscreen().catch(() => {});
+  }
+};
+
+window.toggleFloatingScratchpad = function() {
+  const drawer = document.getElementById('floating-scratchpad-drawer');
+  if (!drawer) return;
+  const isHidden = drawer.style.display === 'none' || !drawer.style.display;
+  drawer.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) {
+    const txt = document.getElementById('scratchpad-text');
+    if (txt) txt.focus();
+  }
+};
+
+window.copyScratchToAnswer = function() {
+  const txt = document.getElementById('scratchpad-text');
+  if (!txt || !txt.value.trim()) {
+    alert('Engineering scratchpad is empty.');
+    return;
+  }
+  const snippet = `\n\n[Engineering Scratchpad Notes]:\n${txt.value.trim()}\n`;
+  if (candidateAnswerBox) {
+    candidateAnswerBox.value = candidateAnswerBox.value ? `${candidateAnswerBox.value}${snippet}` : snippet;
+    candidateAnswerBox.focus();
+  }
+  window.toggleFloatingScratchpad();
+};
+
+window.insertScratchSnippet = function(type) {
+  const txt = document.getElementById('scratchpad-text');
+  if (!txt) return;
+  if (type === 'complexity') {
+    const s = `// Time Complexity: O(N log N)\n// Space Complexity: O(1) Auxiliary\n`;
+    txt.value = txt.value ? `${txt.value}\n${s}` : s;
+  } else if (type === 'architecture') {
+    const s = `[Architecture Design]\n- API Gateway / Reverse Proxy\n- Core Microservice Logic\n- Cache Layer (Redis)\n- Storage (PostgreSQL)\n`;
+    txt.value = txt.value ? `${txt.value}\n${s}` : s;
+  }
+};
 
 // Setup Active Interview Session Countdown Timer
 let activeTimerSecondsRemaining = 0;

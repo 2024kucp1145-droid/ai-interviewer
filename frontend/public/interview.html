@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Technical Screening Interview | Candidate Room</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/hackerrank-theme.css">
   <style>
     :root {
       --bg: #f8fafc;
@@ -827,16 +828,28 @@
   <script src="/js/theme.js"></script>
 </head>
 <body>
-  <header>
-    <div class="brand">
-      <i class="bi bi-cpu-fill"></i>
-      <span>AI Interviewer</span>
-    </div>
-    <div style="display: flex; gap: 0.5rem; align-items: center;">
-      <div id="header-timer" class="status-badge" style="background: #ffffff; color: #000; border: 1px solid var(--border-dark); font-family: monospace; display: none;">
-        <i class="bi bi-clock"></i> <span id="header-timer-clock">--:--</span>
+  <header class="hr-top-navbar">
+    <div class="hr-brand-group">
+      <div class="hr-brand-logo">
+        <i class="bi bi-terminal-fill"></i>
+        <span>AI Interviewer</span>
       </div>
-      <div id="header-status" class="status-badge">Candidate Session</div>
+      <span class="hr-proctored-pill">
+        <i class="bi bi-shield-lock-fill"></i> Proctored Code Assessment
+      </span>
+    </div>
+    
+    <div style="display: flex; gap: 0.65rem; align-items: center;">
+      <div id="header-timer" class="hr-timer-pill" style="display: none;">
+        <i class="bi bi-clock-history" style="color: var(--hr-green);"></i> <span id="header-timer-clock">--:--</span>
+      </div>
+      <div id="header-status" class="status-badge" style="background: var(--hr-surface-subtle); color: var(--hr-text); border: 1px solid var(--hr-border);">
+        <i class="bi bi-circle-fill" style="color: var(--hr-green); font-size: 0.55rem;"></i> Candidate Active
+      </div>
+      <!-- Fullscreen Toggle Button -->
+      <button class="theme-toggle-btn" id="btn-fullscreen-toggle" onclick="toggleFullscreen()" title="Toggle Fullscreen Focus Mode" aria-label="Toggle Fullscreen">
+        <i class="bi bi-arrows-fullscreen"></i>
+      </button>
       <!-- Theme Toggle (Right Corner) -->
       <button class="theme-toggle-btn" id="btn-theme-toggle" onclick="toggleTheme()" title="Toggle Dark / Light Mode" aria-label="Toggle Dark / Light Mode">
         <i class="bi bi-moon-stars-fill theme-toggle-icon"></i>
@@ -1017,171 +1030,230 @@
       </p>
     </div>
 
-    <!-- Screen 3: Interactive Interview Room -->
-    <div id="interview-room-wrapper" class="room-container" style="display: none;">
-      <div class="room-grid">
+    <!-- Screen 3: Interactive Interview Room & HackerRank Split Studio -->
+    <div id="interview-room-wrapper" class="hr-workstation-grid room-container" style="display: none;">
 
-        <!-- Column 1: AI Question & Candidate Answer -->
-        <div class="card" style="margin-bottom: 0;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+      <!-- Column 1: AI Question & Conversational Workspace -->
+      <div class="hr-card" style="margin-bottom: 0; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+          <!-- Header Meta Row -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; padding-bottom: 0.65rem; border-bottom: 1px solid var(--hr-border);">
             <div style="display: flex; align-items: center; gap: 0.45rem;">
-              <span id="job-title-badge" style="font-size: 0.8rem; color: #000; font-weight: 700;">Technical Screening</span>
-              <button type="button" id="btn-toggle-tools-panel" class="btn btn-outline btn-sm" onclick="toggleInteractiveToolsManual()" style="font-size: 0.68rem; padding: 0.15rem 0.5rem; display: none;">
-                <i class="bi bi-code-slash"></i> Sandbox
+              <span id="job-title-badge" style="font-size: 0.825rem; font-weight: 800; color: var(--hr-text); letter-spacing: -0.01em;">Technical Screening</span>
+              <button type="button" id="btn-toggle-tools-panel" class="hud-pill-btn" onclick="toggleInteractiveToolsManual()" style="font-size: 0.68rem; padding: 0.2rem 0.6rem; display: none;">
+                <i class="bi bi-code-slash"></i> <span>Coding Sandbox</span>
               </button>
             </div>
-            <div style="display: flex; gap: 0.35rem; align-items: center;">
-              <span id="session-timer-badge" class="status-badge" style="background: #ffffff; color: #000; border: 1px solid var(--border-dark); font-family: monospace; font-size: 0.725rem;">
-                <i class="bi bi-clock"></i> <span id="room-timer-text">--:--</span>
+            <div style="display: flex; gap: 0.4rem; align-items: center;">
+              <span id="session-timer-badge" class="hr-timer-pill" style="font-size: 0.725rem;">
+                <i class="bi bi-stopwatch" style="color: var(--hr-green);"></i> <span id="room-timer-text">--:--</span>
               </span>
-              <span id="active-status-badge" class="status-badge" style="font-size: 0.7rem;"><i class="bi bi-broadcast"></i> Active</span>
+              <span id="active-status-badge" class="hr-proctored-pill" style="font-size: 0.68rem;">
+                <i class="bi bi-broadcast"></i> Live Session
+              </span>
             </div>
           </div>
 
-          <div id="avatar" class="ai-avatar">
+          <!-- AI Interviewer Visualizer Avatar -->
+          <div id="avatar" class="ai-avatar" style="box-shadow: 0 0 25px rgba(37, 99, 235, 0.35);">
             <i class="bi bi-robot"></i>
           </div>
 
-          <div class="question-box">
-            <div style="font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.35rem; display: flex; justify-content: space-between;">
-              <span>AI Technical Interviewer</span>
-              <button id="btn-repeat-audio" style="background: none; border: none; color: #000; cursor: pointer; font-size: 0.7rem;">
-                <i class="bi bi-volume-up"></i> Repeat Question
+          <!-- AI Question Card -->
+          <div class="question-box" style="background: var(--hr-surface-subtle); border: 1px solid var(--hr-border); border-left: 4px solid var(--hr-green); border-radius: var(--hr-radius-md);">
+            <div style="font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--hr-text-muted); margin-bottom: 0.45rem; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 700; color: var(--hr-green);"><i class="bi bi-cpu"></i> AI Technical Interviewer</span>
+              <button id="btn-repeat-audio" style="background: none; border: none; color: var(--hr-text-muted); cursor: pointer; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+                <i class="bi bi-volume-up"></i> Repeat Audio
               </button>
             </div>
-            <div id="ai-question-text">Loading question...</div>
+            <div id="ai-question-text" style="font-size: 0.875rem; line-height: 1.6; color: var(--hr-text);">Loading technical question...</div>
           </div>
 
-          <div class="answer-input-area">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-              <label style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">Your Technical Response (Spoken / Transcribed):</label>
-              <span id="voice-indicator" style="font-size: 0.7rem; color: #10b981; display: none; font-weight: 600;">
-                <i class="bi bi-record-circle-fill"></i> Live
+          <!-- Candidate Live Speech Input Box -->
+          <div class="answer-input-area" style="margin-top: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem;">
+              <label style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--hr-text-muted);">
+                Candidate Spoken Response (Real-Time Voice Stream):
+              </label>
+              <span id="voice-indicator" style="font-size: 0.7rem; color: var(--hr-green); display: none; font-weight: 700;">
+                <i class="bi bi-record-circle-fill" style="animation: pulse 1.2s infinite;"></i> Transcribing
               </span>
             </div>
 
-            <!-- Conversational Hands-Free Voice Control Bar -->
-            <div id="conversational-voice-bar" style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 8px; padding: 0.65rem 0.85rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
-              <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <span id="voice-status-pulse" style="width: 10px; height: 10px; border-radius: 50%; background: #10b981; display: inline-block; box-shadow: 0 0 8px #10b981;"></span>
-                <div>
-                  <div id="voice-state-title" style="font-weight: 700; font-size: 0.775rem; color: var(--text);">Live Mic Active · Listening to your voice</div>
-                  <div id="voice-state-subtitle" style="font-size: 0.6875rem; color: var(--text-muted);">Speak freely · Auto-submits after speaking</div>
-                </div>
-              </div>
-              <button id="btn-submit-answer" class="btn btn-sm btn-primary" style="padding: 0.4rem 0.85rem; font-weight: 700; font-size: 0.75rem; white-space: nowrap;">
-                Submit Now <i class="bi bi-send-fill"></i>
-              </button>
-            </div>
-
-            <textarea id="candidate-answer-box" placeholder="Your live spoken words will stream here automatically. For coding challenges, use the coding sandbox on the right..."></textarea>
-
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
-              <button id="btn-finish-early" style="background: none; border: none; color: var(--text-muted); font-size: 0.7rem; cursor: pointer;">
-                Conclude Interview Early
-              </button>
-              <span style="font-size: 0.6875rem; color: var(--text-muted);">
-                <i class="bi bi-shield-check"></i> Continuous voice monitoring active
-              </span>
-            </div>
+            <textarea id="candidate-answer-box" class="hr-code-editor" style="min-height: 140px; border: 1.5px solid var(--hr-border); border-radius: var(--hr-radius-md); font-family: var(--hr-font-sans); font-size: 0.85rem;" placeholder="Your live spoken answer streams here hands-free. Speak naturally — system auto-submits on silence..."></textarea>
           </div>
         </div>
 
-        <!-- Column 2: Optional Interactive Terminal or Word Document Editor -->
-        <div id="interactive-tools-container" style="display: none; flex-direction: column; gap: 1rem;">
+        <!-- Room Footer Meta -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--hr-border);">
+          <button id="btn-finish-early" style="background: none; border: none; color: var(--hr-text-muted); font-size: 0.72rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;">
+            <i class="bi bi-box-arrow-right"></i> Conclude Interview Early
+          </button>
+          <span style="font-size: 0.6875rem; color: var(--hr-text-muted); display: inline-flex; align-items: center; gap: 0.35rem;">
+            <i class="bi bi-shield-check" style="color: var(--hr-green);"></i> Continuous VAD Speech Detection Active
+          </span>
+        </div>
+      </div>
+
+      <!-- Column 2: HackerRank Code Studio & Interactive Sandbox -->
+      <div id="interactive-tools-container" style="display: none; flex-direction: column; gap: 1rem;">
+        
+        <!-- Tool 1: HackerRank Coding Terminal Sandbox -->
+        <div id="terminal-tool-panel" class="tool-panel hr-card" style="display: none; padding: 0; overflow: hidden;">
           
-          <!-- Tool 1: Interactive Coding Terminal Sandbox -->
-          <div id="terminal-tool-panel" class="tool-panel" style="display: none;">
-            <div class="tool-header">
-              <div style="display: flex; align-items: center; gap: 0.4rem; font-weight: 700; font-size: 0.8rem; color: #000;">
-                <i class="bi bi-terminal-fill"></i> Interactive Terminal & Sandbox
-              </div>
-              <div style="display: flex; gap: 0.4rem; align-items: center;">
-                <select id="terminal-lang-select" style="margin-bottom: 0; padding: 0.2rem 0.4rem; font-size: 0.7rem; width: auto;" onchange="handleLangChange()">
-                  <option value="javascript">JavaScript / Node</option>
-                  <option value="python">Python 3</option>
-                  <option value="cpp">C++ (GCC)</option>
-                  <option value="java">Java</option>
-                  <option value="sql">SQL / Queries</option>
-                </select>
-                <button class="btn btn-sm" onclick="runSandboxCode()" style="padding: 0.2rem 0.6rem; font-size: 0.7rem;">
-                  <i class="bi bi-play-fill"></i> Run Code
-                </button>
-                <button id="btn-judge-testcases" class="btn btn-sm" onclick="runLeetCodeJudge()" style="padding: 0.2rem 0.65rem; font-size: 0.7rem; background: #059669; color: #ffffff; font-weight: 700; border-color: #059669;" title="Submit to automated judge (Public & Hidden Test Cases)">
-                  <i class="bi bi-check2-all"></i> Run Test Cases (Hidden &amp; Public)
-                </button>
-                <button class="btn btn-outline btn-sm" onclick="resetToStarterCode()" style="padding: 0.2rem 0.5rem; font-size: 0.7rem;" title="Reset editor to problem skeleton">
-                  <i class="bi bi-arrow-counterclockwise"></i> Reset
-                </button>
-              </div>
+          <!-- HackerRank IDE Header -->
+          <div class="hr-ide-header">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-weight: 800; font-size: 0.8rem; color: var(--hr-text); display: flex; align-items: center; gap: 0.4rem;">
+                <i class="bi bi-code-square" style="color: var(--hr-green);"></i> Code Studio
+              </span>
+              <select id="terminal-lang-select" class="hr-lang-select" onchange="handleLangChange()">
+                <option value="javascript">JavaScript (Node.js)</option>
+                <option value="python">Python 3.10</option>
+                <option value="cpp">C++ (GCC 14)</option>
+                <option value="java">Java 21</option>
+                <option value="sql">PostgreSQL / SQL</option>
+              </select>
             </div>
 
-            <!-- LeetCode Problem Spec Card (shown when DSA problem attached) -->
-            <div id="terminal-problem-spec" style="display: none; background: #18181b; color: #fff; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 0.65rem; border: 1px solid #27272a;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-                <span id="spec-problem-title" style="font-weight: 700; font-size: 0.8rem; color: #fff;">LeetCode #1: Two Sum</span>
-                <span id="spec-problem-diff" class="badge" style="background: #27272a; color: #fff; font-size: 0.65rem;">Easy</span>
-              </div>
-              <p id="spec-problem-desc" style="font-size: 0.725rem; color: #cbd5e1; line-height: 1.45; margin-bottom: 0.4rem;">
-                Problem description...
-              </p>
-              <div id="spec-problem-testcases" style="font-family: monospace; font-size: 0.6875rem; color: #a1a1aa; background: #09090b; padding: 0.35rem 0.6rem; border-radius: 4px;">
-                Input: nums = [2,7,11,15], target = 9 | Output: [0,1]
-              </div>
+            <div style="display: flex; gap: 0.45rem; align-items: center;">
+              <button class="hr-ide-btn-run" onclick="runSandboxCode()" title="Run and test code locally">
+                <i class="bi bi-lightning-charge-fill"></i> Run Code
+              </button>
+              <button id="btn-judge-testcases" class="hr-ide-btn-judge" onclick="runLeetCodeJudge()" title="Execute Automated Test Cases (Public & Hidden)">
+                <i class="bi bi-check2-all"></i> Run Testcases
+              </button>
+              <button class="hud-pill-btn" onclick="resetToStarterCode()" style="padding: 0.3rem 0.55rem; font-size: 0.68rem;" title="Reset code skeleton">
+                <i class="bi bi-arrow-counterclockwise"></i> Reset
+              </button>
             </div>
+          </div>
 
-            <textarea id="terminal-code-input" class="code-textarea" placeholder="// Write or test your code implementation here...
+          <!-- LeetCode Problem Spec Banner (HackerRank Problem Card) -->
+          <div id="terminal-problem-spec" class="hr-problem-banner" style="display: none; margin: 0.75rem 0.95rem 0 0.95rem;">
+            <div class="hr-problem-title-row">
+              <span id="spec-problem-title" style="font-weight: 800; font-size: 0.85rem; color: var(--hr-text);">LeetCode Challenge</span>
+              <span id="spec-problem-diff" class="hr-difficulty-badge medium">Medium</span>
+            </div>
+            <p id="spec-problem-desc" style="font-size: 0.75rem; color: var(--hr-text-muted); line-height: 1.5; margin-bottom: 0.5rem;">
+              Problem description...
+            </p>
+            <div id="spec-problem-testcases" style="font-family: var(--hr-font-mono); font-size: 0.7rem; color: var(--hr-cyan); background: #06090f; padding: 0.45rem 0.75rem; border-radius: 4px; border: 1px solid var(--hr-border);">
+              Sample Testcases Loading...
+            </div>
+          </div>
+
+          <!-- Code Editor Area -->
+          <textarea id="terminal-code-input" class="hr-code-editor" spellcheck="false" placeholder="// Write or implement your solution here...
 function solution() {
-  console.log('Running candidate test execution...');
+  console.log('Testing solution execution...');
   return true;
 }
 solution();"></textarea>
 
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-              <span style="font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">
-                <i class="bi bi-terminal"></i> Console Output:
-              </span>
-              <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
-                <button id="btn-insert-judge-result" class="btn btn-secondary btn-sm" onclick="copyJudgeResultToAnswer()" style="padding: 0.15rem 0.5rem; font-size: 0.6875rem; margin-top: 0; display: none;">
-                  <i class="bi bi-clipboard-check"></i> Insert Test Results
+          <!-- Tabbed Testcase & Output Drawer -->
+          <div class="hr-testcase-drawer">
+            <div class="hr-testcase-nav">
+              <button class="hr-testcase-tab active" id="tab-testcase-output">
+                <i class="bi bi-terminal"></i> Test Results & STDOUT
+              </button>
+              <div style="margin-left: auto; display: flex; gap: 0.35rem;">
+                <button id="btn-insert-judge-result" class="hud-pill-btn" onclick="copyJudgeResultToAnswer()" style="padding: 0.2rem 0.5rem; font-size: 0.65rem; display: none;">
+                  <i class="bi bi-clipboard-check"></i> Insert Results in Answer
                 </button>
-                <button class="btn btn-secondary btn-sm" onclick="copyCodeToAnswer()" style="padding: 0.15rem 0.5rem; font-size: 0.6875rem; margin-top: 0;">
+                <button class="hud-pill-btn" onclick="copyCodeToAnswer()" style="padding: 0.2rem 0.5rem; font-size: 0.65rem;">
                   <i class="bi bi-box-arrow-down-left"></i> Insert Code in Answer
                 </button>
-                <button class="btn btn-secondary btn-sm" onclick="clearConsole()" style="padding: 0.15rem 0.5rem; font-size: 0.6875rem; margin-top: 0;">
+                <button class="hud-pill-btn" onclick="clearConsole()" style="padding: 0.2rem 0.5rem; font-size: 0.65rem;">
                   Clear
                 </button>
               </div>
             </div>
 
-            <div id="terminal-console-output" class="terminal-console">Sandbox ready. Write code above and click "Run Code".</div>
+            <div id="terminal-console-output" class="hr-testcase-content">Console ready. Click "Run Code" or "Run Testcases" to execute.</div>
           </div>
+        </div>
 
-          <!-- Tool 2: Word / Document Editor Canvas -->
-          <div id="word-tool-panel" class="tool-panel" style="display: none;">
-            <div class="tool-header">
-              <div style="display: flex; align-items: center; gap: 0.4rem; font-weight: 700; font-size: 0.8rem; color: #000;">
-                <i class="bi bi-file-earmark-word-fill"></i> Word / Document Scratchpad
-              </div>
-              <div style="display: flex; gap: 0.35rem;">
-                <button class="btn btn-outline btn-sm" onclick="insertDocSnippet('bullets')" style="padding: 0.15rem 0.5rem; font-size: 0.6875rem;">• List</button>
-                <button class="btn btn-outline btn-sm" onclick="insertDocSnippet('architecture')" style="padding: 0.15rem 0.5rem; font-size: 0.6875rem;">[Arch Template]</button>
-                <button class="btn btn-sm" onclick="copyDocToAnswer()" style="padding: 0.15rem 0.5rem; font-size: 0.6875rem;">
-                  <i class="bi bi-box-arrow-down-left"></i> Insert in Answer
-                </button>
-              </div>
+        <!-- Tool 2: System Architecture Scratchpad -->
+        <div id="word-tool-panel" class="tool-panel hr-card" style="display: none; padding: 0.85rem 1.15rem;">
+          <div class="scratchpad-header" style="background: none; border-bottom: 1px solid var(--hr-border); padding: 0 0 0.5rem 0;">
+            <div class="scratchpad-title">
+              <i class="bi bi-diagram-3-fill" style="color: var(--hr-cyan);"></i> Architecture & System Design Notes
             </div>
-
-            <textarea id="word-canvas-content" class="word-canvas" placeholder="Draft your system architecture notes, pseudo-code, database schema, or written trade-offs here..."></textarea>
-            <div style="font-size: 0.6875rem; color: var(--text-muted); display: flex; justify-content: space-between;">
-              <span id="word-count-display">0 words</span>
-              <span>Draft notes remain saved during this round</span>
+            <div class="scratchpad-toolbar">
+              <button class="scratchpad-tool-btn" onclick="insertDocSnippet('bullets')">• Bullets</button>
+              <button class="scratchpad-tool-btn" onclick="insertDocSnippet('architecture')">[Arch Template]</button>
+              <button class="scratchpad-tool-btn primary" onclick="copyDocToAnswer()">
+                <i class="bi bi-box-arrow-down-left"></i> Insert in Answer
+              </button>
             </div>
           </div>
 
+          <textarea id="word-canvas-content" class="hr-code-editor" style="min-height: 220px; font-family: var(--hr-font-sans); margin-top: 0.5rem; border-radius: var(--hr-radius-sm);" placeholder="Draft system architecture, microservice data flow, SQL schemas, or complexity trade-offs here..."></textarea>
+          <div style="font-size: 0.6875rem; color: var(--hr-text-muted); display: flex; justify-content: space-between; margin-top: 0.35rem;">
+            <span id="word-count-display">0 words</span>
+            <span>Autosaved locally for this round</span>
+          </div>
         </div>
 
       </div>
+
+      <!-- ========================================================
+           FLOATING WIDGET 1: DYNAMIC ISLAND / AI AUDIO HUD DOCK
+           ======================================================== -->
+      <div id="floating-ai-hud" class="floating-hud-dock">
+        <!-- Live Soundwave Equalizer -->
+        <div class="hud-equalizer active" id="hud-soundwave">
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+        </div>
+
+        <!-- Dynamic State Meta -->
+        <div class="hud-meta">
+          <div class="hud-meta-title">
+            <span class="hud-dot" id="voice-status-pulse"></span>
+            <span id="voice-state-title">Live Mic Active · Listening</span>
+          </div>
+          <div class="hud-meta-subtitle" id="voice-state-subtitle">Speak freely · Auto-submits on silence</div>
+        </div>
+
+        <div class="hud-divider"></div>
+
+        <!-- Quick Floating Action Buttons -->
+        <div class="hud-actions">
+          <button class="hud-pill-btn" onclick="toggleFloatingScratchpad()" title="Open Floating Engineering Notes">
+            <i class="bi bi-pencil-square" style="color: var(--hr-cyan);"></i> <span>Notes</span>
+          </button>
+          <button id="btn-submit-answer" class="hud-pill-btn primary" title="Submit Spoken Answer Now">
+            <span>Submit</span> <i class="bi bi-send-fill"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- ========================================================
+           FLOATING WIDGET 2: QUICK ENGINEERING SCRATCHPAD
+           ======================================================== -->
+      <div id="floating-scratchpad-drawer" class="floating-scratchpad" style="display: none;">
+        <div class="scratchpad-header">
+          <div class="scratchpad-title">
+            <i class="bi bi-journal-code" style="color: var(--hr-green);"></i> Quick Engineering Notes
+          </div>
+          <div class="scratchpad-toolbar">
+            <button class="scratchpad-tool-btn" onclick="insertScratchSnippet('complexity')">O(N)</button>
+            <button class="scratchpad-tool-btn" onclick="insertScratchSnippet('architecture')">Arch</button>
+            <button class="scratchpad-tool-btn primary" onclick="copyScratchToAnswer()">Insert</button>
+            <button class="scratchpad-tool-btn" onclick="toggleFloatingScratchpad()"><i class="bi bi-x"></i></button>
+          </div>
+        </div>
+        <div class="scratchpad-body">
+          <textarea id="scratchpad-text" placeholder="// Rough scratchpad: complexity math, formulas, diagram notes..."></textarea>
+        </div>
+      </div>
+
     </div>
 
     <!-- Screen 4: Completed Screen -->
