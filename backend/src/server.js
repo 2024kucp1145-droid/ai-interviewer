@@ -69,11 +69,69 @@ app.get('/health', (req, res) => {
 });
 
 // --- Auth Endpoints ---
+// --- Passwordless OTP Login ---
+// Step 1: Request OTP for login (email only)
+app.post('/auth/login-otp-request', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required' });
+
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase().trim());
+    if (!user) return res.status(404).json({ error: 'No account found with this email. Please create an account first.' });
+
+    if (user.approval_status === 'suspended') {
+      return res.status(403).json({ error: 'Your account has been suspended. Please contact support.' });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    db.prepare('UPDATE users SET verification_code = ? WHERE id = ?').run(otp, user.id);
+
+    const emailResult = await sendRecruiterVerificationEmail(user.email, otp, user.full_name || 'Recruiter');
+
+    logActivity({ action: 'LOGIN_OTP_SENT', actorType: 'user', actorId: user.id, actorEmail: user.email, orgId: user.org_id, ipAddress: req.ip });
+
+    res.json({ success: true, message: emailResult.sent ? `OTP sent to ${user.email}` : 'OTP generated (check server logs if email not configured)', emailSent: emailResult.sent });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Step 2: Verify OTP → issue JWT
+app.post('/auth/login-otp-verify', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) return res.status(400).json({ error: 'Email and OTP are required' });
+
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase().trim());
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const isDevBypass = process.env.NODE_ENV === 'development' && otp === '123456';
+    if (otp.trim() !== user.verification_code && !isDevBypass) {
+      return res.status(401).json({ error: 'Incorrect OTP. Please check your email and try again.' });
+    }
+
+    // Clear OTP after use
+    db.prepare('UPDATE users SET verification_code = NULL, is_verified = 1, last_login_at = CURRENT_TIMESTAMP WHERE id = ?').run(user.id);
+
+    logActivity({ action: 'USER_LOGIN', actorType: 'user', actorId: user.id, actorEmail: user.email, actorName: user.full_name, orgId: user.org_id, ipAddress: req.ip });
+
+    const org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(user.org_id);
+    const token = signToken({ id: user.id, org_id: user.org_id, email: user.email, role: user.role });
+
+    res.json({
+      token,
+      user: { id: user.id, email: user.email, fullName: user.full_name, jobTitle: user.job_title, role: user.role, is_verified: 1, approval_status: user.approval_status },
+      org: { id: org.id, name: org.name, website: org.website, industry: org.industry, companySize: org.company_size, plan: org.plan, included_interviews: org.included_interviews }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/auth/signup', async (req, res) => {
   try {
     const { 
       email, 
-      password, 
       fullName, 
       phone, 
       jobTitle, 
@@ -84,8 +142,8 @@ app.post('/auth/signup', async (req, res) => {
       country 
     } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
     }
 
     const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email.toLowerCase().trim());
@@ -95,7 +153,6 @@ app.post('/auth/signup', async (req, res) => {
 
     const orgId = 'org_' + crypto.randomUUID();
     const userId = 'usr_' + crypto.randomUUID();
-    const passHash = hashPassword(password);
     // Generate 6 digit verification code (e.g. 849201)
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -122,7 +179,7 @@ app.post('/auth/signup', async (req, res) => {
 
       db.prepare(`
         INSERT INTO users (id, org_id, full_name, phone, job_title, email, password_hash, role, is_verified, verification_code, approval_status, last_login_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'owner', 0, ?, ?, CURRENT_TIMESTAMP)
+        VALUES (?, ?, ?, ?, ?, ?, '', 'owner', 0, ?, ?, CURRENT_TIMESTAMP)
       `).run(
         userId, 
         orgId, 
@@ -130,7 +187,6 @@ app.post('/auth/signup', async (req, res) => {
         (phone || '').trim(), 
         (jobTitle || 'Recruiter').trim(), 
         email.toLowerCase().trim(), 
-        passHash,
         verificationCode,
         initialApproval
       );
@@ -281,70 +337,9 @@ app.post('/auth/company-profile', requireAuth, (req, res) => {
   }
 });
 
+// Legacy /auth/login kept as alias → redirects to OTP flow info
 app.post('/auth/login', (req, res) => {
-  try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password required' });
-    }
-
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase().trim());
-    if (!user || !comparePassword(password, user.password_hash)) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
-    // Enforce Admin Approval and Suspension status
-    if (user.approval_status === 'suspended') {
-      return res.status(403).json({ error: 'Your recruiter account has been suspended by the platform administrator. Please contact support.' });
-    }
-    if (user.approval_status === 'pending_approval') {
-      return res.status(403).json({ error: 'Your recruiter account is pending administrator review and approval. You will be notified once activated.' });
-    }
-    if (user.approval_status === 'rejected') {
-      return res.status(403).json({ error: 'Your account registration request was not approved.' });
-    }
-
-    // Update last login
-    db.prepare('UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?').run(user.id);
-
-    // Log platform activity
-    logActivity({
-      action: 'USER_LOGIN',
-      actorType: 'user',
-      actorId: user.id,
-      actorEmail: user.email,
-      actorName: user.full_name,
-      orgId: user.org_id,
-      ipAddress: req.ip
-    });
-
-    const org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(user.org_id);
-    const token = signToken({ id: user.id, org_id: user.org_id, email: user.email, role: user.role });
-
-    res.json({
-      token,
-      user: { 
-        id: user.id, 
-        email: user.email, 
-        fullName: user.full_name, 
-        jobTitle: user.job_title, 
-        role: user.role,
-        is_verified: user.is_verified,
-        approval_status: user.approval_status
-      },
-      org: { 
-        id: org.id, 
-        name: org.name, 
-        website: org.website, 
-        industry: org.industry, 
-        companySize: org.company_size, 
-        plan: org.plan,
-        included_interviews: org.included_interviews
-      }
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  res.status(400).json({ error: 'Password login is disabled. Please use email OTP login via /auth/login-otp-request.' });
 });
 
 app.get('/auth/me', requireAuth, (req, res) => {
