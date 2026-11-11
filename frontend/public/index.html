@@ -2842,8 +2842,8 @@
           <button class="btn btn-ghost btn-sm" onclick="closeAuthModal()"><i class="bi bi-x-lg"></i></button>
         </div>
 
-        <!-- Wizard Steps Bar -->
-        <div class="wizard-steps" id="wizard-steps-indicator">
+        <!-- Wizard Steps Bar (Hidden for simplified direct login) -->
+        <div class="wizard-steps" id="wizard-steps-indicator" style="display: none;">
           <div class="wizard-step-item active" id="step-tab-1">1. Account</div>
           <div class="wizard-step-item" id="step-tab-2">2. Verification</div>
           <div class="wizard-step-item" id="step-tab-3">3. Company</div>
@@ -2852,12 +2852,12 @@
         <!-- Step 1: Account / Sign In / Register -->
         <div id="auth-step-1">
           <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
-            <button type="button" class="btn btn-sm" id="btn-toggle-signup" onclick="toggleAuthMode('signup')">Create Account</button>
             <button type="button" class="btn btn-outline btn-sm" id="btn-toggle-login" onclick="toggleAuthMode('login')">Existing User Sign In</button>
+            <button type="button" class="btn btn-sm" id="btn-toggle-signup" onclick="toggleAuthMode('signup')">Create Account</button>
           </div>
 
-          <!-- Sign Up Form (Personal Info + Credentials) -->
-          <form id="form-signup">
+          <!-- Sign Up Form (Direct Password & Email) -->
+          <form id="form-signup" style="display: none;">
             <div class="grid-2">
               <div>
                 <label>Your Full Name</label>
@@ -2865,49 +2865,40 @@
               </div>
               <div>
                 <label>Your Job Role / Title</label>
-                <input type="text" id="su-title" placeholder="Lead Technical Recruiter" required>
+                <input type="text" id="su-title" placeholder="Lead Technical Recruiter" value="Recruiter">
               </div>
             </div>
 
             <div class="grid-2">
               <div>
                 <label>Work Email Address</label>
-                <input type="email" id="su-email" placeholder="vikram@enterprise.com" required>
+                <input type="email" id="su-email" placeholder="name@company.com" required>
               </div>
               <div>
                 <label>Contact Phone Number</label>
-                <input type="tel" id="su-phone" placeholder="+91 98765 43210" required>
+                <input type="tel" id="su-phone" placeholder="+91 98765 43210">
               </div>
             </div>
 
-            <button type="submit" class="btn" style="width: 100%; margin-top: 0.35rem;">
-              Continue to Verification <i class="bi bi-arrow-right"></i>
+            <label>Password</label>
+            <input type="password" id="su-password" placeholder="Create a secure password" required minlength="4">
+
+            <button type="submit" class="btn" style="width: 100%; margin-top: 0.75rem;">
+              Create Account & Enter Dashboard <i class="bi bi-arrow-right"></i>
             </button>
           </form>
 
-          <!-- Login Form -->
-          <!-- Login Form - Email Only OTP -->
-          <form id="form-login" style="display: none;">
+          <!-- Login Form (Direct Password & Email) -->
+          <form id="form-login">
             <label>Work Email</label>
             <input type="email" id="login-email" placeholder="name@company.com" required>
-            <p style="font-size:0.72rem;color:var(--text-muted);margin:0.3rem 0 0.5rem;">A one-time login code will be sent to your email.</p>
-            <button type="submit" class="btn" style="width: 100%; margin-top: 0.35rem;">
-              Send Login Code <i class="bi bi-envelope-at"></i>
-            </button>
-          </form>
 
-          <!-- Login OTP verification step -->
-          <form id="form-login-otp" style="display: none;">
-            <div style="background:var(--surface-subtle);border:1px solid var(--border);padding:0.75rem;border-radius:6px;margin-bottom:0.75rem;">
-              <div style="font-weight:600;font-size:0.775rem;margin-bottom:0.2rem;"><i class="bi bi-envelope-check"></i> Check Your Email</div>
-              <p style="color:var(--text-muted);font-size:0.72rem;margin:0;">6-digit login code sent to <strong id="login-otp-email-display"></strong></p>
-            </div>
-            <label>6-Digit Login Code</label>
-            <input type="text" id="login-otp-code" placeholder="e.g. 482910" maxlength="6" style="font-size:1.15rem;letter-spacing:0.25em;text-align:center;font-weight:700;" required>
-            <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
-              <button type="submit" class="btn" style="flex:1;">Enter Dashboard <i class="bi bi-box-arrow-in-right"></i></button>
-              <button type='button' class='btn btn-outline' onclick="document.getElementById('form-login').style.display='block';document.getElementById('form-login-otp').style.display='none';">&#8592; Back</button>
-            </div>
+            <label style="margin-top: 0.5rem;">Password</label>
+            <input type="password" id="login-password" placeholder="Enter your password" required>
+
+            <button type="submit" class="btn" style="width: 100%; margin-top: 0.85rem;">
+              Sign In & Enter Dashboard <i class="bi bi-box-arrow-in-right"></i>
+            </button>
           </form>
         </div>
 
