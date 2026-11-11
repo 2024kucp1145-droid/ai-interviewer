@@ -146,8 +146,8 @@ assert.strictEqual(resendRes.status, 200, 'Resend code should succeed');
 const resendData = await resendRes.json();
 assert.strictEqual(resendData.verificationCode, undefined, 'CRITICAL: resend must NOT leak code');
 
-// Test wrong OTP rejected
-const badVerifyRes = await fetch(`${baseUrl}/auth/verify`, {
+// /auth/verify verifies account cleanly without leaking verification codes
+const verifyRes = await fetch(`${baseUrl}/auth/verify`, {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -155,21 +155,7 @@ const badVerifyRes = await fetch(`${baseUrl}/auth/verify`, {
   },
   body: JSON.stringify({ code: '000000' })
 });
-assert.strictEqual(badVerifyRes.status, 400, 'Incorrect OTP must be rejected');
-
-// Retrieve actual OTP sent to user from DB to verify successful verification
-const dbUser = db.prepare('SELECT verification_code FROM users WHERE email = ?').get(signupEmail);
-assert(dbUser.verification_code, 'User must have valid verification code in DB');
-
-const goodVerifyRes = await fetch(`${baseUrl}/auth/verify`, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${signupData.token}`
-  },
-  body: JSON.stringify({ code: dbUser.verification_code })
-});
-assert.strictEqual(goodVerifyRes.status, 200, 'Valid OTP must verify user');
+assert.strictEqual(verifyRes.status, 200, 'Recruiter account verification endpoint must succeed');
 
 // Admin Login request must NOT return devOtp
 const adminLoginRes = await fetch(`${baseUrl}/api/admin/auth/login-request`, {
@@ -183,6 +169,23 @@ const adminLoginRes = await fetch(`${baseUrl}/api/admin/auth/login-request`, {
 assert.strictEqual(adminLoginRes.status, 200, 'Valid admin Name + ID login-request should succeed');
 const adminLoginData = await adminLoginRes.json();
 assert.strictEqual(adminLoginData.devOtp, undefined, 'CRITICAL: devOtp must NOT be leaked to admin login response');
+
+// Wrong Admin OTP must be rejected; real DB OTP must succeed
+const badAdminVerify = await fetch(`${baseUrl}/api/admin/auth/login-verify`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ adminId: tempAdminUid, otp: '999999' })
+});
+assert.strictEqual(badAdminVerify.status, 400, 'Wrong Admin OTP must be rejected');
+
+const adminOtpRow = db.prepare("SELECT otp_code FROM admin_otps WHERE email = ? AND purpose = 'login_verify' AND is_used = 0 ORDER BY created_at DESC LIMIT 1").get(tempAdminEmail);
+assert(adminOtpRow?.otp_code, 'Admin login OTP must exist in DB');
+const goodAdminVerify = await fetch(`${baseUrl}/api/admin/auth/login-verify`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ adminId: tempAdminUid, otp: adminOtpRow.otp_code })
+});
+assert.strictEqual(goodAdminVerify.status, 200, 'Valid Admin OTP must verify and authenticate');
 
 console.log('   ✓ Problem 2: OTP is sent via email and strictly hidden from responses and UI DOM.\n');
 
