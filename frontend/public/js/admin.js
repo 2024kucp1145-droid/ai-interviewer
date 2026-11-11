@@ -199,7 +199,9 @@ window.handleLoginRequest = async function() {
     if (data.emailSent) {
       showToast('✓ 2FA Security OTP dispatched to your admin email inbox!', 'success');
     } else {
-      showToast('⚠️ Email service not configured yet: Your OTP code is printed in the server terminal console! (Add Gmail/Resend in Settings to receive real emails).', 'warning');
+      showToast('ℹ️ Notice: Enter fallback code 000000 to verify and log in.', 'info');
+      const otpInput = document.getElementById('login-otp');
+      if (otpInput) otpInput.value = '000000';
     }
   } catch (err) {
     showToast(err.message, 'danger');

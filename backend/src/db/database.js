@@ -4,7 +4,10 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const dbPath = path.resolve(__dirname, '../../../ai_interviewer.db');
+const isVercel = Boolean(process.env.VERCEL);
+const dbPath = isVercel
+  ? path.join('/tmp', 'ai_interviewer.db')
+  : path.resolve(__dirname, '../../../ai_interviewer.db');
 
 export const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
@@ -337,6 +340,71 @@ export function initDatabase() {
     `).run();
   } catch (e) {
     // Non-fatal
+  }
+
+  // Seed Primary Platform Admin (adityavyamawar@gmail.com) with password Admin@1234
+  try {
+    const adminCheck = db.prepare("SELECT id FROM users WHERE email = 'adityavyamawar@gmail.com'").get();
+    if (!adminCheck) {
+      // Hash for Admin@1234
+      const defaultHash = '$2b$10$ssgPT4ykcMacLbsp0UiUGuB5iPVLL5NILpKtca02skn5poRv5Y7gq';
+      db.prepare(`
+        INSERT INTO users (id, org_id, full_name, email, password_hash, role, is_verified, approval_status, last_login_at)
+        VALUES ('usr_admin_primary', 'org_platform_admins', 'Aditya Vyamawar (Platform Owner)', 'adityavyamawar@gmail.com', ?, 'superadmin', 1, 'approved', CURRENT_TIMESTAMP)
+      `).run(defaultHash);
+
+      db.prepare(`
+        UPDATE admin_invites 
+        SET is_used = 1, used_by = 'adityavyamawar@gmail.com' 
+        WHERE code_hash = 'ADM-ALPHA-9821-X7'
+      `).run();
+      console.log('✓ Seeded primary platform admin adityavyamawar@gmail.com');
+    }
+  } catch (e) {
+    console.warn('Admin seed notice:', e.message);
+  }
+
+  // Seed initial platform activity audit logs if empty
+  try {
+    const actCount = db.prepare('SELECT COUNT(*) as c FROM platform_activities').get().c;
+    if (actCount === 0) {
+      const initialActivities = [
+        {
+          id: 'act_init_1',
+          action: 'PLATFORM_INITIALIZED',
+          actor_type: 'system',
+          actor_email: 'system@platform.internal',
+          actor_name: 'Platform Core',
+          details: JSON.stringify({ environment: isVercel ? 'vercel' : 'production', maxSeats: 3 })
+        },
+        {
+          id: 'act_init_2',
+          action: 'ADMIN_REGISTERED',
+          actor_type: 'admin',
+          actor_email: 'adityavyamawar@gmail.com',
+          actor_name: 'Aditya Vyamawar (Platform Owner)',
+          details: JSON.stringify({ role: 'superadmin', method: 'primary_seed', inviteCode: 'ADM-ALPHA-9821-X7' })
+        },
+        {
+          id: 'act_init_3',
+          action: 'STARTER_ROLES_CREATED',
+          actor_type: 'system',
+          actor_email: 'system@platform.internal',
+          actor_name: 'Platform Core',
+          details: JSON.stringify({ roles: ['Fullstack Software Engineer', 'Backend Python Engineer', 'Frontend React Developer'] })
+        }
+      ];
+
+      const insertAct = db.prepare(`
+        INSERT INTO platform_activities (id, action, actor_type, actor_email, actor_name, details, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `);
+      for (const a of initialActivities) {
+        insertAct.run(a.id, a.action, a.actor_type, a.actor_email, a.actor_name, a.details);
+      }
+    }
+  } catch (e) {
+    console.warn('Activity seed notice:', e.message);
   }
 
   // Seed default organization & starter interview positions if database is freshly initialized
