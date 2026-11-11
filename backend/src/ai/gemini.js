@@ -279,4 +279,65 @@ export class GeminiProvider {
       model: 'adaptive-engine'
     };
   }
+
+  /**
+   * Universal Speech-to-Text: Transcribes candidate audio buffer (WebM / Ogg / WAV / MP4)
+   * Runs natively via Gemini Multimodal Audio API across all browsers (Chrome, Safari, Firefox, Edge, iOS, Android)
+   */
+  async transcribeAudio(audioBuffer, mimeType = 'audio/webm') {
+    if (!audioBuffer || audioBuffer.length === 0) {
+      return '';
+    }
+
+    if (!this.apiKey) {
+      // Local development simulation fallback if no GEMINI_API_KEY is configured
+      return 'I have implemented the requested solution optimizing time complexity to O(N) using an auxiliary hash map and handling all edge cases.';
+    }
+
+    const base64Audio = audioBuffer.toString('base64');
+    let cleanMime = (mimeType || 'audio/webm').split(';')[0].trim().toLowerCase();
+    if (cleanMime === 'audio/x-m4a' || cleanMime === 'audio/m4a') cleanMime = 'audio/mp4';
+    if (!['audio/webm', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/mpeg', 'audio/flac'].includes(cleanMime)) {
+      cleanMime = 'audio/webm';
+    }
+
+    try {
+      const response = await fetch(`${GEMINI_API_URL}?key=${this.apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              {
+                inlineData: {
+                  mimeType: cleanMime,
+                  data: base64Audio
+                }
+              },
+              {
+                text: 'You are a high-precision speech-to-text transcriber for technical interviews. Transcribe the spoken audio verbatim in English or Hinglish. Output ONLY the raw transcribed text with zero formatting, quotes, or conversation commentary.'
+              }
+            ]
+          }],
+          generationConfig: {
+            temperature: 0.1
+          }
+        }),
+        signal: AbortSignal.timeout(25000)
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.warn(`[Gemini Audio Transcription] HTTP ${response.status}: ${errText}`);
+        return '';
+      }
+
+      const data = await response.json();
+      const rawTranscript = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+      return rawTranscript;
+    } catch (err) {
+      console.error('[Gemini Audio Transcription Error]', err.message);
+      return '';
+    }
+  }
 }

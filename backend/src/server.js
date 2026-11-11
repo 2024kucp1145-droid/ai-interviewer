@@ -992,6 +992,55 @@ app.post('/i/:token/consent', (req, res) => {
   }
 });
 
+// --- Universal Cross-Browser Speech-to-Text Endpoint (Safari, Firefox, Chrome, Edge, Mobile) ---
+app.post('/i/:token/transcribe', upload.single('audio'), async (req, res) => {
+  try {
+    const rawToken = req.params.token;
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+    const interview = db.prepare(`
+      SELECT i.id, i.state, j.org_id 
+      FROM interviews i 
+      JOIN jobs j ON i.job_id = j.id 
+      WHERE i.token_hash = ? OR i.id = ?
+    `).get(tokenHash, rawToken);
+
+    if (!interview) return res.status(404).json({ error: 'Invalid interview session' });
+
+    if (interview.state === 'completed' || interview.state === 'disqualified') {
+      return res.status(400).json({ error: 'Interview session is not active' });
+    }
+
+    let audioBuffer = null;
+    let mimeType = 'audio/webm';
+
+    if (req.file) {
+      audioBuffer = req.file.buffer;
+      mimeType = req.file.mimetype || 'audio/webm';
+    } else if (req.body && req.body.audioBase64) {
+      audioBuffer = Buffer.from(req.body.audioBase64, 'base64');
+      mimeType = req.body.mimeType || 'audio/webm';
+    }
+
+    if (!audioBuffer || audioBuffer.length === 0) {
+      return res.status(400).json({ error: 'No audio stream or buffer received' });
+    }
+
+    const { getProviderForOrg } = await import('./interview/engine.js');
+    const provider = getProviderForOrg(interview.org_id);
+    const transcript = await provider.transcribeAudio(audioBuffer, mimeType);
+
+    res.json({
+      success: true,
+      transcript: transcript || '',
+      bytesReceived: audioBuffer.length
+    });
+  } catch (err) {
+    console.error('[Transcribe Audio Route Error]:', err);
+    res.status(500).json({ error: 'Transcription processing error: ' + err.message });
+  }
+});
+
 app.post('/i/:token/answer', async (req, res) => {
   try {
     const rawToken = req.params.token;

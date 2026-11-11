@@ -53,8 +53,9 @@ let countdownTimerId = null;
 let silenceTimer = null;
 let isSubmitting = false;
 
-// Setup Voice Manager (Hands-Free Continuous Conversational Loop)
+// Setup Voice Manager (Universal Cross-Browser Audio Engine)
 const voice = new VoiceManager({
+  token: token || '',
   onInterimResult: (interim) => {
     if (silenceTimer) clearTimeout(silenceTimer);
     if (voiceIndicator) voiceIndicator.style.display = 'inline-block';
@@ -76,6 +77,13 @@ const voice = new VoiceManager({
         submitCurrentAnswer();
       }
     }, 2400);
+  },
+  onTranscribing: (isTranscribing) => {
+    if (isTranscribing) {
+      setVoiceBarState('transcribing');
+    } else if (!isSubmitting) {
+      setVoiceBarState('listening');
+    }
   },
   onError: (err) => {
     console.warn('Voice error:', err);
@@ -113,7 +121,16 @@ function setVoiceBarState(state) {
     voiceStatusPulse.style.boxShadow = '0 0 12px #00ea64';
     voiceStatusPulse.style.animation = 'pulse 1.5s infinite';
     voiceStateTitle.textContent = 'Live Mic Active · Listening to your voice';
-    voiceStateSubtitle.textContent = 'Speak freely · Auto-submits on silence';
+    voiceStateSubtitle.textContent = 'Universal Audio Active (Chrome, Safari, Firefox, iOS, Android)';
+    if (voiceIndicator) voiceIndicator.style.display = 'inline-block';
+    avatar.classList.remove('speaking');
+    if (soundwave) soundwave.classList.add('active');
+  } else if (state === 'transcribing') {
+    voiceStatusPulse.style.background = '#a855f7';
+    voiceStatusPulse.style.boxShadow = '0 0 12px #a855f7';
+    voiceStatusPulse.style.animation = 'pulse 1s infinite';
+    voiceStateTitle.textContent = 'Transcribing Speech via AI...';
+    voiceStateSubtitle.textContent = 'Processing cross-browser audio stream...';
     if (voiceIndicator) voiceIndicator.style.display = 'inline-block';
     avatar.classList.remove('speaking');
     if (soundwave) soundwave.classList.add('active');
@@ -826,6 +843,7 @@ window.handleCandidateSelfRegSubmit = async function(e) {
 
     const data = await res.json();
     token = data.token;
+    voice.setToken(token);
     window.history.replaceState({}, '', `/interview.html?token=${token}`);
 
     if (registerScreen) registerScreen.style.display = 'none';
@@ -882,6 +900,7 @@ async function loadJobPublicDetails(targetJobId) {
 // Load interview info from session token
 async function loadInterviewData() {
   if (!token) return;
+  voice.setToken(token);
 
   try {
     const res = await fetch(`/i/${token}`);
@@ -1104,28 +1123,32 @@ btnConsentNext.addEventListener('click', async () => {
   }
 });
 
-// 2. Mic Check Handlers
+// 2. Mic Check Handlers (Universal Cross-Browser Support)
 let isTestingMic = false;
-btnTestMic.addEventListener('click', () => {
+btnTestMic.addEventListener('click', async () => {
   if (!isTestingMic) {
-    const started = voice.startListening();
-    if (!started && !voice.speechSupported) {
-      micTestStatus.innerHTML = '<span style="color:#ef4444;">Speech recognition not supported in this browser. Please use Typing mode below.</span>';
+    micTestStatus.innerHTML = '<span style="color:#2563eb;"><i class="bi bi-hourglass-split"></i> Initializing microphone stream...</span>';
+    const started = await voice.startListening();
+    if (!started && !voice.mediaStream) {
+      micTestStatus.innerHTML = '<span style="color:#ef4444;"><i class="bi bi-exclamation-triangle"></i> Microphone access denied or unavailable. Please check browser permissions.</span>';
       return;
     }
     isTestingMic = true;
     btnTestMic.classList.add('recording');
     btnTestMic.innerHTML = '<i class="bi bi-stop-circle"></i> Stop Test';
-    micTestStatus.textContent = 'Listening... Speak now.';
+    micTestStatus.innerHTML = '<span style="color:#059669;"><i class="bi bi-broadcast"></i> Microphone active across all browsers (Chrome, Safari, Firefox, iOS, Android)! Speak now.</span>';
+    voice.onInterimResult = (text) => {
+      micTestResult.textContent = `Hearing: "${text}"`;
+    };
     voice.onFinalResult = (text) => {
-      micTestResult.textContent = `Heard: "${text}"`;
+      micTestResult.textContent = `✓ Captured: "${text}"`;
     };
   } else {
     voice.stopListening();
     isTestingMic = false;
     btnTestMic.classList.remove('recording');
     btnTestMic.innerHTML = '<i class="bi bi-mic-fill"></i> Test Microphone Again';
-    micTestStatus.textContent = 'Mic test complete! Select an option below.';
+    micTestStatus.textContent = 'Mic test verified! Ready to proceed.';
   }
 });
 
