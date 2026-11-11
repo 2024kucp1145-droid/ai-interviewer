@@ -249,11 +249,61 @@ document.getElementById('form-signup').addEventListener('submit', async (e) => {
   }
 });
 
-// Step 1: Form Login (Direct Email + Password)
+// Reset password action triggered directly from login form
+window.resetPasswordFromLogin = async function() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  if (!email || !password) {
+    alert('Please enter your email and password first.');
+    return;
+  }
+
+  const btn = document.getElementById('btn-login-reset-pwd');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Updating password...';
+  }
+
+  try {
+    const res = await fetch('/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update password');
+
+    authToken = data.token;
+    localStorage.setItem('roundone_token', authToken);
+    localStorage.setItem('ai_interviewer_token', authToken);
+    currentUser = data.user;
+    currentOrg = data.org;
+
+    const errBox = document.getElementById('login-error-container');
+    if (errBox) errBox.style.display = 'none';
+
+    authModal.style.display = 'none';
+    updateUserBadge();
+    loadJobs();
+    loadRegisteredUsers();
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-shield-check"></i> Set This Password & Sign In Instantly';
+    }
+  }
+};
+
+// Step 1: Form Login (Direct Email + Password with Instant Reset Safeguard)
 document.getElementById('form-login').addEventListener('submit', async (e) => {
   e.preventDefault();
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
+  const errBox = document.getElementById('login-error-container');
+  const errMsg = document.getElementById('login-error-msg');
+  if (errBox) errBox.style.display = 'none';
 
   try {
     const btn = e.target.querySelector('button[type=submit]');
@@ -272,7 +322,15 @@ document.getElementById('form-login').addEventListener('submit', async (e) => {
       btn.disabled = false;
       btn.innerHTML = 'Sign In & Enter Dashboard <i class="bi bi-box-arrow-in-right"></i>';
     }
-    if (!res.ok) throw new Error(data.error || 'Failed to sign in');
+    
+    if (!res.ok) {
+      if (data.canReset && errBox && errMsg) {
+        errMsg.innerHTML = `⚠️ Incorrect password for <strong>${email}</strong>.<br>Did you forget it? Click below to update your password to what you just typed:`;
+        errBox.style.display = 'block';
+        return;
+      }
+      throw new Error(data.error || 'Failed to sign in');
+    }
 
     authToken = data.token;
     localStorage.setItem('roundone_token', authToken);

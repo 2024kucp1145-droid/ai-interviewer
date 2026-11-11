@@ -93,19 +93,17 @@ app.post('/auth/signup', async (req, res) => {
     let user = db.prepare('SELECT * FROM users WHERE email = ?').get(cleanEmail);
 
     if (user) {
-      // If user exists and password matches, log them straight in
-      if (comparePassword(password, user.password_hash)) {
-        db.prepare(`UPDATE users SET is_verified = 1, approval_status = 'approved', last_login_at = CURRENT_TIMESTAMP WHERE id = ?`).run(user.id);
-        const org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(user.org_id);
-        const token = signToken({ id: user.id, org_id: user.org_id, email: user.email, role: user.role });
-        return res.json({
-          token,
-          user: { id: user.id, email: user.email, fullName: user.full_name, jobTitle: user.job_title, is_verified: 1, approval_status: 'approved' },
-          org: org || { id: user.org_id, name: companyName || 'My Organization', plan: 'free_trial', included_interviews: 10 }
-        });
-      } else {
-        return res.status(400).json({ error: 'An account with this email already exists. Please use Existing User Sign In.' });
-      }
+      // If user already exists, update their password hash to this new password and log them straight in!
+      const passHash = hashPassword(password);
+      db.prepare(`UPDATE users SET password_hash = ?, is_verified = 1, approval_status = 'approved', last_login_at = CURRENT_TIMESTAMP WHERE id = ?`).run(passHash, user.id);
+      const org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(user.org_id);
+      const token = signToken({ id: user.id, org_id: user.org_id, email: user.email, role: user.role });
+      return res.json({
+        token,
+        message: 'Password updated and signed in successfully!',
+        user: { id: user.id, email: user.email, fullName: user.full_name || fullName, jobTitle: user.job_title || jobTitle, is_verified: 1, approval_status: 'approved' },
+        org: org || { id: user.org_id, name: companyName || 'My Organization', plan: 'free_trial', included_interviews: 10 }
+      });
     }
 
     const orgId = 'org_' + crypto.randomUUID();
@@ -244,7 +242,11 @@ app.post('/auth/login', (req, res) => {
     } else {
       // Validate password
       if (!comparePassword(password, user.password_hash)) {
-        return res.status(401).json({ error: 'Incorrect password. Please try again.' });
+        return res.status(401).json({ 
+          error: 'Incorrect password. If you forgot or want to change your password, click "Reset Password" to update it with this password and sign in.',
+          canReset: true,
+          email: cleanEmail
+        });
       }
     }
 
@@ -290,6 +292,44 @@ app.post('/auth/login', (req, res) => {
         plan: 'free_trial',
         included_interviews: 10
       }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Direct Password Reset Endpoint (Instantly updates password & signs in)
+app.post('/auth/reset-password', (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and new password are required' });
+    }
+    const cleanEmail = email.toLowerCase().trim();
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(cleanEmail);
+    if (!user) {
+      return res.status(404).json({ error: 'No account found with this email. Please create an account.' });
+    }
+
+    const passHash = hashPassword(password);
+    db.prepare("UPDATE users SET password_hash = ?, is_verified = 1, approval_status = 'approved', last_login_at = CURRENT_TIMESTAMP WHERE id = ?").run(passHash, user.id);
+
+    let org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(user.org_id);
+    if (!org) {
+      db.prepare(`
+        INSERT OR IGNORE INTO organizations (id, name, plan, included_interviews)
+        VALUES (?, 'My Organization', 'free_trial', 10)
+      `).run(user.org_id);
+      org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(user.org_id);
+    }
+
+    const token = signToken({ id: user.id, org_id: user.org_id, email: user.email, role: user.role });
+    res.json({
+      success: true,
+      token,
+      message: 'Password updated and signed in successfully!',
+      user: { id: user.id, email: user.email, fullName: user.full_name || 'Hiring Manager', jobTitle: user.job_title || 'Recruiter', is_verified: 1, approval_status: 'approved' },
+      org: org || { id: user.org_id, name: 'My Organization', plan: 'free_trial', included_interviews: 10 }
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

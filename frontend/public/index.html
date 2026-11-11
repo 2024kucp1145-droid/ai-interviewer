@@ -2925,6 +2925,18 @@
             <button type="submit" class="btn" style="width: 100%; margin-top: 0.85rem;">
               Sign In & Enter Dashboard <i class="bi bi-box-arrow-in-right"></i>
             </button>
+
+            <!-- Reset password quick-action if incorrect password entered -->
+            <div id="login-error-container" style="display: none; margin-top: 0.65rem; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 6px; padding: 0.65rem;">
+              <div id="login-error-msg" style="color: #ef4444; font-size: 0.75rem; margin-bottom: 0.4rem; font-weight: 500;"></div>
+              <button type="button" id="btn-login-reset-pwd" class="btn btn-sm" style="width: 100%; font-size: 0.75rem; padding: 0.35rem; background: #6366f1; color: white;" onclick="resetPasswordFromLogin()">
+                <i class="bi bi-shield-check"></i> Set This Password & Sign In Instantly
+              </button>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
+              <a href="#" onclick="toggleAuthMode('signup'); return false;" style="font-size: 0.725rem; color: var(--primary); text-decoration: underline;">Forgot Password? Set New Password</a>
+            </div>
           </form>
         </div>
 
