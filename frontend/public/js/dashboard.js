@@ -4254,6 +4254,7 @@ window.refreshQuestionsPreview = async function(btnEl) {
 };
 
 let currentShareJobId = null;
+let currentShareJobData = null;
 let dispatchQueue = [];
 
 window.openShareModalForJob = function(jobId, rawTitle) {
@@ -4270,7 +4271,29 @@ window.openShareModalForJob = function(jobId, rawTitle) {
   if (resultsContainer) resultsContainer.style.display = 'none';
   if (titleEl) titleEl.textContent = title;
 
-  const shareUrl = `${window.location.origin}/interview.html?job=${jobId}`;
+  // Retrieve job details to build resilient portable configuration (&d=...)
+  const currentJob = (typeof allLoadedJobs !== 'undefined' && allLoadedJobs) ? allLoadedJobs.find(j => j.id === jobId) : null;
+  currentShareJobData = currentJob;
+  let portableParam = '';
+  if (currentJob) {
+    const compactObj = {
+      title: currentJob.title,
+      skills: currentJob.skills,
+      category: currentJob.category,
+      max_minutes: currentJob.max_minutes,
+      max_questions: currentJob.max_questions,
+      interview_type: currentJob.interview_type,
+      question_mode: currentJob.question_mode,
+      custom_questions: currentJob.custom_questions,
+      leetcode_problem: currentJob.leetcode_problem,
+      company_name: (typeof currentOrg !== 'undefined' && currentOrg?.name) ? currentOrg.name : 'Technical Hiring Team'
+    };
+    try {
+      portableParam = '&d=' + btoa(unescape(encodeURIComponent(JSON.stringify(compactObj))));
+    } catch (e) {}
+  }
+
+  const shareUrl = `${window.location.origin}/interview.html?job=${jobId}${portableParam}`;
   if (urlInput) urlInput.value = shareUrl;
   if (openLink) openLink.href = shareUrl;
 
@@ -4353,7 +4376,24 @@ window.copyTrackingUrl = async function(source) {
     alert('Please select an active interview round.');
     return;
   }
-  const trackingUrl = `${window.location.origin}/interview.html?job=${currentShareJobId}&source=${source}`;
+  let portableParam = '';
+  if (currentShareJobData) {
+    try {
+      const compactObj = {
+        title: currentShareJobData.title,
+        skills: currentShareJobData.skills,
+        category: currentShareJobData.category,
+        max_minutes: currentShareJobData.max_minutes,
+        max_questions: currentShareJobData.max_questions,
+        interview_type: currentShareJobData.interview_type,
+        question_mode: currentShareJobData.question_mode,
+        leetcode_problem: currentShareJobData.leetcode_problem,
+        company_name: (typeof currentOrg !== 'undefined' && currentOrg?.name) ? currentOrg.name : 'Technical Hiring Team'
+      };
+      portableParam = '&d=' + btoa(unescape(encodeURIComponent(JSON.stringify(compactObj))));
+    } catch (e) {}
+  }
+  const trackingUrl = `${window.location.origin}/interview.html?job=${currentShareJobId}&source=${source}${portableParam}`;
   const toast = document.getElementById('share-copy-toast');
 
   try {
@@ -4503,6 +4543,7 @@ window.submitBatchDispatch = async function() {
       body: JSON.stringify({
         candidates: dispatchQueue,
         channel,
+        link_timer_minutes: expiresInMinutes,
         expiresInMinutes
       })
     });

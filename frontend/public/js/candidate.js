@@ -823,6 +823,18 @@ window.handleCandidateSelfRegSubmit = async function(e) {
 
   const urlParams = new URLSearchParams(window.location.search);
   const source = urlParams.get('source') || urlParams.get('utm_source') || 'direct_link';
+  let jobData = null;
+  if (urlParams.get('d')) {
+    try {
+      let jsonStr = '';
+      try {
+        jsonStr = decodeURIComponent(escape(atob(urlParams.get('d'))));
+      } catch (e) {
+        jsonStr = atob(urlParams.get('d'));
+      }
+      jobData = JSON.parse(jsonStr);
+    } catch (e) {}
+  }
 
   if (btn) {
     btn.disabled = true;
@@ -833,7 +845,7 @@ window.handleCandidateSelfRegSubmit = async function(e) {
     const res = await fetch(`/public/jobs/${activeJobId}/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, phone, resume_text, source })
+      body: JSON.stringify({ name, email, phone, resume_text, source, jobData })
     });
 
     if (!res.ok) {
@@ -866,6 +878,7 @@ async function loadJobPublicDetails(targetJobId) {
   try {
     const urlParams = new URLSearchParams(window.location.search);
     const sourceParam = urlParams.get('source') || urlParams.get('utm_source');
+    const dParam = urlParams.get('d');
     const sourceBadgeContainer = document.getElementById('reg-source-badge-container');
     const sourceBadge = document.getElementById('reg-source-badge');
     if (sourceBadgeContainer && sourceBadge && sourceParam) {
@@ -873,12 +886,28 @@ async function loadJobPublicDetails(targetJobId) {
       sourceBadge.innerHTML = `<i class="bi bi-link-45deg"></i> Applying via ${sourceParam.toUpperCase()}`;
     }
 
-    const res = await fetch(`/public/jobs/${targetJobId}`);
-    if (!res.ok) {
+    const queryStr = dParam ? `?d=${encodeURIComponent(dParam)}` : '';
+    const res = await fetch(`/public/jobs/${targetJobId}${queryStr}`);
+    
+    let job = null;
+    if (res.ok) {
+      job = await res.json();
+    } else if (dParam) {
+      try {
+        let jsonStr = '';
+        try {
+          jsonStr = decodeURIComponent(escape(atob(dParam)));
+        } catch (e) {
+          jsonStr = atob(dParam);
+        }
+        job = JSON.parse(jsonStr);
+      } catch (e) {}
+    }
+
+    if (!job) {
       alert('Interview round not found or has expired. Please verify the link with the recruiter.');
       return;
     }
-    const job = await res.json();
     const titleEl = document.getElementById('reg-job-title');
     const compEl = document.getElementById('reg-company-name');
     const badgeEl = document.getElementById('reg-duration-badge');
@@ -903,7 +932,10 @@ async function loadInterviewData() {
   voice.setToken(token);
 
   try {
-    const res = await fetch(`/i/${token}`);
+    const urlParams = new URLSearchParams(window.location.search);
+    const dParam = urlParams.get('d');
+    const queryStr = dParam ? `?d=${encodeURIComponent(dParam)}` : '';
+    const res = await fetch(`/i/${token}${queryStr}`);
     if (!res.ok) {
       const err = await res.json();
       alert(err.error || 'Failed to load interview session');

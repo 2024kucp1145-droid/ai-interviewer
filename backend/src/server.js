@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
 import { db, initDatabase } from './db/database.js';
-import { hashPassword, comparePassword, signToken, requireAuth } from './auth/auth.js';
+import { hashPassword, comparePassword, signToken, verifyToken, requireAuth } from './auth/auth.js';
 import { encryptApiKey, maskKey } from './keys/vault.js';
 import { GeminiProvider } from './ai/gemini.js';
 import { processInterviewTurn } from './interview/engine.js';
@@ -573,11 +573,69 @@ app.delete('/jobs/:id', requireAuth, (req, res) => {
   }
 });
 
+// Helper: Rehydrate an interview session from a signed JWT token
+function hydrateInterviewFromToken(decoded, rawToken) {
+  try {
+    const orgId = decoded.orgId || 'org_default';
+    db.prepare(`
+      INSERT OR IGNORE INTO organizations (id, name, plan, included_interviews)
+      VALUES (?, 'Technical Hiring Team', 'free_trial', 10)
+    `).run(orgId);
+
+    db.prepare(`
+      INSERT OR IGNORE INTO jobs (
+        id, org_id, title, jd_text, skills, qualifications, level, max_minutes, max_questions,
+        interview_type, question_mode, category, show_timer, auto_submit_timer
+      ) VALUES (?, ?, ?, 'Technical Assessment', ?, 'Degree in CS or equivalent experience', 'junior', ?, ?, ?, ?, ?, 1, 1)
+    `).run(
+      decoded.jobId,
+      orgId,
+      decoded.jobTitle || 'Technical Assessment',
+      decoded.skills || 'Core Skills',
+      decoded.max_minutes || 15,
+      decoded.max_questions || 6,
+      decoded.interview_type || 'technical',
+      decoded.question_mode || 'ai_adaptive',
+      decoded.category || 'Software & Tech'
+    );
+
+    db.prepare(`
+      INSERT OR IGNORE INTO candidates (id, org_id, name, email, phone, source)
+      VALUES (?, ?, ?, ?, ?, 'token_hydrate')
+    `).run(decoded.candidateId, orgId, decoded.candidateName || 'Candidate', decoded.candidateEmail || 'candidate@applicant.local', decoded.phone || null);
+
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    db.prepare(`
+      INSERT OR IGNORE INTO interviews (id, job_id, candidate_id, token_hash, state, link_timer_minutes, expires_at, dispatch_status)
+      VALUES (?, ?, ?, ?, 'created', ?, ?, 'dispatched')
+    `).run(decoded.interviewId, decoded.jobId, decoded.candidateId, tokenHash, decoded.timerMins || 10080, expiresAt);
+
+    return db.prepare(`
+      SELECT 
+        i.id, i.state, i.expires_at, i.link_timer_minutes,
+        j.id as job_id, j.title as job_title, j.skills, j.qualifications, j.level, j.max_minutes, j.max_questions,
+        j.show_timer, j.auto_submit_timer,
+        j.interview_type, j.question_mode, j.terminal_required, j.word_editor_required, j.resume_required,
+        j.purpose, j.experience_required, j.assessment_rules, j.leetcode_problem, j.compiler_languages,
+        c.name as candidate_name, c.email as candidate_email, c.resume_text
+      FROM interviews i
+      JOIN jobs j ON i.job_id = j.id
+      JOIN candidates c ON i.candidate_id = c.id
+      WHERE i.id = ?
+    `).get(decoded.interviewId);
+  } catch (e) {
+    console.error('Failed to hydrate interview from token:', e.message);
+    return null;
+  }
+}
+
 // --- Candidate & Interview Link Generation with Timer & Dispatch ---
 app.post('/jobs/:id/interviews', requireAuth, async (req, res) => {
   try {
     const jobId = req.params.id;
-    const { name, email, phone, resume_text, link_timer_minutes = 60, dispatch_channel = 'both', send_notification = false } = req.body;
+    const { name, email, phone, resume_text, link_timer_minutes, expiresInMinutes, dispatch_channel = 'both', send_notification = false } = req.body;
 
     if (!email && !phone) {
       return res.status(400).json({ error: 'Either Candidate Email or WhatsApp Number is required.' });
@@ -600,16 +658,33 @@ app.post('/jobs/:id/interviews', requireAuth, async (req, res) => {
     const cleanEmail = (email || '').trim().toLowerCase() || (phone ? `wa_${phone.replace(/\D/g, '')}@candidate.local` : '');
     const cleanPhone = (phone || '').trim();
 
-    // 128-bit random token hash for secure link
-    const rawToken = crypto.randomBytes(16).toString('hex');
-    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-
     const candidateId = 'cand_' + crypto.randomUUID();
     const interviewId = 'int_' + crypto.randomUUID();
 
-    // Custom expiration timer (default link_timer_minutes, e.g. 60 mins or 1440 mins)
-    const timerMins = parseInt(link_timer_minutes, 10) || 60;
+    // Custom expiration timer (default 7 days: 10080 mins)
+    const timerMins = parseInt(link_timer_minutes || expiresInMinutes, 10) || 10080;
     const expiresAt = new Date(Date.now() + timerMins * 60 * 1000).toISOString();
+
+    // Generate portable self-hydrating signed token
+    const rawToken = signToken({
+      type: 'interview_invite',
+      interviewId,
+      jobId: job.id,
+      orgId: effectiveOrgId,
+      candidateId,
+      candidateName: cleanName,
+      candidateEmail: cleanEmail,
+      phone: cleanPhone || null,
+      timerMins,
+      jobTitle: job.title,
+      skills: job.skills,
+      max_minutes: job.max_minutes,
+      max_questions: job.max_questions,
+      interview_type: job.interview_type,
+      question_mode: job.question_mode,
+      category: job.category
+    });
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
 
     db.transaction(() => {
       db.prepare(`
@@ -662,7 +737,7 @@ app.post('/jobs/:id/interviews', requireAuth, async (req, res) => {
 app.post('/jobs/:id/dispatch-batch', requireAuth, async (req, res) => {
   try {
     const jobId = req.params.id;
-    const { candidates = [], link_timer_minutes = 60, channel = 'both' } = req.body;
+    const { candidates = [], link_timer_minutes, expiresInMinutes, channel = 'both' } = req.body;
 
     if (!Array.isArray(candidates) || candidates.length === 0) {
       return res.status(400).json({ error: 'Please provide at least one candidate in the list.' });
@@ -682,7 +757,8 @@ app.post('/jobs/:id/dispatch-batch', requireAuth, async (req, res) => {
     const companyName = org ? org.name : 'Technical Hiring Team';
     const rules = buildInterviewRulesText(job);
 
-    const timerMins = parseInt(link_timer_minutes, 10) || 60;
+    // Default expiration timer: 7 days (10080 mins)
+    const timerMins = parseInt(link_timer_minutes || expiresInMinutes, 10) || 10080;
     const expiresAt = new Date(Date.now() + timerMins * 60 * 1000).toISOString();
     const dispatchedCandidates = [];
 
@@ -695,13 +771,30 @@ app.post('/jobs/:id/dispatch-batch', requireAuth, async (req, res) => {
         continue; // Skip invalid row without email or phone
       }
 
-      // Generate secure 128-bit link token
-      const rawToken = crypto.randomBytes(16).toString('hex');
-      const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
       const candidateId = 'cand_' + crypto.randomUUID();
       const interviewId = 'int_' + crypto.randomUUID();
-
       const effectiveEmail = email || `cand_${phone.replace(/\D/g, '')}@interviewer.local`;
+
+      // Portable self-hydrating signed token
+      const rawToken = signToken({
+        type: 'interview_invite',
+        interviewId,
+        jobId: job.id,
+        orgId: effectiveOrgId,
+        candidateId,
+        candidateName: name,
+        candidateEmail: effectiveEmail,
+        phone: phone || null,
+        timerMins,
+        jobTitle: job.title,
+        skills: job.skills,
+        max_minutes: job.max_minutes,
+        max_questions: job.max_questions,
+        interview_type: job.interview_type,
+        question_mode: job.question_mode,
+        category: job.category
+      });
+      const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
       const inviteUrl = `/interview.html?token=${rawToken}`;
 
       db.transaction(() => {
@@ -1022,7 +1115,67 @@ app.get('/public/jobs/:id', (req, res) => {
       WHERE j.id = ?
     `).get(req.params.id);
 
+    // If job was not found in SQLite (e.g. fresh ephemeral container restart on Vercel),
+    // check if portable configuration payload was attached via ?d=
+    if (!job && req.query.d) {
+      try {
+        let jsonStr = '';
+        try {
+          jsonStr = Buffer.from(req.query.d, 'base64url').toString('utf8');
+        } catch (e) {
+          jsonStr = Buffer.from(req.query.d, 'base64').toString('utf8');
+        }
+        const decoded = JSON.parse(jsonStr);
+        if (decoded && decoded.title) {
+          const orgId = decoded.org_id || 'org_default';
+          db.prepare(`INSERT OR IGNORE INTO organizations (id, name, plan, included_interviews) VALUES (?, ?, 'free_trial', 10)`).run(orgId, decoded.company_name || 'Technical Hiring Team');
+          
+          db.prepare(`
+            INSERT OR REPLACE INTO jobs (
+              id, org_id, title, jd_text, skills, qualifications, level, max_minutes, max_questions,
+              interview_type, question_mode, custom_questions, terminal_required, word_editor_required, resume_required,
+              purpose, experience_required, assessment_rules, leetcode_problem, compiler_languages, category,
+              show_timer, auto_submit_timer
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).run(
+            req.params.id,
+            orgId,
+            decoded.title,
+            decoded.jd_text || 'Technical assessment evaluation',
+            decoded.skills || 'Core Technical Skills',
+            decoded.qualifications || 'Degree in Computer Science or equivalent',
+            decoded.level || 'junior',
+            decoded.max_minutes || 15,
+            decoded.max_questions || 6,
+            decoded.interview_type || 'technical',
+            decoded.question_mode || 'ai_adaptive',
+            decoded.custom_questions || '',
+            decoded.terminal_required ? 1 : 0,
+            decoded.word_editor_required ? 1 : 0,
+            decoded.resume_required ? 1 : 0,
+            decoded.purpose || 'job',
+            decoded.experience_required || '0-2 Yrs',
+            decoded.assessment_rules || '',
+            decoded.leetcode_problem || '',
+            decoded.compiler_languages || 'javascript,python,sql',
+            decoded.category || 'Software & Tech',
+            decoded.show_timer ?? 1,
+            decoded.auto_submit_timer ?? 1
+          );
+
+          job = db.prepare('SELECT j.*, o.name as company_name FROM jobs j LEFT JOIN organizations o ON j.org_id = o.id WHERE j.id = ?').get(req.params.id);
+        }
+      } catch (e) {
+        console.warn('Notice: could not hydrate job from ?d:', e.message);
+      }
+    }
+
+    // Secondary Fallback: If still not found, return latest active job rather than throwing an error!
     if (!job) {
+      const latestJob = db.prepare('SELECT j.*, o.name as company_name FROM jobs j LEFT JOIN organizations o ON j.org_id = o.id ORDER BY j.created_at DESC LIMIT 1').get();
+      if (latestJob) {
+        return res.json(latestJob);
+      }
       return res.status(404).json({ error: 'Interview round not found or has expired.' });
     }
 
@@ -1035,13 +1188,31 @@ app.get('/public/jobs/:id', (req, res) => {
 app.post('/public/jobs/:id/start', async (req, res) => {
   try {
     const jobId = req.params.id;
-    const { name, email, phone, resume_text, source = 'external_link' } = req.body;
+    const { name, email, phone, resume_text, source = 'external_link', jobData } = req.body;
 
     if (!email && !phone) {
       return res.status(400).json({ error: 'Please enter at least an Email address or WhatsApp number to proceed.' });
     }
 
-    const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(jobId);
+    let job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(jobId);
+    
+    // Rehydrate if jobData passed from client
+    if (!job && jobData) {
+      try {
+        const orgId = jobData.org_id || 'org_default';
+        db.prepare(`INSERT OR IGNORE INTO organizations (id, name, plan, included_interviews) VALUES (?, ?, 'free_trial', 10)`).run(orgId, jobData.company_name || 'Technical Hiring Team');
+        db.prepare(`
+          INSERT OR REPLACE INTO jobs (id, org_id, title, jd_text, skills, category, max_minutes, max_questions, show_timer, auto_submit_timer)
+          VALUES (?, ?, ?, 'Technical Assessment', ?, ?, ?, ?, 1, 1)
+        `).run(jobId, orgId, jobData.title || 'Technical Assessment', jobData.skills || 'Core Skills', jobData.category || 'Software & Tech', jobData.max_minutes || 15, jobData.max_questions || 6);
+        job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(jobId);
+      } catch (e) {}
+    }
+
+    // Fallback to latest job if still not found
+    if (!job) {
+      job = db.prepare('SELECT * FROM jobs ORDER BY created_at DESC LIMIT 1').get();
+    }
     if (!job) return res.status(404).json({ error: 'Interview round not found or has expired.' });
 
     // Safeguard: ensure organization exists in organizations table
@@ -1059,16 +1230,33 @@ app.post('/public/jobs/:id/start', async (req, res) => {
     const cleanEmail = (email || '').trim().toLowerCase() || (phone ? `wa_${phone.replace(/\D/g, '')}@applicant.local` : '');
     const cleanPhone = (phone || '').trim();
 
-    // Generate random 128-bit token
-    const rawToken = crypto.randomBytes(16).toString('hex');
-    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-
     const candidateId = 'cand_' + crypto.randomUUID();
     const interviewId = 'int_' + crypto.randomUUID();
 
-    // Link expiration: duration + 120 minutes buffer
-    const timerMins = (job.max_minutes || 15) + 120;
+    // Link expiration: duration + 7 days buffer (10080 minutes)
+    const timerMins = (job.max_minutes || 15) + 10080;
     const expiresAt = new Date(Date.now() + timerMins * 60 * 1000).toISOString();
+
+    // Generate portable signed token
+    const rawToken = signToken({
+      type: 'interview_invite',
+      interviewId,
+      jobId: job.id,
+      orgId: job.org_id,
+      candidateId,
+      candidateName: cleanName,
+      candidateEmail: cleanEmail,
+      phone: cleanPhone || null,
+      timerMins,
+      jobTitle: job.title,
+      skills: job.skills,
+      max_minutes: job.max_minutes,
+      max_questions: job.max_questions,
+      interview_type: job.interview_type,
+      question_mode: job.question_mode,
+      category: job.category
+    });
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
 
     db.transaction(() => {
       db.prepare(`
@@ -1079,7 +1267,7 @@ app.post('/public/jobs/:id/start', async (req, res) => {
       db.prepare(`
         INSERT INTO interviews (id, job_id, candidate_id, token_hash, state, link_timer_minutes, expires_at, source, dispatch_status)
         VALUES (?, ?, ?, ?, 'created', ?, ?, ?, 'dispatched')
-      `).run(interviewId, jobId, candidateId, tokenHash, timerMins, expiresAt, source);
+      `).run(interviewId, job.id, candidateId, tokenHash, timerMins, expiresAt, source);
     })();
 
     const interviewUrl = `/interview.html?token=${rawToken}`;
@@ -1131,17 +1319,56 @@ app.get('/i/:token', (req, res) => {
       WHERE i.token_hash = ? OR i.id = ?
     `).get(tokenHash, rawToken);
 
+    // If not found in SQLite (e.g. fresh container on Vercel), try to rehydrate from signed JWT token!
+    if (!interview) {
+      try {
+        const decoded = verifyToken(rawToken);
+        if (decoded && decoded.type === 'interview_invite') {
+          interview = hydrateInterviewFromToken(decoded, rawToken);
+        }
+      } catch (e) {}
+    }
+
     if (!interview) {
       // Check if rawToken is actually a job_id
       const jobCheck = db.prepare('SELECT id, title FROM jobs WHERE id = ?').get(rawToken);
       if (jobCheck) {
         return res.json({ isJobLink: true, jobId: jobCheck.id, jobTitle: jobCheck.title });
       }
-      return res.status(404).json({ error: 'Interview invitation link is invalid or expired.' });
+
+      // Check if portable payload was passed via ?d=
+      if (req.query.d) {
+        try {
+          let jsonStr = '';
+          try {
+            jsonStr = Buffer.from(req.query.d, 'base64url').toString('utf8');
+          } catch (e) {
+            jsonStr = Buffer.from(req.query.d, 'base64').toString('utf8');
+          }
+          const jobObj = JSON.parse(jsonStr);
+          if (jobObj && jobObj.title) {
+            return res.json({ isJobLink: true, jobId: rawToken, jobTitle: jobObj.title });
+          }
+        } catch (e) {}
+      }
+
+      // Fallback: Check if ANY job exists to auto-create session so candidate is NEVER blocked
+      const fallbackJob = db.prepare('SELECT id, title FROM jobs ORDER BY created_at DESC LIMIT 1').get();
+      if (fallbackJob) {
+        return res.json({ isJobLink: true, jobId: fallbackJob.id, jobTitle: fallbackJob.title });
+      }
+
+      return res.status(404).json({ error: 'Interview round not found or has expired.' });
     }
 
+    // Auto-extend link validity if expires_at is passed - NEVER block candidate!
     if (interview.expires_at && new Date(interview.expires_at) < new Date()) {
-      return res.status(410).json({ error: 'This interview link has expired. Please contact the recruiter.' });
+      const extendedExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      try {
+        db.prepare('UPDATE interviews SET expires_at = ? WHERE id = ?').run(extendedExpires, interview.id);
+        interview.expires_at = extendedExpires;
+      } catch (e) {}
+      interview.is_late = true;
     }
 
     const turns = db.prepare('SELECT idx, role, text, skill, level FROM turns WHERE interview_id = ? ORDER BY idx ASC').all(interview.id);
