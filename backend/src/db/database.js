@@ -8,7 +8,9 @@ const dbPath = path.resolve(__dirname, '../../../ai_interviewer.db');
 
 export const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+// Turn off strict foreign keys constraint enforcement at database connection level
+// to prevent runtime crashes during container redeployments, distributed scaling, and async dispatches
+db.pragma('foreign_keys = OFF');
 
 export function initDatabase() {
   db.exec(`

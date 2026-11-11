@@ -1525,6 +1525,7 @@
       <button class="nav-btn active" onclick="switchTab('jobs')"><i class="bi bi-briefcase"></i> Roles & Skills</button>
       <button class="nav-btn" onclick="switchTab('candidates')"><i class="bi bi-people"></i> Candidate Pipeline</button>
       <button class="nav-btn" onclick="openQuestionBankModal()"><i class="bi bi-collection"></i> Question Bank</button>
+      <button class="nav-btn" id="nav-btn-registered-users" onclick="openRegisteredUsersModal()" title="View live list of all signed up users & organizations"><i class="bi bi-people-fill" style="color: #2563eb;"></i> Registered Users (<span id="nav-users-count">0</span>)</button>
       <button class="nav-btn" onclick="switchTab('keys')"><i class="bi bi-key"></i> API Key (BYOK)</button>
       <button class="nav-btn" onclick="switchTab('metrics')"><i class="bi bi-graph-up"></i> Usage & Pricing</button>
       <button class="nav-btn" onclick="switchTab('leadmagnet')"><i class="bi bi-magic"></i> Free Question Gen</button>
@@ -3307,6 +3308,98 @@
         <div style="overflow-y: auto; flex: 1; padding-right: 0.35rem;" id="modal-qbank-body">
           <!-- Rendered dynamically -->
         </div>
+      </div>
+    </div>
+
+    <!-- REGISTERED USERS & ORGANIZATIONS ROSTER MODAL -->
+    <div class="modal-backdrop" id="modal-registered-users" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 1050; align-items: center; justify-content: center; padding: 1.25rem;">
+      <div class="card" style="max-width: 1100px; width: 100%; max-height: 92vh; display: flex; flex-direction: column; padding: 1.5rem; background: var(--surface); border-radius: 12px; box-shadow: 0 20px 45px rgba(0,0,0,0.3);">
+        
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; box-shadow: 0 4px 10px rgba(37,99,235,0.3);">
+              <i class="bi bi-people-fill"></i>
+            </div>
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text);">Registered Users &amp; Organizations Roster</h3>
+                <span class="badge badge-dark" id="modal-users-total-badge" style="font-size: 0.75rem;">0 Total Signups</span>
+              </div>
+              <p style="margin: 0.15rem 0 0 0; font-size: 0.75rem; color: var(--text-muted);">
+                Live directory of all recruiters, founders, and companies registered on your AI Interview platform
+              </p>
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="exportRegisteredUsersCsv()" style="font-size: 0.75rem; font-weight: 600;">
+              <i class="bi bi-download"></i> Export CSV
+            </button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="loadRegisteredUsers(true)" id="btn-refresh-users" style="font-size: 0.75rem; font-weight: 600;" title="Refresh List">
+              <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="closeRegisteredUsersModal()" style="font-weight: 800; font-size: 1.1rem; padding: 0.25rem 0.65rem;">✕</button>
+          </div>
+        </div>
+
+        <!-- Metric Summary Chips -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1rem;">
+          <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 8px; padding: 0.65rem 0.85rem;">
+            <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Total Recruiters / Users</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: var(--text);" id="stat-modal-users-count">0</div>
+          </div>
+          <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 8px; padding: 0.65rem 0.85rem;">
+            <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Companies / Orgs</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: #2563eb;" id="stat-modal-orgs-count">0</div>
+          </div>
+          <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 8px; padding: 0.65rem 0.85rem;">
+            <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Interview Positions Created</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: #059669;" id="stat-modal-jobs-count">0</div>
+          </div>
+          <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 8px; padding: 0.65rem 0.85rem;">
+            <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Candidates Interviewed</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: #d97706;" id="stat-modal-interviews-count">0</div>
+          </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div style="margin-bottom: 0.85rem;">
+          <div style="position: relative;">
+            <i class="bi bi-search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.8rem;"></i>
+            <input type="text" id="input-search-users" placeholder="Search users by Name, Email, Phone, Organization, or Country..." oninput="handleSearchUsersInput()" style="width: 100%; padding: 0.55rem 0.75rem 0.55rem 2.25rem; font-size: 0.8rem; border: 1.5px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); margin-bottom: 0;">
+          </div>
+        </div>
+
+        <!-- Table Container -->
+        <div style="flex: 1; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem; text-align: left; margin: 0;">
+            <thead style="background: var(--surface-subtle); border-bottom: 1.5px solid var(--border); position: sticky; top: 0; z-index: 2;">
+              <tr>
+                <th style="padding: 0.65rem 0.85rem; font-weight: 700;">User &amp; Role</th>
+                <th style="padding: 0.65rem 0.85rem; font-weight: 700;">Email &amp; Contact</th>
+                <th style="padding: 0.65rem 0.85rem; font-weight: 700;">Company / Organization</th>
+                <th style="padding: 0.65rem 0.85rem; font-weight: 700;">Plan &amp; Credits</th>
+                <th style="padding: 0.65rem 0.85rem; font-weight: 700; text-align: center;">Positions / Interviews</th>
+                <th style="padding: 0.65rem 0.85rem; font-weight: 700; text-align: right;">Signup Date</th>
+              </tr>
+            </thead>
+            <tbody id="registered-users-tbody">
+              <tr>
+                <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                  <div class="spinner-border spinner-border-sm" role="status" style="margin-bottom: 0.5rem;"></div>
+                  <div>Loading registered user list...</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Footer -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 0.75rem; font-size: 0.72rem; color: var(--text-muted);">
+          <span>Showing <strong id="users-filtered-count">0</strong> of <strong id="users-total-count">0</strong> users</span>
+          <button type="button" class="btn btn-outline btn-sm" onclick="closeRegisteredUsersModal()">Close Roster</button>
+        </div>
+
       </div>
     </div>
 

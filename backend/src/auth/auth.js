@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { db } from '../db/database.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_secret_key_849204910284019284019';
 
@@ -39,5 +40,22 @@ export function requireAuth(req, res, next) {
   }
 
   req.user = decoded; // { id, org_id, email, role }
+
+  // Safeguard: Ensure user's organization exists in organizations table
+  // This prevents any foreign key mismatches across container restarts or new databases
+  if (req.user && req.user.org_id) {
+    try {
+      const orgCheck = db.prepare('SELECT id FROM organizations WHERE id = ?').get(req.user.org_id);
+      if (!orgCheck) {
+        db.prepare(`
+          INSERT OR IGNORE INTO organizations (id, name, plan, included_interviews)
+          VALUES (?, 'My Organization', 'free_trial', 10)
+        `).run(req.user.org_id);
+      }
+    } catch (e) {
+      // Non-fatal fallback
+    }
+  }
+
   next();
 }

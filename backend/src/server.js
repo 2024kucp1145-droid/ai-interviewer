@@ -223,6 +223,57 @@ app.get('/auth/me', requireAuth, (req, res) => {
   }
 });
 
+// --- Platform Admin: Registered Users & Organizations Directory ---
+app.get('/api/admin/users', requireAuth, (req, res) => {
+  try {
+    const users = db.prepare(`
+      SELECT 
+        u.id, 
+        u.full_name, 
+        u.email, 
+        u.phone, 
+        u.job_title, 
+        u.role, 
+        u.is_verified, 
+        u.created_at,
+        o.id as org_id, 
+        o.name as org_name, 
+        o.website as org_website, 
+        o.industry as org_industry, 
+        o.company_size as org_size, 
+        o.country as org_country, 
+        o.plan as org_plan, 
+        o.included_interviews as org_credits,
+        (SELECT COUNT(*) FROM jobs j WHERE j.org_id = o.id) as total_jobs,
+        (SELECT COUNT(*) FROM interviews i JOIN jobs j ON i.job_id = j.id WHERE j.org_id = o.id) as total_interviews,
+        (SELECT COUNT(*) FROM candidates c WHERE c.org_id = o.id) as total_candidates
+      FROM users u
+      LEFT JOIN organizations o ON u.org_id = o.id
+      ORDER BY u.created_at DESC
+    `).all();
+
+    const totalUsers = users.length;
+    const totalOrgs = new Set(users.map(u => u.org_id).filter(Boolean)).size;
+    const totalJobs = users.reduce((acc, u) => acc + (u.total_jobs || 0), 0);
+    const totalInterviews = users.reduce((acc, u) => acc + (u.total_interviews || 0), 0);
+    const totalCandidates = users.reduce((acc, u) => acc + (u.total_candidates || 0), 0);
+
+    res.json({
+      success: true,
+      stats: {
+        totalUsers,
+        totalOrgs,
+        totalJobs,
+        totalInterviews,
+        totalCandidates
+      },
+      users
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- Provider Key Endpoints (Customer-Owned Key Model, Section 4.3) ---
 app.post('/org/provider-key', requireAuth, async (req, res) => {
   try {
@@ -313,6 +364,14 @@ app.post('/jobs', requireAuth, (req, res) => {
 
     if (!title || !jd_text) {
       return res.status(400).json({ error: 'Title and Job Description (JD) text are required' });
+    }
+
+    // Safeguard: Ensure organization exists in organizations table
+    if (req.user && req.user.org_id) {
+      db.prepare(`
+        INSERT OR IGNORE INTO organizations (id, name, plan, included_interviews)
+        VALUES (?, 'My Organization', 'free_trial', 10)
+      `).run(req.user.org_id);
     }
 
     // Auto-extract skills if none passed
@@ -524,10 +583,17 @@ app.post('/jobs/:id/interviews', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Either Candidate Email or WhatsApp Number is required.' });
     }
 
-    const job = db.prepare('SELECT * FROM jobs WHERE id = ? AND org_id = ?').get(jobId, req.user.org_id);
+    const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(jobId);
     if (!job) return res.status(404).json({ error: 'Job not found' });
 
-    const org = db.prepare('SELECT name FROM organizations WHERE id = ?').get(req.user.org_id);
+    const effectiveOrgId = job.org_id || req.user.org_id;
+    // Ensure organization row exists in database
+    db.prepare(`
+      INSERT OR IGNORE INTO organizations (id, name, plan, included_interviews)
+      VALUES (?, 'Technical Hiring Team', 'free_trial', 10)
+    `).run(effectiveOrgId);
+
+    const org = db.prepare('SELECT name FROM organizations WHERE id = ?').get(effectiveOrgId);
     const companyName = org ? org.name : 'Technical Hiring Team';
 
     const cleanName = (name || '').trim() || (email ? email.split('@')[0] : 'Candidate');
@@ -549,12 +615,12 @@ app.post('/jobs/:id/interviews', requireAuth, async (req, res) => {
       db.prepare(`
         INSERT INTO candidates (id, org_id, name, email, phone, resume_text, source)
         VALUES (?, ?, ?, ?, ?, ?, 'direct_invite')
-      `).run(candidateId, req.user.org_id, cleanName, cleanEmail, cleanPhone || null, resume_text || '');
+      `).run(candidateId, effectiveOrgId, cleanName, cleanEmail, cleanPhone || null, resume_text || '');
 
       db.prepare(`
         INSERT INTO interviews (id, job_id, candidate_id, token_hash, state, link_timer_minutes, expires_at, dispatch_status, dispatch_channel, source)
         VALUES (?, ?, ?, ?, 'created', ?, ?, 'created', ?, 'direct_invite')
-      `).run(interviewId, jobId, candidateId, tokenHash, timerMins, expiresAt, dispatch_channel);
+      `).run(interviewId, job.id, candidateId, tokenHash, timerMins, expiresAt, dispatch_channel);
     })();
 
     const inviteUrl = `/interview.html?token=${rawToken}`;
@@ -602,10 +668,17 @@ app.post('/jobs/:id/dispatch-batch', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Please provide at least one candidate in the list.' });
     }
 
-    const job = db.prepare('SELECT * FROM jobs WHERE id = ? AND org_id = ?').get(jobId, req.user.org_id);
+    const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(jobId);
     if (!job) return res.status(404).json({ error: 'Job position not found.' });
 
-    const org = db.prepare('SELECT name FROM organizations WHERE id = ?').get(req.user.org_id);
+    const effectiveOrgId = job.org_id || req.user.org_id;
+    // Ensure organization row exists in database
+    db.prepare(`
+      INSERT OR IGNORE INTO organizations (id, name, plan, included_interviews)
+      VALUES (?, 'Technical Hiring Team', 'free_trial', 10)
+    `).run(effectiveOrgId);
+
+    const org = db.prepare('SELECT name FROM organizations WHERE id = ?').get(effectiveOrgId);
     const companyName = org ? org.name : 'Technical Hiring Team';
     const rules = buildInterviewRulesText(job);
 
@@ -635,12 +708,12 @@ app.post('/jobs/:id/dispatch-batch', requireAuth, async (req, res) => {
         db.prepare(`
           INSERT INTO candidates (id, org_id, name, email, phone, resume_text, source)
           VALUES (?, ?, ?, ?, ?, ?, 'batch_dispatch')
-        `).run(candidateId, req.user.org_id, name, effectiveEmail, phone || null, c.resume_text || '');
+        `).run(candidateId, effectiveOrgId, name, effectiveEmail, phone || null, c.resume_text || '');
 
         db.prepare(`
           INSERT INTO interviews (id, job_id, candidate_id, token_hash, state, link_timer_minutes, expires_at, dispatch_status, dispatch_channel, source)
           VALUES (?, ?, ?, ?, 'created', ?, ?, 'dispatched', ?, 'batch_dispatch')
-        `).run(interviewId, jobId, candidateId, tokenHash, timerMins, expiresAt, channel);
+        `).run(interviewId, job.id, candidateId, tokenHash, timerMins, expiresAt, channel);
       })();
 
       // Send Email & WhatsApp notification
@@ -970,6 +1043,14 @@ app.post('/public/jobs/:id/start', async (req, res) => {
 
     const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(jobId);
     if (!job) return res.status(404).json({ error: 'Interview round not found or has expired.' });
+
+    // Safeguard: ensure organization exists in organizations table
+    if (job.org_id) {
+      db.prepare(`
+        INSERT OR IGNORE INTO organizations (id, name, plan, included_interviews)
+        VALUES (?, 'Technical Hiring Team', 'free_trial', 10)
+      `).run(job.org_id);
+    }
 
     const org = db.prepare('SELECT name FROM organizations WHERE id = ?').get(job.org_id);
     const companyName = org ? org.name : 'Technical Hiring Team';

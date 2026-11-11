@@ -65,6 +65,7 @@ async function checkAuthSession() {
 
       updateUserBadge();
       loadJobs();
+      loadRegisteredUsers();
       return true;
     } else {
       authToken = null;
@@ -5048,3 +5049,260 @@ window.switchTab = function(tab) {
     initBillingTab();
   }
 };
+
+// ── Platform Admin: Registered Users & Organizations Directory ─────────────
+let allLoadedRegisteredUsers = [];
+
+window.openRegisteredUsersModal = function() {
+  const modal = document.getElementById('modal-registered-users');
+  if (modal) {
+    modal.style.display = 'flex';
+    loadRegisteredUsers();
+  }
+};
+
+window.closeRegisteredUsersModal = function() {
+  const modal = document.getElementById('modal-registered-users');
+  if (modal) modal.style.display = 'none';
+};
+
+window.loadRegisteredUsers = async function(isManualRefresh = false) {
+  const refreshBtn = document.getElementById('btn-refresh-users');
+  const tbody = document.getElementById('registered-users-tbody');
+  
+  if (isManualRefresh && refreshBtn) {
+    refreshBtn.classList.add('spinning');
+  }
+
+  try {
+    const res = await apiRequest('/api/admin/users');
+    if (!res.ok) {
+      throw new Error('Failed to load registered users directory.');
+    }
+    const data = await res.json();
+    allLoadedRegisteredUsers = data.users || [];
+
+    // Update Navbar and Modal summary badges
+    const totalCount = data.stats?.totalUsers ?? allLoadedRegisteredUsers.length;
+    const navCountEl = document.getElementById('nav-users-count');
+    const modalBadge = document.getElementById('modal-users-total-badge');
+    const statUsers = document.getElementById('stat-modal-users-count');
+    const statOrgs = document.getElementById('stat-modal-orgs-count');
+    const statJobs = document.getElementById('stat-modal-jobs-count');
+    const statIntvs = document.getElementById('stat-modal-interviews-count');
+    const totalCountEl = document.getElementById('users-total-count');
+
+    if (navCountEl) navCountEl.textContent = totalCount;
+    if (modalBadge) modalBadge.textContent = `${totalCount} Registered User${totalCount === 1 ? '' : 's'}`;
+    if (statUsers) statUsers.textContent = totalCount;
+    if (statOrgs) statOrgs.textContent = data.stats?.totalOrgs ?? 0;
+    if (statJobs) statJobs.textContent = data.stats?.totalJobs ?? 0;
+    if (statIntvs) statIntvs.textContent = data.stats?.totalInterviews ?? 0;
+    if (totalCountEl) totalCountEl.textContent = totalCount;
+
+    renderRegisteredUsersTable(allLoadedRegisteredUsers);
+  } catch (err) {
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" style="text-align: center; padding: 2rem; color: #dc2626;">
+            <i class="bi bi-exclamation-triangle-fill"></i> Error: ${err.message}
+          </td>
+        </tr>`;
+    }
+  } finally {
+    if (refreshBtn) {
+      setTimeout(() => refreshBtn.classList.remove('spinning'), 500);
+    }
+  }
+};
+
+window.renderRegisteredUsersTable = function(users) {
+  const tbody = document.getElementById('registered-users-tbody');
+  const filteredCountEl = document.getElementById('users-filtered-count');
+  if (filteredCountEl) filteredCountEl.textContent = users.length;
+
+  if (!tbody) return;
+
+  if (users.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+          <i class="bi bi-person-x" style="font-size: 1.8rem; display: block; margin-bottom: 0.35rem;"></i>
+          No registered users found matching the query.
+        </td>
+      </tr>`;
+    return;
+  }
+
+  tbody.innerHTML = users.map(u => {
+    const name = u.full_name || 'Hiring Manager';
+    const initials = name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() || 'U';
+    
+    // Deterministic avatar color based on name
+    const colors = ['#2563eb', '#7c3aed', '#059669', '#d97706', '#dc2626', '#0891b2', '#4f46e5'];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    const avatarBg = colors[Math.abs(hash) % colors.length];
+
+    const joinedDate = u.created_at ? new Date(u.created_at).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    }) : 'Recent';
+
+    const joinedTime = u.created_at ? new Date(u.created_at).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    }) : '';
+
+    const planLabel = (u.org_plan || 'free_trial').replace('_', ' ').toUpperCase();
+    const isOwner = u.role === 'owner';
+    const isVerified = Boolean(u.is_verified);
+
+    return `
+      <tr style="border-bottom: 1px solid var(--border); transition: background 0.15s ease;">
+        <!-- User & Role -->
+        <td style="padding: 0.75rem 0.85rem; vertical-align: middle;">
+          <div style="display: flex; align-items: center; gap: 0.65rem;">
+            <div style="width: 34px; height: 34px; border-radius: 50%; background: ${avatarBg}; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.78rem; flex-shrink: 0;">
+              ${initials}
+            </div>
+            <div>
+              <div style="font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 0.35rem;">
+                ${escapeHtml(name)}
+                ${isVerified ? '<i class="bi bi-patch-check-fill" style="color: #10b981; font-size: 0.85rem;" title="Identity Verified"></i>' : ''}
+              </div>
+              <div style="display: flex; gap: 0.3rem; align-items: center; margin-top: 0.15rem;">
+                <span class="badge ${isOwner ? 'badge-dark' : 'badge-outline'}" style="font-size: 0.65rem; padding: 0.1rem 0.4rem;">
+                  ${isOwner ? 'Account Owner' : 'Recruiter'}
+                </span>
+                ${u.job_title ? `<span style="font-size: 0.7rem; color: var(--text-muted);">${escapeHtml(u.job_title)}</span>` : ''}
+              </div>
+            </div>
+          </div>
+        </td>
+
+        <!-- Email & Phone -->
+        <td style="padding: 0.75rem 0.85rem; vertical-align: middle;">
+          <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+            <a href="mailto:${escapeHtml(u.email)}" style="color: #2563eb; text-decoration: none; font-weight: 600;">
+              <i class="bi bi-envelope"></i> ${escapeHtml(u.email)}
+            </a>
+            ${u.phone ? `
+              <span style="font-size: 0.7rem; color: var(--text-muted);">
+                <i class="bi bi-telephone"></i> ${escapeHtml(u.phone)}
+              </span>` : '<span style="font-size: 0.7rem; color: var(--text-muted); font-style: italic;">No phone</span>'}
+          </div>
+        </td>
+
+        <!-- Company / Organization -->
+        <td style="padding: 0.75rem 0.85rem; vertical-align: middle;">
+          <div style="font-weight: 700; color: var(--text);">
+            <i class="bi bi-building"></i> ${escapeHtml(u.org_name || 'My Organization')}
+          </div>
+          <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.15rem; display: flex; gap: 0.4rem; flex-wrap: wrap;">
+            ${u.org_industry ? `<span>${escapeHtml(u.org_industry)}</span>` : ''}
+            ${u.org_size ? `<span>· ${escapeHtml(u.org_size)} emp</span>` : ''}
+            ${u.org_country ? `<span>· ${escapeHtml(u.org_country)}</span>` : ''}
+            ${u.org_website ? `<span>· <a href="${u.org_website.startsWith('http') ? u.org_website : 'https://' + u.org_website}" target="_blank" style="color: #2563eb; text-decoration: none;"><i class="bi bi-box-arrow-up-right"></i> Web</a></span>` : ''}
+          </div>
+        </td>
+
+        <!-- Plan & Credits -->
+        <td style="padding: 0.75rem 0.85rem; vertical-align: middle;">
+          <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+            <span class="badge ${planLabel.includes('PRO') || planLabel.includes('ENTERPRISE') ? 'badge-dark' : 'badge-outline'}" style="font-size: 0.68rem; width: fit-content;">
+              ${planLabel}
+            </span>
+            <span style="font-size: 0.7rem; color: var(--text-muted);">
+              <strong>${u.org_credits ?? 10}</strong> Interviews Included
+            </span>
+          </div>
+        </td>
+
+        <!-- Positions & Interviews Activity -->
+        <td style="padding: 0.75rem 0.85rem; vertical-align: middle; text-align: center;">
+          <div style="display: inline-flex; flex-direction: column; align-items: center; gap: 0.15rem;">
+            <div style="font-weight: 700; font-size: 0.82rem; color: var(--text);">
+              ${u.total_jobs || 0} <span style="font-size: 0.68rem; font-weight: normal; color: var(--text-muted);">Rounds</span>
+            </div>
+            <div style="font-size: 0.7rem; color: #059669; font-weight: 600;">
+              ${u.total_interviews || 0} Candidate${(u.total_interviews || 0) === 1 ? '' : 's'}
+            </div>
+          </div>
+        </td>
+
+        <!-- Signup Date -->
+        <td style="padding: 0.75rem 0.85rem; vertical-align: middle; text-align: right;">
+          <div style="font-weight: 600; color: var(--text);">${joinedDate}</div>
+          <div style="font-size: 0.68rem; color: var(--text-muted);">${joinedTime}</div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+};
+
+window.handleSearchUsersInput = function() {
+  const query = (document.getElementById('input-search-users')?.value || '').trim().toLowerCase();
+  if (!query) {
+    renderRegisteredUsersTable(allLoadedRegisteredUsers);
+    return;
+  }
+
+  const filtered = allLoadedRegisteredUsers.filter(u => {
+    return (u.full_name && u.full_name.toLowerCase().includes(query)) ||
+           (u.email && u.email.toLowerCase().includes(query)) ||
+           (u.phone && u.phone.toLowerCase().includes(query)) ||
+           (u.job_title && u.job_title.toLowerCase().includes(query)) ||
+           (u.org_name && u.org_name.toLowerCase().includes(query)) ||
+           (u.org_country && u.org_country.toLowerCase().includes(query)) ||
+           (u.org_industry && u.org_industry.toLowerCase().includes(query)) ||
+           (u.org_plan && u.org_plan.toLowerCase().includes(query));
+  });
+
+  renderRegisteredUsersTable(filtered);
+};
+
+window.exportRegisteredUsersCsv = function() {
+  if (!allLoadedRegisteredUsers || allLoadedRegisteredUsers.length === 0) {
+    alert('No registered users available to export.');
+    return;
+  }
+
+  const headers = ['User ID', 'Full Name', 'Role', 'Email', 'Phone', 'Job Title', 'Organization', 'Industry', 'Size', 'Country', 'Plan', 'Credits', 'Jobs Created', 'Interviews Taken', 'Registered At'];
+  
+  const rows = allLoadedRegisteredUsers.map(u => [
+    `"${u.id || ''}"`,
+    `"${(u.full_name || '').replace(/"/g, '""')}"`,
+    `"${u.role || ''}"`,
+    `"${u.email || ''}"`,
+    `"${u.phone || ''}"`,
+    `"${(u.job_title || '').replace(/"/g, '""')}"`,
+    `"${(u.org_name || '').replace(/"/g, '""')}"`,
+    `"${(u.org_industry || '').replace(/"/g, '""')}"`,
+    `"${u.org_size || ''}"`,
+    `"${u.org_country || ''}"`,
+    `"${u.org_plan || ''}"`,
+    u.org_credits ?? 10,
+    u.total_jobs || 0,
+    u.total_interviews || 0,
+    `"${u.created_at || ''}"`
+  ]);
+
+  const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement('a');
+  link.setAttribute('href', encodedUri);
+  link.setAttribute('download', `registered_users_${new Date().toISOString().split('T')[0]}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+// Auto-fetch count on startup
+if (typeof authToken !== 'undefined' && authToken) {
+  setTimeout(() => {
+    loadRegisteredUsers();
+  }, 1000);
+}
