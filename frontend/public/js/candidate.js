@@ -111,7 +111,7 @@ function setVoiceBarState(state) {
     voiceStatusPulse.style.background = '#38bdf8';
     voiceStatusPulse.style.boxShadow = '0 0 10px #38bdf8';
     voiceStatusPulse.style.animation = 'none';
-    voiceStateTitle.textContent = 'AI Interviewer Speaking...';
+    voiceStateTitle.textContent = 'RoundOne AI Speaking...';
     voiceStateSubtitle.textContent = 'Please listen to the question carefully.';
     if (voiceIndicator) voiceIndicator.style.display = 'none';
     avatar.classList.add('speaking');
@@ -1127,7 +1127,7 @@ window.handleCandidateResumeUpload = async function(file) {
 
     const skillCount = result.data?.skills?.length || 0;
     if (statusText) {
-      statusText.textContent = `✓ Resume attached (${skillCount} skills detected). AI interviewer will tailor questions accordingly.`;
+      statusText.textContent = `✓ Resume attached (${skillCount} skills detected). RoundOne AI will tailor questions accordingly.`;
     }
     if (success) success.style.display = 'block';
 
