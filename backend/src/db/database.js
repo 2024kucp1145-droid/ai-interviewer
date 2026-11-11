@@ -250,5 +250,62 @@ export function initDatabase() {
   // Automated LeetCode Judge & Coding Sandbox Results
   addColumn('interviews', 'dsa_result', 'TEXT');
 
+  // Seed default organization & starter interview positions if database is freshly initialized
+  try {
+    const jobCount = db.prepare('SELECT COUNT(*) as c FROM jobs').get().c;
+    if (jobCount === 0) {
+      const defaultOrgId = 'org_default';
+      db.prepare(`
+        INSERT OR IGNORE INTO organizations (id, name, industry, plan, included_interviews)
+        VALUES (?, 'PrincyAI Hiring Team', 'Technology', 'enterprise', 1000)
+      `).run(defaultOrgId);
+
+      const starterJobs = [
+        {
+          id: 'job_fullstack_starter',
+          title: 'Fullstack Software Engineer',
+          skills: 'JavaScript, TypeScript, React, Node.js, REST APIs, SQL, Git',
+          category: 'Software & Tech',
+          max_minutes: 15,
+          max_questions: 6,
+          leetcode_problem: '1',
+          jd: 'Looking for a passionate Fullstack Engineer with hands-on experience in modern JavaScript/TypeScript, React on frontend, and Node.js on backend services.'
+        },
+        {
+          id: 'job_python_starter',
+          title: 'Backend Python Engineer',
+          skills: 'Python, Django, FastAPI, PostgreSQL, Redis, Docker, System Design',
+          category: 'Software & Tech',
+          max_minutes: 15,
+          max_questions: 6,
+          leetcode_problem: '20',
+          jd: 'Seeking a Backend Python Engineer proficient in high-throughput API architectures, asynchronous processing, and database optimization.'
+        },
+        {
+          id: 'job_frontend_starter',
+          title: 'Frontend React Developer',
+          skills: 'HTML5, CSS3, JavaScript ES6+, React, State Management, Responsive Design',
+          category: 'Software & Tech',
+          max_minutes: 15,
+          max_questions: 6,
+          leetcode_problem: '21',
+          jd: 'Responsible for building pixel-perfect, accessible, and high-performance user interfaces using React and modern CSS architectures.'
+        }
+      ];
+
+      for (const sj of starterJobs) {
+        db.prepare(`
+          INSERT OR IGNORE INTO jobs (
+            id, org_id, title, jd_text, skills, qualifications, level, max_minutes, max_questions,
+            interview_type, question_mode, category, leetcode_problem, show_timer, auto_submit_timer
+          ) VALUES (?, ?, ?, ?, ?, 'B.Tech/BE in CS or practical experience', 'junior', ?, ?, 'technical', 'ai_adaptive', ?, ?, 1, 1)
+        `).run(sj.id, defaultOrgId, sj.title, sj.jd, sj.skills, sj.max_minutes, sj.max_questions, sj.category, sj.leetcode_problem);
+      }
+      console.log('✓ Seeded starter interview roles for cold-start resilience');
+    }
+  } catch (e) {
+    console.warn('Starter seed notice:', e.message);
+  }
+
   console.log('✓ SQLite database initialized and migrated with interview customization options');
 }
