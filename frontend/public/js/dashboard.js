@@ -3918,20 +3918,20 @@ window.closeQuestionsPreviewModal = function() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const DURATION_TIERS = [
-  { minutes: 10, priceUsd: 1.00, label: '10 Min', subtitle: 'Rapid Screening', desc: 'Short initial filter round' },
-  { minutes: 20, priceUsd: 1.50, label: '20 Min', subtitle: 'Core Technical', desc: 'Standard technical filter' },
-  { minutes: 30, priceUsd: 2.00, label: '30 Min', subtitle: 'Standard Full Round', desc: 'Balanced Q&A + Coding' },
-  { minutes: 40, priceUsd: 2.50, label: '40 Min', subtitle: 'Architecture & System', desc: 'Deep dive + System concepts' },
-  { minutes: 50, priceUsd: 3.00, label: '50 Min', subtitle: 'Staff / Senior', desc: 'Advanced engineering assessment' },
-  { minutes: 60, priceUsd: 3.50, label: '60 Min', subtitle: 'Master 1-Hour', desc: 'Full length evaluation round' },
+  { minutes: 10, priceUsd: 0.50, label: '10 Min', subtitle: 'Rapid Screening', desc: 'Short initial filter round' },
+  { minutes: 20, priceUsd: 0.75, label: '20 Min', subtitle: 'Core Technical', desc: 'Standard technical filter' },
+  { minutes: 30, priceUsd: 1.00, label: '30 Min', subtitle: 'Standard Full Round', desc: 'Balanced Q&A + Coding' },
+  { minutes: 40, priceUsd: 1.25, label: '40 Min', subtitle: 'Architecture & System', desc: 'Deep dive + System concepts' },
+  { minutes: 50, priceUsd: 1.50, label: '50 Min', subtitle: 'Staff / Senior', desc: 'Advanced engineering assessment' },
+  { minutes: 60, priceUsd: 1.75, label: '60 Min', subtitle: 'Master 1-Hour', desc: 'Full length evaluation round' },
 ];
 
 const SUBSCRIPTION_PLANS = [
-  { id: 'monthly_1', label: '1 Month',  months: 1,  priceUsd: 100, includedInterviews: 150,  popular: false, savingsLabel: null, subtitle: 'Individual hiring' },
-  { id: 'monthly_2', label: '2 Months', months: 2,  priceUsd: 160, includedInterviews: 280,  popular: false, savingsLabel: 'Save $40', subtitle: 'Growing startup' },
-  { id: 'quarterly', label: '3 Months', months: 3,  priceUsd: 220, includedInterviews: 420,  popular: false, savingsLabel: 'Save $80', subtitle: 'Quarterly hiring' },
-  { id: 'biannual',  label: '6 Months', months: 6,  priceUsd: 450, includedInterviews: 900,  popular: true,  savingsLabel: 'Save $150 (Popular)', subtitle: 'Recruiting agency' },
-  { id: 'annual',    label: '1 Year',   months: 12, priceUsd: 800, includedInterviews: 1800, popular: false, savingsLabel: 'Save $400 (Best Value)', subtitle: 'Enterprise scale' },
+  { id: 'monthly_1', label: '1 Month',  months: 1,  priceUsd: 49,  includedInterviews: 150,  popular: false, savingsLabel: null, subtitle: 'Individual hiring' },
+  { id: 'monthly_2', label: '2 Months', months: 2,  priceUsd: 79,  includedInterviews: 280,  popular: false, savingsLabel: 'Save $19', subtitle: 'Growing startup' },
+  { id: 'quarterly', label: '3 Months', months: 3,  priceUsd: 109, includedInterviews: 420,  popular: false, savingsLabel: 'Save $38', subtitle: 'Quarterly hiring' },
+  { id: 'biannual',  label: '6 Months', months: 6,  priceUsd: 219, includedInterviews: 900,  popular: true,  savingsLabel: 'Save $75 (Popular)', subtitle: 'Recruiting agency' },
+  { id: 'annual',    label: '1 Year',   months: 12, priceUsd: 399, includedInterviews: 1800, popular: false, savingsLabel: 'Save $189 (Best Value)', subtitle: 'Enterprise scale' },
 ];
 
 let billingSelectedDuration = 10;
@@ -4145,7 +4145,7 @@ function renderSubCompare() {
   if (!tbody) return;
   tbody.innerHTML = SUBSCRIPTION_PLANS.map(p => {
     const cpi = (p.priceUsd / p.includedInterviews).toFixed(3);
-    const saved = p.months > 1 ? `$${(p.months * 100 - p.priceUsd)}` : '—';
+    const saved = p.months > 1 ? `$${(p.months * SUBSCRIPTION_PLANS[0].priceUsd - p.priceUsd)}` : '—';
     return `<tr style="border-bottom:1px solid var(--border); ${p.popular ? 'background:var(--surface-subtle);' : ''}">
       <td style="padding:0.6rem 0.5rem;">
         <strong>${p.label}</strong>

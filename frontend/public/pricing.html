@@ -331,11 +331,11 @@
 
         <!-- Quote -->
         <div class="quote-box" id="quoteBox">
-          <div class="quote-row"><span class="ql">Per Interview</span><span class="qv" id="qPrice">$1.00</span></div>
+          <div class="quote-row"><span class="ql">Per Interview</span><span class="qv" id="qPrice">$0.50</span></div>
           <div class="quote-row"><span class="ql">Quantity</span><span class="qv" id="qQty">1</span></div>
-          <div class="quote-row savings" id="qSavingsRow" style="display:none"><span class="ql">Free Interviews <span class="free-badge" id="qFreeCount">+1</span></span><span class="qv" id="qSavings">-$1.00</span></div>
+          <div class="quote-row savings" id="qSavingsRow" style="display:none"><span class="ql">Free Interviews <span class="free-badge" id="qFreeCount">+1</span></span><span class="qv" id="qSavings">-$0.50</span></div>
           <div class="quote-row"><span class="ql">Billed For</span><span class="qv" id="qBilled">1 interview</span></div>
-          <div class="quote-row total"><span class="ql">Total</span><span class="qv" id="qTotal">$1.00</span></div>
+          <div class="quote-row total"><span class="ql">Total</span><span class="qv" id="qTotal">$0.50</span></div>
         </div>
 
         <button class="checkout-btn" onclick="openCheckout('ppu')">
@@ -517,20 +517,20 @@
 <script>
   // ── DATA ──────────────────────────────────────────────────────────────────
   const DURATION_TIERS = [
-    { minutes: 10, priceUsd: 1.00, label: '10 min' },
-    { minutes: 20, priceUsd: 1.50, label: '20 min' },
-    { minutes: 30, priceUsd: 2.00, label: '30 min' },
-    { minutes: 40, priceUsd: 2.50, label: '40 min' },
-    { minutes: 50, priceUsd: 3.00, label: '50 min' },
-    { minutes: 60, priceUsd: 3.50, label: '60 min' },
+    { minutes: 10, priceUsd: 0.50, label: '10 min' },
+    { minutes: 20, priceUsd: 0.75, label: '20 min' },
+    { minutes: 30, priceUsd: 1.00, label: '30 min' },
+    { minutes: 40, priceUsd: 1.25, label: '40 min' },
+    { minutes: 50, priceUsd: 1.50, label: '50 min' },
+    { minutes: 60, priceUsd: 1.75, label: '60 min' },
   ];
 
   const SUBSCRIPTION_PLANS = [
-    { id: 'monthly_1', label: '1 Month',    months: 1,  priceUsd: 100, includedInterviews: 150,  popular: false, savingsLabel: null },
-    { id: 'monthly_2', label: '2 Months',   months: 2,  priceUsd: 160, includedInterviews: 280,  popular: false, savingsLabel: 'Save $40' },
-    { id: 'quarterly', label: '3 Months',   months: 3,  priceUsd: 220, includedInterviews: 420,  popular: false, savingsLabel: 'Save $80' },
-    { id: 'biannual',  label: '6 Months',   months: 6,  priceUsd: 450, includedInterviews: 900,  popular: true,  savingsLabel: 'Save $150' },
-    { id: 'annual',    label: '1 Year',     months: 12, priceUsd: 800, includedInterviews: 1800, popular: false, savingsLabel: 'Save $400' },
+    { id: 'monthly_1', label: '1 Month',    months: 1,  priceUsd: 49,  includedInterviews: 150,  popular: false, savingsLabel: null },
+    { id: 'monthly_2', label: '2 Months',   months: 2,  priceUsd: 79,  includedInterviews: 280,  popular: false, savingsLabel: 'Save $19' },
+    { id: 'quarterly', label: '3 Months',   months: 3,  priceUsd: 109, includedInterviews: 420,  popular: false, savingsLabel: 'Save $38' },
+    { id: 'biannual',  label: '6 Months',   months: 6,  priceUsd: 219, includedInterviews: 900,  popular: true,  savingsLabel: 'Save $75' },
+    { id: 'annual',    label: '1 Year',     months: 12, priceUsd: 399, includedInterviews: 1800, popular: false, savingsLabel: 'Save $189' },
   ];
 
   // ── STATE ─────────────────────────────────────────────────────────────────
@@ -593,7 +593,7 @@
     const baseCpi = SUBSCRIPTION_PLANS[0].priceUsd / SUBSCRIPTION_PLANS[0].includedInterviews;
     tbody.innerHTML = SUBSCRIPTION_PLANS.map(p => {
       const cpi = (p.priceUsd / p.includedInterviews).toFixed(3);
-      const saved = p.months > 1 ? `$${(p.months * 100 - p.priceUsd).toFixed(0)}` : '—';
+      const saved = p.months > 1 ? `$${(p.months * SUBSCRIPTION_PLANS[0].priceUsd - p.priceUsd).toFixed(0)}` : '—';
       const isBest = p.id === 'annual';
       return `
         <tr class="${p.popular ? 'plan-highlight' : ''}">

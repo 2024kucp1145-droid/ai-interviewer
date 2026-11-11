@@ -2,19 +2,19 @@
  * Pricing Engine — AI Interviewer Platform
  *
  * Structure:
- *  1. Pay-Per-Interview  : priced by duration (10–60 min, $0.50 increments)
+ *  1. Pay-Per-Interview  : priced by duration (10–60 min, $0.25 increments starting from $0.50)
  *  2. Bulk Packs         : every 10 interviews → 1 free
  *  3. Subscription Plans : monthly/multi-month with included interview quotas
  */
 
 // ─── 1. PER-INTERVIEW DURATION PRICING ───────────────────────────────────────
 export const DURATION_TIERS = [
-  { minutes: 10,  priceUsd: 1.00, label: '10 min' },
-  { minutes: 20,  priceUsd: 1.50, label: '20 min' },
-  { minutes: 30,  priceUsd: 2.00, label: '30 min' },
-  { minutes: 40,  priceUsd: 2.50, label: '40 min' },
-  { minutes: 50,  priceUsd: 3.00, label: '50 min' },
-  { minutes: 60,  priceUsd: 3.50, label: '60 min' },
+  { minutes: 10,  priceUsd: 0.50, label: '10 min' },
+  { minutes: 20,  priceUsd: 0.75, label: '20 min' },
+  { minutes: 30,  priceUsd: 1.00, label: '30 min' },
+  { minutes: 40,  priceUsd: 1.25, label: '40 min' },
+  { minutes: 50,  priceUsd: 1.50, label: '50 min' },
+  { minutes: 60,  priceUsd: 1.75, label: '60 min' },
 ];
 
 /**
@@ -72,7 +72,7 @@ export const SUBSCRIPTION_PLANS = [
     id: 'monthly_1',
     label: '1 Month',
     months: 1,
-    priceUsd: 100,
+    priceUsd: 49,
     includedInterviews: 150,
     savingsLabel: null,
     popular: false,
@@ -81,36 +81,36 @@ export const SUBSCRIPTION_PLANS = [
     id: 'monthly_2',
     label: '2 Months',
     months: 2,
-    priceUsd: 160,
+    priceUsd: 79,
     includedInterviews: 280,
-    savingsLabel: 'Save $40 vs monthly',
+    savingsLabel: 'Save $19 vs monthly',
     popular: false,
   },
   {
     id: 'quarterly',
     label: '3 Months',
     months: 3,
-    priceUsd: 220,
+    priceUsd: 109,
     includedInterviews: 420,
-    savingsLabel: 'Save $80 vs monthly',
+    savingsLabel: 'Save $38 vs monthly',
     popular: false,
   },
   {
     id: 'biannual',
     label: '6 Months',
     months: 6,
-    priceUsd: 450,
+    priceUsd: 219,
     includedInterviews: 900,
-    savingsLabel: 'Save $150 vs monthly',
+    savingsLabel: 'Save $75 vs monthly',
     popular: true,
   },
   {
     id: 'annual',
     label: '1 Year',
     months: 12,
-    priceUsd: 800,
+    priceUsd: 399,
     includedInterviews: 1800,
-    savingsLabel: 'Save $400 vs monthly',
+    savingsLabel: 'Save $189 vs monthly',
     popular: false,
   },
 ];
