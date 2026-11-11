@@ -1035,6 +1035,7 @@ window.startInterviewCreationWizard = function() {
 
   selectPurpose('job');
   selectExperience('0-1 Yrs');
+  clearAllSelectedQuestions();
   selectQuestionMode('ai_adaptive');
   document.querySelectorAll('#qualifications-chip-cloud .chip-tag').forEach(t => t.classList.remove('selected'));
   document.querySelectorAll('#skills-chip-cloud .chip-tag').forEach(t => t.classList.remove('selected'));
@@ -1060,6 +1061,7 @@ window.startInterviewCreationWizard = function() {
 
 window.cancelInterviewCreationWizard = function() {
   editingJobId = null;
+  clearAllSelectedQuestions();
   document.getElementById('view-interview-wizard').style.display = 'none';
   document.getElementById('view-interview-dashboard').style.display = 'block';
 };
@@ -1133,6 +1135,7 @@ window.editInterview = async function(jobId) {
     // 6. Questions & DSA
     selectQuestionMode(job.question_mode || 'ai_adaptive');
     document.getElementById('wiz-custom-questions-text').value = job.custom_questions || '';
+    syncTextareaToActiveQuestions();
 
     if (job.leetcode_problem) {
       document.getElementById('wiz-dsa-toggle').checked = true;
@@ -1234,6 +1237,9 @@ window.goToWizardStep = function(stepNum) {
   if (stepNum === 3) {
     filterRolesByCategory();
   }
+  if (stepNum === 6) {
+    initStep6QuestionBank();
+  }
   if (stepNum === 7) {
     updateWizardSummaryReview();
     refreshQuestionsPreview();
@@ -1313,12 +1319,750 @@ window.toggleCompilerOptions = function() {
   if (box) box.style.display = checked ? 'block' : 'none';
 };
 
-// Step 6: Questions & DSA / LeetCode
+// Step 6: Questions & DSA / LeetCode — Company Question Bank & Custom Builder
+let qbankCatalogData = null;
+let qbankCustomData = [];
+let qbankSelectedCompany = 'all';
+let qbankCurrentSubTab = 'company';
+let activeInterviewQuestions = [];
+
+const COMPANY_STYLE_MAP = {
+  'Google': { color: '#ea4335', bg: '#fef2f2', border: '#fca5a5', icon: 'bi-google' },
+  'Microsoft': { color: '#00a4ef', bg: '#f0f9ff', border: '#bae6fd', icon: 'bi-microsoft' },
+  'Amazon': { color: '#d97706', bg: '#fffbeb', border: '#fde68a', icon: 'bi-cart-check' },
+  'Meta': { color: '#0668e1', bg: '#eff6ff', border: '#bfdbfe', icon: 'bi-meta' },
+  'Netflix': { color: '#e50914', bg: '#fef2f2', border: '#fca5a5', icon: 'bi-film' },
+  'Apple': { color: '#374151', bg: '#f3f4f6', border: '#d1d5db', icon: 'bi-apple' },
+  'Uber': { color: '#111827', bg: '#f9fafb', border: '#e5e7eb', icon: 'bi-car-front' },
+  'Oracle': { color: '#c026d3', bg: '#fdf4ff', border: '#f5d0fe', icon: 'bi-database' },
+  'Goldman Sachs': { color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd', icon: 'bi-bank' }
+};
+
 window.selectQuestionMode = function(mode) {
-  document.getElementById('wiz-question-mode-input').value = mode;
-  document.getElementById('qmode-card-adaptive').classList.toggle('selected', mode === 'ai_adaptive');
-  document.getElementById('qmode-card-custom').classList.toggle('selected', mode === 'custom_questions');
-  document.getElementById('wiz-custom-q-box').style.display = (mode === 'custom_questions') ? 'block' : 'none';
+  const input = document.getElementById('wiz-question-mode-input');
+  if (input) input.value = mode;
+
+  const cardAdaptive = document.getElementById('qmode-card-adaptive');
+  const cardCompany = document.getElementById('qmode-card-company');
+  const cardCustom = document.getElementById('qmode-card-custom');
+  if (cardAdaptive) cardAdaptive.classList.toggle('selected', mode === 'ai_adaptive');
+  if (cardCompany) cardCompany.classList.toggle('selected', mode === 'company_bank');
+  if (cardCustom) cardCustom.classList.toggle('selected', mode === 'custom_questions');
+
+  const qbankContainer = document.getElementById('wiz-qbank-container');
+  if (mode === 'ai_adaptive') {
+    if (qbankContainer) qbankContainer.style.display = 'none';
+  } else {
+    if (qbankContainer) qbankContainer.style.display = 'block';
+    if (mode === 'company_bank') {
+      switchQBankSubTab('company');
+    } else if (mode === 'custom_questions') {
+      switchQBankSubTab('custom');
+    }
+    initStep6QuestionBank();
+  }
+};
+
+window.switchQBankSubTab = function(tab) {
+  qbankCurrentSubTab = tab;
+  ['company', 'custom', 'raw'].forEach(t => {
+    const btn = document.getElementById(`btn-subtab-${t === 'company' ? 'company-bank' : (t === 'custom' ? 'custom-bank' : 'raw-text')}`);
+    const view = document.getElementById(`qbank-view-${t}`);
+    if (btn) btn.classList.toggle('active', t === tab);
+    if (view) view.style.display = (t === tab) ? 'block' : 'none';
+  });
+  if (tab === 'company') {
+    filterQBankQuestions();
+  } else if (tab === 'custom') {
+    renderCustomQuestionsList();
+  } else if (tab === 'raw') {
+    syncActiveQuestionsToTextarea();
+  }
+};
+
+window.detectBestDomainFromStep3 = function() {
+  const jobTitle = (document.getElementById('wiz-job-title')?.value || '').toLowerCase();
+  const selectedSkills = Array.from(document.querySelectorAll('#skills-chip-cloud .chip-tag.selected'))
+    .map(el => el.textContent.toLowerCase()).join(' ');
+  const combined = (jobTitle + ' ' + selectedSkills).toLowerCase();
+
+  if (combined.includes('react') || combined.includes('vue') || combined.includes('frontend') || combined.includes('angular') || combined.includes('css') || combined.includes('html')) {
+    return 'frontend';
+  }
+  if (combined.includes('python') || combined.includes('data science') || combined.includes('machine learning') || combined.includes('ai') || combined.includes('pytorch') || combined.includes('nlp')) {
+    return 'python_ai';
+  }
+  if (combined.includes('system design') || combined.includes('architecture') || combined.includes('distributed') || combined.includes('scalability')) {
+    return 'system_design';
+  }
+  if (combined.includes('dsa') || combined.includes('leetcode') || combined.includes('algorithm') || combined.includes('problem solving')) {
+    return 'dsa';
+  }
+  if (combined.includes('devops') || combined.includes('docker') || combined.includes('kubernetes') || combined.includes('aws') || combined.includes('cloud') || combined.includes('ci/cd') || combined.includes('terraform')) {
+    return 'devops';
+  }
+  if (combined.includes('java') || combined.includes('spring') || combined.includes('hibernate')) {
+    return 'java';
+  }
+  if (combined.includes('hr') || combined.includes('behavioral') || combined.includes('management') || combined.includes('culture') || combined.includes('leadership')) {
+    return 'behavioral';
+  }
+  if (combined.includes('node') || combined.includes('backend') || combined.includes('api') || combined.includes('sql') || combined.includes('database') || combined.includes('express')) {
+    return 'backend';
+  }
+  return 'all';
+};
+
+window.loadQBankCatalog = async function(force = false) {
+  if (qbankCatalogData && !force) return qbankCatalogData;
+  try {
+    const res = await apiRequest('/question-bank/catalog');
+    if (res.ok) {
+      qbankCatalogData = await res.json();
+      renderCompanyPills();
+      return qbankCatalogData;
+    }
+  } catch (err) {
+    console.error('Failed to load question bank catalog:', err);
+  }
+  return null;
+};
+
+window.loadQBankCustom = async function(force = false) {
+  try {
+    const res = await apiRequest('/question-bank/custom');
+    if (res.ok) {
+      const data = await res.json();
+      qbankCustomData = data.questions || [];
+      renderCustomQuestionsList();
+      return qbankCustomData;
+    }
+  } catch (err) {
+    console.error('Failed to load custom question bank:', err);
+  }
+  return [];
+};
+
+window.initStep6QuestionBank = async function() {
+  const bestDomain = detectBestDomainFromStep3();
+  const select = document.getElementById('qbank-domain-select');
+  if (select && bestDomain !== 'all') {
+    select.value = bestDomain;
+  }
+  syncTextareaToActiveQuestions();
+  await loadQBankCatalog();
+  await loadQBankCustom();
+  renderCompanyPills();
+  filterQBankQuestions();
+  renderCustomQuestionsList();
+};
+
+window.renderCompanyPills = function() {
+  const container = document.getElementById('qbank-company-pills');
+  if (!container || !qbankCatalogData || !qbankCatalogData.companies) return;
+
+  container.innerHTML = qbankCatalogData.companies.map(c => {
+    const isSelected = qbankSelectedCompany.toLowerCase() === c.id.toLowerCase();
+    const style = COMPANY_STYLE_MAP[c.name] || { color: c.color, icon: 'bi-building' };
+    return `
+      <button type="button" class="btn btn-sm ${isSelected ? 'btn-dark' : 'btn-outline'}" onclick="selectQBankCompany('${c.id}')" style="font-size: 0.72rem; font-weight: 600; white-space: nowrap; border-radius: 20px; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.65rem;">
+        ${c.id !== 'all' ? `<i class="bi ${style.icon}" style="color: ${isSelected ? '#fff' : style.color};"></i>` : '<i class="bi bi-grid-fill"></i>'}
+        ${c.name}
+      </button>
+    `;
+  }).join('');
+};
+
+window.selectQBankCompany = function(companyId) {
+  qbankSelectedCompany = companyId;
+  renderCompanyPills();
+  filterQBankQuestions();
+};
+
+window.filterQBankQuestions = function() {
+  const container = document.getElementById('qbank-questions-list');
+  if (!container) return;
+  if (!qbankCatalogData) {
+    container.innerHTML = `<div style="text-align:center; padding:1.5rem; color:var(--text-muted);"><i class="bi bi-arrow-repeat spinning"></i> Loading Question Bank...</div>`;
+    return;
+  }
+
+  const selectedDomain = document.getElementById('qbank-domain-select')?.value || 'all';
+  const search = (document.getElementById('qbank-search-input')?.value || '').toLowerCase().trim();
+
+  let questions = qbankCatalogData.questions || [];
+  if (selectedDomain !== 'all') {
+    questions = questions.filter(q => q.field === selectedDomain);
+  }
+  if (qbankSelectedCompany !== 'all') {
+    questions = questions.filter(q => q.company.toLowerCase() === qbankSelectedCompany.toLowerCase());
+  }
+  if (search) {
+    questions = questions.filter(q =>
+      q.question.toLowerCase().includes(search) ||
+      q.topic.toLowerCase().includes(search) ||
+      q.company.toLowerCase().includes(search) ||
+      (q.context && q.context.toLowerCase().includes(search))
+    );
+  }
+
+  if (questions.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 2rem 1rem; color: var(--text-muted); background: var(--surface-subtle); border-radius: 8px;">
+        <i class="bi bi-search" style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem;"></i>
+        <strong style="font-size: 0.85rem; color: var(--text); display: block; margin-bottom: 0.25rem;">No questions matched your search</strong>
+        <span style="font-size: 0.75rem;">Try choosing "All Domains" or clearing the search query.</span>
+      </div>
+    `;
+    return;
+  }
+
+  // Group by company
+  const grouped = {};
+  questions.forEach(q => {
+    if (!grouped[q.company]) grouped[q.company] = [];
+    grouped[q.company].push(q);
+  });
+
+  const diffColors = {
+    'Easy': { text: '#16a34a', bg: '#dcfce7', border: '#bbf7d0' },
+    'Medium': { text: '#d97706', bg: '#fef3c7', border: '#fde68a' },
+    'Hard': { text: '#dc2626', bg: '#fee2e2', border: '#fecaca' }
+  };
+
+  container.innerHTML = Object.entries(grouped).map(([companyName, qList]) => {
+    const style = COMPANY_STYLE_MAP[companyName] || { color: '#000', bg: '#f4f4f5', icon: 'bi-building' };
+    const allAdded = qList.every(q => activeInterviewQuestions.includes(q.question));
+
+    return `
+      <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 0.5rem;">
+        <!-- Company Header Row -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0.85rem; background: ${style.bg}; border-bottom: 1px solid ${style.border || 'var(--border)'};">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <i class="bi ${style.icon}" style="font-size: 1.1rem; color: ${style.color};"></i>
+            <strong style="font-size: 0.85rem; color: #000;">${companyName}</strong>
+            <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">(${qList.length} top questions)</span>
+          </div>
+          <button type="button" class="btn btn-sm ${allAdded ? 'btn-outline' : 'btn-dark'}" onclick="addCompanyQuestionsToInterview('${companyName}', '${selectedDomain}')" style="font-size: 0.7rem; padding: 0.25rem 0.65rem; font-weight: 700;">
+            ${allAdded ? '<i class="bi bi-check2"></i> All Added' : '<i class="bi bi-plus-lg"></i> + Add All 3'}
+          </button>
+        </div>
+
+        <!-- Questions in this Company -->
+        <div style="padding: 0.75rem; display: flex; flex-direction: column; gap: 0.6rem; background: var(--surface);">
+          ${qList.map(q => {
+            const isAdded = activeInterviewQuestions.includes(q.question);
+            const diffStyle = diffColors[q.difficulty] || diffColors['Medium'];
+            const safeQ = encodeURIComponent(q.question);
+
+            return `
+              <div style="border: 1.5px solid ${isAdded ? '#059669' : 'var(--border)'}; border-radius: 6px; padding: 0.75rem 0.85rem; background: ${isAdded ? '#f0fdf4' : 'var(--surface)'}; transition: all .15s ease;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.35rem;">
+                  <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center;">
+                    <span style="font-size: 0.68rem; font-weight: 700; color: ${diffStyle.text}; background: ${diffStyle.bg}; border: 1px solid ${diffStyle.border}; padding: 0.1rem 0.45rem; border-radius: 4px;">
+                      ${q.difficulty}
+                    </span>
+                    <span style="font-size: 0.68rem; font-weight: 600; color: var(--text-muted); background: var(--surface-subtle); padding: 0.1rem 0.45rem; border-radius: 4px; border: 1px solid var(--border);">
+                      ${escapeHtml(q.topic)}
+                    </span>
+                  </div>
+                  <div style="display: flex; gap: 0.35rem; flex-shrink: 0;">
+                    <button type="button" class="btn btn-sm ${isAdded ? 'btn-dark' : 'btn-outline'}" onclick="addQuestionToInterview(decodeURIComponent('${safeQ}'), '${companyName}')" style="font-size: 0.72rem; padding: 0.25rem 0.65rem; font-weight: 700; ${isAdded ? 'background:#059669; border-color:#059669;' : ''}">
+                      ${isAdded ? '<i class="bi bi-check2"></i> ✓ Added' : '<i class="bi bi-plus-lg"></i> + Add to Interview'}
+                    </button>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="saveCatalogQuestionToMyBank('${q.id}')" title="Save to My Custom Bank" style="font-size: 0.72rem; padding: 0.25rem 0.5rem; color: #d97706;">
+                      <i class="bi bi-star"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div style="font-size: 0.825rem; font-weight: 700; color: var(--text); line-height: 1.45; margin-bottom: 0.35rem;">
+                  ${escapeHtml(q.question)}
+                </div>
+
+                ${q.context ? `
+                  <div style="font-size: 0.715rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.3rem; margin-bottom: 0.35rem;">
+                    <i class="bi bi-info-circle" style="color: ${style.color};"></i> ${escapeHtml(q.context)}
+                  </div>
+                ` : ''}
+
+                ${q.expectedSignals ? `
+                  <details style="margin-top: 0.35rem; font-size: 0.72rem;">
+                    <summary style="cursor: pointer; color: #4338ca; font-weight: 600; user-select: none;">
+                      <i class="bi bi-lightbulb"></i> View Expected Evaluation Signals &amp; Rubric
+                    </summary>
+                    <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 4px; padding: 0.5rem 0.65rem; margin-top: 0.3rem; color: var(--text); line-height: 1.45;">
+                      <strong>Signals Interviewers Look For:</strong> ${escapeHtml(q.expectedSignals)}
+                    </div>
+                  </details>
+                ` : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+};
+
+window.renderCustomQuestionsList = function() {
+  const container = document.getElementById('custom-questions-list');
+  if (!container) return;
+
+  if (qbankCustomData.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 2rem 1rem; color: var(--text-muted); background: var(--surface-subtle); border-radius: 8px; border: 1px dashed var(--border);">
+        <i class="bi bi-folder-plus" style="font-size: 1.6rem; color: #ea580c; display: block; margin-bottom: 0.5rem;"></i>
+        <strong style="font-size: 0.85rem; color: var(--text); display: block; margin-bottom: 0.25rem;">Your Custom Question Bank is Empty</strong>
+        <span style="font-size: 0.75rem;">Click <strong>"+ Add New Question to Bank"</strong> above to save custom questions tailored to your hiring criteria.</span>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = qbankCustomData.map(q => {
+    const isAdded = activeInterviewQuestions.includes(q.question);
+    const safeQ = encodeURIComponent(q.question);
+    return `
+      <div style="border: 1.5px solid ${isAdded ? '#059669' : 'var(--border)'}; border-radius: 6px; padding: 0.75rem 0.85rem; background: ${isAdded ? '#f0fdf4' : 'var(--surface)'};">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.35rem;">
+          <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center;">
+            <span style="font-size: 0.68rem; font-weight: 700; color: #0284c7; background: #e0f2fe; border: 1px solid #bae6fd; padding: 0.1rem 0.45rem; border-radius: 4px;">
+              ${escapeHtml(q.difficulty || 'Medium')}
+            </span>
+            ${q.skill ? `<span style="font-size: 0.68rem; font-weight: 600; color: var(--text-muted); background: var(--surface-subtle); padding: 0.1rem 0.45rem; border-radius: 4px; border: 1px solid var(--border);">${escapeHtml(q.skill)}</span>` : ''}
+            ${q.company_tag ? `<span style="font-size: 0.68rem; font-weight: 600; color: #059669; background: #ecfdf5; padding: 0.1rem 0.45rem; border-radius: 4px; border: 1px solid #a7f3d0;">${escapeHtml(q.company_tag)}</span>` : ''}
+          </div>
+          <div style="display: flex; gap: 0.35rem; flex-shrink: 0;">
+            <button type="button" class="btn btn-sm ${isAdded ? 'btn-dark' : 'btn-outline'}" onclick="addQuestionToInterview(decodeURIComponent('${safeQ}'), 'Custom Bank')" style="font-size: 0.72rem; padding: 0.25rem 0.65rem; font-weight: 700; ${isAdded ? 'background:#059669; border-color:#059669;' : ''}">
+              ${isAdded ? '<i class="bi bi-check2"></i> ✓ Added' : '<i class="bi bi-plus-lg"></i> + Add to Interview'}
+            </button>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="deleteCustomQuestion('${q.id}')" title="Delete from Bank" style="color: #ef4444; font-size: 0.75rem; padding: 0.2rem 0.45rem;">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+
+        <div style="font-size: 0.825rem; font-weight: 700; color: var(--text); line-height: 1.45; margin-bottom: 0.25rem;">
+          ${escapeHtml(q.question)}
+        </div>
+
+        ${q.expected_answer ? `
+          <div style="font-size: 0.715rem; color: var(--text-muted); background: var(--surface-subtle); padding: 0.4rem 0.6rem; border-radius: 4px; margin-top: 0.35rem;">
+            <strong>Expected Rubric:</strong> ${escapeHtml(q.expected_answer)}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+};
+
+window.toggleCustomQuestionBuilder = function(show) {
+  const form = document.getElementById('custom-q-builder-form');
+  if (form) form.style.display = show ? 'block' : 'none';
+};
+
+window.saveNewCustomQuestion = async function() {
+  const qText = document.getElementById('cq-input-text')?.value.trim();
+  if (!qText) {
+    alert('Please enter question text');
+    return;
+  }
+  const skill = document.getElementById('cq-input-skill')?.value.trim() || '';
+  const difficulty = document.getElementById('cq-input-diff')?.value || 'Medium';
+  const company_tag = document.getElementById('cq-input-company')?.value.trim() || 'Internal';
+  const expected_answer = document.getElementById('cq-input-expected')?.value.trim() || '';
+
+  try {
+    const res = await apiRequest('/question-bank/custom', {
+      method: 'POST',
+      body: JSON.stringify({ question: qText, skill, difficulty, company_tag, expected_answer })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.question) {
+        qbankCustomData.unshift(data.question);
+      }
+      document.getElementById('cq-input-text').value = '';
+      document.getElementById('cq-input-skill').value = '';
+      document.getElementById('cq-input-company').value = '';
+      document.getElementById('cq-input-expected').value = '';
+      toggleCustomQuestionBuilder(false);
+      renderCustomQuestionsList();
+    } else {
+      const err = await res.json();
+      alert(err.error || 'Failed to save question');
+    }
+  } catch (err) {
+    alert(err.message);
+  }
+};
+
+window.saveCatalogQuestionToMyBank = async function(questionId) {
+  if (!qbankCatalogData || !qbankCatalogData.questions) return;
+  const q = qbankCatalogData.questions.find(item => item.id === questionId);
+  if (!q) return;
+
+  try {
+    const res = await apiRequest('/question-bank/custom', {
+      method: 'POST',
+      body: JSON.stringify({
+        question: q.question,
+        skill: q.topic,
+        category: q.field,
+        difficulty: q.difficulty,
+        company_tag: q.company,
+        expected_answer: q.expectedSignals || q.context || ''
+      })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.question) {
+        qbankCustomData.unshift(data.question);
+      }
+      alert(`Question successfully saved to your Organization's Question Bank! ⭐`);
+      renderCustomQuestionsList();
+    }
+  } catch (err) {
+    console.error('Failed to save to custom bank:', err);
+  }
+};
+
+window.deleteCustomQuestion = async function(id) {
+  if (!confirm('Are you sure you want to remove this question from your Question Bank?')) return;
+  try {
+    const res = await apiRequest(`/question-bank/custom/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      qbankCustomData = qbankCustomData.filter(q => q.id !== id);
+      renderCustomQuestionsList();
+    }
+  } catch (err) {
+    alert(err.message);
+  }
+};
+
+window.addQuestionToInterview = function(questionText, sourceTag = '') {
+  if (!questionText || !questionText.trim()) return;
+  const cleanQ = questionText.trim();
+  if (activeInterviewQuestions.includes(cleanQ)) {
+    activeInterviewQuestions = activeInterviewQuestions.filter(q => q !== cleanQ);
+  } else {
+    activeInterviewQuestions.push(cleanQ);
+  }
+  syncActiveQuestionsToTextarea();
+  filterQBankQuestions();
+  renderCustomQuestionsList();
+
+  const modeInput = document.getElementById('wiz-question-mode-input');
+  if (modeInput && modeInput.value === 'ai_adaptive' && activeInterviewQuestions.length > 0) {
+    modeInput.value = 'company_bank';
+    document.getElementById('qmode-card-adaptive')?.classList.remove('selected');
+    document.getElementById('qmode-card-company')?.classList.add('selected');
+  }
+};
+
+window.addCompanyQuestionsToInterview = function(companyName, fieldId) {
+  if (!qbankCatalogData || !qbankCatalogData.questions) return;
+  const matching = qbankCatalogData.questions.filter(q =>
+    q.company.toLowerCase() === companyName.toLowerCase() &&
+    (fieldId === 'all' || q.field === fieldId)
+  );
+  let addedCount = 0;
+  matching.forEach(q => {
+    if (!activeInterviewQuestions.includes(q.question)) {
+      activeInterviewQuestions.push(q.question);
+      addedCount++;
+    }
+  });
+  syncActiveQuestionsToTextarea();
+  filterQBankQuestions();
+};
+
+window.removeQuestionFromInterview = function(index) {
+  if (index >= 0 && index < activeInterviewQuestions.length) {
+    activeInterviewQuestions.splice(index, 1);
+    syncActiveQuestionsToTextarea();
+    filterQBankQuestions();
+    renderCustomQuestionsList();
+  }
+};
+
+window.clearAllSelectedQuestions = function() {
+  activeInterviewQuestions = [];
+  syncActiveQuestionsToTextarea();
+  filterQBankQuestions();
+  renderCustomQuestionsList();
+};
+
+window.syncTextareaToActiveQuestions = function() {
+  const text = document.getElementById('wiz-custom-questions-text')?.value || '';
+  activeInterviewQuestions = text.split('\n')
+    .map(line => line.replace(/^\d+[\.\)]\s*/, '').trim())
+    .filter(Boolean);
+  renderActiveQuestionsTray();
+};
+
+window.syncActiveQuestionsToTextarea = function() {
+  const ta = document.getElementById('wiz-custom-questions-text');
+  if (ta) {
+    ta.value = activeInterviewQuestions.map((q, i) => `${i + 1}. ${q}`).join('\n');
+  }
+  renderActiveQuestionsTray();
+};
+
+window.handleRawQuestionsInput = function() {
+  syncTextareaToActiveQuestions();
+  filterQBankQuestions();
+  renderCustomQuestionsList();
+};
+
+window.renderActiveQuestionsTray = function() {
+  const tray = document.getElementById('active-questions-tray');
+  const countBadge1 = document.getElementById('qbank-selected-count');
+  const countBadge2 = document.getElementById('tray-selected-count');
+  const count = activeInterviewQuestions.length;
+
+  if (countBadge1) countBadge1.textContent = count;
+  if (countBadge2) countBadge2.textContent = count;
+
+  if (!tray) return;
+
+  if (count === 0) {
+    tray.innerHTML = `
+      <div style="background: var(--surface-subtle); border: 1px dashed var(--border); border-radius: 6px; padding: 0.75rem; text-align: center; color: var(--text-muted); font-size: 0.75rem;">
+        <i class="bi bi-info-circle"></i> No questions selected yet. Click <strong>"+ Add to Interview"</strong> on any question above to sequence it for this interview round.
+      </div>
+    `;
+    return;
+  }
+
+  tray.innerHTML = activeInterviewQuestions.map((q, idx) => {
+    let badgeHtml = '<span class="badge badge-dark" style="font-size: 0.65rem;">Custom</span>';
+    if (qbankCatalogData && qbankCatalogData.questions) {
+      const found = qbankCatalogData.questions.find(item => item.question === q);
+      if (found) {
+        const style = COMPANY_STYLE_MAP[found.company] || { color: '#000', bg: '#f4f4f5' };
+        badgeHtml = `<span style="display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.65rem; font-weight: 700; color: ${style.color}; background: ${style.bg}; padding: 0.15rem 0.45rem; border-radius: 4px;">
+          <i class="bi ${style.icon || 'bi-building'}"></i> ${found.company}
+        </span>`;
+      }
+    }
+    return `
+      <div style="display: flex; justify-content: space-between; align-items: center; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.78rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; overflow: hidden;">
+          <strong style="color: var(--text-muted); font-size: 0.75rem; min-width: 24px;">Q${idx + 1}.</strong>
+          ${badgeHtml}
+          <span style="color: var(--text); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            ${escapeHtml(q)}
+          </span>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="removeQuestionFromInterview(${idx})" title="Remove" style="color: #ef4444; padding: 0.2rem 0.5rem; font-size: 0.85rem;">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+    `;
+  }).join('');
+};
+
+// --- Standalone Universal Question Bank Modal ---
+window.openQuestionBankModal = async function() {
+  const modal = document.getElementById('modal-question-bank');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  renderUniversalQuestionBankModal();
+  await loadQBankCatalog();
+  await loadQBankCustom();
+  renderUniversalQuestionBankModal();
+};
+
+window.closeQuestionBankModal = function() {
+  const modal = document.getElementById('modal-question-bank');
+  if (modal) modal.style.display = 'none';
+};
+
+window.renderUniversalQuestionBankModal = function() {
+  const body = document.getElementById('modal-qbank-body');
+  if (!body) return;
+
+  if (!qbankCatalogData) {
+    body.innerHTML = `
+      <div style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+        <i class="bi bi-arrow-repeat spinning" style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem;"></i>
+        Loading Company Question Bank...
+      </div>
+    `;
+    return;
+  }
+
+  body.innerHTML = `
+    <!-- Top Filter Controls -->
+    <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem; align-items: center; flex-wrap: wrap;">
+      <div style="flex: 0 0 auto;">
+        <label style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem; font-weight: 600;">Filter Domain:</label>
+        <select id="modal-domain-select" onchange="filterModalQBankQuestions()" style="font-size: 0.8rem; padding: 0.45rem 0.75rem; width: 240px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+          <option value="all">All Domains (120 Questions)</option>
+          <option value="frontend">Frontend &amp; Web (React, JS, CSS)</option>
+          <option value="backend">Backend, APIs &amp; Microservices</option>
+          <option value="dsa">Data Structures &amp; Algorithms</option>
+          <option value="system_design">System Design &amp; Architecture</option>
+          <option value="python_ai">Python, Data Science &amp; AI</option>
+          <option value="devops">DevOps, Cloud &amp; Kubernetes</option>
+          <option value="java">Java &amp; Spring Boot Enterprise</option>
+          <option value="behavioral">Behavioral &amp; Leadership Principles</option>
+        </select>
+      </div>
+
+      <div style="flex: 1; min-width: 220px;">
+        <label style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem; font-weight: 600;">Search Questions:</label>
+        <div style="position: relative;">
+          <i class="bi bi-search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); font-size: 0.8rem; color: var(--text-muted);"></i>
+          <input type="text" id="modal-search-input" placeholder="Search across all questions, topics, companies..." oninput="filterModalQBankQuestions()" style="padding-left: 2.2rem; font-size: 0.825rem; margin-bottom: 0;">
+        </div>
+      </div>
+    </div>
+
+    <!-- Company Filter Pills -->
+    <div style="margin-bottom: 1.25rem;">
+      <div style="display: flex; gap: 0.45rem; overflow-x: auto; padding-bottom: 0.35rem;" id="modal-company-pills">
+        <!-- Rendered by filterModalQBankQuestions -->
+      </div>
+    </div>
+
+    <!-- Questions Container -->
+    <div id="modal-qbank-list" style="display: flex; flex-direction: column; gap: 0.85rem;">
+      <!-- Populated dynamically -->
+    </div>
+  `;
+
+  filterModalQBankQuestions();
+};
+
+let modalSelectedCompany = 'all';
+
+window.selectModalCompany = function(companyId) {
+  modalSelectedCompany = companyId;
+  filterModalQBankQuestions();
+};
+
+window.filterModalQBankQuestions = function() {
+  const container = document.getElementById('modal-qbank-list');
+  const pillsContainer = document.getElementById('modal-company-pills');
+  if (!container || !qbankCatalogData) return;
+
+  const domain = document.getElementById('modal-domain-select')?.value || 'all';
+  const search = (document.getElementById('modal-search-input')?.value || '').toLowerCase().trim();
+
+  // Render pills
+  if (pillsContainer && qbankCatalogData.companies) {
+    pillsContainer.innerHTML = qbankCatalogData.companies.map(c => {
+      const isSelected = modalSelectedCompany.toLowerCase() === c.id.toLowerCase();
+      const style = COMPANY_STYLE_MAP[c.name] || { color: c.color, icon: 'bi-building' };
+      return `
+        <button type="button" class="btn btn-sm ${isSelected ? 'btn-dark' : 'btn-outline'}" onclick="selectModalCompany('${c.id}')" style="font-size: 0.75rem; font-weight: 600; white-space: nowrap; border-radius: 20px; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.75rem;">
+          ${c.id !== 'all' ? `<i class="bi ${style.icon}" style="color: ${isSelected ? '#fff' : style.color};"></i>` : '<i class="bi bi-grid-fill"></i>'}
+          ${c.name}
+        </button>
+      `;
+    }).join('');
+  }
+
+  let questions = qbankCatalogData.questions || [];
+  if (domain !== 'all') {
+    questions = questions.filter(q => q.field === domain);
+  }
+  if (modalSelectedCompany !== 'all') {
+    questions = questions.filter(q => q.company.toLowerCase() === modalSelectedCompany.toLowerCase());
+  }
+  if (search) {
+    questions = questions.filter(q =>
+      q.question.toLowerCase().includes(search) ||
+      q.topic.toLowerCase().includes(search) ||
+      q.company.toLowerCase().includes(search) ||
+      (q.context && q.context.toLowerCase().includes(search))
+    );
+  }
+
+  if (questions.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 3rem 1rem; color: var(--text-muted); background: var(--surface-subtle); border-radius: 8px;">
+        <i class="bi bi-search" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
+        <strong style="font-size: 0.95rem; color: var(--text); display: block; margin-bottom: 0.25rem;">No questions matched your query</strong>
+        <span style="font-size: 0.8rem;">Try clearing the search or choosing a different domain.</span>
+      </div>
+    `;
+    return;
+  }
+
+  const grouped = {};
+  questions.forEach(q => {
+    if (!grouped[q.company]) grouped[q.company] = [];
+    grouped[q.company].push(q);
+  });
+
+  const diffColors = {
+    'Easy': { text: '#16a34a', bg: '#dcfce7', border: '#bbf7d0' },
+    'Medium': { text: '#d97706', bg: '#fef3c7', border: '#fde68a' },
+    'Hard': { text: '#dc2626', bg: '#fee2e2', border: '#fecaca' }
+  };
+
+  container.innerHTML = Object.entries(grouped).map(([companyName, qList]) => {
+    const style = COMPANY_STYLE_MAP[companyName] || { color: '#000', bg: '#f4f4f5', icon: 'bi-building' };
+    return `
+      <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: ${style.bg}; border-bottom: 1px solid ${style.border || 'var(--border)'};">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <i class="bi ${style.icon}" style="font-size: 1.15rem; color: ${style.color};"></i>
+            <strong style="font-size: 0.9rem; color: #000;">${companyName}</strong>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">(${qList.length} top questions)</span>
+          </div>
+        </div>
+
+        <div style="padding: 0.85rem; display: flex; flex-direction: column; gap: 0.65rem; background: var(--surface);">
+          ${qList.map(q => {
+            const diffStyle = diffColors[q.difficulty] || diffColors['Medium'];
+            return `
+              <div style="border: 1px solid var(--border); border-radius: 6px; padding: 0.85rem; background: var(--surface);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.4rem;">
+                  <div style="display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center;">
+                    <span style="font-size: 0.7rem; font-weight: 700; color: ${diffStyle.text}; background: ${diffStyle.bg}; border: 1px solid ${diffStyle.border}; padding: 0.15rem 0.5rem; border-radius: 4px;">
+                      ${q.difficulty}
+                    </span>
+                    <span style="font-size: 0.7rem; font-weight: 600; color: var(--text-muted); background: var(--surface-subtle); padding: 0.15rem 0.5rem; border-radius: 4px; border: 1px solid var(--border);">
+                      ${escapeHtml(q.topic)}
+                    </span>
+                  </div>
+                  <button type="button" class="btn btn-outline btn-sm" onclick="saveCatalogQuestionToMyBank('${q.id}')" style="font-size: 0.72rem; padding: 0.25rem 0.65rem; color: #d97706;">
+                    <i class="bi bi-star"></i> Save to My Bank
+                  </button>
+                </div>
+
+                <div style="font-size: 0.875rem; font-weight: 700; color: var(--text); line-height: 1.45; margin-bottom: 0.35rem;">
+                  ${escapeHtml(q.question)}
+                </div>
+
+                ${q.context ? `
+                  <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.4rem;">
+                    <i class="bi bi-info-circle" style="color: ${style.color};"></i> ${escapeHtml(q.context)}
+                  </div>
+                ` : ''}
+
+                ${q.expectedSignals ? `
+                  <details style="margin-top: 0.35rem; font-size: 0.75rem;">
+                    <summary style="cursor: pointer; color: #4338ca; font-weight: 600; user-select: none;">
+                      <i class="bi bi-lightbulb"></i> View Expected Evaluation Signals &amp; Rubric
+                    </summary>
+                    <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 4px; padding: 0.55rem 0.75rem; margin-top: 0.35rem; color: var(--text); line-height: 1.45;">
+                      <strong>Signals Interviewers Look For:</strong> ${escapeHtml(q.expectedSignals)}
+                    </div>
+                  </details>
+                ` : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
 };
 
 window.toggleDsaSection = function() {
@@ -1453,8 +2197,9 @@ window.handleWizardFinalSubmit = async function(e) {
     .map(c => c.value).join(',');
 
   // Questions & DSA
-  const question_mode = document.getElementById('wiz-question-mode-input').value;
+  const rawQMode = document.getElementById('wiz-question-mode-input')?.value || 'ai_adaptive';
   const custom_questions = document.getElementById('wiz-custom-questions-text')?.value.trim() || '';
+  const question_mode = ((rawQMode === 'company_bank' || rawQMode === 'custom_questions') && custom_questions) ? 'custom_questions' : 'ai_adaptive';
 
   let leetcode_problem = '';
   if (document.getElementById('wiz-dsa-toggle').checked) {

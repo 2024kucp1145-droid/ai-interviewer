@@ -170,10 +170,24 @@ export function initDatabase() {
       FOREIGN KEY (org_id) REFERENCES organizations(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS org_question_bank (
+      id TEXT PRIMARY KEY,
+      org_id TEXT NOT NULL,
+      question TEXT NOT NULL,
+      skill TEXT,
+      category TEXT,
+      difficulty TEXT DEFAULT 'Medium',
+      expected_answer TEXT,
+      company_tag TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (org_id) REFERENCES organizations(id) ON DELETE CASCADE
+    );
+
     CREATE INDEX IF NOT EXISTS idx_interviews_token ON interviews(token_hash);
     CREATE INDEX IF NOT EXISTS idx_turns_interview ON turns(interview_id);
     CREATE INDEX IF NOT EXISTS idx_candidates_org ON candidates(org_id);
     CREATE INDEX IF NOT EXISTS idx_billing_orders_org ON billing_orders(org_id);
+    CREATE INDEX IF NOT EXISTS idx_question_bank_org ON org_question_bank(org_id);
   `);
 
   // Auto-migration for existing tables

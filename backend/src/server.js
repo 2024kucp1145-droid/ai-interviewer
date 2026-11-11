@@ -14,6 +14,7 @@ import { generateReport } from './reports/generator.js';
 import multer from 'multer';
 import { extractTextFromBuffer, parseResumeText } from './services/resumeParser.js';
 import { getPlannedQuestions } from './interview/questionBank.js';
+import { DOMAIN_FIELDS, TOP_COMPANIES, COMPANY_QUESTION_CATALOG, getCatalogQuestions } from './interview/questionBankCatalog.js';
 import { billingRouter } from './billing/billingRoutes.js';
 import { dispatchCandidateNotification, buildInterviewRulesText } from './services/dispatchService.js';
 import { judgeLeetCodeSolution } from './services/leetcodeJudge.js';
@@ -824,6 +825,69 @@ app.post('/api/questions/preview', (req, res) => {
       customQuestions: custom_questions
     });
     res.json({ success: true, count: questions.length, questions });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Question Bank: Curated Company-Wise Catalog & Org Custom Bank ---
+app.get('/api/question-bank/catalog', (req, res) => {
+  try {
+    const { field = 'all', company = 'all', search = '' } = req.query;
+    const questions = getCatalogQuestions({ field, company, search });
+    res.json({
+      success: true,
+      domains: DOMAIN_FIELDS,
+      companies: TOP_COMPANIES,
+      count: questions.length,
+      questions
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/question-bank/custom', requireAuth, (req, res) => {
+  try {
+    const orgId = req.user.org_id;
+    const rows = db.prepare(`
+      SELECT * FROM org_question_bank WHERE org_id = ? ORDER BY created_at DESC
+    `).all(orgId);
+    res.json({ success: true, count: rows.length, questions: rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/question-bank/custom', requireAuth, (req, res) => {
+  try {
+    const orgId = req.user.org_id;
+    const { question, skill = '', category = '', difficulty = 'Medium', expected_answer = '', company_tag = '' } = req.body;
+    if (!question || !question.trim()) {
+      return res.status(400).json({ error: 'Question text is required' });
+    }
+    const id = 'q_custom_' + crypto.randomUUID();
+    db.prepare(`
+      INSERT INTO org_question_bank (id, org_id, question, skill, category, difficulty, expected_answer, company_tag)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, orgId, question.trim(), skill.trim(), category.trim(), difficulty, expected_answer.trim(), company_tag.trim());
+
+    const created = db.prepare(`SELECT * FROM org_question_bank WHERE id = ?`).get(id);
+    res.json({ success: true, question: created });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/question-bank/custom/:id', requireAuth, (req, res) => {
+  try {
+    const orgId = req.user.org_id;
+    const { id } = req.params;
+    const result = db.prepare(`DELETE FROM org_question_bank WHERE id = ? AND org_id = ?`).run(id, orgId);
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Custom question not found or unauthorized' });
+    }
+    res.json({ success: true, message: 'Question deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
