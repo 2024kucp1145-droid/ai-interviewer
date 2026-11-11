@@ -48,26 +48,15 @@ async function checkAuthSession() {
       currentUser = data.user;
       currentOrg = data.org;
 
-      // Check if user is verified
-      if (!currentUser.is_verified) {
-        openAuthModal();
-        goToStep(2);
-        return false;
-      }
-
-      // Check if company information is set
-      if (!currentOrg.website && !currentOrg.industry) {
-        openAuthModal();
-        goToStep(3);
-        return false;
-      }
-
+      // Close auth modal and load dashboard
+      if (authModal) authModal.style.display = 'none';
       updateUserBadge();
       loadJobs();
       return true;
     } else if (res.status === 401) {
       authToken = null;
       localStorage.removeItem('roundone_token');
+      localStorage.removeItem('ai_interviewer_token');
       updateUserBadge();
       openAuthModal();
       return false;
@@ -139,19 +128,19 @@ window.toggleAuthMode = function(mode) {
   const liForm = document.getElementById('form-login');
 
   if (mode === 'signup') {
-    suBtn.className = 'btn btn-sm';
-    liBtn.className = 'btn btn-outline btn-sm';
-    suForm.style.display = 'block';
-    liForm.style.display = 'none';
-    document.getElementById('auth-modal-title').textContent = 'Employer Registration';
-    document.getElementById('wizard-steps-indicator').style.display = 'flex';
+    if (suBtn) suBtn.className = 'btn btn-sm';
+    if (liBtn) liBtn.className = 'btn btn-outline btn-sm';
+    if (suForm) suForm.style.display = 'block';
+    if (liForm) liForm.style.display = 'none';
+    const titleEl = document.getElementById('auth-modal-title');
+    if (titleEl) titleEl.textContent = 'Employer Registration';
   } else {
-    suBtn.className = 'btn btn-outline btn-sm';
-    liBtn.className = 'btn btn-sm';
-    suForm.style.display = 'none';
-    liForm.style.display = 'block';
-    document.getElementById('auth-modal-title').textContent = 'Employer Sign In';
-    document.getElementById('wizard-steps-indicator').style.display = 'none';
+    if (suBtn) suBtn.className = 'btn btn-outline btn-sm';
+    if (liBtn) liBtn.className = 'btn btn-sm';
+    if (suForm) suForm.style.display = 'none';
+    if (liForm) liForm.style.display = 'block';
+    const titleEl = document.getElementById('auth-modal-title');
+    if (titleEl) titleEl.textContent = 'Employer Sign In';
   }
 };
 
@@ -163,109 +152,95 @@ document.getElementById('btn-auth-switch').addEventListener('click', () => {
       currentUser = null;
       currentOrg = null;
       localStorage.removeItem('roundone_token');
+      localStorage.removeItem('ai_interviewer_token');
       updateUserBadge();
       openAuthModal();
-      goToStep(1);
       toggleAuthMode('login');
     }
   } else {
     openAuthModal();
+    toggleAuthMode('login');
   }
 });
 
-// Step 1: Form Sign Up (no password)
+// Step 1: Form Sign Up (Direct Email + Password)
 document.getElementById('form-signup').addEventListener('submit', async (e) => {
   e.preventDefault();
   const fullName = document.getElementById('su-name').value.trim();
-  const jobTitle = document.getElementById('su-title').value.trim();
+  const jobTitle = (document.getElementById('su-title')?.value || 'Recruiter').trim();
   const email = document.getElementById('su-email').value.trim();
-  const phone = document.getElementById('su-phone').value.trim();
+  const phone = (document.getElementById('su-phone')?.value || '').trim();
+  const password = document.getElementById('su-password').value;
 
   try {
+    const btn = e.target.querySelector('button[type=submit]');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Creating account...';
+    }
+
     const res = await fetch('/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fullName, jobTitle, email, phone })
+      body: JSON.stringify({ fullName, jobTitle, email, phone, password })
     });
     const data = await res.json();
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = 'Create Account & Enter Dashboard <i class="bi bi-arrow-right"></i>';
+    }
     if (!res.ok) throw new Error(data.error || 'Failed to register account');
 
     authToken = data.token;
     localStorage.setItem('roundone_token', authToken);
-    currentUser = data.user;
-    currentOrg = data.org;
-
-    goToStep(2);
-    if (data.emailSent) {
-      alert(`✓ Verification code sent to ${data.user.email}! Please check your email inbox (and spam folder).`);
-    } else {
-      alert(`⚠️ Notice: Live email delivery requires SMTP configured in Admin Settings.\nFor local development, the 6-digit code is visible in the server terminal.`);
-    }
-  } catch (err) {
-    alert(err.message);
-  }
-});
-
-// Step 1: Form Login — Email only, sends OTP
-document.getElementById('form-login').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const email = document.getElementById('login-email').value.trim();
-
-  try {
-    const btn = e.target.querySelector('button[type=submit]');
-    btn.disabled = true;
-    btn.textContent = 'Sending...';
-
-    const res = await fetch('/auth/login-otp-request', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
-    });
-    const data = await res.json();
-    btn.disabled = false;
-    btn.innerHTML = 'Send Login Code <i class="bi bi-envelope-at"></i>';
-    if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
-
-    // Show OTP input form
-    document.getElementById('login-otp-email-display').textContent = email;
-    document.getElementById('form-login').style.display = 'none';
-    document.getElementById('form-login-otp').style.display = 'block';
-    document.getElementById('login-otp-code').value = '';
-    document.getElementById('login-otp-code').focus();
-  } catch (err) {
-    alert(err.message);
-  }
-});
-
-// Step 1b: OTP verify for login
-document.getElementById('form-login-otp').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const email = document.getElementById('login-email').value.trim();
-  const otp = document.getElementById('login-otp-code').value.trim();
-
-  try {
-    const btn = e.target.querySelector('button[type=submit]');
-    btn.disabled = true;
-    btn.textContent = 'Verifying...';
-
-    const res = await fetch('/auth/login-otp-verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, otp })
-    });
-    const data = await res.json();
-    btn.disabled = false;
-    btn.innerHTML = 'Enter Dashboard <i class="bi bi-box-arrow-in-right"></i>';
-    if (!res.ok) throw new Error(data.error || 'Invalid OTP');
-
-    authToken = data.token;
-    localStorage.setItem('roundone_token', authToken);
+    localStorage.setItem('ai_interviewer_token', authToken);
     currentUser = data.user;
     currentOrg = data.org;
 
     authModal.style.display = 'none';
     updateUserBadge();
     loadJobs();
+    loadRegisteredUsers();
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
+// Step 1: Form Login (Direct Email + Password)
+document.getElementById('form-login').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+
+  try {
+    const btn = e.target.querySelector('button[type=submit]');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Signing in...';
+    }
+
+    const res = await fetch('/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = 'Sign In & Enter Dashboard <i class="bi bi-box-arrow-in-right"></i>';
+    }
+    if (!res.ok) throw new Error(data.error || 'Failed to sign in');
+
+    authToken = data.token;
+    localStorage.setItem('roundone_token', authToken);
+    localStorage.setItem('ai_interviewer_token', authToken);
+    currentUser = data.user;
+    currentOrg = data.org;
+
+    authModal.style.display = 'none';
+    updateUserBadge();
+    loadJobs();
+    loadRegisteredUsers();
   } catch (err) {
     alert(err.message);
   }
