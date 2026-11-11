@@ -2190,11 +2190,11 @@ window.renderInterviewBlocks = function() {
     const avgScoreDisplay = (job.avg_score !== null && job.avg_score !== undefined) ? `${job.avg_score} pts` : '--';
 
     return `
-      <div class="interview-round-block ${isActive ? 'active' : ''}" onclick="selectInterviewRoundBlock('${job.id}')">
+      <div class="interview-round-block ${isActive ? 'active' : ''}" onclick="window.location.href='/results.html?jobId=${job.id}'">
         <div>
           <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.45rem;">
-            <strong style="font-size: 0.92rem; color: var(--text); line-height: 1.3;">${escapeHtml(job.title)}</strong>
-            ${isActive ? `<span class="badge" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 0.65rem; font-weight: 700; flex-shrink: 0;"><i class="bi bi-check-circle-fill" style="color: #2563eb;"></i> Active</span>` : ''}
+            <strong style="font-size: 0.95rem; color: var(--text); line-height: 1.3;">${escapeHtml(job.title)}</strong>
+            ${isActive ? `<span class="badge" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 0.65rem; font-weight: 700; flex-shrink: 0;"><i class="bi bi-check-circle-fill" style="color: #2563eb;"></i> Selected</span>` : ''}
           </div>
           <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
             <span class="badge badge-outline" style="font-size: 0.65rem;">${escapeHtml(job.experience_level || 'Mid-Level')}</span>
@@ -2203,31 +2203,41 @@ window.renderInterviewBlocks = function() {
           </div>
 
           <!-- Live Candidate Results Breakdown Pills -->
-          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.35rem; margin-bottom: 0.65rem; text-align: center;">
-            <div style="background: var(--surface-subtle); padding: 0.35rem 0.2rem; border-radius: 6px; border: 1px solid var(--border);">
-              <div style="font-size: 0.95rem; font-weight: 800; color: var(--text);">${total}</div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.35rem; margin-bottom: 0.85rem; text-align: center;">
+            <div style="background: var(--surface-subtle); padding: 0.4rem 0.2rem; border-radius: 6px; border: 1px solid var(--border);">
+              <div style="font-size: 1rem; font-weight: 800; color: var(--text);">${total}</div>
               <div style="font-size: 0.62rem; color: var(--text-muted); font-weight: 600;">Total</div>
             </div>
-            <div style="background: #f0fdf4; padding: 0.35rem 0.2rem; border-radius: 6px; border: 1px solid #bbf7d0;">
-              <div style="font-size: 0.95rem; font-weight: 800; color: #059669;">${selected}</div>
+            <div style="background: #f0fdf4; padding: 0.4rem 0.2rem; border-radius: 6px; border: 1px solid #bbf7d0;">
+              <div style="font-size: 1rem; font-weight: 800; color: #059669;">${selected}</div>
               <div style="font-size: 0.62rem; color: #047857; font-weight: 700;">Selected</div>
             </div>
-            <div style="background: #fffbeb; padding: 0.35rem 0.2rem; border-radius: 6px; border: 1px solid #fde68a;">
-              <div style="font-size: 0.95rem; font-weight: 800; color: #d97706;">${borderline}</div>
+            <div style="background: #fffbeb; padding: 0.4rem 0.2rem; border-radius: 6px; border: 1px solid #fde68a;">
+              <div style="font-size: 1rem; font-weight: 800; color: #d97706;">${borderline}</div>
               <div style="font-size: 0.62rem; color: #b45309; font-weight: 700;">Review</div>
             </div>
-            <div style="background: #fef2f2; padding: 0.35rem 0.2rem; border-radius: 6px; border: 1px solid #fecaca;">
-              <div style="font-size: 0.95rem; font-weight: 800; color: #dc2626;">${rejected}</div>
+            <div style="background: #fef2f2; padding: 0.4rem 0.2rem; border-radius: 6px; border: 1px solid #fecaca;">
+              <div style="font-size: 1rem; font-weight: 800; color: #dc2626;">${rejected}</div>
               <div style="font-size: 0.62rem; color: #991b1b; font-weight: 700;">Rejected</div>
             </div>
           </div>
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.55rem; border-top: 1px solid var(--border); font-size: 0.75rem;">
-          <span style="color: var(--text-muted);">Avg: <strong style="color: var(--text);">${avgScoreDisplay}</strong></span>
-          <span style="color: ${isActive ? '#2563eb' : 'var(--text-muted)'}; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
-            ${isActive ? 'Viewing Rankings <i class="bi bi-chevron-down"></i>' : 'View Results &rarr;'}
-          </span>
+        <div style="display: flex; flex-direction: column; gap: 0.55rem; padding-top: 0.65rem; border-top: 1px solid var(--border);">
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
+            <span style="color: var(--text-muted);">Batch Average:</span>
+            <strong style="color: var(--text); font-size: 0.85rem;">${avgScoreDisplay}</strong>
+          </div>
+
+          <!-- Direct Actions: Download PDF & Open Dedicated 4-Section Page -->
+          <div style="display: flex; gap: 0.45rem; align-items: center; margin-top: 0.2rem;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="event.stopPropagation(); window.open('/results.html?jobId=${job.id}&downloadPdf=1', '_blank')" title="Download complete PDF candidate report" style="padding: 0.35rem 0.65rem;">
+              <i class="bi bi-file-earmark-pdf-fill" style="color: #ef4444;"></i> PDF Report
+            </button>
+            <a href="/results.html?jobId=${job.id}" class="btn btn-primary btn-sm" onclick="event.stopPropagation();" style="flex: 1; justify-content: center; text-decoration: none; font-weight: 700;">
+              <i class="bi bi-grid-fill"></i> View Results (4 Sections) &rarr;
+            </a>
+          </div>
         </div>
       </div>
     `;
@@ -2238,14 +2248,7 @@ window.renderInterviewBlocks = function() {
 window.selectInterviewRoundBlock = function(jobId) {
   activeJobId = jobId;
   if (inviteJobSelect) inviteJobSelect.value = jobId;
-  renderInterviewBlocks();
-  loadInterviews();
-
-  // Smooth scroll down to results roster
-  const rosterSection = document.getElementById('candidate-results-section');
-  if (rosterSection) {
-    rosterSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
+  window.location.href = `/results.html?jobId=${jobId}`;
 };
 
 // 3. View Mode Switch (Merit Cards vs Table)
