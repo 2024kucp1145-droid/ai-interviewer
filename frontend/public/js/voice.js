@@ -46,6 +46,7 @@ export class VoiceManager {
     this.recognition = null;
     this.isListening = false;
     this.lastRecognizedText = '';
+    this.currentAudio = null;
 
     this._initChromeRecognition();
   }
@@ -311,36 +312,103 @@ export class VoiceManager {
     }
   }
 
-  speak(text) {
-    if (!this.synth) return;
+  /**
+   * High-Fidelity Neural Speech Synthesis:
+   * Uses Microsoft Edge Neural Audio (Natural ElevenLabs-level human voice)
+   * with automatic seamless fallback to local browser SpeechSynthesis.
+   */
+  async speak(text) {
+    if (!text || !text.trim()) return;
     this.stopSpeaking();
 
-    // Ensure audio context / speech synth is resumed on iOS / Safari
-    if (this.synth.paused) {
-      try { this.synth.resume(); } catch (e) {}
+    // 1. Try High-Quality Microsoft Neural Audio
+    try {
+      this.onSpeakStart();
+      const res = await fetch('/api/tts/speak', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text.trim(), voice: 'en-IN-female' })
+      });
+
+      if (res.ok) {
+        const blob = await res.blob();
+        const audioUrl = URL.createObjectURL(blob);
+        const audio = new Audio(audioUrl);
+        this.currentAudio = audio;
+
+        audio.onplay = () => {
+          this.onSpeakStart();
+        };
+
+        audio.onended = () => {
+          URL.revokeObjectURL(audioUrl);
+          this.currentAudio = null;
+          this.onSpeakEnd();
+        };
+
+        audio.onerror = (e) => {
+          console.warn('[NeuralTTS Play Error]:', e);
+          URL.revokeObjectURL(audioUrl);
+          this.currentAudio = null;
+          this._fallbackLocalSpeak(text);
+        };
+
+        await audio.play();
+        return;
+      }
+    } catch (err) {
+      console.warn('[NeuralTTS] Network fetch failed, falling back to local speech:', err.message);
     }
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
-    utterance.lang = 'en-IN';
+    // 2. Fallback to local browser speech synthesis
+    this._fallbackLocalSpeak(text);
+  }
 
-    const voices = this.synth.getVoices();
-    const preferredVoice = voices.find(v => v.lang.includes('en-IN') || v.lang.includes('en-GB') || v.lang.includes('en-US'));
-    if (preferredVoice) {
-      utterance.voice = preferredVoice;
+  _fallbackLocalSpeak(text) {
+    if (!this.synth) {
+      this.onSpeakEnd();
+      return;
     }
 
-    utterance.onstart = () => this.onSpeakStart();
-    utterance.onend = () => this.onSpeakEnd();
-    utterance.onerror = () => this.onSpeakEnd();
+    try {
+      if (this.synth.paused) {
+        this.synth.resume();
+      }
 
-    this.synth.speak(utterance);
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      utterance.lang = 'en-IN';
+
+      const voices = this.synth.getVoices();
+      const preferredVoice = voices.find(v => v.lang.includes('en-IN') || v.lang.includes('en-GB') || v.lang.includes('en-US'));
+      if (preferredVoice) {
+        utterance.voice = preferredVoice;
+      }
+
+      utterance.onstart = () => this.onSpeakStart();
+      utterance.onend = () => this.onSpeakEnd();
+      utterance.onerror = () => this.onSpeakEnd();
+
+      this.synth.speak(utterance);
+    } catch (e) {
+      this.onSpeakEnd();
+    }
   }
 
   stopSpeaking() {
+    if (this.currentAudio) {
+      try {
+        this.currentAudio.pause();
+        this.currentAudio.currentTime = 0;
+      } catch (e) {}
+      this.currentAudio = null;
+    }
+
     if (this.synth && this.synth.speaking) {
-      this.synth.cancel();
+      try {
+        this.synth.cancel();
+      } catch (e) {}
     }
   }
 }

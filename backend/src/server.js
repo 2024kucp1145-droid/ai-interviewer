@@ -17,6 +17,7 @@ import { getPlannedQuestions } from './interview/questionBank.js';
 import { billingRouter } from './billing/billingRoutes.js';
 import { dispatchCandidateNotification, buildInterviewRulesText } from './services/dispatchService.js';
 import { judgeLeetCodeSolution } from './services/leetcodeJudge.js';
+import { generateNeuralAudio, NEURAL_VOICES } from './services/neuralTtsService.js';
 
 dotenv.config();
 
@@ -1038,6 +1039,50 @@ app.post('/i/:token/transcribe', upload.single('audio'), async (req, res) => {
   } catch (err) {
     console.error('[Transcribe Audio Route Error]:', err);
     res.status(500).json({ error: 'Transcription processing error: ' + err.message });
+  }
+});
+
+// --- Microsoft Neural Text-to-Speech Engine Endpoint (ElevenLabs Quality) ---
+app.post('/api/tts/speak', async (req, res) => {
+  try {
+    const text = (req.body && req.body.text) || '';
+    const voiceName = (req.body && req.body.voice) || 'en-IN-female';
+
+    if (!text || text.trim().length === 0) {
+      return res.status(400).json({ error: 'Text is required for TTS synthesis' });
+    }
+
+    const voiceKey = NEURAL_VOICES[voiceName] || NEURAL_VOICES['en-IN-female'];
+    const audioBuffer = await generateNeuralAudio(text.trim(), { voice: voiceKey });
+
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Content-Length', audioBuffer.length);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(audioBuffer);
+  } catch (err) {
+    console.warn('[NeuralTTS Route Error]:', err.message);
+    res.status(500).json({ error: 'TTS audio synthesis failed: ' + err.message });
+  }
+});
+
+app.get('/api/tts/speak', async (req, res) => {
+  try {
+    const text = req.query.text || '';
+    const voiceName = req.query.voice || 'en-IN-female';
+
+    if (!text || text.trim().length === 0) {
+      return res.status(400).send('Text query param is required');
+    }
+
+    const voiceKey = NEURAL_VOICES[voiceName] || NEURAL_VOICES['en-IN-female'];
+    const audioBuffer = await generateNeuralAudio(text.trim(), { voice: voiceKey });
+
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Content-Length', audioBuffer.length);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(audioBuffer);
+  } catch (err) {
+    res.status(500).send('TTS Error: ' + err.message);
   }
 });
 
