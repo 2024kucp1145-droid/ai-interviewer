@@ -21,15 +21,19 @@ console.log('2. Testing Admin Email OTP Generation & Verification...');
 const testEmail = 'admin.test@platform.internal';
 const otpResult = await generateAndSendAdminOtp(testEmail, 'signup_verify', 'Chief Admin');
 assert(otpResult.success, 'OTP generation must succeed');
-assert(otpResult.devOtp, 'Dev OTP must be present for testing');
-assert.strictEqual(otpResult.devOtp.length, 6, 'OTP must be 6 digits');
+
+// Retrieve OTP code from DB or devOtp
+const otpRow = db.prepare('SELECT otp_code FROM admin_otps WHERE email = ? AND is_used = 0 ORDER BY created_at DESC LIMIT 1').get(testEmail);
+const activeCode = otpResult.devOtp || otpRow?.otp_code;
+assert(activeCode, 'Active OTP must exist in database or response');
+assert.strictEqual(activeCode.length, 6, 'OTP must be 6 digits');
 
 // Test wrong OTP
 const wrongVerify = verifyAdminOtp(testEmail, '000000', 'signup_verify');
 assert.strictEqual(wrongVerify.valid, false, 'Wrong OTP must be rejected');
 
 // Test correct OTP
-const correctVerify = verifyAdminOtp(testEmail, otpResult.devOtp, 'signup_verify');
+const correctVerify = verifyAdminOtp(testEmail, activeCode, 'signup_verify');
 assert.strictEqual(correctVerify.valid, true, 'Correct OTP must be accepted');
 
 // Test re-using same OTP (must fail)

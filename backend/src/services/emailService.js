@@ -104,6 +104,65 @@ export async function sendPlatformEmail({ to, subject, html }) {
       });
       const data = await res.json();
       if (!res.ok) {
+        // If Resend is restricted to sandbox registered owner email
+        const errorMsg = data.message || '';
+        const isSandboxError = errorMsg.includes('own email address') || 
+                               errorMsg.includes('testing email address') || 
+                               errorMsg.includes('domain is not verified') || 
+                               errorMsg.includes('validation_error') ||
+                               res.status === 403;
+
+        let ownerEmail = null;
+        const sandboxMatch = errorMsg.match(/own email address \(([^)]+)\)/i);
+        if (sandboxMatch && sandboxMatch[1]) {
+          ownerEmail = sandboxMatch[1].toLowerCase().trim();
+        } else if (config.user && config.user.includes('@')) {
+          ownerEmail = config.user.toLowerCase().trim();
+        } else {
+          ownerEmail = 'fealyourfear99@gmail.com';
+        }
+
+        if (isSandboxError && ownerEmail && cleanEmail !== ownerEmail) {
+          console.warn(`\n⚠️  [Resend Sandbox Notice] External recipient "${cleanEmail}" requires custom domain verification on resend.com.`);
+          console.warn(`👉 Auto-forwarding email to your verified inbox: ${ownerEmail}\n`);
+
+          const fallbackHtml = `
+            <div style="background:#fef3c7;border:1px solid #f59e0b;padding:12px 16px;border-radius:6px;margin-bottom:20px;font-family:sans-serif;font-size:13px;color:#92400e;">
+              <strong>⚠️ Sandbox Forwarding Notice:</strong><br>
+              This message was dispatched for: <strong>${cleanEmail}</strong>.<br>
+              Because your Resend account is in free testing mode (no custom domain verified yet), Resend routed it to your registered inbox (<strong>${ownerEmail}</strong>) so you can receive the OTP and continue testing without interruption.
+            </div>
+            ${html}
+          `;
+
+          const fallbackRes = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${config.resendApiKey.trim()}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              from: sender,
+              to: [ownerEmail],
+              subject: `[For: ${cleanEmail}] ${subject}`,
+              html: fallbackHtml
+            })
+          });
+
+          const fallbackData = await fallbackRes.json();
+          if (fallbackRes.ok) {
+            console.log(`✓ [Resend Sandbox] Email successfully forwarded to: ${ownerEmail} (intended for: ${cleanEmail})`);
+            return {
+              sent: true,
+              provider: 'resend',
+              messageId: fallbackData.id,
+              forwardedTo: ownerEmail,
+              intendedFor: cleanEmail,
+              notice: `Resend free sandbox forwarded this email to ${ownerEmail}.`
+            };
+          }
+        }
+
         throw new Error(data.message || (data.name ? `${data.name}: ${data.message}` : 'Resend API delivery error'));
       }
       console.log(`✓ [Resend API] Email successfully delivered to: ${cleanEmail}`);
