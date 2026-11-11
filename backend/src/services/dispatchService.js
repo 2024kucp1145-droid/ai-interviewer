@@ -6,7 +6,7 @@
  * - 1-Click WhatsApp Web chat links & Meta WhatsApp Cloud API
  */
 
-import nodemailer from 'nodemailer';
+import { sendPlatformEmail } from './emailService.js';
 
 export function buildInterviewRulesText(job) {
   const rules = [];
@@ -128,26 +128,6 @@ Good luck!`.trim();
 }
 
 /**
- * Creates SMTP transporter if credentials exist in .env
- */
-function getSmtpTransporter() {
-  const host = process.env.SMTP_HOST || 'smtp.gmail.com';
-  const port = parseInt(process.env.SMTP_PORT || '587', 10);
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-
-  if (user && pass) {
-    return nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465,
-      auth: { user, pass }
-    });
-  }
-  return null;
-}
-
-/**
  * Dispatch notification via Email and/or WhatsApp
  */
 export async function dispatchCandidateNotification({
@@ -217,36 +197,31 @@ export async function dispatchCandidateNotification({
     }
   }
 
-  // 2. Email Dispatch (Real SMTP via Nodemailer or fallback)
+  // 2. Email Dispatch (Unified Platform Email: Gmail SMTP or Resend API)
   if (email && !email.endsWith('@candidate.local')) {
-    const transporter = getSmtpTransporter();
-    if (transporter) {
-      try {
-        const fromAddr = process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@ai-interviewer.com';
-        await transporter.sendMail({
-          from: `"${companyName || 'Technical Hiring'}" <${fromAddr}>`,
-          to: email,
-          subject: `Interview Invitation: ${jobTitle} at ${companyName || 'Technical Team'}`,
-          html: emailHtml
-        });
-        results.email.sent = true;
-        results.email.method = 'live_smtp';
-        results.email.to = email;
-        console.log(`[Email Dispatch] Live SMTP email successfully delivered to ${email}`);
-      } catch (mailErr) {
-        console.error(`[Email Dispatch] SMTP error for ${email}:`, mailErr.message);
-        results.email.error = mailErr.message;
-        results.email.method = 'smtp_failed';
+    const emailResult = await sendPlatformEmail({
+      to: email,
+      subject: `Interview Invitation: ${jobTitle} at ${companyName || 'Technical Team'}`,
+      html: emailHtml
+    });
+
+    if (emailResult.sent) {
+      results.email.sent = true;
+      results.email.method = emailResult.provider === 'resend' ? 'resend_api' : 'live_smtp';
+      results.email.to = email;
+      if (emailResult.forwardedTo) {
+        results.email.forwardedTo = emailResult.forwardedTo;
       }
-    } else {
-      // SMTP credentials not configured in .env
+    } else if (emailResult.provider === 'none') {
       const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(`Interview Invitation: ${jobTitle}`)}&body=${encodeURIComponent(waText)}`;
       results.email.sent = true;
       results.email.method = 'mailto_link';
       results.email.mailtoUrl = mailtoUrl;
       results.email.to = email;
-      results.email.note = 'SMTP_USER not configured in .env. Use 1-click mailto or add SMTP credentials.';
-      console.log(`[Email Dispatch] Prepared mailto invitation for ${email}`);
+      results.email.note = 'Email provider not configured in Admin Settings or .env. Use 1-click mailto or configure Option A/B in /admin.';
+    } else {
+      results.email.error = emailResult.error;
+      results.email.method = `${emailResult.provider}_failed`;
     }
   }
 

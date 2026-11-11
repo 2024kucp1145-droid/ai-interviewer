@@ -15,10 +15,11 @@ import { db } from '../db/database.js';
  */
 
 export function getEmailConfig() {
-  const settings = db.prepare("SELECT key, value FROM platform_settings WHERE key LIKE 'smtp_%' OR key = 'resend_api_key'").all();
+  const settings = db.prepare("SELECT key, value FROM platform_settings WHERE key LIKE 'smtp_%' OR key IN ('resend_api_key', 'email_provider')").all();
   const map = {};
   settings.forEach(s => { map[s.key] = s.value; });
 
+  const preferredProvider = (map.email_provider || process.env.EMAIL_PROVIDER || 'auto').toLowerCase().trim();
   const resendApiKey = map.resend_api_key || process.env.RESEND_API_KEY || '';
   const host = map.smtp_host || process.env.SMTP_HOST || 'smtp.gmail.com';
   const port = parseInt(map.smtp_port || process.env.SMTP_PORT || '587', 10);
@@ -32,7 +33,11 @@ export function getEmailConfig() {
   const isSmtpConfigured = Boolean(user && pass && user.trim().length > 3 && pass.trim().length > 3);
 
   let provider = 'none';
-  if (isResendConfigured) {
+  if (preferredProvider === 'smtp') {
+    provider = isSmtpConfigured ? 'smtp' : 'none';
+  } else if (preferredProvider === 'resend') {
+    provider = isResendConfigured ? 'resend' : 'none';
+  } else if (isResendConfigured) {
     provider = 'resend';
   } else if (isSmtpConfigured) {
     provider = 'smtp';
@@ -40,6 +45,7 @@ export function getEmailConfig() {
 
   return {
     provider,
+    preferredProvider,
     resendApiKey,
     host,
     port,
@@ -59,13 +65,17 @@ export function createTransporter() {
   const config = getEmailConfig();
   if (config.provider !== 'smtp') return null;
 
+  const cleanPass = config.host.toLowerCase().includes('gmail')
+    ? config.pass.replace(/\s+/g, '')
+    : config.pass;
+
   return nodemailer.createTransport({
     host: config.host,
     port: config.port,
     secure: config.secure,
     auth: {
-      user: config.user,
-      pass: config.pass
+      user: config.user.trim(),
+      pass: cleanPass
     },
     tls: {
       rejectUnauthorized: false
@@ -116,6 +126,8 @@ export async function sendPlatformEmail({ to, subject, html }) {
         const sandboxMatch = errorMsg.match(/own email address \(([^)]+)\)/i);
         if (sandboxMatch && sandboxMatch[1]) {
           ownerEmail = sandboxMatch[1].toLowerCase().trim();
+        } else if (process.env.RESEND_OWNER_EMAIL) {
+          ownerEmail = process.env.RESEND_OWNER_EMAIL.toLowerCase().trim();
         } else if (config.user && config.user.includes('@')) {
           ownerEmail = config.user.toLowerCase().trim();
         } else {
@@ -180,8 +192,9 @@ export async function sendPlatformEmail({ to, subject, html }) {
       return { sent: false, provider: 'smtp', error: 'SMTP transporter initialization failed' };
     }
     try {
+      const smtpFrom = (config.fromEmail && !config.fromEmail.includes('resend.dev')) ? config.fromEmail : config.user;
       const info = await transporter.sendMail({
-        from: `"${config.fromName}" <${config.fromEmail || config.user}>`,
+        from: `"${config.fromName}" <${smtpFrom}>`,
         to: cleanEmail,
         subject,
         html
@@ -189,8 +202,11 @@ export async function sendPlatformEmail({ to, subject, html }) {
       console.log(`✓ [SMTP] Email successfully delivered to: ${cleanEmail}`);
       return { sent: true, provider: 'smtp', messageId: info.messageId };
     } catch (err) {
-      console.error(`❌ [SMTP Error] Failed to send email to ${cleanEmail}:`, err.message);
-      return { sent: false, provider: 'smtp', error: err.message };
+      const authHint = (err.message || '').match(/535|Username and Password not accepted|Invalid login/i)
+        ? ' — Gmail requires 2-Step Verification ON and a 16-character Google App Password (myaccount.google.com/apppasswords), NOT your regular Gmail password.'
+        : '';
+      console.error(`❌ [SMTP Error] Failed to send email to ${cleanEmail}:`, err.message + authHint);
+      return { sent: false, provider: 'smtp', error: err.message + authHint };
     }
   }
 

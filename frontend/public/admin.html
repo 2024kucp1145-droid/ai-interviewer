@@ -1270,9 +1270,18 @@
           <span id="smtp-status-badge" class="badge badge-warning">Checking Status...</span>
         </div>
         <div class="card-body">
-          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.25rem;">
-            To deliver verification codes and 2FA OTPs directly to user and administrator inboxes, choose either <strong>Option A (Resend API Key)</strong> or <strong>Option B (Your Gmail SMTP)</strong>.
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+            To deliver verification codes, OTPs, and feedback directly to user and administrator inboxes across all email domains, select your active provider below.
           </p>
+
+          <div class="form-group" style="margin-bottom: 1.25rem; max-width: 420px;">
+            <label class="form-label">Active Email Provider</label>
+            <select id="setting-email-provider" class="form-input">
+              <option value="smtp">Option B: Custom / Gmail SMTP (Allows all email domains free)</option>
+              <option value="resend">Option A: Resend API (Requires verified domain for all recipients)</option>
+              <option value="auto">Auto (Resend if key saved, otherwise SMTP)</option>
+            </select>
+          </div>
 
           <!-- OPTION A: RESEND API KEY -->
           <div style="background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">

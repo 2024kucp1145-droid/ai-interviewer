@@ -1267,6 +1267,7 @@ window.loadPlatformSettings = async function() {
 
     // Email Settings Inputs
     const setVal = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
+    setVal('setting-email-provider', s.email_provider || 'auto');
     setVal('setting-resend-api-key', s.resend_api_key || '');
     setVal('setting-smtp-host', s.smtp_host || 'smtp.gmail.com');
     setVal('setting-smtp-port', s.smtp_port || '587');
@@ -1351,6 +1352,7 @@ window.savePlatformSettings = async function() {
 };
 
 window.saveSmtpSettings = async function() {
+  const emailProvider = document.getElementById('setting-email-provider')?.value || 'auto';
   const resendKey = document.getElementById('setting-resend-api-key')?.value.trim();
   let host = document.getElementById('setting-smtp-host')?.value.trim();
   const port = document.getElementById('setting-smtp-port')?.value.trim() || '587';
@@ -1385,6 +1387,7 @@ window.saveSmtpSettings = async function() {
       },
       body: JSON.stringify({
         settings: {
+          email_provider: emailProvider,
           resend_api_key: resendKey,
           smtp_host: host,
           smtp_port: port,

@@ -1155,6 +1155,7 @@ adminRouter.get('/settings', requireAdmin, async (req, res) => {
       emailStatus: {
         isConfigured: emailConfig.isConfigured,
         provider: emailConfig.provider,
+        preferredProvider: emailConfig.preferredProvider,
         host: emailConfig.host,
         port: emailConfig.port,
         user: emailConfig.user,
