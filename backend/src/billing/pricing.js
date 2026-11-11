@@ -1,5 +1,5 @@
 /**
- * Pricing Engine — AI Interviewer Platform
+ * Pricing Engine — RoundOne AI Platform
  *
  * Structure:
  *  1. Pay-Per-Interview  : priced by duration (10–60 min, $0.25 increments starting from $0.50)

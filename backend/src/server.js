@@ -2127,7 +2127,7 @@ app.use((req, res) => {
 
 app.listen(PORT, () => {
   console.log(`=======================================================`);
-  console.log(`🚀 AI Interviewer SaaS running at http://localhost:${PORT}`);
+  console.log(`🚀 RoundOne AI running at http://localhost:${PORT}`);
   console.log(`   - Recruiter Dashboard: http://localhost:${PORT}`);
   console.log(`   - Candidate Interview: http://localhost:${PORT}/interview.html?token=<token>`);
   console.log(`   - Health check:        http://localhost:${PORT}/health`);

@@ -1327,7 +1327,7 @@ window.loadPlatformSettings = async function() {
     setVal('setting-smtp-port', s.smtp_port || '587');
     setVal('setting-smtp-user', s.smtp_user || '');
     setVal('setting-smtp-pass', s.smtp_pass || '');
-    setVal('setting-smtp-from-name', s.smtp_from_name || 'AI Interviewer Platform');
+    setVal('setting-smtp-from-name', s.smtp_from_name || 'RoundOne AI Platform');
     setVal('setting-smtp-from-email', s.smtp_from_email || '');
 
     const chkSecure = document.getElementById('setting-smtp-secure');

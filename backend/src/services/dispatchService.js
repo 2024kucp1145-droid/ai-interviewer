@@ -87,7 +87,7 @@ export function buildEmailTemplate({
       </div>
     </div>
     <div class="footer">
-      Secured with AI Interviewer &middot; DPDP Act 2023 Aligned &middot; Confidential Hiring Record
+      Secured with RoundOne AI &middot; DPDP Act 2023 Aligned &middot; Confidential Hiring Record
     </div>
   </div>
 </body>

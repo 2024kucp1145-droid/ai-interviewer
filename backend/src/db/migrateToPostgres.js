@@ -23,7 +23,7 @@ function safeJson(val) {
 
 export async function runMigration(explicitUrl) {
   console.log('======================================================');
-  console.log('🚀 AI Interviewer: SQLite → PostgreSQL Data Migration');
+  console.log('🚀 RoundOne AI: SQLite → PostgreSQL Data Migration');
   console.log('======================================================\n');
 
   // 1. Verify PostgreSQL connection
@@ -284,7 +284,7 @@ export async function runMigration(explicitUrl) {
   Object.entries(migrationCounts).forEach(([tbl, count]) => {
     console.log(` - ${tbl}: ${count}`);
   });
-  console.log('\nYour AI Interviewer data is now live and synchronized in PostgreSQL!');
+  console.log('\nYour RoundOne AI data is now live and synchronized in PostgreSQL!');
 
   return { success: true, counts: migrationCounts };
 }

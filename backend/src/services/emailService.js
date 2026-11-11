@@ -25,7 +25,7 @@ export function getEmailConfig() {
   const user = map.smtp_user || process.env.SMTP_USER || '';
   const pass = map.smtp_pass || process.env.SMTP_PASS || '';
   const secure = (map.smtp_secure === '1' || port === 465);
-  const fromName = map.smtp_from_name || process.env.SMTP_FROM_NAME || 'AI Interviewer Platform';
+  const fromName = map.smtp_from_name || process.env.SMTP_FROM_NAME || 'RoundOne AI Platform';
   const fromEmail = map.smtp_from_email || process.env.SMTP_FROM_EMAIL || user || 'onboarding@resend.dev';
 
   const isResendConfigured = Boolean(resendApiKey && resendApiKey.trim().length > 5);
@@ -237,7 +237,7 @@ export async function sendRecruiterVerificationEmail(email, verificationCode, fu
 <body>
   <div class="card">
     <div class="header">
-      <h2>AI Interviewer Platform</h2>
+      <h2>RoundOne AI Platform</h2>
       <p style="margin: 4px 0 0; font-size: 13px; color: #94a3b8;">Work Email Verification</p>
     </div>
     <div class="body">
@@ -251,11 +251,11 @@ export async function sendRecruiterVerificationEmail(email, verificationCode, fu
       </div>
       
       <p style="font-size: 12px; color: #94a3b8; margin: 0;">
-        This code is valid for 15 minutes. If you did not create an account on AI Interviewer, you can safely ignore this email.
+        This code is valid for 15 minutes. If you did not create an account on RoundOne AI, you can safely ignore this email.
       </p>
     </div>
     <div class="footer">
-      Secured with AI Interviewer SaaS &middot; Automated Technical Screening
+      Secured with RoundOne AI &middot; Automated Technical Screening
     </div>
   </div>
 </body>
@@ -338,7 +338,7 @@ export async function sendTestEmail(recipientEmail) {
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 24px; background: #f8fafc; color: #0f172a; border-radius: 10px; max-width: 500px; margin: 0 auto; border: 1px solid #e2e8f0;">
       <h2 style="color: #059669; margin-top: 0;">✓ Email Delivery Test Successful!</h2>
-      <p style="font-size: 14px; line-height: 1.5;">Your email configuration on AI Interviewer is working and delivering directly to inboxes.</p>
+      <p style="font-size: 14px; line-height: 1.5;">Your email configuration on RoundOne AI is working and delivering directly to inboxes.</p>
       <div style="background: #ffffff; padding: 12px 16px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; margin: 16px 0;">
         <div><strong>Provider:</strong> ${config.provider.toUpperCase()}</div>
         ${config.provider === 'smtp' ? `<div><strong>SMTP Host:</strong> ${config.host}:${config.port}</div>` : ''}
@@ -346,13 +346,13 @@ export async function sendTestEmail(recipientEmail) {
         <div><strong>Recipient:</strong> ${recipientEmail}</div>
         <div><strong>Timestamp:</strong> ${new Date().toISOString()}</div>
       </div>
-      <p style="color: #64748b; font-size: 11px; margin-bottom: 0;">Automated test notification from AI Interviewer Platform Control Center.</p>
+      <p style="color: #64748b; font-size: 11px; margin-bottom: 0;">Automated test notification from RoundOne AI Platform Control Center.</p>
     </div>
   `;
 
   const result = await sendPlatformEmail({
     to: recipientEmail,
-    subject: `[Test Successful] AI Interviewer Email Delivery Test (${testId})`,
+    subject: `[Test Successful] RoundOne AI Email Delivery Test (${testId})`,
     html
   });
 
