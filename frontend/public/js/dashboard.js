@@ -1537,6 +1537,7 @@ async function loadJobs() {
 
     updateResponsesBadgeCount();
     filterDashboardJobs();
+    renderInterviewBlocks();
 
     if (inviteJobSelect) {
       inviteJobSelect.innerHTML = allLoadedJobs.map(j => `<option value="${j.id}" ${j.id === activeJobId ? 'selected' : ''}>${j.title}</option>`).join('');
@@ -2023,6 +2024,14 @@ window.clearParsedResume = function() {
   if (resumeInput) resumeInput.value = '';
 };
 
+if (inviteJobSelect) {
+  inviteJobSelect.addEventListener('change', () => {
+    if (inviteJobSelect.value) {
+      selectInterviewRoundBlock(inviteJobSelect.value);
+    }
+  });
+}
+
 // Form: Candidate Invite Link Generation with Timer & Dispatch
 document.getElementById('form-invite').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -2112,81 +2121,500 @@ window.copyInviteUrl = function() {
   alert('Timed candidate interview link copied to clipboard!');
 };
 
-// --- Interviews & Evidence Reports Table ---
+// --- Candidate Pipeline & Interview Results Hub ---
+let currentRosterCandidates = [];
+let currentRosterFilter = 'all';
+let candidateViewMode = 'cards';
+
+// Helper to categorize candidates into Selected (Green), Borderline (Amber), Rejected (Red), or Pending
+function getCandidateClassification(item) {
+  if (item.state === 'disqualified') {
+    return { category: 'rejected', tier: 4, label: 'Disqualified', isSelected: false, isRejected: true };
+  }
+
+  const score = typeof item.score === 'number' ? item.score : null;
+  const verdict = (item.verdict || '').toUpperCase();
+
+  // Strict Rejected
+  if (verdict === 'NOT_RECOMMENDED' || verdict === 'DISQUALIFIED' || verdict.includes('REJECT')) {
+    return { category: 'rejected', tier: 4, label: 'Not Recommended', isSelected: false, isRejected: true };
+  }
+
+  // Strict Selected
+  if (verdict === 'RECOMMENDED_HIRE' || verdict.includes('HIRE') || verdict === 'SELECTED') {
+    return { category: 'selected', tier: 1, label: 'Selected / Recommended', isSelected: true, isRejected: false };
+  }
+
+  // Score threshold logic
+  if (score !== null) {
+    if (score >= 70) {
+      return { category: 'selected', tier: 1, label: 'Selected (High Score)', isSelected: true, isRejected: false };
+    }
+    if (score < 50) {
+      return { category: 'rejected', tier: 4, label: 'Not Recommended (Low Score)', isSelected: false, isRejected: true };
+    }
+    return { category: 'borderline', tier: 2, label: 'Borderline / Review', isSelected: false, isRejected: false };
+  }
+
+  if (verdict === 'POTENTIAL_HIRE' || verdict.includes('CONSIDER')) {
+    return { category: 'borderline', tier: 2, label: 'Potential Hire', isSelected: false, isRejected: false };
+  }
+
+  return { category: 'pending', tier: 3, label: 'Link Sent / In Progress', isSelected: false, isRejected: false };
+}
+
+// 1. Render Interview Round Blocks (Results Hub)
+window.renderInterviewBlocks = function() {
+  const container = document.getElementById('interview-blocks-grid');
+  if (!container) return;
+
+  if (!allLoadedJobs || allLoadedJobs.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; padding: 2.5rem 1rem; text-align: center; color: var(--text-muted); background: var(--surface-subtle); border-radius: 8px; border: 1.5px dashed var(--border);">
+        <i class="bi bi-briefcase" style="font-size: 2rem; color: #94a3b8; display: block; margin-bottom: 0.5rem;"></i>
+        <strong style="font-size: 0.95rem; color: var(--text);">No Interview Rounds Created Yet</strong>
+        <p style="font-size: 0.78rem; margin-top: 0.25rem; margin-bottom: 0.85rem;">Create your first AI interview assessment round to begin screening candidates.</p>
+        <button class="btn btn-primary btn-sm" onclick="switchTab('jobs')"><i class="bi bi-plus-circle"></i> Create Interview Round</button>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = allLoadedJobs.map(job => {
+    const isActive = (job.id === activeJobId);
+    const total = job.total_candidates || 0;
+    const selected = job.selected_candidates || 0;
+    const rejected = job.rejected_candidates || 0;
+    const completed = job.completed_candidates || 0;
+    const borderline = Math.max(0, completed - selected - rejected);
+    const avgScoreDisplay = (job.avg_score !== null && job.avg_score !== undefined) ? `${job.avg_score} pts` : '--';
+
+    return `
+      <div class="interview-round-block ${isActive ? 'active' : ''}" onclick="selectInterviewRoundBlock('${job.id}')">
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.45rem;">
+            <strong style="font-size: 0.92rem; color: var(--text); line-height: 1.3;">${escapeHtml(job.title)}</strong>
+            ${isActive ? `<span class="badge" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 0.65rem; font-weight: 700; flex-shrink: 0;"><i class="bi bi-check-circle-fill" style="color: #2563eb;"></i> Active</span>` : ''}
+          </div>
+          <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
+            <span class="badge badge-outline" style="font-size: 0.65rem;">${escapeHtml(job.experience_level || 'Mid-Level')}</span>
+            <span class="badge badge-dark" style="font-size: 0.65rem;"><i class="bi bi-cpu"></i> ${escapeHtml(job.interview_type || 'Technical')}</span>
+            <span class="badge badge-outline" style="font-size: 0.65rem;"><i class="bi bi-stopwatch"></i> ${job.max_minutes || 15}m</span>
+          </div>
+
+          <!-- Live Candidate Results Breakdown Pills -->
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.35rem; margin-bottom: 0.65rem; text-align: center;">
+            <div style="background: var(--surface-subtle); padding: 0.35rem 0.2rem; border-radius: 6px; border: 1px solid var(--border);">
+              <div style="font-size: 0.95rem; font-weight: 800; color: var(--text);">${total}</div>
+              <div style="font-size: 0.62rem; color: var(--text-muted); font-weight: 600;">Total</div>
+            </div>
+            <div style="background: #f0fdf4; padding: 0.35rem 0.2rem; border-radius: 6px; border: 1px solid #bbf7d0;">
+              <div style="font-size: 0.95rem; font-weight: 800; color: #059669;">${selected}</div>
+              <div style="font-size: 0.62rem; color: #047857; font-weight: 700;">Selected</div>
+            </div>
+            <div style="background: #fffbeb; padding: 0.35rem 0.2rem; border-radius: 6px; border: 1px solid #fde68a;">
+              <div style="font-size: 0.95rem; font-weight: 800; color: #d97706;">${borderline}</div>
+              <div style="font-size: 0.62rem; color: #b45309; font-weight: 700;">Review</div>
+            </div>
+            <div style="background: #fef2f2; padding: 0.35rem 0.2rem; border-radius: 6px; border: 1px solid #fecaca;">
+              <div style="font-size: 0.95rem; font-weight: 800; color: #dc2626;">${rejected}</div>
+              <div style="font-size: 0.62rem; color: #991b1b; font-weight: 700;">Rejected</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.55rem; border-top: 1px solid var(--border); font-size: 0.75rem;">
+          <span style="color: var(--text-muted);">Avg: <strong style="color: var(--text);">${avgScoreDisplay}</strong></span>
+          <span style="color: ${isActive ? '#2563eb' : 'var(--text-muted)'}; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
+            ${isActive ? 'Viewing Rankings <i class="bi bi-chevron-down"></i>' : 'View Results &rarr;'}
+          </span>
+        </div>
+      </div>
+    `;
+  }).join('');
+};
+
+// 2. Select an Interview Round Block
+window.selectInterviewRoundBlock = function(jobId) {
+  activeJobId = jobId;
+  if (inviteJobSelect) inviteJobSelect.value = jobId;
+  renderInterviewBlocks();
+  loadInterviews();
+
+  // Smooth scroll down to results roster
+  const rosterSection = document.getElementById('candidate-results-section');
+  if (rosterSection) {
+    rosterSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+};
+
+// 3. View Mode Switch (Merit Cards vs Table)
+window.setCandidateViewMode = function(mode) {
+  candidateViewMode = mode;
+  const cardsContainer = document.getElementById('candidates-roster-cards');
+  const tableContainer = document.getElementById('candidates-roster-table');
+  const cardsBtn = document.getElementById('view-mode-cards-btn');
+  const tableBtn = document.getElementById('view-mode-table-btn');
+
+  if (cardsContainer && tableContainer) {
+    cardsContainer.style.display = (mode === 'cards') ? 'flex' : 'none';
+    tableContainer.style.display = (mode === 'table') ? 'block' : 'none';
+  }
+
+  if (cardsBtn && tableBtn) {
+    cardsBtn.classList.toggle('active', mode === 'cards');
+    tableBtn.classList.toggle('active', mode === 'table');
+  }
+};
+
+// 4. Filter Candidate Roster by Category
+window.filterCandidateRoster = function(filterName) {
+  currentRosterFilter = filterName;
+  ['all', 'selected', 'borderline', 'rejected', 'pending'].forEach(name => {
+    const btn = document.getElementById(`filter-btn-${name}`);
+    if (btn) btn.classList.toggle('active', name === filterName);
+  });
+  applyCandidateFilters();
+};
+
+// 5. Apply Search & Category Filters, Strict Point-Wise Sorting, and Render
+window.applyCandidateFilters = function() {
+  const query = (document.getElementById('roster-search-input')?.value || '').toLowerCase().trim();
+  const cardsContainer = document.getElementById('candidates-roster-cards');
+  const tableBody = document.getElementById('interviews-table-body');
+  if (!cardsContainer || !tableBody) return;
+
+  // Compute category counts across all loaded candidates for this round
+  let countSelected = 0;
+  let countBorderline = 0;
+  let countRejected = 0;
+  let countPending = 0;
+
+  currentRosterCandidates.forEach(cand => {
+    const cls = getCandidateClassification(cand);
+    if (cls.category === 'selected') countSelected++;
+    else if (cls.category === 'borderline') countBorderline++;
+    else if (cls.category === 'rejected') countRejected++;
+    else countPending++;
+  });
+
+  const countAll = currentRosterCandidates.length;
+  const countAllEl = document.getElementById('roster-count-all');
+  const countSelectedEl = document.getElementById('roster-count-selected');
+  const countBorderlineEl = document.getElementById('roster-count-borderline');
+  const countRejectedEl = document.getElementById('roster-count-rejected');
+  const countPendingEl = document.getElementById('roster-count-pending');
+
+  if (countAllEl) countAllEl.textContent = countAll;
+  if (countSelectedEl) countSelectedEl.textContent = countSelected;
+  if (countBorderlineEl) countBorderlineEl.textContent = countBorderline;
+  if (countRejectedEl) countRejectedEl.textContent = countRejected;
+  if (countPendingEl) countPendingEl.textContent = countPending;
+
+  // STRICT POINT-WISE SORTING & SELECTION GROUPING:
+  // User Requirement:
+  // "usme se, jo select nhi hue, vo neeche rhege and red hoge, adn jo hue vo uper and green, and point wise sorting"
+  // Tier 1: Selected (Green) at TOP, sorted descending by score points
+  // Tier 2: Borderline (Amber) in middle, sorted descending by score points
+  // Tier 3: Pending / Link sent, sorted by started_at
+  // Tier 4: Rejected / Disqualified (Red) at BOTTOM, sorted descending by score points
+  const sortedCandidates = [...currentRosterCandidates].sort((a, b) => {
+    const clsA = getCandidateClassification(a);
+    const clsB = getCandidateClassification(b);
+
+    if (clsA.tier !== clsB.tier) {
+      return clsA.tier - clsB.tier;
+    }
+
+    // Point-wise descending within the tier:
+    const scoreA = typeof a.score === 'number' ? a.score : (a.state === 'disqualified' ? 0 : -1);
+    const scoreB = typeof b.score === 'number' ? b.score : (b.state === 'disqualified' ? 0 : -1);
+
+    if (scoreB !== scoreA) {
+      return scoreB - scoreA;
+    }
+
+    return (b.interview_id || '').localeCompare(a.interview_id || '');
+  });
+
+  // Filter by category & search query
+  const filteredList = sortedCandidates.filter(item => {
+    const cls = getCandidateClassification(item);
+    if (currentRosterFilter !== 'all' && cls.category !== currentRosterFilter) {
+      return false;
+    }
+
+    if (query) {
+      const name = (item.candidate_name || '').toLowerCase();
+      const email = (item.candidate_email || '').toLowerCase();
+      const phone = (item.candidate_phone || '').toLowerCase();
+      const role = (item.job_title || '').toLowerCase();
+      const skillsStr = (Array.isArray(item.skills) ? item.skills.map(s => s.skill).join(' ') : '').toLowerCase();
+      if (!name.includes(query) && !email.includes(query) && !phone.includes(query) && !role.includes(query) && !skillsStr.includes(query)) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  if (filteredList.length === 0) {
+    const emptyMsg = currentRosterCandidates.length === 0
+      ? 'No candidates have been invited or assessed for this interview round yet.'
+      : 'No candidates match the current filter or search criteria.';
+
+    cardsContainer.innerHTML = `
+      <div style="padding: 2.5rem 1rem; text-align: center; color: var(--text-muted); background: var(--surface-subtle); border-radius: 8px; border: 1.5px dashed var(--border);">
+        <i class="bi bi-people" style="font-size: 2rem; color: #94a3b8; display: block; margin-bottom: 0.5rem;"></i>
+        <strong style="font-size: 0.95rem; color: var(--text);">No Candidates Found</strong>
+        <p style="font-size: 0.78rem; margin-top: 0.25rem; margin-bottom: 0.85rem;">${emptyMsg}</p>
+        <a href="#card-invite-candidate" class="btn btn-primary btn-sm"><i class="bi bi-send-fill"></i> Invite First Candidate</a>
+      </div>
+    `;
+
+    tableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); font-size: 0.775rem;">${emptyMsg}</td></tr>`;
+    return;
+  }
+
+  // Render Merit Cards
+  cardsContainer.innerHTML = filteredList.map((item, idx) => {
+    const cls = getCandidateClassification(item);
+    const rankNum = idx + 1;
+
+    let cardClass = 'candidate-merit-card ';
+    let scoreColor = '#059669';
+    let scoreBg = '#ecfdf5';
+    let scoreBorder = '#a7f3d0';
+    let statusBadge = '';
+    let rankBadge = '';
+
+    if (cls.category === 'selected') {
+      cardClass += 'candidate-card-selected';
+      scoreColor = '#047857';
+      scoreBg = '#ecfdf5';
+      scoreBorder = '#a7f3d0';
+      statusBadge = `<span class="badge" style="background:#ecfdf5; color:#047857; border:1.5px solid #a7f3d0; font-weight:800; font-size:0.75rem;"><i class="bi bi-check-circle-fill" style="color:#10b981;"></i> SELECTED &bull; RECOMMENDED HIRE</span>`;
+      rankBadge = `<span class="badge" style="background:#10b981; color:#fff; font-weight:800; font-size:0.765rem; padding:0.25rem 0.6rem;"><i class="bi bi-trophy-fill" style="color:#fbbf24;"></i> #${rankNum} Merit Rank</span>`;
+    } else if (cls.category === 'borderline') {
+      cardClass += 'candidate-card-borderline';
+      scoreColor = '#b45309';
+      scoreBg = '#fffbeb';
+      scoreBorder = '#fde68a';
+      statusBadge = `<span class="badge" style="background:#fffbeb; color:#b45309; border:1.5px solid #fde68a; font-weight:700; font-size:0.75rem;"><i class="bi bi-exclamation-circle-fill" style="color:#f59e0b;"></i> BORDERLINE &bull; IN REVIEW</span>`;
+      rankBadge = `<span class="badge" style="background:#f59e0b; color:#fff; font-weight:700; font-size:0.75rem; padding:0.25rem 0.55rem;">#${rankNum} Rank</span>`;
+    } else if (cls.category === 'rejected') {
+      cardClass += 'candidate-card-rejected';
+      scoreColor = '#b91c1c';
+      scoreBg = '#fef2f2';
+      scoreBorder = '#fecaca';
+      statusBadge = `<span class="badge" style="background:#fef2f2; color:#b91c1c; border:1.5px solid #fecaca; font-weight:800; font-size:0.75rem;"><i class="bi bi-x-circle-fill" style="color:#ef4444;"></i> NOT SELECTED &bull; REJECTED</span>`;
+      rankBadge = `<span class="badge" style="background:#ef4444; color:#fff; font-weight:700; font-size:0.75rem; padding:0.25rem 0.55rem;">#${rankNum} Rank</span>`;
+    } else {
+      cardClass += 'candidate-card-pending';
+      scoreColor = '#475569';
+      scoreBg = '#f8fafc';
+      scoreBorder = '#cbd5e1';
+      statusBadge = `<span class="badge" style="background:#f8fafc; color:#475569; border:1px solid #cbd5e1; font-weight:600;"><i class="bi bi-clock"></i> LINK ACTIVE / PENDING</span>`;
+      rankBadge = `<span class="badge badge-outline" style="font-size:0.75rem;">#${rankNum}</span>`;
+    }
+
+    const initials = (item.candidate_name || 'Candidate')
+      .split(' ')
+      .map(p => p[0])
+      .join('')
+      .substring(0, 2)
+      .toUpperCase();
+
+    // Channel badge
+    let sourceBadge = `<span class="badge badge-outline" style="font-size:0.65rem;"><i class="bi bi-link-45deg"></i> Direct Invite</span>`;
+    const src = (item.interview_source || item.candidate_source || '').toLowerCase();
+    if (src.includes('linkedin')) {
+      sourceBadge = `<span class="badge" style="background:#eff6ff; color:#0a66c2; border:1px solid #bfdbfe; font-size:0.65rem; font-weight:700;"><i class="bi bi-linkedin"></i> LinkedIn</span>`;
+    } else if (src.includes('job_board') || src.includes('indeed') || src.includes('naukri')) {
+      sourceBadge = `<span class="badge" style="background:#fffbeb; color:#d97706; border:1px solid #fde68a; font-size:0.65rem; font-weight:700;"><i class="bi bi-briefcase-fill"></i> Job Board</span>`;
+    } else if (src.includes('campus')) {
+      sourceBadge = `<span class="badge" style="background:#ecfdf5; color:#059669; border:1px solid #a7f3d0; font-size:0.65rem; font-weight:700;"><i class="bi bi-mortarboard-fill"></i> Campus Drive</span>`;
+    }
+
+    // Skills chips
+    let skillsChips = '';
+    if (Array.isArray(item.skills) && item.skills.length > 0) {
+      skillsChips = item.skills.slice(0, 4).map(s => {
+        const sScore = s.score || 0;
+        const color = sScore >= 4 ? '#059669' : (sScore >= 3 ? '#d97706' : '#dc2626');
+        const bg = sScore >= 4 ? '#ecfdf5' : (sScore >= 3 ? '#fffbeb' : '#fef2f2');
+        const border = sScore >= 4 ? '#a7f3d0' : (sScore >= 3 ? '#fde68a' : '#fecaca');
+        return `<span class="badge" style="background:${bg}; color:${color}; border:1px solid ${border}; font-size:0.68rem; font-weight:600;">${escapeHtml(s.skill)}: ${sScore}/5</span>`;
+      }).join(' ');
+    }
+
+    // Evaluation Note or Disqualification
+    let noteHtml = '';
+    if (item.state === 'disqualified') {
+      noteHtml = `
+        <div style="font-size:0.75rem; color:#b91c1c; background:rgba(239,68,68,0.08); padding:0.45rem 0.75rem; border-radius:6px; border-left:3px solid #ef4444;">
+          <strong><i class="bi bi-shield-x"></i> Disqualification Reason:</strong> ${escapeHtml(item.disqualified_reason || 'Anti-cheat policy violation recorded by proctor engine.')}
+        </div>
+      `;
+    } else if (item.summary) {
+      noteHtml = `
+        <div style="font-size:0.75rem; color:var(--text); background:var(--surface-subtle); padding:0.45rem 0.75rem; border-radius:6px; line-height:1.45; border-left: 3px solid ${cls.category === 'selected' ? '#10b981' : (cls.category === 'borderline' ? '#f59e0b' : '#ef4444')};">
+          <strong><i class="bi bi-chat-left-quote-fill" style="color:var(--text-muted);"></i> AI Assessment:</strong> ${escapeHtml(item.summary.length > 240 ? item.summary.substring(0, 240) + '...' : item.summary)}
+        </div>
+      `;
+    }
+
+    // Action buttons
+    let actionsHtml = '';
+    if (item.report_id || item.state === 'completed' || item.state === 'report_ready' || item.state === 'disqualified') {
+      actionsHtml = `
+        <button class="btn btn-sm btn-primary" onclick="openReportModal('${item.interview_id}')">
+          <i class="bi bi-file-earmark-text"></i> View Full AI Report &amp; Transcript
+        </button>
+        <a href="/interview.html?token=${item.interview_id}" target="_blank" class="btn btn-outline btn-sm">
+          <i class="bi bi-play-circle" style="color:#2563eb;"></i> Simulate Room
+        </a>
+      `;
+    } else {
+      actionsHtml = `
+        <a href="/interview.html?token=${item.interview_id}" target="_blank" class="btn btn-primary btn-sm">
+          <i class="bi bi-play-circle-fill"></i> Open Candidate Room
+        </a>
+        <button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText(window.location.origin + '/interview.html?token=${item.interview_id}'); alert('Candidate link copied to clipboard!');">
+          <i class="bi bi-clipboard"></i> Copy Link
+        </button>
+      `;
+    }
+
+    const scoreDisplay = (typeof item.score === 'number')
+      ? `<span style="font-size: 1.45rem; font-weight: 900; color: ${scoreColor}; line-height: 1;">${item.score}<span style="font-size: 0.75rem; font-weight: 600; color: ${scoreColor}; opacity: 0.85;"> /100 PTS</span></span>`
+      : (item.state === 'disqualified' ? `<span style="font-size: 1.35rem; font-weight: 900; color: #dc2626;">0 <span style="font-size: 0.75rem;">PTS</span></span>` : `<span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;"><i class="bi bi-hourglass-split"></i> Pending</span>`);
+
+    return `
+      <div class="${cardClass}">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 0.85rem; flex: 1; min-width: 250px;">
+            <div style="width: 44px; height: 44px; border-radius: 50%; background: ${scoreBg}; color: ${scoreColor}; font-weight: 800; font-size: 0.88rem; display: flex; align-items: center; justify-content: center; border: 2px solid ${scoreBorder}; flex-shrink: 0;">
+              ${initials}
+            </div>
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; margin-bottom: 0.15rem;">
+                ${rankBadge}
+                <strong style="color: var(--text); font-size: 0.96rem;">${escapeHtml(item.candidate_name)}</strong>
+                ${sourceBadge}
+              </div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                ${item.candidate_email && !item.candidate_email.endsWith('@candidate.local') ? `<span><i class="bi bi-envelope"></i> ${escapeHtml(item.candidate_email)}</span>` : ''}
+                ${item.candidate_phone ? `<a href="https://wa.me/${item.candidate_phone.replace(/[^0-9]/g, '')}" target="_blank" style="color:#059669; font-weight:600;"><i class="bi bi-whatsapp"></i> ${escapeHtml(item.candidate_phone)}</a>` : ''}
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 1rem; text-align: right; flex-shrink: 0;">
+            <div style="background: ${scoreBg}; border: 1.5px solid ${scoreBorder}; border-radius: 8px; padding: 0.35rem 0.85rem; text-align: center; min-width: 110px;">
+              ${scoreDisplay}
+              <div style="font-size: 0.62rem; font-weight: 700; color: ${scoreColor}; text-transform: uppercase; margin-top: 0.15rem;">${cls.label}</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+            ${statusBadge}
+            ${skillsChips}
+          </div>
+        </div>
+
+        ${noteHtml}
+
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; pt: 0.4rem; border-top: 1px solid var(--border); padding-top: 0.55rem;">
+          <span style="font-size: 0.72rem; color: var(--text-muted);">
+            <i class="bi bi-calendar3"></i> ${item.started_at ? new Date(item.started_at).toLocaleString() : 'Invitation Dispatched'}
+          </span>
+          <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+            ${actionsHtml}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Render Table View (Synchronized with same ranking & sorting)
+  tableBody.innerHTML = filteredList.map((item, idx) => {
+    const cls = getCandidateClassification(item);
+    const rankNum = idx + 1;
+
+    let scoreBadge = `<span class="badge" style="background:#f8fafc; color:#475569; border:1px solid #cbd5e1;">Pending</span>`;
+    if (typeof item.score === 'number') {
+      const color = cls.category === 'selected' ? '#047857' : (cls.category === 'borderline' ? '#b45309' : '#b91c1c');
+      const bg = cls.category === 'selected' ? '#ecfdf5' : (cls.category === 'borderline' ? '#fffbeb' : '#fef2f2');
+      const border = cls.category === 'selected' ? '#a7f3d0' : (cls.category === 'borderline' ? '#fde68a' : '#fecaca');
+      scoreBadge = `<span class="badge" style="background:${bg}; color:${color}; border:1px solid ${border}; font-weight:800; font-size:0.8rem;">${item.score}/100 PTS</span>`;
+    } else if (item.state === 'disqualified') {
+      scoreBadge = `<span class="badge" style="background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; font-weight:800;">0/100 PTS</span>`;
+    }
+
+    let statusPill = '';
+    if (cls.category === 'selected') {
+      statusPill = `<span class="badge" style="background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; font-weight:700;"><i class="bi bi-check-circle-fill" style="color:#10b981;"></i> Selected (Green)</span>`;
+    } else if (cls.category === 'borderline') {
+      statusPill = `<span class="badge" style="background:#fffbeb; color:#b45309; border:1px solid #fde68a; font-weight:700;"><i class="bi bi-exclamation-circle-fill" style="color:#f59e0b;"></i> Borderline (Amber)</span>`;
+    } else if (cls.category === 'rejected') {
+      statusPill = `<span class="badge" style="background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; font-weight:700;"><i class="bi bi-x-circle-fill" style="color:#ef4444;"></i> Rejected (Red)</span>`;
+    } else {
+      statusPill = `<span class="badge" style="background:#f8fafc; color:#475569; border:1px solid #cbd5e1;"><i class="bi bi-clock"></i> Link Sent</span>`;
+    }
+
+    return `
+      <tr>
+        <td>
+          <div style="display:flex; align-items:center; gap:0.55rem;">
+            <span class="badge ${cls.category === 'selected' ? 'badge-dark' : 'badge-outline'}" style="font-size:0.72rem; min-width:32px; text-align:center;">#${rankNum}</span>
+            <div>
+              <strong style="color:var(--text); font-size:0.88rem;">${escapeHtml(item.candidate_name)}</strong><br>
+              <span style="font-size:0.72rem; color:var(--text-muted);">${escapeHtml(item.candidate_email || item.candidate_phone || '')}</span>
+            </div>
+          </div>
+        </td>
+        <td><strong style="font-size:0.8rem; color:var(--text);">${escapeHtml(item.job_title || 'Technical Candidate')}</strong></td>
+        <td>${scoreBadge}</td>
+        <td>${statusPill}</td>
+        <td><span class="badge badge-outline" style="font-size:0.68rem;">${escapeHtml(item.candidate_source || item.interview_source || 'Direct')}</span></td>
+        <td>
+          ${item.report_id || item.state === 'completed' || item.state === 'report_ready' || item.state === 'disqualified'
+            ? `<button class="btn btn-sm btn-primary" onclick="openReportModal('${item.interview_id}')"><i class="bi bi-file-earmark-text"></i> View Report</button>`
+            : `<a href="/interview.html?token=${item.interview_id}" target="_blank" class="btn btn-outline btn-sm"><i class="bi bi-play-circle"></i> Test Room</a>`
+          }
+        </td>
+      </tr>
+    `;
+  }).join('');
+};
+
+// 6. Load Interviews for the Active Job Round
 async function loadInterviews() {
-  const jobId = inviteJobSelect.value || activeJobId;
-  if (!jobId) return;
+  const jobId = (inviteJobSelect && inviteJobSelect.value) ? inviteJobSelect.value : activeJobId;
+  if (!jobId) {
+    const titleEl = document.getElementById('active-round-title');
+    if (titleEl) titleEl.textContent = 'Select an Interview Round';
+    return;
+  }
+
+  // Update title banner with active job title
+  const activeJob = allLoadedJobs.find(j => j.id === jobId);
+  const titleEl = document.getElementById('active-round-title');
+  const statsEl = document.getElementById('active-round-stats');
+  if (titleEl) {
+    titleEl.textContent = activeJob ? activeJob.title : 'Interview Assessment Round';
+  }
+  if (statsEl) {
+    statsEl.innerHTML = `Sorted point-wise: <strong style="color:#059669;">Selected (Top + Green)</strong> &bull; <strong style="color:#dc2626;">Rejected (Bottom + Red)</strong>`;
+  }
 
   try {
     const res = await apiRequest(`/jobs/${jobId}/interviews`);
     const list = await res.json();
-
-    if (!list || list.length === 0) {
-      interviewsTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); font-size: 0.775rem;">No candidates invited yet for this role. Generate an interview link above.</td></tr>`;
-      return;
-    }
-
-    interviewsTableBody.innerHTML = list.map(item => {
-      let stateBadge = `<span class="badge" style="background:#f8fafc; color:#475569; border:1px solid #cbd5e1;"><i class="bi bi-clock"></i> Link Sent</span>`;
-      if (item.state === 'in_progress') {
-        stateBadge = `<span class="badge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;"><i class="bi bi-mic-fill" style="color:#2563eb;"></i> In Progress</span>`;
-      } else if (item.state === 'completed' || item.state === 'report_ready') {
-        stateBadge = `<span class="badge" style="background:#ecfdf5; color:#047857; border:1px solid #a7f3d0;"><i class="bi bi-check2-circle" style="color:#10b981;"></i> Report Ready</span>`;
-      } else if (item.state === 'disqualified') {
-        stateBadge = `<span class="badge" style="background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; font-weight:700;"><i class="bi bi-shield-x-fill" style="color:#dc2626;"></i> Disqualified</span>`;
-      }
-
-      let sourceBadge = `<span class="badge" style="background:#f8fafc; color:#475569; border:1px solid #cbd5e1; font-size:0.65rem;"><i class="bi bi-link-45deg"></i> Direct Invite</span>`;
-      const src = (item.interview_source || item.candidate_source || '').toLowerCase();
-      if (src.includes('linkedin')) {
-        sourceBadge = `<span class="badge" style="background:#eff6ff; color:#0a66c2; border:1px solid #bfdbfe; font-size:0.65rem; font-weight:700;"><i class="bi bi-linkedin"></i> LinkedIn</span>`;
-      } else if (src.includes('job_board') || src.includes('indeed') || src.includes('naukri')) {
-        sourceBadge = `<span class="badge" style="background:#fffbeb; color:#d97706; border:1px solid #fde68a; font-size:0.65rem; font-weight:700;"><i class="bi bi-briefcase-fill"></i> Job Board</span>`;
-      } else if (src.includes('campus')) {
-        sourceBadge = `<span class="badge" style="background:#ecfdf5; color:#059669; border:1px solid #a7f3d0; font-size:0.65rem; font-weight:700;"><i class="bi bi-mortarboard-fill"></i> Campus Drive</span>`;
-      } else if (src.includes('batch')) {
-        sourceBadge = `<span class="badge" style="background:#f5f3ff; color:#7c3aed; border:1px solid #ddd6fe; font-size:0.65rem; font-weight:700;"><i class="bi bi-send-fill"></i> Batch Dispatch</span>`;
-      }
-
-      const initials = (item.candidate_name || 'Candidate')
-        .split(' ')
-        .map(p => p[0])
-        .join('')
-        .substring(0, 2)
-        .toUpperCase();
-
-      const contactDisplay = item.candidate_phone 
-        ? `${item.candidate_email && !item.candidate_email.endsWith('@candidate.local') ? escapeHtml(item.candidate_email) + '<br>' : ''}<span style="color:#059669; font-weight:600; font-size:0.72rem;"><i class="bi bi-whatsapp"></i> ${escapeHtml(item.candidate_phone)}</span>`
-        : `<span style="font-size:0.725rem; color:var(--text-muted);">${escapeHtml(item.candidate_email || 'No email')}</span>`;
-
-      return `
-        <tr>
-          <td>
-            <div style="display:flex; align-items:center; gap:0.6rem;">
-              <div style="width:34px; height:34px; border-radius:50%; background:#eff6ff; color:#2563eb; font-weight:700; font-size:0.75rem; display:flex; align-items:center; justify-content:center; border:1px solid #bfdbfe; flex-shrink:0;">
-                ${initials}
-              </div>
-              <div>
-                <strong style="color:var(--text); font-size:0.88rem;">${escapeHtml(item.candidate_name)}</strong><br>
-                ${contactDisplay}
-              </div>
-            </div>
-          </td>
-          <td>
-            <strong style="font-size:0.8rem; color:var(--text);">${escapeHtml(item.job_title || 'Technical Candidate')}</strong>
-          </td>
-          <td>${sourceBadge}</td>
-          <td>${stateBadge}</td>
-          <td><span class="badge" style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0;"><i class="bi bi-shield-check"></i> Consent Recorded</span></td>
-          <td>
-            ${item.report_id || item.state === 'completed' || item.state === 'report_ready' || item.state === 'disqualified'
-              ? `<button class="btn btn-sm btn-primary" onclick="openReportModal('${item.interview_id}')"><i class="bi bi-file-earmark-text"></i> View Report & AI Clarification</button>`
-              : `<a href="/interview.html?token=${item.interview_id}" target="_blank" class="btn btn-outline btn-sm"><i class="bi bi-play-circle" style="color:#2563eb;"></i> Simulate Room</a>`
-            }
-          </td>
-        </tr>
-      `;
-    }).join('');
+    currentRosterCandidates = Array.isArray(list) ? list : [];
+    applyCandidateFilters();
   } catch (err) {
     console.error('Load interviews error:', err);
   }

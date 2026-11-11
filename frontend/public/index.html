@@ -1339,6 +1339,166 @@
       box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
       transform: translateY(-1px);
     }
+
+    /* --- Candidate Pipeline: Interview Blocks & Ranked Merit Cards --- */
+    .interview-blocks-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1rem;
+      margin-top: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .interview-round-block {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 1.15rem;
+      cursor: pointer;
+      transition: all 0.2s ease-in-out;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 0.85rem;
+    }
+
+    .interview-round-block:hover {
+      transform: translateY(-2px);
+      border-color: #93c5fd;
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.08);
+    }
+
+    .interview-round-block.active {
+      border-color: #2563eb;
+      background: #f8faff;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18), 0 6px 16px rgba(37, 99, 235, 0.1);
+    }
+
+    [data-theme="dark"] .interview-round-block {
+      background: #18181b;
+      border-color: var(--border);
+    }
+
+    [data-theme="dark"] .interview-round-block:hover {
+      border-color: #3b82f6;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    [data-theme="dark"] .interview-round-block.active {
+      border-color: #3b82f6;
+      background: #1e293b;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+    }
+
+    .candidate-roster-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      margin-top: 1rem;
+    }
+
+    .candidate-merit-card {
+      border-radius: 10px;
+      padding: 1.15rem 1.25rem;
+      transition: all 0.2s ease;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .candidate-card-selected {
+      background: #f0fdf4;
+      border: 1.5px solid #86efac;
+      border-left: 5px solid #10b981;
+    }
+
+    .candidate-card-selected:hover {
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.14);
+    }
+
+    .candidate-card-borderline {
+      background: #fffbeb;
+      border: 1.5px solid #fde68a;
+      border-left: 5px solid #f59e0b;
+    }
+
+    .candidate-card-borderline:hover {
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.14);
+    }
+
+    .candidate-card-rejected {
+      background: #fef2f2;
+      border: 1.5px solid #fecaca;
+      border-left: 5px solid #ef4444;
+    }
+
+    .candidate-card-rejected:hover {
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.14);
+    }
+
+    .candidate-card-pending {
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-left: 5px solid #94a3b8;
+    }
+
+    [data-theme="dark"] .candidate-card-selected {
+      background: rgba(6, 78, 59, 0.2);
+      border-color: #065f46;
+      border-left-color: #10b981;
+    }
+
+    [data-theme="dark"] .candidate-card-borderline {
+      background: rgba(120, 53, 15, 0.2);
+      border-color: #78350f;
+      border-left-color: #f59e0b;
+    }
+
+    [data-theme="dark"] .candidate-card-rejected {
+      background: rgba(127, 29, 29, 0.2);
+      border-color: #7f1d1d;
+      border-left-color: #ef4444;
+    }
+
+    [data-theme="dark"] .candidate-card-pending {
+      background: #18181b;
+      border-color: #27272a;
+      border-left-color: #64748b;
+    }
+
+    .roster-filter-btn {
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.15s ease;
+    }
+
+    .roster-filter-btn:hover {
+      background: var(--surface-subtle);
+      color: var(--text);
+    }
+
+    .roster-filter-btn.active {
+      background: #0f172a;
+      color: #ffffff;
+      border-color: #0f172a;
+    }
+
+    [data-theme="dark"] .roster-filter-btn.active {
+      background: #ffffff;
+      color: #000000;
+      border-color: #ffffff;
+    }
   </style>
   <script src="/js/theme.js"></script>
 </head>
@@ -2066,8 +2226,118 @@
 
     <!-- TAB 2: Candidate Pipeline & Evidence Reports -->
     <div id="tab-candidates" class="tab-pane" style="display: none;">
-      <!-- Invite Candidate Card -->
-      <div class="card">
+
+      <!-- SECTION 1: INTERVIEW ASSESSMENT ROUNDS (RESULTS HUB BLOCKS) -->
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-title">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <i class="bi bi-grid-fill" style="color: #2563eb; font-size: 1.1rem;"></i>
+            <div>
+              <strong style="font-size: 0.95rem; color: var(--text);">Interview Assessment Rounds (Results Hub)</strong>
+              <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">Click any interview block below to view all assessed candidates, point-wise rankings, and pass/fail distribution</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.35rem; align-items: center;">
+            <button class="btn btn-outline btn-sm" onclick="switchTab('jobs')">
+              <i class="bi bi-plus-circle"></i> New Interview Round
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="loadJobs(); loadInterviews();" title="Refresh Blocks &amp; Results">
+              <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- Dynamic Grid of Interview Blocks -->
+        <div id="interview-blocks-grid" class="interview-blocks-grid">
+          <div style="grid-column: 1 / -1; padding: 2rem; text-align: center; color: var(--text-muted);">
+            <div class="spinner-border spinner-border-sm" role="status"></div> Loading interview assessment rounds...
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: CANDIDATE RESULTS & POINT-WISE MERIT RANKINGS -->
+      <div id="candidate-results-section" class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-title" style="flex-wrap: wrap; gap: 0.75rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge badge-dark" style="background: #2563eb; color: #fff; font-size: 0.7rem;"><i class="bi bi-trophy-fill" style="color: #fbbf24;"></i> Results Hub</span>
+              <strong id="active-round-title" style="font-size: 1rem; color: var(--text);">Select an Interview Round</strong>
+            </div>
+            <div id="active-round-stats" style="font-size: 0.73rem; color: var(--text-muted); margin-top: 0.2rem;">
+              Ranked point-wise: Selected (Top + Green) &bull; Rejected (Bottom + Red)
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+            <!-- View Mode Toggle -->
+            <div style="display: inline-flex; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 6px; padding: 0.15rem;">
+              <button id="view-mode-cards-btn" class="btn btn-ghost btn-sm active" style="font-size: 0.72rem; padding: 0.25rem 0.55rem; border-radius: 4px;" onclick="setCandidateViewMode('cards')">
+                <i class="bi bi-card-list"></i> Merit Cards
+              </button>
+              <button id="view-mode-table-btn" class="btn btn-ghost btn-sm" style="font-size: 0.72rem; padding: 0.25rem 0.55rem; border-radius: 4px;" onclick="setCandidateViewMode('table')">
+                <i class="bi bi-table"></i> Table View
+              </button>
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="exportCandidatesCsv()"><i class="bi bi-download"></i> Export CSV</button>
+            <a href="#form-invite" class="btn btn-primary btn-sm"><i class="bi bi-person-plus-fill"></i> Invite Candidate</a>
+          </div>
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; padding: 0.75rem 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-top: 0.5rem; margin-bottom: 0.75rem;">
+          <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
+            <button class="roster-filter-btn active" id="filter-btn-all" onclick="filterCandidateRoster('all')">
+              All (<span id="roster-count-all">0</span>)
+            </button>
+            <button class="roster-filter-btn" id="filter-btn-selected" onclick="filterCandidateRoster('selected')">
+              <span style="color: #10b981;"><i class="bi bi-check-circle-fill"></i> Selected (Green)</span> (<span id="roster-count-selected">0</span>)
+            </button>
+            <button class="roster-filter-btn" id="filter-btn-borderline" onclick="filterCandidateRoster('borderline')">
+              <span style="color: #f59e0b;"><i class="bi bi-exclamation-circle-fill"></i> Borderline</span> (<span id="roster-count-borderline">0</span>)
+            </button>
+            <button class="roster-filter-btn" id="filter-btn-rejected" onclick="filterCandidateRoster('rejected')">
+              <span style="color: #ef4444;"><i class="bi bi-x-circle-fill"></i> Rejected (Red)</span> (<span id="roster-count-rejected">0</span>)
+            </button>
+            <button class="roster-filter-btn" id="filter-btn-pending" onclick="filterCandidateRoster('pending')">
+              <span style="color: #64748b;"><i class="bi bi-clock-history"></i> Pending Link</span> (<span id="roster-count-pending">0</span>)
+            </button>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; max-width: 280px; min-width: 180px;">
+            <div style="position: relative; width: 100%;">
+              <i class="bi bi-search" style="position: absolute; left: 0.65rem; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: var(--text-muted);"></i>
+              <input type="text" id="roster-search-input" placeholder="Search candidate or skill..." style="padding-left: 1.85rem; padding-top: 0.35rem; padding-bottom: 0.35rem; font-size: 0.75rem; margin: 0;" oninput="applyCandidateFilters()">
+            </div>
+          </div>
+        </div>
+
+        <!-- Ranked Candidate Cards Container -->
+        <div id="candidates-roster-cards" class="candidate-roster-cards">
+          <!-- Populated dynamically -->
+        </div>
+
+        <!-- Classic Candidate Table (visible when table mode is chosen) -->
+        <div id="candidates-roster-table" style="display: none; overflow-x: auto; margin-top: 0.5rem;">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank &amp; Candidate</th>
+                <th>Role</th>
+                <th>Score (Points)</th>
+                <th>Status / Verdict</th>
+                <th>Source</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="interviews-table-body">
+              <tr><td colspan="6" style="text-align: center; color: var(--text-muted); font-size: 0.775rem;">Select an interview round above to view candidates</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SECTION 3: Invite Candidate Card -->
+      <div class="card" id="card-invite-candidate">
         <div class="card-title">
           <span><i class="bi bi-send"></i> Send Timed Interview Link to Candidate</span>
           <span class="badge badge-dark">Secure 128-bit Link</span>
@@ -2179,35 +2449,6 @@
               <i class="bi bi-box-arrow-up-right"></i> Open Candidate Room (Test Now)
             </a>
           </div>
-        </div>
-      </div>
-
-      <!-- Candidate Pipeline Table -->
-      <div class="card">
-        <div class="card-title">
-          <span><i class="bi bi-table"></i> Screening Pipeline &amp; Candidate Tracking</span>
-          <div style="display: flex; gap: 0.35rem;">
-            <button class="btn btn-outline btn-sm" onclick="exportCandidatesCsv()"><i class="bi bi-download"></i> Export CSV</button>
-            <button class="btn btn-ghost btn-sm" onclick="loadInterviews()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-          </div>
-        </div>
-
-        <div style="overflow-x: auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>Candidate</th>
-                <th>Role</th>
-                <th>Source / Channel</th>
-                <th>Status</th>
-                <th>Consent</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="interviews-table-body">
-              <tr><td colspan="6" style="text-align: center; color: var(--text-muted); font-size: 0.775rem;">Select a job to view candidates</td></tr>
-            </tbody>
-          </table>
         </div>
       </div>
     </div>

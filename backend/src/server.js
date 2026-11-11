@@ -372,7 +372,18 @@ app.post('/jobs', requireAuth, (req, res) => {
 
 app.get('/jobs', requireAuth, (req, res) => {
   try {
-    const jobs = db.prepare('SELECT * FROM jobs WHERE org_id = ? ORDER BY created_at DESC').all(req.user.org_id);
+    const jobs = db.prepare(`
+      SELECT 
+        j.*,
+        (SELECT COUNT(*) FROM interviews i WHERE i.job_id = j.id) as total_candidates,
+        (SELECT COUNT(*) FROM interviews i WHERE i.job_id = j.id AND i.state IN ('completed', 'report_ready')) as completed_candidates,
+        (SELECT COUNT(*) FROM interviews i JOIN reports r ON r.interview_id = i.id WHERE i.job_id = j.id AND (json_extract(r.json, '$.overall_score') >= 70 OR json_extract(r.json, '$.candidate_verdict') = 'RECOMMENDED_HIRE')) as selected_candidates,
+        (SELECT COUNT(*) FROM interviews i LEFT JOIN reports r ON r.interview_id = i.id WHERE i.job_id = j.id AND (i.state = 'disqualified' OR json_extract(r.json, '$.overall_score') < 50 OR json_extract(r.json, '$.candidate_verdict') = 'NOT_RECOMMENDED')) as rejected_candidates,
+        (SELECT ROUND(AVG(json_extract(r.json, '$.overall_score')), 1) FROM interviews i JOIN reports r ON r.interview_id = i.id WHERE i.job_id = j.id AND json_extract(r.json, '$.overall_score') IS NOT NULL) as avg_score
+      FROM jobs j 
+      WHERE j.org_id = ? 
+      ORDER BY j.created_at DESC
+    `).all(req.user.org_id);
     res.json(jobs);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -686,12 +697,15 @@ app.get('/jobs/:id/interviews', requireAuth, (req, res) => {
         i.dispatch_status,
         i.dispatch_channel,
         i.source as interview_source,
+        i.proctor_warnings,
+        i.disqualified_reason,
         c.id as candidate_id,
         c.name as candidate_name,
         c.email as candidate_email,
         c.phone as candidate_phone,
         c.source as candidate_source,
-        r.id as report_id
+        r.id as report_id,
+        r.json as report_json
       FROM interviews i
       JOIN candidates c ON i.candidate_id = c.id
       JOIN jobs j ON i.job_id = j.id
@@ -700,7 +714,33 @@ app.get('/jobs/:id/interviews', requireAuth, (req, res) => {
       ORDER BY i.started_at DESC, i.id DESC
     `).all(req.params.id, req.user.org_id);
 
-    res.json(rows);
+    const enriched = rows.map(row => {
+      let score = null;
+      let verdict = null;
+      let summary = '';
+      let skills = [];
+      if (row.report_json) {
+        try {
+          const parsed = JSON.parse(row.report_json);
+          score = typeof parsed.overall_score === 'number' ? parsed.overall_score : null;
+          verdict = parsed.candidate_verdict || parsed.recommendation || null;
+          summary = parsed.hiring_clarification || parsed.summary || '';
+          skills = Array.isArray(parsed.skills) ? parsed.skills : [];
+        } catch (e) {}
+      } else if (row.state === 'disqualified') {
+        score = 0;
+        verdict = 'DISQUALIFIED';
+      }
+      return {
+        ...row,
+        score,
+        verdict,
+        summary,
+        skills
+      };
+    });
+
+    res.json(enriched);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
