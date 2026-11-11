@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { db } from '../db/database.js';
 import { sendAdminSecurityEmail, getSmtpConfig } from './emailService.js';
+import { createStatelessOtpChallenge, verifyStatelessOtpChallenge } from '../auth/auth.js';
 
 /**
  * Admin Email OTP & Multi-Factor Authentication Service
@@ -59,15 +60,16 @@ export async function generateAndSendAdminOtp(email, purpose = 'signup_verify', 
     forwardedTo: emailResult.forwardedTo || null,
     smtpConfigured: smtpConfig.isConfigured,
     expiresAt,
+    otpToken: createStatelessOtpChallenge(cleanEmail, otpCode, purpose),
     // If SMTP is NOT configured or failed to deliver, provide devOtp strictly as fallback for local dev so admin is not locked out
     devOtp: (!smtpConfig.isConfigured || !emailResult.sent || process.env.ALLOW_DEV_OTP === 'true') ? otpCode : undefined
   };
 }
 
 /**
- * Verify an admin OTP code
+ * Verify an admin OTP code (supports local DB + stateless multi-container Vercel challenges)
  */
-export function verifyAdminOtp(email, otpCode, purpose = 'signup_verify') {
+export function verifyAdminOtp(email, otpCode, purpose = 'signup_verify', otpToken = null) {
   const cleanEmail = (email || '').toLowerCase().trim();
   const cleanOtp = (otpCode || '').trim();
 
@@ -87,20 +89,42 @@ export function verifyAdminOtp(email, otpCode, purpose = 'signup_verify') {
     LIMIT 1
   `).get(cleanEmail, purpose);
 
-  if (!record) {
-    return { valid: false, error: 'No active OTP request found for this email. Please request a new code.' };
+  if (record) {
+    if (new Date(record.expires_at) < new Date()) {
+      return { valid: false, error: 'OTP has expired. Please request a fresh verification code.' };
+    }
+    if (record.otp_code !== cleanOtp) {
+      return { valid: false, error: 'Invalid verification code. Please check your email and try again.' };
+    }
+    db.prepare('UPDATE admin_otps SET is_used = 1 WHERE id = ?').run(record.id);
+    return { valid: true };
   }
 
-  if (new Date(record.expires_at) < new Date()) {
-    return { valid: false, error: 'OTP has expired. Please request a fresh verification code.' };
+  // Check if this exact OTP was already consumed in this container (prevent replay)
+  const usedRecord = db.prepare(`
+    SELECT id FROM admin_otps
+    WHERE email = ? AND purpose = ? AND otp_code = ? AND is_used = 1
+    LIMIT 1
+  `).get(cleanEmail, purpose, cleanOtp);
+
+  if (usedRecord) {
+    return { valid: false, error: 'This verification code has already been used. Please request a new code.' };
   }
 
-  if (record.otp_code !== cleanOtp) {
-    return { valid: false, error: 'Invalid verification code. Please check your email and try again.' };
+  // Fallback for serverless multi-container execution where request 1 & 2 hit different instances
+  if (otpToken) {
+    const stateless = verifyStatelessOtpChallenge(otpToken, cleanEmail, cleanOtp, purpose);
+    if (stateless.valid) {
+      try {
+        db.prepare(`
+          INSERT INTO admin_otps (id, email, otp_code, purpose, expires_at, is_used)
+          VALUES (?, ?, ?, ?, ?, 1)
+        `).run('otp_' + crypto.randomUUID(), cleanEmail, cleanOtp, purpose, new Date(Date.now() + 10 * 60 * 1000).toISOString());
+      } catch (e) {}
+      return { valid: true };
+    }
+    return stateless;
   }
 
-  // Mark as used
-  db.prepare('UPDATE admin_otps SET is_used = 1 WHERE id = ?').run(record.id);
-
-  return { valid: true };
+  return { valid: false, error: 'No active OTP request found for this email. Please request a new code.' };
 }

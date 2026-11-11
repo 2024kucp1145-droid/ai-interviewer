@@ -129,6 +129,8 @@ const signupData = await signupRes.json();
 // Critical check: verificationCode must NOT be present in JSON response!
 assert.strictEqual(signupData.verificationCode, undefined, 'CRITICAL: verificationCode must NOT be leaked in signup response!');
 assert(signupData.token, 'Auth token must be returned');
+assert.strictEqual(signupData.requiresOtp, true, 'Recruiter signup must require Email OTP');
+assert(signupData.otpToken, 'Stateless otpToken must be returned for multi-container resilience');
 
 // Check /auth/me does not leak verification_code
 const meRes = await fetch(`${baseUrl}/auth/me`, {
@@ -145,17 +147,98 @@ const resendRes = await fetch(`${baseUrl}/auth/resend-code`, {
 assert.strictEqual(resendRes.status, 200, 'Resend code should succeed');
 const resendData = await resendRes.json();
 assert.strictEqual(resendData.verificationCode, undefined, 'CRITICAL: resend must NOT leak code');
+assert(resendData.otpToken, 'Resend must issue fresh otpToken');
 
-// /auth/verify verifies account cleanly without leaking verification codes
+// Wrong OTP must be rejected on /auth/verify
+const badRecruiterVerify = await fetch(`${baseUrl}/auth/verify`, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${signupData.token}`
+  },
+  body: JSON.stringify({ code: '999999', otpToken: resendData.otpToken })
+});
+assert.strictEqual(badRecruiterVerify.status, 400, 'Wrong recruiter signup OTP must be rejected with HTTP 400');
+
+// Real DB OTP must succeed on /auth/verify
+const recruiterOtpRow = db.prepare('SELECT verification_code FROM users WHERE email = ?').get(signupEmail);
+assert(recruiterOtpRow?.verification_code, 'Recruiter signup OTP must exist in DB');
 const verifyRes = await fetch(`${baseUrl}/auth/verify`, {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${signupData.token}`
   },
-  body: JSON.stringify({ code: '000000' })
+  body: JSON.stringify({ code: recruiterOtpRow.verification_code, otpToken: resendData.otpToken })
 });
-assert.strictEqual(verifyRes.status, 200, 'Recruiter account verification endpoint must succeed');
+assert.strictEqual(verifyRes.status, 200, 'Real recruiter signup OTP must verify cleanly');
+const verifyData = await verifyRes.json();
+assert.strictEqual(verifyData.user.is_verified, 1, 'Recruiter must be marked verified after OTP check');
+
+// Recruiter Login must issue OTP challenge before issuing auth token
+const loginReqRes = await fetch(`${baseUrl}/auth/login`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    email: signupEmail,
+    password: 'SecurePassword123!'
+  })
+});
+assert.strictEqual(loginReqRes.status, 200, 'Recruiter login Step 1 must succeed');
+const loginReqData = await loginReqRes.json();
+assert.strictEqual(loginReqData.requiresOtp, true, 'Recruiter login must require Email OTP');
+assert.strictEqual(loginReqData.token, undefined, 'Login Step 1 must NOT issue session JWT before OTP verification');
+assert.strictEqual(loginReqData.verificationCode, undefined, 'Login Step 1 must NOT leak OTP');
+assert(loginReqData.otpToken, 'Login Step 1 must return otpToken');
+
+const badLoginVerify = await fetch(`${baseUrl}/auth/login-otp-verify`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ email: signupEmail, code: '999999', otpToken: loginReqData.otpToken })
+});
+assert.strictEqual(badLoginVerify.status, 400, 'Wrong recruiter login OTP must be rejected');
+
+const recruiterLoginOtpRow = db.prepare('SELECT verification_code FROM users WHERE email = ?').get(signupEmail);
+assert(recruiterLoginOtpRow?.verification_code, 'Recruiter login OTP must exist in DB');
+const goodLoginVerify = await fetch(`${baseUrl}/auth/login-otp-verify`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    email: signupEmail,
+    code: recruiterLoginOtpRow.verification_code,
+    otpToken: loginReqData.otpToken
+  })
+});
+assert.strictEqual(goodLoginVerify.status, 200, 'Real recruiter login OTP must verify and authenticate');
+const goodLoginData = await goodLoginVerify.json();
+assert(goodLoginData.token, 'Recruiter login Step 2 must issue JWT token');
+
+// Feedback endpoint creates DB record & triggers response email handler cleanly
+const badFeedbackRes = await fetch(`${baseUrl}/api/feedback`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ email: signupEmail, message: '' })
+});
+assert.strictEqual(badFeedbackRes.status, 400, 'Feedback without message must be rejected');
+
+const fbRes = await fetch(`${baseUrl}/api/feedback`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'Bob Recruiter',
+    email: signupEmail,
+    rating: 5,
+    category: 'email_auth',
+    message: 'Automated verification feedback test message',
+    sourcePage: 'dashboard'
+  })
+});
+assert.strictEqual(fbRes.status, 200, 'POST /api/feedback must succeed');
+const fbData = await fbRes.json();
+assert.strictEqual(fbData.success, true, 'Feedback response must indicate success');
+assert(fbData.id, 'Feedback ID must be returned');
+const fbRow = db.prepare('SELECT * FROM feedbacks WHERE id = ?').get(fbData.id);
+assert(fbRow && fbRow.user_email === signupEmail, 'Feedback record must be persisted in database');
 
 // Admin Login request must NOT return devOtp
 const adminLoginRes = await fetch(`${baseUrl}/api/admin/auth/login-request`, {
@@ -230,6 +313,7 @@ if (signupUserRow) {
 }
 db.prepare('DELETE FROM users WHERE id IN (?, ?)').run(tempAdminId, testUserId);
 db.prepare('DELETE FROM admin_otps WHERE email = ?').run(tempAdminEmail);
+db.prepare('DELETE FROM feedbacks WHERE user_email = ?').run(signupEmail);
 db.prepare('DELETE FROM billing_orders WHERE org_id = ?').run(testOrgId);
 db.prepare('DELETE FROM organizations WHERE id = ?').run(testOrgId);
 db.prepare('DELETE FROM platform_activities WHERE actor_email IN (?, ?, ?) OR actor_name = ?').run(tempAdminEmail, testUserEmail, signupEmail, 'Attacker');

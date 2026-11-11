@@ -259,6 +259,19 @@ CREATE TABLE IF NOT EXISTS platform_settings (
   updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 19. User & Candidate Feedback Submissions
+CREATE TABLE IF NOT EXISTS feedbacks (
+  id VARCHAR(64) PRIMARY KEY,
+  user_name VARCHAR(255),
+  user_email VARCHAR(255) NOT NULL,
+  rating INTEGER DEFAULT 5,
+  category VARCHAR(64) DEFAULT 'general',
+  message TEXT NOT NULL,
+  source_page VARCHAR(64) DEFAULT 'dashboard',
+  email_sent INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ==============================================================================
 -- Optimized B-Tree Indexes for High Performance Queries
 -- ==============================================================================

@@ -1272,6 +1272,41 @@ solution();"></textarea>
           The hiring team will review your verified transcript and contact you directly regarding next rounds.
         </p>
       </div>
+
+      <div id="candidate-feedback-card" style="text-align: left; margin-top: 1.25rem; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 8px; background: #fafafa;">
+        <div style="font-weight: 700; font-size: 0.9rem; color: #111827; margin-bottom: 0.25rem;">
+          <i class="bi bi-chat-heart"></i> Quick Interview Feedback
+        </div>
+        <p style="font-size: 0.78rem; color: #6b7280; margin-bottom: 0.75rem;">
+          Optional: share your interview experience and receive an automated thank-you confirmation email.
+        </p>
+        <div id="cand-fb-status" style="display: none; font-size: 0.78rem; padding: 0.5rem 0.7rem; border-radius: 6px; margin-bottom: 0.65rem;"></div>
+        <form id="candidate-feedback-form" style="display: flex; flex-direction: column; gap: 0.6rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;">
+            <div>
+              <label style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Email for Confirmation</label>
+              <input type="email" id="cand-fb-email" placeholder="you@gmail.com" required style="width: 100%; padding: 0.45rem 0.6rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.8rem;">
+            </div>
+            <div>
+              <label style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Rating</label>
+              <select id="cand-fb-rating" style="width: 100%; padding: 0.45rem 0.6rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.8rem; background: #fff;">
+                <option value="5" selected>5 / 5 - Great</option>
+                <option value="4">4 / 5 - Good</option>
+                <option value="3">3 / 5 - Fair</option>
+                <option value="2">2 / 5 - Needs Improvement</option>
+                <option value="1">1 / 5 - Poor</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Comments</label>
+            <textarea id="cand-fb-message" rows="2" placeholder="How was the audio, timing, and question clarity?" required style="width: 100%; padding: 0.45rem 0.6rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.8rem;"></textarea>
+          </div>
+          <button type="submit" id="btn-cand-feedback" class="btn" style="align-self: flex-start; padding: 0.5rem 1rem; font-size: 0.8rem;">
+            Send Feedback <i class="bi bi-send"></i>
+          </button>
+        </form>
+      </div>
     </div>
   </main>
 

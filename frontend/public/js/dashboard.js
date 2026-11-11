@@ -196,7 +196,96 @@ window.togglePasswordVisibility = function(inputId, btn) {
   }
 });
 
-// Step 1: Form Sign Up (Direct Email + Password with Double Confirmation)
+let pendingRecruiterAuth = null;
+
+function escapeAuthHtml(str) {
+  return String(str || '').replace(/[&<>"']/g, (m) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[m]));
+}
+
+function setVerifyStatusBanner(text, tone = 'info') {
+  const el = document.getElementById('verify-otp-status');
+  if (!el) return;
+  if (!text) {
+    el.style.display = 'none';
+    el.textContent = '';
+    return;
+  }
+  const styles = {
+    success: { bg: '#ecfdf5', border: '#a7f3d0', color: '#065f46' },
+    warning: { bg: '#fffbeb', border: '#fde68a', color: '#92400e' },
+    error: { bg: '#fef2f2', border: '#fecaca', color: '#991b1b' },
+    info: { bg: '#f8fafc', border: '#cbd5e1', color: '#334155' }
+  }[tone] || { bg: '#f8fafc', border: '#cbd5e1', color: '#334155' };
+  el.style.display = 'block';
+  el.style.background = styles.bg;
+  el.style.border = `1px solid ${styles.border}`;
+  el.style.color = styles.color;
+  el.textContent = text;
+}
+
+function beginRecruiterOtpStep({ mode, email, token, otpToken, user, org, emailSent, message, emailError }) {
+  pendingRecruiterAuth = {
+    mode: mode === 'login' ? 'login' : 'signup',
+    email: email || user?.email || '',
+    token: token || null,
+    otpToken: otpToken || null,
+    user: user || null,
+    org: org || null
+  };
+
+  if (typeof goToStep === 'function') {
+    goToStep(2);
+  }
+  const s1 = document.getElementById('auth-step-1');
+  const s2 = document.getElementById('auth-step-2');
+  const s3 = document.getElementById('auth-step-3');
+  if (s1) s1.style.display = 'none';
+  if (s2) s2.style.display = 'block';
+  if (s3) s3.style.display = 'none';
+
+  const titleEl = document.getElementById('verify-step-title');
+  const descEl = document.getElementById('verify-step-desc');
+  if (titleEl) {
+    titleEl.innerHTML = pendingRecruiterAuth.mode === 'login'
+      ? '<i class="bi bi-shield-lock"></i> Sign In Verification Code Sent'
+      : '<i class="bi bi-envelope-check"></i> Verification Code Sent to Email';
+  }
+  if (descEl) {
+    descEl.innerHTML = `We sent a 6-digit verification code to <strong>${escapeAuthHtml(pendingRecruiterAuth.email)}</strong>. Please check your inbox (and spam folder) and enter it below to ${pendingRecruiterAuth.mode === 'login' ? 'complete sign in' : 'verify your account'}.`;
+  }
+
+  if (emailSent) {
+    setVerifyStatusBanner(`Verification code sent to ${pendingRecruiterAuth.email}.`, 'success');
+  } else {
+    setVerifyStatusBanner(emailError ? `Email delivery notice: ${emailError}` : (message || 'Enter the 6-digit verification code to continue.'), 'warning');
+  }
+
+  const codeInput = document.getElementById('verify-code');
+  if (codeInput) {
+    codeInput.value = '';
+    setTimeout(() => codeInput.focus(), 50);
+  }
+}
+
+window.backToAuthStep1 = function() {
+  pendingRecruiterAuth = null;
+  setVerifyStatusBanner('');
+  const codeInput = document.getElementById('verify-code');
+  if (codeInput) codeInput.value = '';
+  if (typeof goToStep === 'function') {
+    goToStep(1);
+  }
+  const s1 = document.getElementById('auth-step-1');
+  const s2 = document.getElementById('auth-step-2');
+  const s3 = document.getElementById('auth-step-3');
+  if (s1) s1.style.display = 'block';
+  if (s2) s2.style.display = 'none';
+  if (s3) s3.style.display = 'none';
+};
+
+// Step 1: Form Sign Up (Email + Password + Email OTP)
 document.getElementById('form-signup').addEventListener('submit', async (e) => {
   e.preventDefault();
   const fullName = document.getElementById('su-name').value.trim();
@@ -215,11 +304,12 @@ document.getElementById('form-signup').addEventListener('submit', async (e) => {
     return;
   }
 
+  const btn = e.target.querySelector('button[type=submit]');
+  const defaultBtnHtml = btn ? btn.innerHTML : '';
   try {
-    const btn = e.target.querySelector('button[type=submit]');
     if (btn) {
       btn.disabled = true;
-      btn.textContent = 'Creating account...';
+      btn.textContent = 'Sending verification code...';
     }
 
     const res = await fetch('/auth/signup', {
@@ -228,11 +318,22 @@ document.getElementById('form-signup').addEventListener('submit', async (e) => {
       body: JSON.stringify({ fullName, jobTitle, email, phone, password })
     });
     const data = await res.json();
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = 'Create Account & Enter Dashboard <i class="bi bi-arrow-right"></i>';
-    }
     if (!res.ok) throw new Error(data.error || 'Failed to register account');
+
+    if (data.requiresOtp) {
+      beginRecruiterOtpStep({
+        mode: 'signup',
+        email: data.user?.email || email,
+        token: data.token,
+        otpToken: data.otpToken,
+        user: data.user,
+        org: data.org,
+        emailSent: data.emailSent,
+        message: data.message,
+        emailError: data.emailError
+      });
+      return;
+    }
 
     authToken = data.token;
     localStorage.setItem('roundone_token', authToken);
@@ -246,20 +347,26 @@ document.getElementById('form-signup').addEventListener('submit', async (e) => {
     loadRegisteredUsers();
   } catch (err) {
     alert(err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = defaultBtnHtml || 'Create Account & Enter Dashboard <i class="bi bi-arrow-right"></i>';
+    }
   }
 });
 
-// Step 1: Form Login (Direct Email + Password)
+// Step 1: Form Login (Email + Password -> Email OTP)
 document.getElementById('form-login').addEventListener('submit', async (e) => {
   e.preventDefault();
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
 
+  const btn = e.target.querySelector('button[type=submit]');
+  const defaultBtnHtml = btn ? btn.innerHTML : '';
   try {
-    const btn = e.target.querySelector('button[type=submit]');
     if (btn) {
       btn.disabled = true;
-      btn.textContent = 'Signing in...';
+      btn.textContent = 'Sending verification code...';
     }
 
     const res = await fetch('/auth/login', {
@@ -268,11 +375,22 @@ document.getElementById('form-login').addEventListener('submit', async (e) => {
       body: JSON.stringify({ email, password })
     });
     const data = await res.json();
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = 'Sign In & Enter Dashboard <i class="bi bi-box-arrow-in-right"></i>';
-    }
     if (!res.ok) throw new Error(data.error || 'Failed to sign in');
+
+    if (data.requiresOtp) {
+      beginRecruiterOtpStep({
+        mode: 'login',
+        email: data.email || email,
+        token: null,
+        otpToken: data.otpToken,
+        user: null,
+        org: null,
+        emailSent: data.emailSent,
+        message: data.message,
+        emailError: data.emailError
+      });
+      return;
+    }
 
     authToken = data.token;
     localStorage.setItem('roundone_token', authToken);
@@ -286,47 +404,138 @@ document.getElementById('form-login').addEventListener('submit', async (e) => {
     loadRegisteredUsers();
   } catch (err) {
     alert(err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = defaultBtnHtml || 'Sign In & Enter Dashboard <i class="bi bi-box-arrow-in-right"></i>';
+    }
   }
 });
 
-// Step 2: Form Verify Code
+// Step 2: Form Verify Code (handles both Signup OTP & Login OTP)
 document.getElementById('form-verify').addEventListener('submit', async (e) => {
   e.preventDefault();
   const code = document.getElementById('verify-code').value.trim();
+  const btn = document.getElementById('btn-verify-otp') || e.target.querySelector('button[type=submit]');
+  const defaultBtnHtml = btn ? btn.innerHTML : '';
 
   try {
-    const res = await apiRequest('/auth/verify', {
-      method: 'POST',
-      body: JSON.stringify({ code })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Invalid code');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Verifying...';
+    }
 
-    currentUser.is_verified = 1;
-    goToStep(3);
+    const isLoginOtp = pendingRecruiterAuth?.mode === 'login';
+    let res;
+    if (isLoginOtp) {
+      res = await fetch('/auth/login-otp-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: pendingRecruiterAuth.email,
+          code,
+          otpToken: pendingRecruiterAuth.otpToken
+        })
+      });
+    } else {
+      const verifyToken = pendingRecruiterAuth?.token || authToken;
+      if (!verifyToken) {
+        throw new Error('Verification session expired. Please go back and sign up or sign in again.');
+      }
+      res = await fetch('/auth/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${verifyToken}`
+        },
+        body: JSON.stringify({
+          code,
+          otpToken: pendingRecruiterAuth?.otpToken || null
+        })
+      });
+    }
+
+    const data = await res.json();
+    if (!res.ok) {
+      setVerifyStatusBanner(data.error || 'Invalid verification code.', 'error');
+      throw new Error(data.error || 'Invalid code');
+    }
+
+    authToken = data.token || pendingRecruiterAuth?.token || authToken;
+    localStorage.setItem('roundone_token', authToken);
+    localStorage.setItem('ai_interviewer_token', authToken);
+    currentUser = data.user || pendingRecruiterAuth?.user || currentUser;
+    currentOrg = data.org || pendingRecruiterAuth?.org || currentOrg;
+    if (currentUser) currentUser.is_verified = 1;
+
+    const wasSignup = !isLoginOtp;
+    pendingRecruiterAuth = null;
+    document.getElementById('verify-code').value = '';
+    setVerifyStatusBanner('');
+
+    updateUserBadge();
+    loadJobs();
+    if (typeof loadRegisteredUsers === 'function') loadRegisteredUsers();
+
+    if (wasSignup) {
+      goToStep(3);
+    } else {
+      authModal.style.display = 'none';
+    }
   } catch (err) {
     alert(err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = defaultBtnHtml || 'Verify & Continue <i class="bi bi-check-circle"></i>';
+    }
   }
 });
 
 window.resendVerificationCode = async function() {
-  if (!authToken) {
+  const targetEmail = pendingRecruiterAuth?.email || currentUser?.email;
+  const bearerToken = pendingRecruiterAuth?.token || authToken;
+  if (!targetEmail && !bearerToken) {
     alert('Please sign up or sign in first.');
     return;
   }
+
+  const btn = document.getElementById('btn-resend-otp');
   try {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+    }
+    const headers = { 'Content-Type': 'application/json' };
+    if (bearerToken) headers.Authorization = `Bearer ${bearerToken}`;
+
     const res = await fetch('/auth/resend-code', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`
-      }
+      headers,
+      body: JSON.stringify({
+        email: targetEmail || '',
+        mode: pendingRecruiterAuth?.mode || 'signup'
+      })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to resend code');
-    alert(`📨 ${data.message || 'Verification code resent to your email!'}`);
+
+    if (pendingRecruiterAuth && data.otpToken) {
+      pendingRecruiterAuth.otpToken = data.otpToken;
+    }
+    if (data.emailSent) {
+      setVerifyStatusBanner(data.message || 'Verification code resent to your email.', 'success');
+    } else {
+      setVerifyStatusBanner(data.emailError ? `Email delivery notice: ${data.emailError}` : (data.message || 'Verification code regenerated.'), 'warning');
+    }
   } catch (err) {
+    setVerifyStatusBanner(`Error resending code: ${err.message}`, 'error');
     alert(`Error resending code: ${err.message}`);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Resend';
+    }
   }
 };
 
@@ -4044,11 +4253,87 @@ document.getElementById('form-waitlist')?.addEventListener('submit', async (e) =
       body: JSON.stringify({ name, company, email, phone, vacancies })
     });
     const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to submit waitlist request');
     alert(data.message || 'VIP Pilot request received.');
     closeWaitlistModal();
     document.getElementById('form-waitlist').reset();
   } catch (err) {
     alert(err.message);
+  }
+});
+
+// --- Platform Feedback Modal (Automated Thank-You Email) ---
+window.openFeedbackModal = function() {
+  const modal = document.getElementById('feedback-modal');
+  if (!modal) return;
+  const nameEl = document.getElementById('fb-name');
+  const emailEl = document.getElementById('fb-email');
+  const statusEl = document.getElementById('fb-status');
+  if (statusEl) {
+    statusEl.style.display = 'none';
+    statusEl.textContent = '';
+  }
+  if (nameEl && !nameEl.value && (currentUser?.fullName || currentUser?.full_name)) {
+    nameEl.value = currentUser.fullName || currentUser.full_name;
+  }
+  if (emailEl && !emailEl.value && currentUser?.email) {
+    emailEl.value = currentUser.email;
+  }
+  modal.style.display = 'flex';
+};
+
+window.closeFeedbackModal = function() {
+  const modal = document.getElementById('feedback-modal');
+  if (modal) modal.style.display = 'none';
+};
+
+document.getElementById('form-feedback')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('fb-name').value.trim();
+  const email = document.getElementById('fb-email').value.trim();
+  const rating = document.getElementById('fb-rating').value;
+  const category = document.getElementById('fb-category').value;
+  const message = document.getElementById('fb-message').value.trim();
+  const statusEl = document.getElementById('fb-status');
+  const btn = document.getElementById('btn-submit-feedback');
+  const defaultBtnHtml = btn ? btn.innerHTML : '';
+
+  try {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+    }
+    const res = await fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, rating, category, message, sourcePage: 'dashboard' })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to submit feedback');
+
+    if (statusEl) {
+      statusEl.style.display = 'block';
+      statusEl.style.background = '#ecfdf5';
+      statusEl.style.border = '1px solid #a7f3d0';
+      statusEl.style.color = '#065f46';
+      statusEl.textContent = data.message || 'Thank you for your feedback!';
+    }
+    document.getElementById('fb-message').value = '';
+  } catch (err) {
+    if (statusEl) {
+      statusEl.style.display = 'block';
+      statusEl.style.background = '#fef2f2';
+      statusEl.style.border = '1px solid #fecaca';
+      statusEl.style.color = '#991b1b';
+      statusEl.textContent = err.message;
+    } else {
+      alert(err.message);
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = defaultBtnHtml || 'Submit Feedback <i class="bi bi-send"></i>';
+    }
   }
 });
 

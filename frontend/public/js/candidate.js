@@ -1375,11 +1375,77 @@ async function finishInterview() {
   if (interviewRoomWrapper) interviewRoomWrapper.style.display = 'none';
   if (completedScreen) completedScreen.style.display = 'block';
 
+  const candEmailInput = document.getElementById('cand-fb-email');
+  if (candEmailInput && !candEmailInput.value && typeof interviewData === 'object' && interviewData) {
+    candEmailInput.value = interviewData.candidate_email || interviewData.candidateEmail || interviewData.candidate?.email || '';
+  }
+
   try {
     await fetch(`/i/${token}/finish`, { method: 'POST' });
   } catch (err) {
     console.warn('Finish call error:', err);
   }
+}
+
+const candidateFeedbackForm = document.getElementById('candidate-feedback-form');
+if (candidateFeedbackForm) {
+  candidateFeedbackForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = (document.getElementById('cand-fb-email')?.value || '').trim();
+    const rating = document.getElementById('cand-fb-rating')?.value || '5';
+    const message = (document.getElementById('cand-fb-message')?.value || '').trim();
+    const statusEl = document.getElementById('cand-fb-status');
+    const btn = document.getElementById('btn-cand-feedback');
+    const defaultHtml = btn ? btn.innerHTML : '';
+
+    try {
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Sending...';
+      }
+      const candName = (typeof interviewData === 'object' && interviewData)
+        ? (interviewData.candidate_name || interviewData.candidateName || interviewData.candidate?.name || 'Candidate')
+        : 'Candidate';
+
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: candName,
+          email,
+          rating,
+          category: 'candidate_experience',
+          message,
+          sourcePage: 'candidate_interview'
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not send feedback');
+
+      if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.style.background = '#ecfdf5';
+        statusEl.style.border = '1px solid #a7f3d0';
+        statusEl.style.color = '#065f46';
+        statusEl.textContent = data.message || 'Thank you for your feedback!';
+      }
+      const msgBox = document.getElementById('cand-fb-message');
+      if (msgBox) msgBox.value = '';
+    } catch (err) {
+      if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.style.background = '#fef2f2';
+        statusEl.style.border = '1px solid #fecaca';
+        statusEl.style.color = '#991b1b';
+        statusEl.textContent = err.message;
+      }
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = defaultHtml || 'Send Feedback <i class="bi bi-send"></i>';
+      }
+    }
+  });
 }
 
 // Start initialization

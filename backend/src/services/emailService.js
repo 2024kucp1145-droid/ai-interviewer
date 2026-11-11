@@ -228,13 +228,17 @@ export async function sendPlatformEmail({ to, subject, html }) {
   };
 }
 
-/**
- * Send 6-Digit Email Verification Code to newly registered Recruiter
- */
-export async function sendRecruiterVerificationEmail(email, verificationCode, fullName = 'Recruiter') {
-  const cleanEmail = email.toLowerCase().trim();
+function escapeEmailHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
-  const html = `
+function buildLightEmailCard({ subtitle, bodyHtml, footerText = 'Secured with RoundOne AI &middot; Automated Technical Screening' }) {
+  return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -247,6 +251,7 @@ export async function sendRecruiterVerificationEmail(email, verificationCode, fu
     .body { padding: 32px; }
     .otp-box { background: #f1f5f9; border: 2px dashed #2563eb; border-radius: 10px; padding: 18px; text-align: center; margin: 24px 0; }
     .otp-code { font-family: 'Courier New', monospace; font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #2563eb; }
+    .summary-box { background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #2563eb; border-radius: 8px; padding: 14px 16px; margin: 18px 0; font-size: 13px; color: #334155; }
     .footer { border-top: 1px solid #e2e8f0; padding: 16px 32px; font-size: 11px; color: #94a3b8; text-align: center; background: #f8fafc; }
   </style>
 </head>
@@ -254,33 +259,134 @@ export async function sendRecruiterVerificationEmail(email, verificationCode, fu
   <div class="card">
     <div class="header">
       <h2>RoundOne AI Platform</h2>
-      <p style="margin: 4px 0 0; font-size: 13px; color: #94a3b8;">Work Email Verification</p>
+      <p style="margin: 4px 0 0; font-size: 13px; color: #94a3b8;">${escapeEmailHtml(subtitle)}</p>
     </div>
-    <div class="body">
-      <p style="font-size: 14px; color: #334155; margin: 0 0 12px;">Hello <strong>${fullName}</strong>,</p>
-      <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin: 0;">
-        Thank you for registering your recruiter account. Please enter the following 6-digit verification code on the platform to activate your account:
-      </p>
-      
-      <div class="otp-box">
-        <div class="otp-code">${verificationCode}</div>
-      </div>
-      
-      <p style="font-size: 12px; color: #94a3b8; margin: 0;">
-        This code is valid for 15 minutes. If you did not create an account on RoundOne AI, you can safely ignore this email.
-      </p>
-    </div>
-    <div class="footer">
-      Secured with RoundOne AI &middot; Automated Technical Screening
-    </div>
+    <div class="body">${bodyHtml}</div>
+    <div class="footer">${footerText}</div>
   </div>
 </body>
-</html>
-  `.trim();
+</html>`.trim();
+}
+
+/**
+ * Send 6-Digit Email Verification / Login OTP Code to Recruiter or Platform User
+ */
+export async function sendRecruiterVerificationEmail(email, verificationCode, fullName = 'Recruiter', mode = 'signup') {
+  const cleanEmail = email.toLowerCase().trim();
+  const isLogin = mode === 'login';
+  const subtitle = isLogin ? 'Account Sign-In Verification' : 'Work Email Verification';
+  const introText = isLogin
+    ? 'Please enter the following 6-digit One-Time Password (OTP) on the login screen to confirm your sign-in:'
+    : 'Thank you for creating your account on RoundOne AI. Please enter the following 6-digit verification code to activate your workspace:';
+
+  const html = buildLightEmailCard({
+    subtitle,
+    bodyHtml: `
+      <p style="font-size: 14px; color: #334155; margin: 0 0 12px;">Hello <strong>${escapeEmailHtml(fullName)}</strong>,</p>
+      <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin: 0;">${introText}</p>
+      <div class="otp-box"><div class="otp-code">${escapeEmailHtml(verificationCode)}</div></div>
+      <p style="font-size: 12px; color: #94a3b8; margin: 0;">
+        This code is valid for 15 minutes. If you did not request this, you can safely ignore this email.
+      </p>
+    `
+  });
 
   return await sendPlatformEmail({
     to: cleanEmail,
-    subject: `[Verification Code] ${verificationCode} — Verify Your Recruiter Account`,
+    subject: isLogin
+      ? `[Login OTP] ${verificationCode} — Verify Your Sign-In to RoundOne AI`
+      : `[Verification Code] ${verificationCode} — Verify Your RoundOne AI Account`,
+    html
+  });
+}
+
+/**
+ * Send automated "Thank You for Your Feedback" response email
+ */
+export async function sendFeedbackThankYouEmail({ email, name = 'Valued User', rating = 5, category = 'General', message = '' }) {
+  const cleanEmail = email.toLowerCase().trim();
+  const safeRating = Math.max(1, Math.min(5, parseInt(rating, 10) || 5));
+  const stars = '★'.repeat(safeRating) + '☆'.repeat(5 - safeRating);
+  const preview = message ? escapeEmailHtml(message.slice(0, 400)) : 'Submitted via RoundOne AI';
+
+  const html = buildLightEmailCard({
+    subtitle: 'Feedback Confirmation & Thank You',
+    bodyHtml: `
+      <p style="font-size: 14px; color: #334155; margin: 0 0 12px;">Hello <strong>${escapeEmailHtml(name)}</strong>,</p>
+      <p style="font-size: 13px; color: #475569; line-height: 1.6; margin: 0;">
+        Thank you for sharing your feedback with the <strong>RoundOne AI</strong> team! We genuinely appreciate your time and review every submission to make the platform better.
+      </p>
+      <div class="summary-box">
+        <div><strong>Category:</strong> ${escapeEmailHtml(category)}</div>
+        <div style="margin-top: 4px;"><strong>Rating:</strong> ${stars} (${safeRating}/5)</div>
+        <div style="margin-top: 8px; color: #475569;">"${preview}"</div>
+      </div>
+      <p style="font-size: 12px; color: #64748b; margin: 0;">
+        If your message requires a direct follow-up, our team will get back to you at <strong>${escapeEmailHtml(cleanEmail)}</strong>.
+      </p>
+    `
+  });
+
+  return await sendPlatformEmail({
+    to: cleanEmail,
+    subject: `Thank You for Your Feedback — RoundOne AI`,
+    html
+  });
+}
+
+/**
+ * Send interview completion confirmation to candidate after finishing a screening
+ */
+export async function sendInterviewCompletionEmail({ email, candidateName = 'Candidate', jobTitle = 'Technical Screening', companyName = 'Hiring Team' }) {
+  const cleanEmail = email.toLowerCase().trim();
+  const html = buildLightEmailCard({
+    subtitle: `${companyName} — Screening Completed`,
+    bodyHtml: `
+      <p style="font-size: 14px; color: #334155; margin: 0 0 12px;">Hello <strong>${escapeEmailHtml(candidateName)}</strong>,</p>
+      <p style="font-size: 13px; color: #475569; line-height: 1.6; margin: 0;">
+        Thank you for completing your AI technical screening for <strong>${escapeEmailHtml(jobTitle)}</strong> with <strong>${escapeEmailHtml(companyName)}</strong>.
+      </p>
+      <div class="summary-box">
+        Your interview responses and verified transcript have been recorded and submitted to the recruiting team for review.
+      </div>
+      <p style="font-size: 12px; color: #64748b; margin: 0;">
+        The hiring team will review your evaluation and follow up regarding next steps.
+      </p>
+    `
+  });
+
+  return await sendPlatformEmail({
+    to: cleanEmail,
+    subject: `Thank You for Completing Your Interview — ${jobTitle}`,
+    html
+  });
+}
+
+/**
+ * Send confirmation email when a user applies for Pilot / Waitlist access
+ */
+export async function sendWaitlistConfirmationEmail({ email, name = 'Applicant', company = '', vacancies = '' }) {
+  const cleanEmail = email.toLowerCase().trim();
+  const html = buildLightEmailCard({
+    subtitle: 'VIP Pilot Access Request Received',
+    bodyHtml: `
+      <p style="font-size: 14px; color: #334155; margin: 0 0 12px;">Hello <strong>${escapeEmailHtml(name)}</strong>,</p>
+      <p style="font-size: 13px; color: #475569; line-height: 1.6; margin: 0;">
+        Thank you for applying for the <strong>RoundOne AI 20 Free Pilot Interviews</strong> program. We have received your request!
+      </p>
+      <div class="summary-box">
+        <div><strong>Company:</strong> ${escapeEmailHtml(company || 'N/A')}</div>
+        <div style="margin-top: 4px;"><strong>Hiring Volume:</strong> ${escapeEmailHtml(vacancies || 'Not specified')}</div>
+      </div>
+      <p style="font-size: 12px; color: #64748b; margin: 0;">
+        Our onboarding team will reach out to <strong>${escapeEmailHtml(cleanEmail)}</strong> shortly.
+      </p>
+    `
+  });
+
+  return await sendPlatformEmail({
+    to: cleanEmail,
+    subject: `Pilot Access Application Received — RoundOne AI`,
     html
   });
 }

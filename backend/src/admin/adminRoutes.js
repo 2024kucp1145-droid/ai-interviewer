@@ -1,7 +1,14 @@
 import express from 'express';
 import crypto from 'crypto';
 import { db } from '../db/database.js';
-import { hashPassword, comparePassword, signToken, verifyToken } from '../auth/auth.js';
+import {
+  hashPassword,
+  comparePassword,
+  signToken,
+  verifyToken,
+  createSignedAdminProfileReceipt,
+  verifySignedAdminProfileReceipt
+} from '../auth/auth.js';
 import { logActivity, getActivities } from '../services/activityService.js';
 import { generateAndSendAdminOtp, verifyAdminOtp } from '../services/adminOtpService.js';
 import { sendTestEmail, getSmtpConfig, sendPlatformEmail } from '../services/emailService.js';
@@ -68,6 +75,51 @@ function resetRateLimit(key) {
   failedAttempts.delete(key);
 }
 
+function canUseOtpFallback() {
+  return !getSmtpConfig().isConfigured || process.env.ALLOW_DEV_OTP === 'true';
+}
+
+function rehydrateAdminFromClaims(claims) {
+  if (!claims?.email || !claims?.admin_uid) return null;
+  const cleanEmail = String(claims.email).toLowerCase().trim();
+  const cleanUid = String(claims.admin_uid).toUpperCase();
+  const existing = db.prepare(`
+    SELECT id, org_id, full_name, email, admin_uid, role, is_verified, approval_status
+    FROM users WHERE email = ?
+  `).get(cleanEmail);
+
+  if (existing) {
+    if (existing.role !== 'superadmin') return { conflictNonAdmin: true };
+    if (!existing.admin_uid && cleanUid) {
+      db.prepare('UPDATE users SET admin_uid = ? WHERE id = ?').run(cleanUid, existing.id);
+      existing.admin_uid = cleanUid;
+    }
+    return existing;
+  }
+
+  const orgId = claims.org_id || 'org_platform_admins';
+  const adminId = claims.id || ('usr_adm_' + crypto.randomUUID());
+  db.prepare(`
+    INSERT OR IGNORE INTO organizations (id, name, industry, plan, included_interviews)
+    VALUES (?, 'Platform Operations & Administration', 'Platform Management', 'enterprise', 999999)
+  `).run(orgId);
+  db.prepare(`
+    INSERT OR IGNORE INTO users (
+      id, org_id, full_name, job_title, email, password_hash, role, admin_uid, is_verified, approval_status
+    ) VALUES (?, ?, ?, 'Platform Administrator', ?, 'ephemeral-vercel-session', 'superadmin', ?, 1, 'approved')
+  `).run(
+    adminId,
+    orgId,
+    claims.full_name || claims.fullName || 'Platform Administrator',
+    cleanEmail,
+    cleanUid
+  );
+  return db.prepare(`
+    SELECT id, org_id, full_name, email, admin_uid, role, is_verified, approval_status
+    FROM users WHERE email = ? AND role = 'superadmin'
+  `).get(cleanEmail);
+}
+
 /**
  * Strict Admin Authentication Middleware
  * Only allows verified users with role = 'superadmin' and non-suspended status
@@ -94,35 +146,26 @@ export function requireAdmin(req, res, next) {
       WHERE id = ? AND role = 'superadmin'
     `).get(decoded.id);
 
-    // Self-heal ephemeral serverless (/tmp) cold starts only for new admins carrying admin_uid in JWT
-    if (!adminUser && process.env.VERCEL && decoded.email && decoded.admin_uid) {
+    // Adopt matching superadmin email or rehydrate ephemeral Vercel /tmp cold starts
+    if (!adminUser && decoded.email) {
       const cleanEmail = decoded.email.toLowerCase().trim();
-      const conflictUser = db.prepare('SELECT id, role FROM users WHERE email = ?').get(cleanEmail);
-      if (conflictUser && conflictUser.role !== 'superadmin') {
+      const byEmail = db.prepare(`
+        SELECT id, org_id, full_name, email, admin_uid, role, is_verified, approval_status
+        FROM users WHERE email = ?
+      `).get(cleanEmail);
+
+      if (byEmail && byEmail.role !== 'superadmin') {
         return res.status(403).json({ error: 'Access denied: Super Administrator privileges required' });
       }
-      if (!conflictUser) {
-        db.prepare(`
-          INSERT OR IGNORE INTO organizations (id, name, industry, plan, included_interviews)
-          VALUES (?, 'Platform Operations & Administration', 'Platform Management', 'enterprise', 999999)
-        `).run(decoded.org_id || 'org_platform_admins');
-        db.prepare(`
-          INSERT OR IGNORE INTO users (
-            id, org_id, full_name, job_title, email, password_hash, role, admin_uid, is_verified, approval_status
-          ) VALUES (?, ?, ?, 'Platform Administrator', ?, 'ephemeral-vercel-session', 'superadmin', ?, 1, 'approved')
-        `).run(
-          decoded.id,
-          decoded.org_id || 'org_platform_admins',
-          decoded.full_name || 'Platform Administrator',
-          cleanEmail,
-          decoded.admin_uid
-        );
+      if (byEmail) {
+        adminUser = byEmail;
+      } else if (process.env.VERCEL && decoded.admin_uid) {
+        const rehydrated = rehydrateAdminFromClaims(decoded);
+        if (rehydrated?.conflictNonAdmin) {
+          return res.status(403).json({ error: 'Access denied: Super Administrator privileges required' });
+        }
+        adminUser = rehydrated;
       }
-      adminUser = db.prepare(`
-        SELECT id, org_id, full_name, email, admin_uid, role, is_verified, approval_status 
-        FROM users 
-        WHERE id = ? AND role = 'superadmin'
-      `).get(decoded.id);
     }
 
     if (!adminUser) {
@@ -214,6 +257,7 @@ adminRouter.post('/auth/register-request', async (req, res) => {
         : `Email delivery fallback active: Enter 000000 (or check server console) to complete registration.`,
       email: cleanEmail,
       emailSent: otpResult.emailSent,
+      otpToken: otpResult.otpToken,
       forwardedTo: otpResult.forwardedTo || null,
       fallbackOtp: !otpResult.emailSent ? '000000' : undefined
     });
@@ -233,7 +277,7 @@ adminRouter.post('/auth/register-verify', async (req, res) => {
   }
 
   try {
-    const { email, otp, fullName, password, phone } = req.body || {};
+    const { email, otp, fullName, password, phone, otpToken } = req.body || {};
     const cleanName = (fullName || '').trim();
     const cleanEmail = (email || '').toLowerCase().trim();
 
@@ -246,8 +290,8 @@ adminRouter.post('/auth/register-verify', async (req, res) => {
       return res.status(400).json({ error: 'An account with this email already exists.' });
     }
 
-    const isMasterBypass = (otp.trim() === '000000');
-    const verification = isMasterBypass ? { valid: true } : verifyAdminOtp(cleanEmail, otp, 'signup_verify');
+    const isMasterBypass = canUseOtpFallback() && (otp.trim() === '000000');
+    const verification = isMasterBypass ? { valid: true } : verifyAdminOtp(cleanEmail, otp, 'signup_verify', otpToken);
     if (!verification.valid) {
       recordFailure(ipKey, 10, 15 * 60 * 1000);
       await new Promise(r => setTimeout(r, 800));
@@ -315,19 +359,22 @@ adminRouter.post('/auth/register-verify', async (req, res) => {
       console.warn('Welcome email notice:', emailErr.message);
     }
 
-    const token = signToken({
+    const adminProfilePayload = {
       id: adminUserId,
       org_id: adminOrgId,
       email: cleanEmail,
       full_name: cleanName,
       admin_uid: adminUid,
       role: 'superadmin'
-    });
+    };
+    const token = signToken(adminProfilePayload);
+    const profileToken = createSignedAdminProfileReceipt(adminProfilePayload);
 
     res.json({
       success: true,
       message: 'Super Administrator account created and verified successfully!',
       token,
+      profileToken,
       adminUid,
       user: {
         id: adminUserId,
@@ -361,7 +408,7 @@ adminRouter.post('/auth/login-request', async (req, res) => {
   }
 
   try {
-    const { name, fullName, adminId, admin_uid } = req.body || {};
+    const { name, fullName, adminId, admin_uid, profileToken } = req.body || {};
     const cleanName = (name || fullName || '').trim().replace(/\s+/g, ' ');
     const cleanAdminId = (adminId || admin_uid || '').trim().toUpperCase();
 
@@ -378,7 +425,19 @@ adminRouter.post('/auth/login-request', async (req, res) => {
       });
     }
 
-    const user = db.prepare("SELECT * FROM users WHERE UPPER(admin_uid) = UPPER(?) AND role = 'superadmin'").get(cleanAdminId);
+    let user = db.prepare("SELECT * FROM users WHERE UPPER(admin_uid) = UPPER(?) AND role = 'superadmin'").get(cleanAdminId);
+
+    // Recover verified admin on cold serverless instances using signed profile receipt when Name & ID match
+    if (!user && profileToken) {
+      const receipt = verifySignedAdminProfileReceipt(profileToken);
+      const receiptName = (receipt?.full_name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+      if (receipt && receipt.admin_uid === cleanAdminId && receiptName === cleanName.toLowerCase()) {
+        const rehydrated = rehydrateAdminFromClaims(receipt);
+        if (rehydrated && !rehydrated.conflictNonAdmin) {
+          user = rehydrated;
+        }
+      }
+    }
 
     const dbNormalizedName = (user?.full_name || '').trim().replace(/\s+/g, ' ').toLowerCase();
     if (!user || dbNormalizedName !== cleanName.toLowerCase()) {
@@ -409,6 +468,8 @@ adminRouter.post('/auth/login-request', async (req, res) => {
       name: user.full_name,
       emailHint: maskEmail(user.email),
       emailSent: otpResult.emailSent,
+      otpToken: otpResult.otpToken,
+      profileToken: createSignedAdminProfileReceipt(user),
       forwardedTo: otpResult.forwardedTo || null,
       fallbackOtp: !otpResult.emailSent ? '000000' : undefined
     });
@@ -430,7 +491,7 @@ adminRouter.post('/auth/login-verify', async (req, res) => {
   }
 
   try {
-    const { adminId, admin_uid, otp } = req.body || {};
+    const { adminId, admin_uid, otp, otpToken, profileToken } = req.body || {};
     const cleanAdminId = (adminId || admin_uid || '').trim().toUpperCase();
 
     if (!cleanAdminId || !otp) {
@@ -438,13 +499,22 @@ adminRouter.post('/auth/login-verify', async (req, res) => {
     }
 
     const idKey = `id_${cleanAdminId}_login`;
-    const user = db.prepare("SELECT * FROM users WHERE UPPER(admin_uid) = UPPER(?) AND role = 'superadmin'").get(cleanAdminId);
+    let user = db.prepare("SELECT * FROM users WHERE UPPER(admin_uid) = UPPER(?) AND role = 'superadmin'").get(cleanAdminId);
+    if (!user && profileToken) {
+      const receipt = verifySignedAdminProfileReceipt(profileToken);
+      if (receipt && receipt.admin_uid === cleanAdminId) {
+        const rehydrated = rehydrateAdminFromClaims(receipt);
+        if (rehydrated && !rehydrated.conflictNonAdmin) {
+          user = rehydrated;
+        }
+      }
+    }
     if (!user) {
       return res.status(404).json({ error: 'Admin user not found.' });
     }
 
-    const isMasterBypass = (otp.trim() === '000000');
-    const verification = isMasterBypass ? { valid: true } : verifyAdminOtp(user.email, otp, 'login_verify');
+    const isMasterBypass = canUseOtpFallback() && (otp.trim() === '000000');
+    const verification = isMasterBypass ? { valid: true } : verifyAdminOtp(user.email, otp, 'login_verify', otpToken);
     if (!verification.valid) {
       recordFailure(ipKey, 5, 15 * 60 * 1000);
       recordFailure(idKey, 5, 15 * 60 * 1000);
@@ -476,10 +546,12 @@ adminRouter.post('/auth/login-verify', async (req, res) => {
       admin_uid: user.admin_uid,
       role: 'superadmin'
     });
+    const refreshedProfileToken = createSignedAdminProfileReceipt(user);
 
     res.json({
       success: true,
       token,
+      profileToken: refreshedProfileToken,
       user: {
         id: user.id,
         fullName: user.full_name,
@@ -520,7 +592,8 @@ adminRouter.post('/auth/forgot-password-request', async (req, res) => {
       success: true,
       message: `A 6-digit password reset code has been sent to ${cleanEmail}.`,
       email: cleanEmail,
-      emailSent: otpResult.emailSent
+      emailSent: otpResult.emailSent,
+      otpToken: otpResult.otpToken
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -538,7 +611,7 @@ adminRouter.post('/auth/forgot-password-verify', async (req, res) => {
   }
 
   try {
-    const { email, otp, newPassword } = req.body || {};
+    const { email, otp, newPassword, otpToken } = req.body || {};
     if (!email || !otp || !newPassword) {
       return res.status(400).json({ error: 'Email, OTP, and new password are required' });
     }
@@ -553,8 +626,8 @@ adminRouter.post('/auth/forgot-password-verify', async (req, res) => {
       return res.status(404).json({ error: 'Admin account not found' });
     }
 
-    const isMasterBypass = (otp.trim() === '000000');
-    const verification = isMasterBypass ? { valid: true } : verifyAdminOtp(cleanEmail, otp, 'reset_password');
+    const isMasterBypass = canUseOtpFallback() && (otp.trim() === '000000');
+    const verification = isMasterBypass ? { valid: true } : verifyAdminOtp(cleanEmail, otp, 'reset_password', otpToken);
     if (!verification.valid) {
       recordFailure(ipKey, 5, 15 * 60 * 1000);
       await new Promise(r => setTimeout(r, 1000));
@@ -1159,7 +1232,9 @@ adminRouter.get('/settings', requireAdmin, async (req, res) => {
         host: emailConfig.host,
         port: emailConfig.port,
         user: emailConfig.user,
+        fromName: emailConfig.fromName,
         fromEmail: emailConfig.fromEmail,
+        hasPass: Boolean(emailConfig.pass && emailConfig.pass.trim().length > 3),
         secure: emailConfig.secure
       },
       databaseStatus: {
@@ -1185,10 +1260,16 @@ function upsertPlatformSettings(settings) {
     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
   `);
 
+  const preserveIfEmptyKeys = new Set([
+    'email_provider', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_from_name', 'smtp_from_email'
+  ]);
   const updatedKeys = [];
   db.transaction(() => {
     for (const [key, val] of Object.entries(settings)) {
       if ((key === 'smtp_pass' || key === 'resend_api_key') && (String(val).includes('••••') || val === '')) {
+        continue;
+      }
+      if (preserveIfEmptyKeys.has(key) && String(val ?? '').trim() === '') {
         continue;
       }
       upsert.run(key, String(val));
@@ -1310,5 +1391,22 @@ adminRouter.post('/settings/migrate-pg', requireAdmin, async (req, res) => {
       success: false,
       error: 'PostgreSQL Migration Failed: ' + err.message
     });
+  }
+});
+
+/**
+ * List submitted platform/candidate feedbacks
+ */
+adminRouter.get('/feedbacks', requireAdmin, (req, res) => {
+  try {
+    const feedbacks = db.prepare(`
+      SELECT id, user_name, user_email, rating, category, message, source_page, email_sent, created_at
+      FROM feedbacks
+      ORDER BY created_at DESC
+      LIMIT 100
+    `).all();
+    res.json({ success: true, feedbacks });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });

@@ -6,7 +6,15 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
 import { db, initDatabase } from './db/database.js';
-import { hashPassword, comparePassword, signToken, verifyToken, requireAuth } from './auth/auth.js';
+import {
+  hashPassword,
+  comparePassword,
+  signToken,
+  verifyToken,
+  requireAuth,
+  createStatelessOtpChallenge,
+  verifyStatelessOtpChallenge
+} from './auth/auth.js';
 import { encryptApiKey, maskKey } from './keys/vault.js';
 import { GeminiProvider } from './ai/gemini.js';
 import { processInterviewTurn } from './interview/engine.js';
@@ -21,7 +29,13 @@ import { judgeLeetCodeSolution } from './services/leetcodeJudge.js';
 import { generateNeuralAudio, NEURAL_VOICES } from './services/neuralTtsService.js';
 import { adminRouter } from './admin/adminRoutes.js';
 import { logActivity } from './services/activityService.js';
-import { sendRecruiterVerificationEmail } from './services/emailService.js';
+import {
+  getEmailConfig,
+  sendRecruiterVerificationEmail,
+  sendFeedbackThankYouEmail,
+  sendInterviewCompletionEmail,
+  sendWaitlistConfirmationEmail
+} from './services/emailService.js';
 
 dotenv.config();
 
@@ -69,20 +83,70 @@ app.get('/health', (req, res) => {
 });
 
 // --- Auth Endpoints ---
-// --- Direct Email + Password Auth Endpoints (No OTP / No Blocking) ---
+// --- Recruiter Email + Password + Email OTP Auth Endpoints ---
+const usedRecruiterOtpTokens = new Set();
+
+function generate6DigitOtp() {
+  return String(crypto.randomInt(100000, 1000000));
+}
+
+function canUseRecruiterOtpFallback() {
+  return !getEmailConfig().isConfigured || process.env.ALLOW_DEV_OTP === 'true';
+}
+
+function markRecruiterOtpUsed(otpToken) {
+  if (!otpToken) return;
+  if (usedRecruiterOtpTokens.size > 5000) usedRecruiterOtpTokens.clear();
+  usedRecruiterOtpTokens.add(otpToken);
+}
+
+function verifyRecruiterOtpCode({ dbUser, cleanEmail, code, purposes = ['recruiter_signup', 'recruiter_login'], otpToken }) {
+  const cleanCode = String(code || '').trim();
+  if (!cleanCode) {
+    return { valid: false, error: 'Please enter the 6-digit verification code.' };
+  }
+
+  if (canUseRecruiterOtpFallback() && cleanCode === '000000') {
+    return { valid: true, via: 'dev_fallback', decoded: null };
+  }
+
+  if (dbUser && dbUser.verification_code && String(dbUser.verification_code).trim() === cleanCode) {
+    return { valid: true, via: 'db', decoded: null };
+  }
+
+  if (otpToken) {
+    if (usedRecruiterOtpTokens.has(otpToken)) {
+      return { valid: false, error: 'This verification code has already been used. Please request a new code.' };
+    }
+    let lastError = null;
+    for (const purpose of purposes) {
+      const check = verifyStatelessOtpChallenge(otpToken, cleanEmail, cleanCode, purpose);
+      if (check.valid) {
+        return { valid: true, via: 'stateless', decoded: check.decoded };
+      }
+      if (check.error && !check.error.includes('purpose')) {
+        lastError = check.error;
+      }
+    }
+    return { valid: false, error: lastError || 'Invalid or expired verification code.' };
+  }
+
+  return { valid: false, error: 'Invalid verification code. Please check your email and try again.' };
+}
+
 app.post('/auth/signup', async (req, res) => {
   try {
-    const { 
+    const {
       email,
       password,
-      fullName, 
-      phone, 
-      jobTitle, 
-      companyName, 
-      website, 
-      industry, 
-      companySize, 
-      country 
+      fullName,
+      phone,
+      jobTitle,
+      companyName,
+      website,
+      industry,
+      companySize,
+      country
     } = req.body;
 
     if (!email || !password) {
@@ -90,22 +154,49 @@ app.post('/auth/signup', async (req, res) => {
     }
 
     const cleanEmail = email.toLowerCase().trim();
+    const otpCode = generate6DigitOtp();
     let user = db.prepare('SELECT * FROM users WHERE email = ?').get(cleanEmail);
 
     if (user) {
-      // If user exists and password matches, log them straight in
-      if (comparePassword(password, user.password_hash)) {
-        db.prepare(`UPDATE users SET is_verified = 1, approval_status = 'approved', last_login_at = CURRENT_TIMESTAMP WHERE id = ?`).run(user.id);
-        const org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(user.org_id);
-        const token = signToken({ id: user.id, org_id: user.org_id, email: user.email, role: user.role });
-        return res.json({
-          token,
-          user: { id: user.id, email: user.email, fullName: user.full_name, jobTitle: user.job_title, is_verified: 1, approval_status: 'approved' },
-          org: org || { id: user.org_id, name: companyName || 'My Organization', plan: 'free_trial', included_interviews: 10 }
-        });
-      } else {
+      if (!comparePassword(password, user.password_hash)) {
         return res.status(400).json({ error: 'An account with this email already exists. Please use Existing User Sign In.' });
       }
+
+      db.prepare(`UPDATE users SET verification_code = ?, last_login_at = CURRENT_TIMESTAMP WHERE id = ?`).run(otpCode, user.id);
+      const org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(user.org_id);
+      const token = signToken({ id: user.id, org_id: user.org_id, email: user.email, role: user.role });
+      const mode = user.is_verified ? 'login' : 'signup';
+      const purpose = user.is_verified ? 'recruiter_login' : 'recruiter_signup';
+      const otpToken = createStatelessOtpChallenge(cleanEmail, otpCode, purpose, {
+        userId: user.id,
+        orgId: user.org_id,
+        fullName: user.full_name || fullName || 'Hiring Manager',
+        jobTitle: user.job_title || jobTitle || 'Recruiter',
+        role: user.role || 'owner',
+        orgName: org?.name || companyName || 'My Organization'
+      });
+
+      const mailRes = await sendRecruiterVerificationEmail(cleanEmail, otpCode, user.full_name || fullName || 'Hiring Manager', mode);
+      return res.json({
+        token,
+        requiresOtp: true,
+        otpToken,
+        emailSent: !!mailRes.sent,
+        forwardedTo: mailRes.forwardedTo || cleanEmail,
+        emailError: mailRes.error || null,
+        message: mailRes.sent
+          ? `Verification code sent to ${cleanEmail}.`
+          : 'Verification code generated. Check your email or resend.',
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.full_name,
+          jobTitle: user.job_title,
+          is_verified: user.is_verified,
+          approval_status: user.approval_status || 'approved'
+        },
+        org: org || { id: user.org_id, name: companyName || 'My Organization', plan: 'free_trial', included_interviews: 10 }
+      });
     }
 
     const orgId = 'org_' + crypto.randomUUID();
@@ -120,26 +211,27 @@ app.post('/auth/signup', async (req, res) => {
         INSERT INTO organizations (id, name, website, industry, company_size, country, plan, included_interviews)
         VALUES (?, ?, ?, ?, ?, ?, 'free_trial', ?)
       `).run(
-        orgId, 
-        (companyName || 'My Organization').trim(), 
-        (website || '').trim(), 
-        (industry || 'Technology').trim(), 
-        (companySize || '1-20').trim(), 
+        orgId,
+        (companyName || 'My Organization').trim(),
+        (website || '').trim(),
+        (industry || 'Technology').trim(),
+        (companySize || '1-20').trim(),
         (country || 'India').trim(),
         trialCredits
       );
 
       db.prepare(`
         INSERT INTO users (id, org_id, full_name, phone, job_title, email, password_hash, role, is_verified, verification_code, approval_status, last_login_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'owner', 1, NULL, 'approved', CURRENT_TIMESTAMP)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'owner', 0, ?, 'approved', CURRENT_TIMESTAMP)
       `).run(
-        userId, 
-        orgId, 
-        (fullName || 'Hiring Manager').trim(), 
-        (phone || '').trim(), 
-        (jobTitle || 'Recruiter').trim(), 
-        cleanEmail, 
-        passHash
+        userId,
+        orgId,
+        (fullName || 'Hiring Manager').trim(),
+        (phone || '').trim(),
+        (jobTitle || 'Recruiter').trim(),
+        cleanEmail,
+        passHash,
+        otpCode
       );
     })();
 
@@ -152,15 +244,39 @@ app.post('/auth/signup', async (req, res) => {
       orgId,
       entityType: 'user',
       entityId: userId,
-      details: { companyName, jobTitle, is_verified: 1 },
+      details: { companyName, jobTitle, is_verified: 0, otpRequired: true },
       ipAddress: req.ip
     });
 
     const token = signToken({ id: userId, org_id: orgId, email: cleanEmail, role: 'owner' });
+    const otpToken = createStatelessOtpChallenge(cleanEmail, otpCode, 'recruiter_signup', {
+      userId,
+      orgId,
+      fullName: (fullName || 'Hiring Manager').trim(),
+      jobTitle: (jobTitle || 'Recruiter').trim(),
+      role: 'owner',
+      orgName: (companyName || 'My Organization').trim()
+    });
+    const mailRes = await sendRecruiterVerificationEmail(cleanEmail, otpCode, fullName || 'Hiring Manager', 'signup');
+
     res.json({
       token,
-      message: 'Account created successfully!',
-      user: { id: userId, email: cleanEmail, fullName: fullName || 'Hiring Manager', jobTitle: jobTitle || 'Recruiter', is_verified: 1, approval_status: 'approved' },
+      requiresOtp: true,
+      otpToken,
+      emailSent: !!mailRes.sent,
+      forwardedTo: mailRes.forwardedTo || cleanEmail,
+      emailError: mailRes.error || null,
+      message: mailRes.sent
+        ? `Account created! A 6-digit verification code has been sent to ${cleanEmail}.`
+        : 'Account created! Enter the 6-digit verification code to verify your email.',
+      user: {
+        id: userId,
+        email: cleanEmail,
+        fullName: fullName || 'Hiring Manager',
+        jobTitle: jobTitle || 'Recruiter',
+        is_verified: 0,
+        approval_status: 'approved'
+      },
       org: { id: orgId, name: companyName || 'My Organization', plan: 'free_trial', included_interviews: trialCredits }
     });
   } catch (err) {
@@ -168,18 +284,111 @@ app.post('/auth/signup', async (req, res) => {
   }
 });
 
-// Verification step - auto-pass any request
+// Verify recruiter signup OTP
 app.post('/auth/verify', requireAuth, (req, res) => {
   try {
-    db.prepare("UPDATE users SET is_verified = 1, approval_status = 'approved' WHERE id = ?").run(req.user.id);
-    res.json({ success: true, message: 'Verified successfully!' });
+    const { code, otp, otpToken } = req.body || {};
+    const cleanEmail = (req.user.email || '').toLowerCase().trim();
+    let user = db.prepare('SELECT * FROM users WHERE id = ? OR email = ?').get(req.user.id, cleanEmail);
+
+    const check = verifyRecruiterOtpCode({
+      dbUser: user,
+      cleanEmail: (user?.email || cleanEmail),
+      code: code || otp,
+      purposes: ['recruiter_signup', 'recruiter_login'],
+      otpToken
+    });
+    if (!check.valid) {
+      return res.status(400).json({ error: check.error });
+    }
+
+    const userId = user?.id || req.user.id;
+    const orgId = user?.org_id || req.user.org_id;
+    if (!user) {
+      const dec = check.decoded || {};
+      db.prepare(`INSERT OR IGNORE INTO organizations (id, name, plan, included_interviews) VALUES (?, ?, 'free_trial', 10)`)
+        .run(orgId, dec.orgName || 'My Organization');
+      db.prepare(`
+        INSERT OR IGNORE INTO users (id, org_id, full_name, phone, job_title, email, password_hash, role, is_verified, verification_code, approval_status, last_login_at)
+        VALUES (?, ?, ?, '', ?, ?, '', ?, 1, NULL, 'approved', CURRENT_TIMESTAMP)
+      `).run(userId, orgId, dec.fullName || 'Hiring Manager', dec.jobTitle || 'Recruiter', cleanEmail, dec.role || 'owner');
+      user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+    } else {
+      db.prepare("UPDATE users SET is_verified = 1, verification_code = NULL, approval_status = 'approved', last_login_at = CURRENT_TIMESTAMP WHERE id = ?").run(user.id);
+    }
+
+    markRecruiterOtpUsed(otpToken);
+    const org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(user.org_id);
+    const token = signToken({ id: user.id, org_id: user.org_id, email: user.email, role: user.role });
+
+    res.json({
+      success: true,
+      message: 'Email verified successfully!',
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.full_name || 'Hiring Manager',
+        jobTitle: user.job_title || 'Recruiter',
+        role: user.role,
+        is_verified: 1,
+        approval_status: 'approved'
+      },
+      org: org || { id: user.org_id, name: 'My Organization', plan: 'free_trial', included_interviews: 10 }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/auth/resend-code', requireAuth, async (req, res) => {
-  res.json({ success: true, message: 'Verification bypassed. Account is active.' });
+async function handleRecruiterResendCode(req, res) {
+  try {
+    const cleanEmail = (req.body?.email || req.user?.email || '').toLowerCase().trim();
+    if (!cleanEmail) {
+      return res.status(400).json({ error: 'Email address is required to resend verification code.' });
+    }
+
+    const mode = req.body?.mode === 'login' ? 'login' : 'signup';
+    const purpose = mode === 'login' ? 'recruiter_login' : 'recruiter_signup';
+    const user = req.user?.id
+      ? db.prepare('SELECT * FROM users WHERE id = ? OR email = ?').get(req.user.id, cleanEmail)
+      : db.prepare('SELECT * FROM users WHERE email = ?').get(cleanEmail);
+
+    const otpCode = generate6DigitOtp();
+    if (user) {
+      db.prepare('UPDATE users SET verification_code = ? WHERE id = ?').run(otpCode, user.id);
+    }
+
+    const otpToken = createStatelessOtpChallenge(cleanEmail, otpCode, purpose, {
+      userId: user?.id || req.user?.id,
+      orgId: user?.org_id || req.user?.org_id,
+      fullName: user?.full_name || 'Hiring Manager',
+      jobTitle: user?.job_title || 'Recruiter',
+      role: user?.role || 'owner'
+    });
+
+    const mailRes = await sendRecruiterVerificationEmail(cleanEmail, otpCode, user?.full_name || 'Hiring Manager', mode);
+
+    res.json({
+      success: true,
+      otpToken,
+      emailSent: !!mailRes.sent,
+      forwardedTo: mailRes.forwardedTo || cleanEmail,
+      emailError: mailRes.error || null,
+      message: mailRes.sent
+        ? `A new 6-digit verification code has been sent to ${cleanEmail}.`
+        : (mailRes.error ? `Verification code generated, but email delivery failed: ${mailRes.error}` : 'Verification code regenerated. Check server logs or configure SMTP in Admin Settings.')
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+app.post('/auth/resend-code', (req, res) => {
+  if (!req.body?.email && req.headers.authorization) {
+    return requireAuth(req, res, () => handleRecruiterResendCode(req, res));
+  }
+  return handleRecruiterResendCode(req, res);
 });
 
 // Company profile update
@@ -210,8 +419,8 @@ app.post('/auth/company-profile', requireAuth, (req, res) => {
   }
 });
 
-// Direct Email + Password Login (with container cold-start auto-provisioning)
-app.post('/auth/login', (req, res) => {
+// Email + Password Login Step 1 -> Send 6-digit Email OTP
+app.post('/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -222,7 +431,7 @@ app.post('/auth/login', (req, res) => {
     let user = db.prepare('SELECT * FROM users WHERE email = ?').get(cleanEmail);
 
     // If user does not exist in local SQLite (e.g. Vercel container restart wiped local DB),
-    // automatically provision account with this password so the user is never locked out!
+    // automatically provision account with this password so the user is never locked out of Step 1.
     if (!user) {
       const orgId = 'org_' + crypto.randomUUID();
       const userId = 'usr_' + crypto.randomUUID();
@@ -236,20 +445,14 @@ app.post('/auth/login', (req, res) => {
 
         db.prepare(`
           INSERT INTO users (id, org_id, full_name, phone, job_title, email, password_hash, role, is_verified, approval_status, last_login_at)
-          VALUES (?, ?, 'Hiring Manager', '', 'Recruiter', ?, ?, 'owner', 1, 'approved', CURRENT_TIMESTAMP)
+          VALUES (?, ?, 'Hiring Manager', '', 'Recruiter', ?, ?, 'owner', 0, 'approved', CURRENT_TIMESTAMP)
         `).run(userId, orgId, cleanEmail, passHash);
       })();
 
       user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
-    } else {
-      // Validate password
-      if (!comparePassword(password, user.password_hash)) {
-        return res.status(401).json({ error: 'Incorrect password. Please try again.' });
-      }
+    } else if (!comparePassword(password, user.password_hash)) {
+      return res.status(401).json({ error: 'Incorrect password. Please try again.' });
     }
-
-    // Always ensure verified & approved
-    db.prepare("UPDATE users SET is_verified = 1, approval_status = 'approved', last_login_at = CURRENT_TIMESTAMP WHERE id = ?").run(user.id);
 
     // Ensure organization exists
     let org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(user.org_id);
@@ -261,6 +464,94 @@ app.post('/auth/login', (req, res) => {
       org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(user.org_id);
     }
 
+    const otpCode = generate6DigitOtp();
+    db.prepare('UPDATE users SET verification_code = ?, last_login_at = CURRENT_TIMESTAMP WHERE id = ?').run(otpCode, user.id);
+
+    const otpToken = createStatelessOtpChallenge(cleanEmail, otpCode, 'recruiter_login', {
+      userId: user.id,
+      orgId: user.org_id,
+      fullName: user.full_name || 'Hiring Manager',
+      jobTitle: user.job_title || 'Recruiter',
+      role: user.role || 'owner',
+      orgName: org?.name || 'My Organization'
+    });
+
+    const mailRes = await sendRecruiterVerificationEmail(cleanEmail, otpCode, user.full_name || 'Hiring Manager', 'login');
+    res.json({
+      success: true,
+      requiresOtp: true,
+      email: cleanEmail,
+      otpToken,
+      emailSent: !!mailRes.sent,
+      forwardedTo: mailRes.forwardedTo || cleanEmail,
+      emailError: mailRes.error || null,
+      message: mailRes.sent
+        ? `A 6-digit login verification code has been sent to ${cleanEmail}.`
+        : 'Enter your 6-digit verification code to complete sign in.'
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Email + Password Login Step 2 -> Verify 6-digit Email OTP and issue JWT
+app.post('/auth/login-otp-verify', (req, res) => {
+  try {
+    const { email, code, otp, otpToken } = req.body || {};
+    if (!email || !(code || otp)) {
+      return res.status(400).json({ error: 'Email and 6-digit verification code are required.' });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    let user = db.prepare('SELECT * FROM users WHERE email = ?').get(cleanEmail);
+
+    const check = verifyRecruiterOtpCode({
+      dbUser: user,
+      cleanEmail,
+      code: code || otp,
+      purposes: ['recruiter_login', 'recruiter_signup'],
+      otpToken
+    });
+    if (!check.valid) {
+      return res.status(400).json({ error: check.error });
+    }
+
+    if (!user) {
+      const dec = check.decoded || {};
+      const resolvedOrgId = dec.orgId || ('org_' + crypto.randomUUID());
+      const resolvedUserId = dec.userId || ('usr_' + crypto.randomUUID());
+      db.transaction(() => {
+        db.prepare(`
+          INSERT OR IGNORE INTO organizations (id, name, plan, included_interviews)
+          VALUES (?, ?, 'free_trial', 10)
+        `).run(resolvedOrgId, dec.orgName || 'My Organization');
+        db.prepare(`
+          INSERT OR IGNORE INTO users (id, org_id, full_name, phone, job_title, email, password_hash, role, is_verified, verification_code, approval_status, last_login_at)
+          VALUES (?, ?, ?, '', ?, ?, '', ?, 1, NULL, 'approved', CURRENT_TIMESTAMP)
+        `).run(
+          resolvedUserId,
+          resolvedOrgId,
+          dec.fullName || 'Hiring Manager',
+          dec.jobTitle || 'Recruiter',
+          cleanEmail,
+          dec.role || 'owner'
+        );
+      })();
+      user = db.prepare('SELECT * FROM users WHERE email = ?').get(cleanEmail);
+    } else {
+      db.prepare("UPDATE users SET is_verified = 1, verification_code = NULL, approval_status = 'approved', last_login_at = CURRENT_TIMESTAMP WHERE id = ?").run(user.id);
+    }
+
+    let org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(user.org_id);
+    if (!org) {
+      db.prepare(`
+        INSERT OR IGNORE INTO organizations (id, name, plan, included_interviews)
+        VALUES (?, 'My Organization', 'free_trial', 10)
+      `).run(user.org_id);
+      org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(user.org_id);
+    }
+
+    markRecruiterOtpUsed(otpToken);
     const token = signToken({ id: user.id, org_id: user.org_id, email: user.email, role: user.role });
 
     logActivity({
@@ -274,19 +565,20 @@ app.post('/auth/login', (req, res) => {
     });
 
     res.json({
+      success: true,
       token,
-      user: { 
-        id: user.id, 
-        email: user.email, 
-        fullName: user.full_name || 'Hiring Manager', 
-        jobTitle: user.job_title || 'Recruiter', 
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.full_name || 'Hiring Manager',
+        jobTitle: user.job_title || 'Recruiter',
         role: user.role,
         is_verified: 1,
         approval_status: 'approved'
       },
-      org: org || { 
-        id: user.org_id, 
-        name: 'My Organization', 
+      org: org || {
+        id: user.org_id,
+        name: 'My Organization',
         plan: 'free_trial',
         included_interviews: 10
       }
@@ -1605,7 +1897,15 @@ app.post('/i/:token/finish', async (req, res) => {
     const rawToken = req.params.token;
     const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
 
-    const interview = db.prepare('SELECT id FROM interviews WHERE token_hash = ? OR id = ?').get(tokenHash, rawToken);
+    const interview = db.prepare(`
+      SELECT i.id, c.name AS candidate_name, c.email AS candidate_email,
+             j.title AS job_title, o.name AS company_name
+      FROM interviews i
+      LEFT JOIN candidates c ON i.candidate_id = c.id
+      LEFT JOIN jobs j ON i.job_id = j.id
+      LEFT JOIN organizations o ON j.org_id = o.id
+      WHERE i.token_hash = ? OR i.id = ?
+    `).get(tokenHash, rawToken);
     if (!interview) return res.status(404).json({ error: 'Invalid token' });
 
     db.prepare(`UPDATE interviews SET state = 'completed', ended_at = CURRENT_TIMESTAMP WHERE id = ?`).run(interview.id);
@@ -1622,7 +1922,22 @@ app.post('/i/:token/finish', async (req, res) => {
       ipAddress: req.ip
     });
 
-    res.json({ success: true, message: 'Interview completed and report generated.', report });
+    let emailSent = false;
+    if (interview.candidate_email && interview.candidate_email.includes('@')) {
+      try {
+        const mailRes = await sendInterviewCompletionEmail({
+          email: interview.candidate_email,
+          candidateName: interview.candidate_name || 'Candidate',
+          jobTitle: interview.job_title || 'Interview Role',
+          companyName: interview.company_name || 'RoundOne AI Platform'
+        });
+        emailSent = !!mailRes?.sent;
+      } catch (mailErr) {
+        console.warn('[Interview Finish] Completion email error:', mailErr.message);
+      }
+    }
+
+    res.json({ success: true, message: 'Interview completed and report generated.', emailSent, report });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1943,20 +2258,106 @@ app.post('/api/lead-magnet', async (req, res) => {
 });
 
 // --- Pilot Waitlist Endpoint (Chapter 11.5) ---
-app.post('/api/waitlist', (req, res) => {
+app.post('/api/waitlist', async (req, res) => {
   try {
     const { name, company, email, phone, vacancies } = req.body;
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
+    if (!email || !String(email).includes('@')) {
+      return res.status(400).json({ error: 'Valid email is required' });
     }
 
+    const cleanEmail = email.trim().toLowerCase();
     const leadId = 'lead_' + crypto.randomUUID();
     db.prepare(`
       INSERT INTO leads (id, name, company, email, phone, vacancies, source)
       VALUES (?, ?, ?, ?, ?, ?, 'pilot_waitlist')
-    `).run(leadId, name || '', company || '', email.trim(), phone || '', vacancies || '');
+    `).run(leadId, (name || '').trim(), (company || '').trim(), cleanEmail, (phone || '').trim(), (vacancies || '').trim());
 
-    res.json({ success: true, message: 'Thank you! You have been added to the VIP Pilot program.' });
+    let emailSent = false;
+    try {
+      const mailRes = await sendWaitlistConfirmationEmail({
+        email: cleanEmail,
+        name: (name || '').trim(),
+        company: (company || '').trim(),
+        vacancies: (vacancies || '').trim()
+      });
+      emailSent = !!mailRes?.sent;
+    } catch (mailErr) {
+      console.warn('[Waitlist] Confirmation email error:', mailErr.message);
+    }
+
+    res.json({
+      success: true,
+      emailSent,
+      message: emailSent
+        ? 'Thank you! You have been added to the VIP Pilot program and a confirmation email was sent.'
+        : 'Thank you! You have been added to the VIP Pilot program.'
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Platform Feedback Endpoint + Thank You Email Response ---
+app.post('/api/feedback', async (req, res) => {
+  try {
+    const { name, email, rating, category, message, sourcePage } = req.body || {};
+    if (!email || !String(email).includes('@')) {
+      return res.status(400).json({ error: 'Please provide a valid email address so we can send a response.' });
+    }
+    const cleanMessage = String(message || '').trim();
+    if (cleanMessage.length < 3) {
+      return res.status(400).json({ error: 'Please share a brief feedback message.' });
+    }
+
+    const cleanEmail = String(email).trim().toLowerCase();
+    const cleanName = String(name || 'User').trim() || 'User';
+    const cleanCategory = String(category || 'general').trim() || 'general';
+    const cleanSource = String(sourcePage || 'dashboard').trim() || 'dashboard';
+    const parsedRating = parseInt(rating, 10);
+    const numericRating = Number.isFinite(parsedRating) ? Math.min(5, Math.max(1, parsedRating)) : 5;
+    const feedbackId = 'fb_' + crypto.randomUUID();
+
+    db.prepare(`
+      INSERT INTO feedbacks (id, user_name, user_email, rating, category, message, source_page, email_sent)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+    `).run(feedbackId, cleanName, cleanEmail, numericRating, cleanCategory, cleanMessage, cleanSource);
+
+    let emailSent = false;
+    try {
+      const mailRes = await sendFeedbackThankYouEmail({
+        email: cleanEmail,
+        name: cleanName,
+        rating: numericRating,
+        category: cleanCategory,
+        message: cleanMessage
+      });
+      emailSent = !!mailRes?.sent;
+      if (emailSent) {
+        db.prepare('UPDATE feedbacks SET email_sent = 1 WHERE id = ?').run(feedbackId);
+      }
+    } catch (mailErr) {
+      console.warn('[Feedback] Thank-you email error:', mailErr.message);
+    }
+
+    logActivity({
+      action: 'FEEDBACK_SUBMITTED',
+      actorType: cleanSource === 'candidate_interview' ? 'candidate' : 'user',
+      actorEmail: cleanEmail,
+      actorName: cleanName,
+      entityType: 'feedback',
+      entityId: feedbackId,
+      details: { rating: numericRating, category: cleanCategory, sourcePage: cleanSource, emailSent },
+      ipAddress: req.ip
+    });
+
+    res.json({
+      success: true,
+      id: feedbackId,
+      emailSent,
+      message: emailSent
+        ? `Thank you for your feedback! A confirmation email has been sent to ${cleanEmail}.`
+        : 'Thank you for your feedback! Your message has been recorded.'
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

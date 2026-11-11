@@ -229,6 +229,18 @@ export function initDatabase() {
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS feedbacks (
+      id TEXT PRIMARY KEY,
+      user_name TEXT,
+      user_email TEXT NOT NULL,
+      rating INTEGER DEFAULT 5,
+      category TEXT DEFAULT 'general',
+      message TEXT NOT NULL,
+      source_page TEXT DEFAULT 'dashboard',
+      email_sent INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE INDEX IF NOT EXISTS idx_interviews_token ON interviews(token_hash);
     CREATE INDEX IF NOT EXISTS idx_turns_interview ON turns(interview_id);
     CREATE INDEX IF NOT EXISTS idx_candidates_org ON candidates(org_id);

@@ -20,8 +20,53 @@ let activityPollInterval = null;
 
 // Temporary states for multi-step auth
 let pendingLoginAdminId = '';
+let pendingLoginOtpToken = '';
 let pendingRegData = {};
+let pendingRegOtpToken = '';
 let generatedAdminUid = '';
+
+function getSavedAdminProfiles() {
+  try {
+    return JSON.parse(localStorage.getItem('roundone_admin_profiles') || '{}') || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveAdminProfileReceipt(adminUid, profileToken) {
+  if (!adminUid || !profileToken) return;
+  const map = getSavedAdminProfiles();
+  map[String(adminUid).toUpperCase()] = profileToken;
+  localStorage.setItem('roundone_admin_profiles', JSON.stringify(map));
+}
+
+function getAdminProfileReceipt(adminUid) {
+  if (!adminUid) return '';
+  const map = getSavedAdminProfiles();
+  return map[String(adminUid).toUpperCase()] || '';
+}
+
+function getLocalSmtpProfile() {
+  try {
+    return JSON.parse(localStorage.getItem('roundone_admin_smtp_profile') || '{}') || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveLocalSmtpProfile(payload) {
+  if (!payload) return;
+  const safeProfile = {
+    email_provider: payload.email_provider || 'smtp',
+    smtp_host: payload.smtp_host || 'smtp.gmail.com',
+    smtp_port: payload.smtp_port || '587',
+    smtp_user: payload.smtp_user || '',
+    smtp_from_name: payload.smtp_from_name || 'RoundOne AI Platform',
+    smtp_from_email: payload.smtp_from_email || '',
+    smtp_secure: payload.smtp_secure || '0'
+  };
+  localStorage.setItem('roundone_admin_smtp_profile', JSON.stringify(safeProfile));
+}
 
 // DOM Elements
 const authView = document.getElementById('auth-view');
@@ -180,10 +225,11 @@ window.handleLoginRequest = async function() {
   btn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Verifying Name &amp; ID...';
 
   try {
+    const profileToken = getAdminProfileReceipt(adminId);
     const res = await fetch(`${API_BASE}/auth/login-request`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, adminId })
+      body: JSON.stringify({ name, adminId, profileToken })
     });
     const data = await res.json();
 
@@ -192,6 +238,8 @@ window.handleLoginRequest = async function() {
     }
 
     pendingLoginAdminId = data.adminUid || adminId;
+    pendingLoginOtpToken = data.otpToken || '';
+    if (data.profileToken) saveAdminProfileReceipt(pendingLoginAdminId, data.profileToken);
     document.getElementById('login-step-1').style.display = 'none';
     document.getElementById('login-step-2').style.display = 'block';
     document.getElementById('login-target-email').textContent = data.emailHint || 'your registered email';
@@ -230,7 +278,12 @@ window.handleLoginVerify = async function() {
     const res = await fetch(`${API_BASE}/auth/login-verify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ adminId: pendingLoginAdminId, otp })
+      body: JSON.stringify({
+        adminId: pendingLoginAdminId,
+        otp,
+        otpToken: pendingLoginOtpToken,
+        profileToken: getAdminProfileReceipt(pendingLoginAdminId)
+      })
     });
     const data = await res.json();
 
@@ -240,6 +293,7 @@ window.handleLoginVerify = async function() {
 
     adminToken = data.token;
     currentAdmin = data.user;
+    if (data.profileToken) saveAdminProfileReceipt(data.user?.admin_uid || pendingLoginAdminId, data.profileToken);
     localStorage.setItem('platform_admin_token', adminToken);
     localStorage.setItem('platform_admin_user', JSON.stringify(data.user));
 
@@ -308,6 +362,7 @@ window.handleRegisterRequest = async function() {
     }
 
     pendingRegData = { fullName, email, password };
+    pendingRegOtpToken = data.otpToken || '';
     document.getElementById('register-step-1').style.display = 'none';
     document.getElementById('register-step-2').style.display = 'block';
     document.getElementById('reg-target-email').textContent = email;
@@ -348,7 +403,8 @@ window.handleRegisterVerify = async function() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ...pendingRegData,
-        otp
+        otp,
+        otpToken: pendingRegOtpToken
       })
     });
     const data = await res.json();
@@ -360,6 +416,7 @@ window.handleRegisterVerify = async function() {
     adminToken = data.token;
     currentAdmin = data.user;
     generatedAdminUid = data.adminUid || data.user?.admin_uid || '';
+    if (data.profileToken) saveAdminProfileReceipt(generatedAdminUid, data.profileToken);
     localStorage.setItem('platform_admin_token', adminToken);
     localStorage.setItem('platform_admin_user', JSON.stringify(data.user));
 
@@ -408,6 +465,7 @@ window.copyRegDevOtp = function() {
 
 // --- Forgot / Reset Admin Password ---
 let pendingResetEmail = '';
+let pendingResetOtpToken = '';
 
 window.openResetPasswordFlow = function() {
   document.getElementById('flow-login').style.display = 'none';
@@ -447,6 +505,7 @@ window.handleResetPasswordRequest = async function() {
     if (!res.ok) throw new Error(data.error || 'Failed to request password reset');
 
     pendingResetEmail = email;
+    pendingResetOtpToken = data.otpToken || '';
     document.getElementById('reset-step-1').style.display = 'none';
     document.getElementById('reset-step-2').style.display = 'block';
     document.getElementById('reset-target-email').textContent = email;
@@ -488,7 +547,8 @@ window.handleResetPasswordVerify = async function() {
       body: JSON.stringify({
         email: pendingResetEmail,
         otp,
-        newPassword
+        newPassword,
+        otpToken: pendingResetOtpToken
       })
     });
     const data = await res.json();
@@ -572,7 +632,10 @@ async function loadDashboardStats(isSilent = false) {
     const res = await fetch(`${API_BASE}/stats`, {
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
-    if (res.status === 401) return logoutAdmin(true);
+    if (res.status === 401) {
+      await verifyAdminSession();
+      return;
+    }
     if (!res.ok) return;
 
     const data = await res.json();
@@ -1265,19 +1328,22 @@ window.loadPlatformSettings = async function() {
     if (chk) chk.checked = s.require_admin_approval === '1';
     if (credits && s.default_trial_credits) credits.value = s.default_trial_credits;
 
-    // Email Settings Inputs
+    // Email Settings Inputs (DB -> Server Env emailStatus -> Saved Non-Secret Local Profile -> Defaults)
+    const localSmtp = getLocalSmtpProfile();
     const setVal = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
-    setVal('setting-email-provider', s.email_provider || (s.resend_api_key ? 'auto' : 'smtp'));
+    setVal('setting-email-provider', s.email_provider || (emailStatus.preferredProvider && emailStatus.preferredProvider !== 'auto' ? emailStatus.preferredProvider : '') || localSmtp.email_provider || (s.resend_api_key ? 'auto' : 'smtp'));
     setVal('setting-resend-api-key', s.resend_api_key || '');
-    setVal('setting-smtp-host', s.smtp_host || 'smtp.gmail.com');
-    setVal('setting-smtp-port', s.smtp_port || '587');
-    setVal('setting-smtp-user', s.smtp_user || '');
-    setVal('setting-smtp-pass', s.smtp_pass || '');
-    setVal('setting-smtp-from-name', s.smtp_from_name || 'RoundOne AI Platform');
-    setVal('setting-smtp-from-email', s.smtp_from_email || '');
+    setVal('setting-smtp-host', s.smtp_host || emailStatus.host || localSmtp.smtp_host || 'smtp.gmail.com');
+    setVal('setting-smtp-port', s.smtp_port || (emailStatus.port ? String(emailStatus.port) : '') || localSmtp.smtp_port || '587');
+    setVal('setting-smtp-user', s.smtp_user || emailStatus.user || localSmtp.smtp_user || '');
+    setVal('setting-smtp-pass', s.smtp_pass || (emailStatus.hasPass ? '••••••••' : ''));
+    setVal('setting-smtp-from-name', s.smtp_from_name || emailStatus.fromName || localSmtp.smtp_from_name || 'RoundOne AI Platform');
+    setVal('setting-smtp-from-email', s.smtp_from_email || emailStatus.fromEmail || localSmtp.smtp_from_email || emailStatus.user || '');
 
     const chkSecure = document.getElementById('setting-smtp-secure');
-    if (chkSecure) chkSecure.checked = (s.smtp_secure === '1');
+    if (chkSecure) {
+      chkSecure.checked = (s.smtp_secure === '1') || (!s.smtp_secure && (Boolean(emailStatus.secure) || localSmtp.smtp_secure === '1'));
+    }
 
     const badge = document.getElementById('smtp-status-badge');
     if (badge) {
@@ -1405,6 +1471,7 @@ window.saveSmtpSettings = async function() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to save email settings');
 
+    saveLocalSmtpProfile(settingsPayload);
     showToast('Email Delivery Configuration saved successfully!', 'success');
     loadPlatformSettings();
   } catch (err) {
@@ -1435,12 +1502,14 @@ window.sendTestSmtpEmail = async function() {
 
     if (!res.ok) throw new Error(data.error || 'SMTP delivery handshake failed');
 
+    saveLocalSmtpProfile(settingsPayload);
     if (resultDiv) {
       resultDiv.style.display = 'block';
       resultDiv.style.color = 'var(--success)';
       resultDiv.innerHTML = `<strong>✓ Success:</strong> ${escapeHtml(data.message)}`;
     }
     showToast('Test email successfully dispatched!', 'success');
+    loadPlatformSettings();
   } catch (err) {
     if (resultDiv) {
       resultDiv.style.display = 'block';

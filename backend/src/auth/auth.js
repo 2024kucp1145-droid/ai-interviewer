@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { db } from '../db/database.js';
@@ -22,6 +23,79 @@ export function verifyToken(token) {
   } catch (err) {
     return null;
   }
+}
+
+function buildOtpHmac(purpose, cleanEmail, nonce, otpCode) {
+  return crypto
+    .createHmac('sha256', JWT_SECRET)
+    .update(`${purpose}:${cleanEmail}:${nonce}:${String(otpCode).trim()}`)
+    .digest('hex');
+}
+
+/**
+ * Issue a signed stateless OTP challenge token for multi-container serverless verification.
+ * Stores only a server-secret HMAC proof, never the plaintext OTP.
+ */
+export function createStatelessOtpChallenge(email, otpCode, purpose, extra = {}) {
+  const cleanEmail = (email || '').toLowerCase().trim();
+  const nonce = crypto.randomBytes(16).toString('hex');
+  const proof = buildOtpHmac(purpose, cleanEmail, nonce, otpCode);
+  return jwt.sign(
+    { type: 'otp_challenge', email: cleanEmail, purpose, nonce, proof, ...extra },
+    JWT_SECRET,
+    { expiresIn: '15m' }
+  );
+}
+
+/**
+ * Verify a user-entered OTP code against a stateless signed OTP challenge token.
+ */
+export function verifyStatelessOtpChallenge(otpToken, email, otpCode, purpose) {
+  if (!otpToken || !otpCode || !email) {
+    return { valid: false, error: 'Missing challenge token or OTP code' };
+  }
+  const decoded = verifyToken(otpToken);
+  if (!decoded || decoded.type !== 'otp_challenge' || decoded.purpose !== purpose) {
+    return { valid: false, error: 'OTP challenge expired or invalid. Please request a new code.' };
+  }
+  const cleanEmail = email.toLowerCase().trim();
+  if (decoded.email !== cleanEmail) {
+    return { valid: false, error: 'OTP challenge does not match this email address.' };
+  }
+  const expected = Buffer.from(buildOtpHmac(purpose, cleanEmail, decoded.nonce, otpCode), 'hex');
+  const actual = Buffer.from(decoded.proof || '', 'hex');
+  if (expected.length !== actual.length || !crypto.timingSafeEqual(expected, actual)) {
+    return { valid: false, error: 'Invalid verification code. Please check your email and try again.' };
+  }
+  return { valid: true, decoded };
+}
+
+/**
+ * Create a durable signed receipt so admins can log back in even after a Vercel cold /tmp reset.
+ */
+export function createSignedAdminProfileReceipt(adminUser) {
+  if (!adminUser?.email || !adminUser?.admin_uid) return null;
+  return jwt.sign(
+    {
+      type: 'admin_profile_receipt',
+      id: adminUser.id,
+      org_id: adminUser.org_id || 'org_platform_admins',
+      email: adminUser.email.toLowerCase().trim(),
+      full_name: adminUser.full_name || adminUser.fullName || 'Platform Administrator',
+      admin_uid: String(adminUser.admin_uid).toUpperCase(),
+      role: 'superadmin'
+    },
+    JWT_SECRET,
+    { expiresIn: '90d' }
+  );
+}
+
+export function verifySignedAdminProfileReceipt(profileToken) {
+  const decoded = verifyToken(profileToken);
+  if (!decoded || decoded.type !== 'admin_profile_receipt' || decoded.role !== 'superadmin') {
+    return null;
+  }
+  return decoded;
 }
 
 /**
