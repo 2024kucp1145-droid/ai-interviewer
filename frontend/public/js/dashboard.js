@@ -1,6 +1,6 @@
 // Recruiter Dashboard & Multi-Step Customer Onboarding Logic
 
-let authToken = localStorage.getItem('ai_interviewer_token') || null;
+let authToken = localStorage.getItem('roundone_token') || null;
 let currentUser = null;
 let currentOrg = null;
 let activeJobId = null;
@@ -22,7 +22,7 @@ async function apiRequest(endpoint, options = {}) {
   const res = await fetch(endpoint, { ...options, headers });
   if (res.status === 401) {
     authToken = null;
-    localStorage.removeItem('ai_interviewer_token');
+    localStorage.removeItem('roundone_token');
     updateUserBadge();
     openAuthModal();
     throw new Error('Session expired. Please sign in.');
@@ -67,7 +67,7 @@ async function checkAuthSession() {
       return true;
     } else if (res.status === 401) {
       authToken = null;
-      localStorage.removeItem('ai_interviewer_token');
+      localStorage.removeItem('roundone_token');
       updateUserBadge();
       openAuthModal();
       return false;
@@ -162,7 +162,7 @@ document.getElementById('btn-auth-switch').addEventListener('click', () => {
       authToken = null;
       currentUser = null;
       currentOrg = null;
-      localStorage.removeItem('ai_interviewer_token');
+      localStorage.removeItem('roundone_token');
       updateUserBadge();
       openAuthModal();
       goToStep(1);
@@ -173,26 +173,25 @@ document.getElementById('btn-auth-switch').addEventListener('click', () => {
   }
 });
 
-// Step 1: Form Sign Up
+// Step 1: Form Sign Up (no password)
 document.getElementById('form-signup').addEventListener('submit', async (e) => {
   e.preventDefault();
   const fullName = document.getElementById('su-name').value.trim();
   const jobTitle = document.getElementById('su-title').value.trim();
   const email = document.getElementById('su-email').value.trim();
   const phone = document.getElementById('su-phone').value.trim();
-  const password = document.getElementById('su-password').value;
 
   try {
     const res = await fetch('/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fullName, jobTitle, email, phone, password })
+      body: JSON.stringify({ fullName, jobTitle, email, phone })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to register account');
 
     authToken = data.token;
-    localStorage.setItem('ai_interviewer_token', authToken);
+    localStorage.setItem('roundone_token', authToken);
     currentUser = data.user;
     currentOrg = data.org;
 
@@ -200,38 +199,69 @@ document.getElementById('form-signup').addEventListener('submit', async (e) => {
     if (data.emailSent) {
       alert(`✓ Verification code sent to ${data.user.email}! Please check your email inbox (and spam folder).`);
     } else {
-      alert(`⚠️ Notice: Live email delivery requires SMTP or Resend API configured in Admin Settings.\nFor local development, your 6-digit code is visible in the server terminal output.`);
+      alert(`⚠️ Notice: Live email delivery requires SMTP configured in Admin Settings.\nFor local development, the 6-digit code is visible in the server terminal.`);
     }
   } catch (err) {
     alert(err.message);
   }
 });
 
-// Step 1: Form Login
+// Step 1: Form Login — Email only, sends OTP
 document.getElementById('form-login').addEventListener('submit', async (e) => {
   e.preventDefault();
   const email = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value;
 
   try {
-    const res = await fetch('/auth/login', {
+    const btn = e.target.querySelector('button[type=submit]');
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+
+    const res = await fetch('/auth/login-otp-request', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Invalid credentials');
+    btn.disabled = false;
+    btn.innerHTML = 'Send Login Code <i class="bi bi-envelope-at"></i>';
+    if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+
+    // Show OTP input form
+    document.getElementById('login-otp-email-display').textContent = email;
+    document.getElementById('form-login').style.display = 'none';
+    document.getElementById('form-login-otp').style.display = 'block';
+    document.getElementById('login-otp-code').value = '';
+    document.getElementById('login-otp-code').focus();
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
+// Step 1b: OTP verify for login
+document.getElementById('form-login-otp').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('login-email').value.trim();
+  const otp = document.getElementById('login-otp-code').value.trim();
+
+  try {
+    const btn = e.target.querySelector('button[type=submit]');
+    btn.disabled = true;
+    btn.textContent = 'Verifying...';
+
+    const res = await fetch('/auth/login-otp-verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, otp })
+    });
+    const data = await res.json();
+    btn.disabled = false;
+    btn.innerHTML = 'Enter Dashboard <i class="bi bi-box-arrow-in-right"></i>';
+    if (!res.ok) throw new Error(data.error || 'Invalid OTP');
 
     authToken = data.token;
-    localStorage.setItem('ai_interviewer_token', authToken);
+    localStorage.setItem('roundone_token', authToken);
     currentUser = data.user;
     currentOrg = data.org;
-
-    if (!currentUser.is_verified) {
-      document.getElementById('wizard-steps-indicator').style.display = 'flex';
-      goToStep(2);
-      return;
-    }
 
     authModal.style.display = 'none';
     updateUserBadge();
