@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS users (
   approval_status VARCHAR(64) DEFAULT 'approved',
   last_login_at TIMESTAMPTZ,
   admin_notes TEXT,
+  admin_uid VARCHAR(64) UNIQUE,
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 

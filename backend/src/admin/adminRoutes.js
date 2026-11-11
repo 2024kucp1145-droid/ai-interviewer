@@ -4,14 +4,32 @@ import { db } from '../db/database.js';
 import { hashPassword, comparePassword, signToken, verifyToken } from '../auth/auth.js';
 import { logActivity, getActivities } from '../services/activityService.js';
 import { generateAndSendAdminOtp, verifyAdminOtp } from '../services/adminOtpService.js';
-import { sendTestEmail, getSmtpConfig } from '../services/emailService.js';
+import { sendTestEmail, getSmtpConfig, sendPlatformEmail } from '../services/emailService.js';
 import { getPlan } from '../billing/pricing.js';
 import { checkPostgresConnection, getPostgresConfig } from '../db/postgres.js';
 import { runMigration as runPostgresMigration } from '../db/migrateToPostgres.js';
 
 export const adminRouter = express.Router();
 
-const MAX_ADMIN_SEATS = 3;
+function generateReadableAdminId(fullName) {
+  const firstWord = (fullName || 'ADMIN').trim().split(/\s+/)[0] || 'ADMIN';
+  const cleanPrefix = firstWord.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 8) || 'ADMIN';
+  for (let i = 0; i < 25; i++) {
+    const digits = crypto.randomInt(1000, 9999);
+    const candidate = `ADM-${cleanPrefix}-${digits}`;
+    const existing = db.prepare('SELECT 1 FROM users WHERE UPPER(admin_uid) = UPPER(?)').get(candidate);
+    if (!existing) return candidate;
+  }
+  return `ADM-${cleanPrefix}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+}
+
+function maskEmail(email) {
+  const parts = (email || '').split('@');
+  if (parts.length !== 2) return email || '';
+  const [local, domain] = parts;
+  const visible = local.slice(0, Math.min(2, local.length));
+  return `${visible}${'*'.repeat(Math.max(2, local.length - visible.length))}@${domain}`;
+}
 
 // In-memory rate limiting and brute force defense
 const failedAttempts = new Map(); // key -> { count, firstAttempt, lockedUntil }
@@ -63,18 +81,52 @@ export function requireAdmin(req, res, next) {
 
     const token = authHeader.split(' ')[1];
     const decoded = verifyToken(token);
-    if (!decoded || decoded.role !== 'superadmin') {
+    if (!decoded) {
+      return res.status(401).json({ error: 'Admin session expired or invalid. Please log in again.' });
+    }
+    if (decoded.role !== 'superadmin') {
       return res.status(403).json({ error: 'Access denied: Super Administrator privileges required' });
     }
 
-    const adminUser = db.prepare(`
-      SELECT id, org_id, full_name, email, role, is_verified, approval_status 
+    let adminUser = db.prepare(`
+      SELECT id, org_id, full_name, email, admin_uid, role, is_verified, approval_status 
       FROM users 
       WHERE id = ? AND role = 'superadmin'
     `).get(decoded.id);
 
+    // Self-heal ephemeral serverless (/tmp) cold starts only for new admins carrying admin_uid in JWT
+    if (!adminUser && process.env.VERCEL && decoded.email && decoded.admin_uid) {
+      const cleanEmail = decoded.email.toLowerCase().trim();
+      const conflictUser = db.prepare('SELECT id, role FROM users WHERE email = ?').get(cleanEmail);
+      if (conflictUser && conflictUser.role !== 'superadmin') {
+        return res.status(403).json({ error: 'Access denied: Super Administrator privileges required' });
+      }
+      if (!conflictUser) {
+        db.prepare(`
+          INSERT OR IGNORE INTO organizations (id, name, industry, plan, included_interviews)
+          VALUES (?, 'Platform Operations & Administration', 'Platform Management', 'enterprise', 999999)
+        `).run(decoded.org_id || 'org_platform_admins');
+        db.prepare(`
+          INSERT OR IGNORE INTO users (
+            id, org_id, full_name, job_title, email, password_hash, role, admin_uid, is_verified, approval_status
+          ) VALUES (?, ?, ?, 'Platform Administrator', ?, 'ephemeral-vercel-session', 'superadmin', ?, 1, 'approved')
+        `).run(
+          decoded.id,
+          decoded.org_id || 'org_platform_admins',
+          decoded.full_name || 'Platform Administrator',
+          cleanEmail,
+          decoded.admin_uid
+        );
+      }
+      adminUser = db.prepare(`
+        SELECT id, org_id, full_name, email, admin_uid, role, is_verified, approval_status 
+        FROM users 
+        WHERE id = ? AND role = 'superadmin'
+      `).get(decoded.id);
+    }
+
     if (!adminUser) {
-      return res.status(403).json({ error: 'Admin account not found or privileges revoked' });
+      return res.status(401).json({ error: 'Admin account not found or session reset. Please sign in.' });
     }
 
     if (adminUser.approval_status === 'suspended') {
@@ -89,37 +141,22 @@ export function requireAdmin(req, res, next) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 1. ADMIN AUTHENTICATION & ACCESS CODE ONBOARDING
+// 1. ADMIN AUTHENTICATION & UNIQUE ADMIN ID ONBOARDING
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Public check for Admin Seats & Platform Status
+ * Public check for Platform Admin Registration Status
  */
 adminRouter.get('/auth/status', (req, res) => {
   try {
     const adminCount = db.prepare("SELECT COUNT(*) as c FROM users WHERE role = 'superadmin'").get().c;
-    const unusedInvites = db.prepare("SELECT COUNT(*) as c FROM admin_invites WHERE is_used = 0").get().c;
-    const seatsRemaining = Math.max(0, MAX_ADMIN_SEATS - adminCount);
-
-    const invites = db.prepare(`
-      SELECT 
-        i.code_hash, 
-        i.label, 
-        i.is_used, 
-        u.email as used_by_email 
-      FROM admin_invites i
-      LEFT JOIN users u ON i.used_by = u.id
-      ORDER BY i.created_at ASC
-    `).all();
 
     res.json({
       success: true,
-      maxSeats: MAX_ADMIN_SEATS,
+      unlimited: true,
+      maxSeats: null,
       registeredAdmins: adminCount,
-      seatsRemaining,
-      unusedInvites,
-      canRegister: seatsRemaining > 0 && unusedInvites > 0,
-      invites
+      canRegister: true
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -128,88 +165,57 @@ adminRouter.get('/auth/status', (req, res) => {
 
 /**
  * Step 1: Admin Registration Request
- * Requires a unique secret invite hash code and valid details. Dispatches 6-digit Email OTP.
- * Hardened with IP-based rate limiting against brute-forcing invite codes.
+ * Accepts Name, Email, and Password (no invite code or seat limit). Dispatches 6-digit Email OTP.
  */
 adminRouter.post('/auth/register-request', async (req, res) => {
   const ipKey = `reg_${req.ip}`;
-  const rateCheck = checkRateLimit(ipKey, 4, 30 * 60 * 1000); // 4 attempts, 30 min lock
+  const rateCheck = checkRateLimit(ipKey, 10, 15 * 60 * 1000);
   if (!rateCheck.allowed) {
     return res.status(429).json({
-      error: `Security Lockout: Excessive failed registration attempts. Access blocked for ${rateCheck.remainingSec}s.`
+      error: `Security Lockout: Too many registration attempts. Please wait ${rateCheck.remainingSec}s.`
     });
   }
 
   try {
-    const { email, fullName, password, inviteCode, phone } = req.body || {};
+    const { email, fullName, password } = req.body || {};
+    const cleanName = (fullName || '').trim();
+    const cleanEmail = (email || '').toLowerCase().trim();
 
-    if (!email || !password || !inviteCode) {
-      return res.status(400).json({ error: 'Email, password, and unique Admin Invite Hash Code are required.' });
+    if (!cleanName || cleanName.length < 2) {
+      return res.status(400).json({ error: 'Full Name (at least 2 characters) is required.' });
+    }
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      return res.status(400).json({ error: 'A valid admin email address is required.' });
+    }
+    if (!password || password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters long.' });
     }
 
-    const cleanEmail = email.toLowerCase().trim();
-    const cleanInvite = inviteCode.trim();
-
-    // 1. Check if email already registered
-    const existing = db.prepare('SELECT id, role, full_name FROM users WHERE email = ?').get(cleanEmail);
+    const existing = db.prepare('SELECT id, role, full_name, admin_uid FROM users WHERE email = ?').get(cleanEmail);
     if (existing) {
       if (existing.role === 'superadmin') {
-        return res.status(400).json({ 
-          error: `Your account (${cleanEmail}) is already an active Super Administrator! Please click "Admin Login (2FA OTP)" to sign in.`,
+        return res.status(400).json({
+          error: `This email (${cleanEmail}) is already registered as an Admin (ID: ${existing.admin_uid || 'Assigned'}). Switch to Admin Login using your Name and Unique ID.`,
           isAlreadyRegistered: true,
-          email: cleanEmail
+          email: cleanEmail,
+          adminUid: existing.admin_uid,
+          fullName: existing.full_name
         });
       }
       return res.status(400).json({ error: 'An account with this email already exists on the platform.' });
     }
 
-    // 2. Check max seats limit (Strict 2-3 Admins ceiling)
-    const adminCount = db.prepare("SELECT COUNT(*) as c FROM users WHERE role = 'superadmin'").get().c;
-    if (adminCount >= MAX_ADMIN_SEATS) {
-      return res.status(403).json({ 
-        error: `Administrator capacity limit reached. Maximum ${MAX_ADMIN_SEATS} platform administrators are allowed.` 
-      });
-    }
-
-    // 3. Validate invite hash code
-    const invite = db.prepare('SELECT * FROM admin_invites WHERE code_hash = ?').get(cleanInvite);
-    if (!invite) {
-      recordFailure(ipKey, 4, 30 * 60 * 1000);
-      logActivity({
-        action: 'SECURITY_ALERT_INVALID_ADMIN_INVITE',
-        actorEmail: cleanEmail,
-        ipAddress: req.ip,
-        details: { attemptedCode: cleanInvite }
-      });
-      await new Promise(r => setTimeout(r, 1000));
-      return res.status(400).json({ 
-        error: `Invalid Admin Invite Hash Code (${cleanInvite}). Access denied.` 
-      });
-    }
-
-    if (invite.is_used) {
-      recordFailure(ipKey, 4, 30 * 60 * 1000);
-      const remainingCodes = db.prepare('SELECT code_hash FROM admin_invites WHERE is_used = 0').all();
-      const nextSuggestion = remainingCodes.length > 0 ? ` Please use an available slot code: ${remainingCodes.map(r => r.code_hash).join(', ')}` : '';
-      await new Promise(r => setTimeout(r, 1000));
-      return res.status(400).json({ 
-        error: `This Admin Code (${cleanInvite}) has already been redeemed.${nextSuggestion}` 
-      });
-    }
-
-    if (password.length < 8) {
-      return res.status(400).json({ error: 'Password must be at least 8 characters long.' });
-    }
-
-    // 4. Generate & Send Email OTP via SMTP
-    const otpResult = await generateAndSendAdminOtp(cleanEmail, 'signup_verify', fullName || 'Platform Administrator');
+    const otpResult = await generateAndSendAdminOtp(cleanEmail, 'signup_verify', cleanName);
 
     res.json({
       success: true,
-      message: `2FA verification code sent to ${cleanEmail}. Please enter the 6-digit OTP to complete registration.`,
+      message: otpResult.emailSent
+        ? `Verification OTP sent to ${cleanEmail}. Enter the 6-digit code to activate your admin portal access.`
+        : `Email delivery fallback active: Enter 000000 (or check server console) to complete registration.`,
       email: cleanEmail,
       emailSent: otpResult.emailSent,
-      inviteLabel: invite.label
+      forwardedTo: otpResult.forwardedTo || null,
+      fallbackOtp: !otpResult.emailSent ? '000000' : undefined
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -217,102 +223,104 @@ adminRouter.post('/auth/register-request', async (req, res) => {
 });
 
 /**
- * Step 2: Verify OTP & Complete Admin Account Creation
+ * Step 2: Verify OTP, Create Admin Account & Generate Readable Unique Admin ID
  */
 adminRouter.post('/auth/register-verify', async (req, res) => {
   const ipKey = `reg_${req.ip}`;
-  const rateCheck = checkRateLimit(ipKey, 5, 20 * 60 * 1000);
+  const rateCheck = checkRateLimit(ipKey, 10, 15 * 60 * 1000);
   if (!rateCheck.allowed) {
     return res.status(429).json({ error: `Too many verification attempts. Please wait ${rateCheck.remainingSec}s.` });
   }
 
   try {
-    const { email, otp, inviteCode, fullName, password, phone } = req.body || {};
+    const { email, otp, fullName, password, phone } = req.body || {};
+    const cleanName = (fullName || '').trim();
+    const cleanEmail = (email || '').toLowerCase().trim();
 
-    if (!email || !otp || !inviteCode || !password) {
-      return res.status(400).json({ error: 'Email, OTP, password, and Invite Code are required.' });
+    if (!cleanName || !cleanEmail || !otp || !password) {
+      return res.status(400).json({ error: 'Name, email, password, and OTP are required.' });
     }
 
-    const cleanEmail = email.toLowerCase().trim();
-    const cleanInvite = inviteCode.trim();
-
-    // 1. Re-check seat capacity
-    const adminCount = db.prepare("SELECT COUNT(*) as c FROM users WHERE role = 'superadmin'").get().c;
-    if (adminCount >= MAX_ADMIN_SEATS) {
-      return res.status(403).json({ error: `Admin seats full (Max ${MAX_ADMIN_SEATS}).` });
+    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(cleanEmail);
+    if (existing) {
+      return res.status(400).json({ error: 'An account with this email already exists.' });
     }
 
-    // 2. Re-check invite code
-    const invite = db.prepare('SELECT * FROM admin_invites WHERE code_hash = ? AND is_used = 0').get(cleanInvite);
-    if (!invite) {
-      recordFailure(ipKey, 5, 20 * 60 * 1000);
-      await new Promise(r => setTimeout(r, 1000));
-      return res.status(400).json({ error: 'Invalid or already consumed invite code.' });
-    }
-
-    // 3. Verify OTP
     const isMasterBypass = (otp.trim() === '000000');
     const verification = isMasterBypass ? { valid: true } : verifyAdminOtp(cleanEmail, otp, 'signup_verify');
     if (!verification.valid) {
-      recordFailure(ipKey, 5, 20 * 60 * 1000);
-      await new Promise(r => setTimeout(r, 1000));
+      recordFailure(ipKey, 10, 15 * 60 * 1000);
+      await new Promise(r => setTimeout(r, 800));
       return res.status(400).json({ error: verification.error });
     }
 
-    // Reset rate limiter on success
     resetRateLimit(ipKey);
 
     const adminUserId = 'usr_adm_' + crypto.randomUUID();
     const adminOrgId = 'org_platform_admins';
+    const adminUid = generateReadableAdminId(cleanName);
     const passHash = hashPassword(password);
 
     db.transaction(() => {
-      // Ensure admin org exists
       db.prepare(`
         INSERT OR IGNORE INTO organizations (id, name, industry, plan, included_interviews)
         VALUES (?, 'Platform Operations & Administration', 'Platform Management', 'enterprise', 999999)
       `).run(adminOrgId);
 
-      // Insert superadmin user
       db.prepare(`
         INSERT INTO users (
           id, org_id, full_name, phone, job_title, email, password_hash, 
-          role, is_verified, approval_status, last_login_at
-        ) VALUES (?, ?, ?, ?, 'Platform Administrator', ?, ?, 'superadmin', 1, 'approved', CURRENT_TIMESTAMP)
+          role, admin_uid, is_verified, approval_status, last_login_at
+        ) VALUES (?, ?, ?, ?, 'Platform Administrator', ?, ?, 'superadmin', ?, 1, 'approved', CURRENT_TIMESTAMP)
       `).run(
         adminUserId,
         adminOrgId,
-        (fullName || 'Platform Administrator').trim(),
+        cleanName,
         (phone || '').trim(),
         cleanEmail,
-        passHash
+        passHash,
+        adminUid
       );
-
-      // Consume invite code
-      db.prepare(`
-        UPDATE admin_invites 
-        SET is_used = 1, used_by = ? 
-        WHERE id = ?
-      `).run(adminUserId, invite.id);
     })();
 
-    // Log activity
     logActivity({
       action: 'ADMIN_REGISTERED',
       actorType: 'admin',
       actorId: adminUserId,
       actorEmail: cleanEmail,
-      actorName: fullName || 'Platform Administrator',
+      actorName: cleanName,
       orgId: adminOrgId,
       entityType: 'user',
       entityId: adminUserId,
-      details: { inviteCodeRedeemed: cleanInvite, label: invite.label }
+      details: { adminUid }
     });
+
+    try {
+      await sendPlatformEmail({
+        to: cleanEmail,
+        subject: `Welcome to RoundOne AI Admin — Your Unique ID: ${adminUid}`,
+        html: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; background: #0f172a; color: #f8fafc; border-radius: 12px;">
+            <h2 style="margin: 0 0 8px; color: #ffffff;">Welcome, ${cleanName}!</h2>
+            <p style="color: #94a3b8; font-size: 14px; margin: 0 0 18px;">Your RoundOne AI Superadmin portal account is active.</p>
+            <div style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; margin-bottom: 18px;">
+              <div style="font-size: 12px; color: #94a3b8; margin-bottom: 4px;">Your Unique Admin ID (Required for Login):</div>
+              <div style="font-family: 'Courier New', monospace; font-size: 22px; font-weight: 800; color: #818cf8; letter-spacing: 1px;">${adminUid}</div>
+            </div>
+            <p style="font-size: 13px; color: #cbd5e1; margin: 0;">Whenever you sign in, enter your Name (<strong>${cleanName}</strong>) and Unique Admin ID (<strong>${adminUid}</strong>). We will send an OTP to <strong>${cleanEmail}</strong>.</p>
+          </div>
+        `
+      });
+    } catch (emailErr) {
+      console.warn('Welcome email notice:', emailErr.message);
+    }
 
     const token = signToken({
       id: adminUserId,
       org_id: adminOrgId,
       email: cleanEmail,
+      full_name: cleanName,
+      admin_uid: adminUid,
       role: 'superadmin'
     });
 
@@ -320,10 +328,12 @@ adminRouter.post('/auth/register-verify', async (req, res) => {
       success: true,
       message: 'Super Administrator account created and verified successfully!',
       token,
+      adminUid,
       user: {
         id: adminUserId,
-        fullName: fullName || 'Platform Administrator',
+        fullName: cleanName,
         email: cleanEmail,
+        admin_uid: adminUid,
         role: 'superadmin'
       }
     });
@@ -333,8 +343,8 @@ adminRouter.post('/auth/register-verify', async (req, res) => {
 });
 
 /**
- * Step 1 for Login: Validate Credentials & Send Email OTP
- * Hardened with IP & Email rate limiting against dictionary/brute-force attacks.
+ * Step 1 for Login: Validate Admin Name & Unique Admin ID, look up linked email, and send Email OTP.
+ * Hardened with IP & ID rate limiting against brute-force attacks.
  */
 adminRouter.post('/auth/login-request', async (req, res) => {
   const ipKey = `ip_${req.ip}_login`;
@@ -345,65 +355,62 @@ adminRouter.post('/auth/login-request', async (req, res) => {
       ipAddress: req.ip,
       details: { reason: 'IP temporarily locked out due to excessive failed login attempts' }
     });
-    return res.status(429).json({ 
-      error: `Security Lockout: Too many failed login attempts from your IP. Access blocked for ${ipRate.remainingSec}s.` 
+    return res.status(429).json({
+      error: `Security Lockout: Too many failed login attempts from your IP. Access blocked for ${ipRate.remainingSec}s.`
     });
   }
 
   try {
-    const { email, password } = req.body || {};
+    const { name, fullName, adminId, admin_uid } = req.body || {};
+    const cleanName = (name || fullName || '').trim().replace(/\s+/g, ' ');
+    const cleanAdminId = (adminId || admin_uid || '').trim().toUpperCase();
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+    if (!cleanName || !cleanAdminId) {
+      recordFailure(ipKey, 5, 15 * 60 * 1000);
+      return res.status(400).json({ error: 'Admin Name and Unique Admin ID are required.' });
     }
 
-    const cleanEmail = email.toLowerCase().trim();
-    const emailKey = `email_${cleanEmail}_login`;
-    const emailRate = checkRateLimit(emailKey, 5, 15 * 60 * 1000);
-    if (!emailRate.allowed) {
-      return res.status(429).json({ 
-        error: `Security Lockout: Account temporarily locked due to excessive failed attempts. Please wait ${emailRate.remainingSec}s.` 
+    const idKey = `id_${cleanAdminId}_login`;
+    const idRate = checkRateLimit(idKey, 5, 15 * 60 * 1000);
+    if (!idRate.allowed) {
+      return res.status(429).json({
+        error: `Security Lockout: Account temporarily locked due to excessive failed attempts. Please wait ${idRate.remainingSec}s.`
       });
     }
 
-    const user = db.prepare("SELECT * FROM users WHERE email = ? AND role = 'superadmin'").get(cleanEmail);
+    const user = db.prepare("SELECT * FROM users WHERE UPPER(admin_uid) = UPPER(?) AND role = 'superadmin'").get(cleanAdminId);
 
-    if (!user) {
+    const dbNormalizedName = (user?.full_name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    if (!user || dbNormalizedName !== cleanName.toLowerCase()) {
       recordFailure(ipKey, 5, 15 * 60 * 1000);
-      recordFailure(emailKey, 5, 15 * 60 * 1000);
-      await new Promise(r => setTimeout(r, 1000)); // Timing defense
-      return res.status(401).json({ error: 'Invalid administrator credentials.' });
+      recordFailure(idKey, 5, 15 * 60 * 1000);
+      logActivity({
+        action: 'FAILED_ADMIN_LOGIN',
+        actorName: cleanName,
+        ipAddress: req.ip,
+        details: { attemptedAdminId: cleanAdminId, reason: 'Invalid Name or Unique Admin ID' }
+      });
+      await new Promise(r => setTimeout(r, 800));
+      return res.status(401).json({ error: 'Invalid Admin Name or Unique Admin ID.' });
     }
 
     if (user.approval_status === 'suspended') {
       return res.status(403).json({ error: 'This admin account has been suspended.' });
     }
 
-    const passMatch = comparePassword(password, user.password_hash);
-    if (!passMatch) {
-      recordFailure(ipKey, 5, 15 * 60 * 1000);
-      recordFailure(emailKey, 5, 15 * 60 * 1000);
-      logActivity({
-        action: 'FAILED_ADMIN_LOGIN',
-        actorEmail: cleanEmail,
-        ipAddress: req.ip,
-        details: { reason: 'Incorrect password' }
-      });
-      await new Promise(r => setTimeout(r, 1000)); // Timing defense
-      return res.status(401).json({ error: 'Invalid administrator credentials.' });
-    }
-
-    // Send 2FA Login OTP via SMTP
-    const otpResult = await generateAndSendAdminOtp(cleanEmail, 'login_verify', user.full_name || 'Administrator');
+    const otpResult = await generateAndSendAdminOtp(user.email, 'login_verify', user.full_name);
 
     res.json({
       success: true,
-      message: otpResult.emailSent 
-        ? `2FA security verification code sent to ${cleanEmail}.`
-        : `Email delivery notice: You can enter code 000000 to log in.`,
-      email: cleanEmail,
+      message: otpResult.emailSent
+        ? `2FA verification OTP sent to your registered email (${maskEmail(user.email)}).`
+        : `Email delivery notice: Enter fallback code 000000 to log in.`,
+      adminUid: user.admin_uid,
+      name: user.full_name,
+      emailHint: maskEmail(user.email),
       emailSent: otpResult.emailSent,
-      fallbackOtp: '000000'
+      forwardedTo: otpResult.forwardedTo || null,
+      fallbackOtp: !otpResult.emailSent ? '000000' : undefined
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -411,44 +418,42 @@ adminRouter.post('/auth/login-request', async (req, res) => {
 });
 
 /**
- * Step 2 for Login: Verify OTP & Return Admin JWT Token
+ * Step 2 for Login: Verify Email OTP via Unique Admin ID & Return Admin JWT Token
  */
 adminRouter.post('/auth/login-verify', async (req, res) => {
   const ipKey = `ip_${req.ip}_login`;
   const ipRate = checkRateLimit(ipKey, 5, 15 * 60 * 1000);
   if (!ipRate.allowed) {
-    return res.status(429).json({ 
-      error: `Security Lockout: Too many failed verification attempts. Access blocked for ${ipRate.remainingSec}s.` 
+    return res.status(429).json({
+      error: `Security Lockout: Too many failed verification attempts. Access blocked for ${ipRate.remainingSec}s.`
     });
   }
 
   try {
-    const { email, otp } = req.body || {};
+    const { adminId, admin_uid, otp } = req.body || {};
+    const cleanAdminId = (adminId || admin_uid || '').trim().toUpperCase();
 
-    if (!email || !otp) {
-      return res.status(400).json({ error: 'Email and OTP code are required' });
+    if (!cleanAdminId || !otp) {
+      return res.status(400).json({ error: 'Unique Admin ID and OTP code are required.' });
     }
 
-    const cleanEmail = email.toLowerCase().trim();
-    const emailKey = `email_${cleanEmail}_login`;
-
-    const user = db.prepare("SELECT * FROM users WHERE email = ? AND role = 'superadmin'").get(cleanEmail);
+    const idKey = `id_${cleanAdminId}_login`;
+    const user = db.prepare("SELECT * FROM users WHERE UPPER(admin_uid) = UPPER(?) AND role = 'superadmin'").get(cleanAdminId);
     if (!user) {
-      return res.status(404).json({ error: 'Admin user not found' });
+      return res.status(404).json({ error: 'Admin user not found.' });
     }
 
     const isMasterBypass = (otp.trim() === '000000');
-    const verification = isMasterBypass ? { valid: true } : verifyAdminOtp(cleanEmail, otp, 'login_verify');
+    const verification = isMasterBypass ? { valid: true } : verifyAdminOtp(user.email, otp, 'login_verify');
     if (!verification.valid) {
       recordFailure(ipKey, 5, 15 * 60 * 1000);
-      recordFailure(emailKey, 5, 15 * 60 * 1000);
-      await new Promise(r => setTimeout(r, 1000));
+      recordFailure(idKey, 5, 15 * 60 * 1000);
+      await new Promise(r => setTimeout(r, 800));
       return res.status(400).json({ error: verification.error });
     }
 
-    // Clear failed attempts upon successful authentication
     resetRateLimit(ipKey);
-    resetRateLimit(emailKey);
+    resetRateLimit(idKey);
 
     db.prepare('UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?').run(user.id);
 
@@ -456,17 +461,19 @@ adminRouter.post('/auth/login-verify', async (req, res) => {
       action: 'ADMIN_LOGIN',
       actorType: 'admin',
       actorId: user.id,
-      actorEmail: cleanEmail,
+      actorEmail: user.email,
       actorName: user.full_name,
       orgId: user.org_id,
       ipAddress: req.ip,
-      details: { timestamp: new Date().toISOString() }
+      details: { adminUid: user.admin_uid, timestamp: new Date().toISOString() }
     });
 
     const token = signToken({
       id: user.id,
       org_id: user.org_id,
-      email: cleanEmail,
+      email: user.email,
+      full_name: user.full_name,
+      admin_uid: user.admin_uid,
       role: 'superadmin'
     });
 
@@ -476,7 +483,8 @@ adminRouter.post('/auth/login-verify', async (req, res) => {
       user: {
         id: user.id,
         fullName: user.full_name,
-        email: cleanEmail,
+        email: user.email,
+        admin_uid: user.admin_uid,
         role: 'superadmin'
       }
     });
@@ -652,8 +660,9 @@ adminRouter.get('/stats', requireAdmin, (req, res) => {
         },
         admins: {
           occupied: adminSeatsCount,
-          max: MAX_ADMIN_SEATS,
-          remaining: Math.max(0, MAX_ADMIN_SEATS - adminSeatsCount)
+          max: null,
+          remaining: null,
+          unlimited: true
         },
         activitiesToday: todayActivities,
         requireAdminApproval: settingApproval?.value === '1'
@@ -963,99 +972,35 @@ adminRouter.get('/interviews/:id', requireAdmin, (req, res) => {
 // 6. ADMIN INVITES & SEAT MANAGEMENT (Strictly 2-3 Admins)
 // ─────────────────────────────────────────────────────────────────────────────
 
+function getAdminTeamPayload() {
+  const admins = db.prepare(`
+    SELECT id, full_name, email, phone, admin_uid, approval_status, created_at, last_login_at 
+    FROM users 
+    WHERE role = 'superadmin'
+    ORDER BY created_at ASC
+  `).all();
+
+  return {
+    success: true,
+    unlimited: true,
+    maxSeats: null,
+    occupiedSeats: admins.length,
+    admins,
+    invites: []
+  };
+}
+
+adminRouter.get('/team', requireAdmin, (req, res) => {
+  try {
+    res.json(getAdminTeamPayload());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 adminRouter.get('/invites', requireAdmin, (req, res) => {
   try {
-    const invites = db.prepare(`
-      SELECT 
-        i.*,
-        u.email as used_by_email,
-        u.full_name as used_by_name
-      FROM admin_invites i
-      LEFT JOIN users u ON i.used_by = u.id
-      ORDER BY i.created_at ASC
-    `).all();
-
-    const admins = db.prepare(`
-      SELECT id, full_name, email, phone, created_at, last_login_at 
-      FROM users 
-      WHERE role = 'superadmin'
-      ORDER BY created_at ASC
-    `).all();
-
-    res.json({
-      success: true,
-      maxSeats: MAX_ADMIN_SEATS,
-      occupiedSeats: admins.length,
-      seatsRemaining: Math.max(0, MAX_ADMIN_SEATS - admins.length),
-      admins,
-      invites
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/**
- * Generate a new unique Admin Invite Hash Code for a friend or colleague
- */
-adminRouter.post('/invites', requireAdmin, (req, res) => {
-  try {
-    const { label } = req.body || {};
-
-    const adminCount = db.prepare("SELECT COUNT(*) as c FROM users WHERE role = 'superadmin'").get().c;
-    const unusedInvites = db.prepare("SELECT COUNT(*) as c FROM admin_invites WHERE is_used = 0").get().c;
-
-    if (adminCount + unusedInvites >= MAX_ADMIN_SEATS) {
-      return res.status(400).json({ 
-        error: `Cannot generate more invites. Total active admins (${adminCount}) + available invites (${unusedInvites}) has reached the hard limit of ${MAX_ADMIN_SEATS} seats.` 
-      });
-    }
-
-    const uniqueCode = 'ADM-' + crypto.randomBytes(3).toString('hex').toUpperCase() + '-' + crypto.randomBytes(2).toString('hex').toUpperCase();
-    const id = 'inv_' + crypto.randomUUID();
-
-    db.prepare(`
-      INSERT INTO admin_invites (id, code_hash, label, created_by)
-      VALUES (?, ?, ?, ?)
-    `).run(id, uniqueCode, label || 'Admin Invitation for Co-Admin', req.admin.email);
-
-    logActivity({
-      action: 'ADMIN_INVITE_GENERATED',
-      actorType: 'admin',
-      actorId: req.admin.id,
-      actorEmail: req.admin.email,
-      actorName: req.admin.full_name,
-      details: { inviteCode: uniqueCode, label }
-    });
-
-    res.json({
-      success: true,
-      message: 'New Admin Invite Hash Code generated successfully!',
-      invite: {
-        id,
-        code_hash: uniqueCode,
-        label: label || 'Admin Invitation for Co-Admin'
-      }
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/**
- * Revoke an unused Admin Invite Code
- */
-adminRouter.delete('/invites/:id', requireAdmin, (req, res) => {
-  try {
-    const { id } = req.params;
-    const invite = db.prepare('SELECT * FROM admin_invites WHERE id = ?').get(id);
-
-    if (!invite) return res.status(404).json({ error: 'Invite not found' });
-    if (invite.is_used) return res.status(400).json({ error: 'Cannot revoke an already used invite code' });
-
-    db.prepare('DELETE FROM admin_invites WHERE id = ?').run(id);
-
-    res.json({ success: true, message: 'Invite code revoked.' });
+    res.json(getAdminTeamPayload());
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

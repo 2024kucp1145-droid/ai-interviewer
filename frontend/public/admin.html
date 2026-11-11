@@ -736,9 +736,9 @@
       </div>
 
       <div class="header-meta">
-        <div id="seats-indicator" class="admin-pill seats-alert" title="Strictly limited to 2-3 Administrators">
+        <div id="seats-indicator" class="admin-pill" title="Active Platform Administrators">
           <span class="status-dot"></span>
-          <span id="seats-text">Admin Seats: Checking...</span>
+          <span id="seats-text">Active Admins: Checking...</span>
         </div>
 
         <button id="btn-theme-toggle" class="btn btn-secondary btn-sm" title="Toggle Theme">
@@ -768,46 +768,42 @@
           <i class="bi bi-shield-shaded"></i>
         </div>
         <h1 class="auth-title">Superadmin Gateway</h1>
-        <p class="auth-subtitle">Restricted to authorized platform administrators only (2–3 max seats)</p>
+        <p class="auth-subtitle">Sign up for a Unique Admin ID or sign in using Name, ID &amp; Email OTP</p>
       </div>
 
       <div class="auth-tabs">
         <button id="tab-auth-login" class="auth-tab active" onclick="switchAuthMode('login')">
-          <i class="bi bi-key-fill"></i> Admin Login (2FA OTP)
+          <i class="bi bi-key-fill"></i> Admin Login (Name + ID)
         </button>
         <button id="tab-auth-register" class="auth-tab" onclick="switchAuthMode('register')">
-          <i class="bi bi-ticket-perforated-fill"></i> Activate by Hash Code
+          <i class="bi bi-person-plus-fill"></i> Admin Sign Up
         </button>
       </div>
 
-      <!-- Mode A: Admin Login Flow -->
+      <!-- Mode A: Admin Login Flow (Name + Unique Admin ID -> OTP to Linked Email) -->
       <div id="flow-login">
-        <!-- Step 1: Password -->
+        <!-- Step 1: Name & Unique Admin ID -->
         <div id="login-step-1">
           <div class="form-group">
-            <label class="form-label">Administrator Email</label>
-            <input type="email" id="login-email" class="form-input" placeholder="admin@platform.com" required>
+            <label class="form-label">Admin Full Name <span style="color: var(--danger);">*</span></label>
+            <input type="text" id="login-name" class="form-input" placeholder="e.g. Aditya Vyamawar" required>
           </div>
           <div class="form-group">
-            <label class="form-label">Password</label>
-            <input type="password" id="login-password" class="form-input" placeholder="••••••••••••" required>
-            <div style="display: flex; justify-content: flex-end; margin-top: 0.35rem;">
-              <a href="javascript:void(0)" onclick="openResetPasswordFlow()" style="font-size: 0.73rem; color: var(--primary); text-decoration: none;">
-                <i class="bi bi-question-circle"></i> Forgot password?
-              </a>
-            </div>
+            <label class="form-label">Unique Admin ID <span style="color: var(--danger);">*</span></label>
+            <input type="text" id="login-admin-id" class="form-input code-font" placeholder="e.g. ADM-ADITYA-4821" required>
+            <span style="font-size: 0.7rem; color: var(--text-subtle);">An OTP will automatically be sent to the email registered with this ID.</span>
           </div>
           <button id="btn-login-request" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;" onclick="handleLoginRequest()">
-            Verify Credentials &amp; Send OTP &rarr;
+            Verify Name &amp; ID &rarr; Send Email OTP
           </button>
         </div>
 
-        <!-- Step 2: 2FA OTP -->
+        <!-- Step 2: Email OTP Verification -->
         <div id="login-step-2" style="display: none;">
           <div style="text-align: center; margin-bottom: 1rem;">
-            <span class="badge badge-primary"><i class="bi bi-envelope-check"></i> Security Code Sent</span>
+            <span class="badge badge-primary"><i class="bi bi-envelope-check"></i> Security OTP Sent</span>
             <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.4rem;">
-              We sent a 6-digit 2FA security OTP code to <strong id="login-target-email">your email</strong>.
+              We sent a 6-digit login OTP to your registered email (<strong id="login-target-email">your inbox</strong>).
             </p>
           </div>
 
@@ -819,28 +815,21 @@
           </div>
 
           <button id="btn-login-verify" class="btn btn-success" style="width: 100%;" onclick="handleLoginVerify()">
-            <i class="bi bi-unlock-fill"></i> Authenticate &amp; Access Control Center
+            <i class="bi bi-unlock-fill"></i> Verify OTP &amp; Enter Admin Portal
           </button>
 
           <button class="btn btn-secondary btn-sm" style="width: 100%; margin-top: 0.6rem;" onclick="resetLoginStep()">
-            &larr; Back to Email / Password
+            &larr; Back to Name &amp; Unique ID
           </button>
         </div>
       </div>
 
-      <!-- Mode C: Admin Password Reset via 2FA OTP -->
+      <!-- Mode C: Admin Password Reset via 2FA OTP (Legacy Hidden Container) -->
       <div id="flow-reset" style="display: none;">
-        <!-- Step 1: Email -->
         <div id="reset-step-1">
-          <div style="text-align: center; margin-bottom: 1rem;">
-            <span class="badge badge-warning"><i class="bi bi-key"></i> Password Recovery</span>
-            <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.4rem;">
-              Enter your administrator email to receive a 6-digit recovery OTP.
-            </p>
-          </div>
           <div class="form-group">
             <label class="form-label">Administrator Email</label>
-            <input type="email" id="reset-email" class="form-input" placeholder="admin@example.com" required>
+            <input type="email" id="reset-email" class="form-input" placeholder="admin@example.com">
           </div>
           <button id="btn-reset-request" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;" onclick="handleResetPasswordRequest()">
             Send Reset Code &rarr;
@@ -849,71 +838,49 @@
             &larr; Back to Login
           </button>
         </div>
-
-        <!-- Step 2: OTP & New Password -->
         <div id="reset-step-2" style="display: none;">
-          <div style="text-align: center; margin-bottom: 1rem;">
-            <span class="badge badge-primary"><i class="bi bi-envelope-check"></i> Reset Code Sent</span>
-            <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.4rem;">
-              Check your email for the 6-digit recovery OTP dispatched to <strong id="reset-target-email"></strong>.
-            </p>
+          <p style="font-size: 0.78rem; color: var(--text-muted);">OTP dispatched to <strong id="reset-target-email"></strong>.</p>
+          <div class="form-group">
+            <input type="text" maxlength="6" id="reset-otp" class="form-input code-font" placeholder="123456">
           </div>
           <div class="form-group">
-            <label class="form-label" style="text-align: center;">Enter 6-Digit Email OTP</label>
-            <input type="text" maxlength="6" id="reset-otp" class="form-input code-font" placeholder="123456" style="text-align: center; font-size: 1.4rem; letter-spacing: 0.4em;">
+            <input type="password" id="reset-new-password" class="form-input" placeholder="New password">
           </div>
-          <div class="form-group">
-            <label class="form-label">New Password (Min 8 Characters)</label>
-            <input type="password" id="reset-new-password" class="form-input" placeholder="••••••••••••" required>
-          </div>
-          <button id="btn-reset-verify" class="btn btn-success" style="width: 100%; margin-top: 0.5rem;" onclick="handleResetPasswordVerify()">
-            <i class="bi bi-check-lg"></i> Update Password &amp; Proceed to Login
-          </button>
-          <button class="btn btn-secondary btn-sm" style="width: 100%; margin-top: 0.6rem;" onclick="cancelResetPassword()">
-            &larr; Cancel
-          </button>
+          <button id="btn-reset-verify" class="btn btn-success" style="width: 100%;" onclick="handleResetPasswordVerify()">Update Password</button>
         </div>
       </div>
 
-      <!-- Mode B: Admin Secret Hash Code Activation / Signup Flow -->
+      <!-- Mode B: Admin Sign Up Flow (Name, Email, Password -> Email OTP -> Unique Admin ID) -->
       <div id="flow-register" style="display: none;">
-        <!-- Step 1: Details & Secret Invite Code -->
+        <!-- Step 1: Name, Email, Password -->
         <div id="register-step-1">
           <div class="form-group">
-            <label class="form-label">Unique Admin Invite Hash Code <span style="color: var(--danger);">*</span></label>
-            <input type="text" id="reg-invite-code" class="form-input code-font" placeholder="ADM-ALPHA-9821-X7" required>
-            <span style="font-size: 0.7rem; color: var(--text-subtle);">Must be one of the pre-seeded secret tokens for your 2-3 administrator seats.</span>
+            <label class="form-label">Full Name <span style="color: var(--danger);">*</span></label>
+            <input type="text" id="reg-name" class="form-input" placeholder="e.g. Aditya Vyamawar" required>
           </div>
           <div class="form-group">
-            <label class="form-label">Full Name</label>
-            <input type="text" id="reg-name" class="form-input" placeholder="e.g. Aditya (Lead Admin)" required>
+            <label class="form-label">Admin Email Address <span style="color: var(--danger);">*</span></label>
+            <input type="email" id="reg-email" class="form-input" placeholder="aditya@company.com" required>
           </div>
           <div class="form-group">
-            <label class="form-label">Admin Email Address</label>
-            <input type="email" id="reg-email" class="form-input" placeholder="aditya@admin.com" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Password (Min 8 Characters)</label>
+            <label class="form-label">Password (Min 8 Characters) <span style="color: var(--danger);">*</span></label>
             <input type="password" id="reg-password" class="form-input" placeholder="••••••••••••" required>
           </div>
           <button id="btn-register-request" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;" onclick="handleRegisterRequest()">
-            Validate Code &amp; Send Email OTP &rarr;
+            Send Verification OTP &rarr;
           </button>
-
-          <div id="auth-invite-helper-box" class="helper-box" style="margin-top: 1rem;">
-            <strong>🔑 Seeded Initial Admin Codes:</strong><br>
-            Slot 1: <code>ADM-ALPHA-9821-X7</code><br>
-            Slot 2: <code>ADM-BETA-4432-Y2</code><br>
-            Slot 3: <code>ADM-GAMMA-6119-Z9</code>
+          <div class="helper-box" style="margin-top: 1rem;">
+            <strong><i class="bi bi-info-circle"></i> Open Multi-Admin Onboarding:</strong><br>
+            Any signed-up admin receives a unique readable ID (e.g. <code>ADM-ADITYA-4821</code>) and full portal access.
           </div>
         </div>
 
         <!-- Step 2: Verification of Email OTP -->
         <div id="register-step-2" style="display: none;">
           <div style="text-align: center; margin-bottom: 1rem;">
-            <span class="badge badge-success"><i class="bi bi-shield-check"></i> Code Validated</span>
+            <span class="badge badge-primary"><i class="bi bi-envelope-check"></i> Verify Email</span>
             <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.4rem;">
-              Enter the 6-digit confirmation code dispatched to <strong id="reg-target-email"></strong> to finalize your admin seat.
+              Enter the 6-digit OTP sent to <strong id="reg-target-email"></strong> to create your admin account and generate your Unique ID.
             </p>
           </div>
 
@@ -923,11 +890,34 @@
           </div>
 
           <button id="btn-register-verify" class="btn btn-success" style="width: 100%;" onclick="handleRegisterVerify()">
-            <i class="bi bi-check-circle-fill"></i> Complete Activation &amp; Enter Portal
+            <i class="bi bi-check-circle-fill"></i> Verify OTP &amp; Generate Unique Admin ID
           </button>
 
           <button class="btn btn-secondary btn-sm" style="width: 100%; margin-top: 0.6rem;" onclick="resetRegisterStep()">
             &larr; Back to Details
+          </button>
+        </div>
+
+        <!-- Step 3: Generated Unique Admin ID Display -->
+        <div id="register-step-3" style="display: none; text-align: center;">
+          <div style="margin-bottom: 1rem;">
+            <span class="badge badge-success"><i class="bi bi-patch-check-fill"></i> Admin Account Activated</span>
+            <h3 style="margin: 0.75rem 0 0.25rem; font-size: 1.05rem;">Save Your Unique Admin ID</h3>
+            <p style="font-size: 0.78rem; color: var(--text-muted);">
+              Next time you sign in, only enter your Name and this Unique ID to receive a login OTP at <strong id="reg-confirmed-email"></strong>.
+            </p>
+          </div>
+
+          <div style="background: var(--surface-elevated); border: 1.5px solid var(--primary); border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
+            <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Your Unique Admin ID</div>
+            <div id="reg-generated-uid" class="code-font" style="font-size: 1.45rem; font-weight: 800; color: var(--primary); margin: 0.35rem 0;">ADM-ADMIN-0000</div>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="copyGeneratedAdminUid()">
+              <i class="bi bi-clipboard"></i> Copy Unique ID
+            </button>
+          </div>
+
+          <button id="btn-enter-portal" class="btn btn-success" style="width: 100%;" onclick="enterPortalAfterSignup()">
+            <i class="bi bi-box-arrow-in-right"></i> Enter Admin Portal &rarr;
           </button>
         </div>
       </div>
@@ -957,7 +947,7 @@
         <i class="bi bi-credit-card-2-front-fill"></i> Orders &amp; Subscriptions
       </button>
       <button class="nav-tab-btn" onclick="switchDashboardTab('invites')">
-        <i class="bi bi-key-fill"></i> Admin Seats &amp; Invites
+        <i class="bi bi-shield-fill-check"></i> Admin Team &amp; IDs
       </button>
       <button class="nav-tab-btn" onclick="switchDashboardTab('settings')">
         <i class="bi bi-sliders"></i> Governance Settings
@@ -1153,48 +1143,25 @@
       </div>
     </div>
 
-    <!-- TAB 5: ADMIN SEATS & INVITE CODES -->
+    <!-- TAB 5: REGISTERED ADMIN TEAM & UNIQUE IDS -->
     <div id="tab-content-invites" style="display: none;">
       <div class="card">
         <div class="card-header">
           <div class="card-title">
-            <i class="bi bi-shield-lock-fill"></i> Administrator Access Vault (Max 3 Seats)
+            <i class="bi bi-shield-fill-check"></i> Platform Administrators &amp; Unique IDs (Unlimited Access)
           </div>
-          <button id="btn-create-invite" class="btn btn-primary btn-sm" onclick="openCreateInviteModal()">
-            <i class="bi bi-plus-circle"></i> Generate Co-Admin Invite Hash
-          </button>
+          <span class="badge badge-success">All Signed-Up Admins Enabled</span>
         </div>
         <div class="card-body">
           <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.8rem;">
-            To maintain strict platform security, administrative privileges are capped at <strong>3 seats max</strong> for you and your co-founders/friends. Each invite hash code is single-use and requires 2FA Email OTP verification.
+            Every administrator who completes signup (Name, Email, Password + Email OTP) receives a unique readable Admin ID and full access to this portal. To log in later, admins simply enter their <strong>Name</strong> and <strong>Unique Admin ID</strong> and verify the OTP sent to their linked email.
           </p>
 
           <h3 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 0.75rem;">
-            Current Active Administrators
+            Registered Administrators
           </h3>
-          <div id="admins-list-container" style="display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 2rem;">
+          <div id="admins-list-container" style="display: flex; flex-direction: column; gap: 0.6rem;">
             <!-- Rendered dynamically -->
-          </div>
-
-          <h3 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 0.75rem;">
-            Admin Invitation Hash Codes
-          </h3>
-          <div class="table-responsive">
-            <table>
-              <thead>
-                <tr>
-                  <th>Secret Hash Code</th>
-                  <th>Slot Label</th>
-                  <th>Status</th>
-                  <th>Redeemed By</th>
-                  <th>Created At</th>
-                  <th style="text-align: right;">Action</th>
-                </tr>
-              </thead>
-              <tbody id="invites-table-body">
-                <!-- Rendered dynamically -->
-              </tbody>
-            </table>
           </div>
         </div>
       </div>
@@ -1522,27 +1489,6 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeInspectModal()">Close</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal 3: Generate New Admin Invite Hash Code -->
-  <div id="modal-create-invite" class="modal-backdrop">
-    <div class="modal-box" style="max-width: 480px;">
-      <div class="modal-header">
-        <div class="modal-title">Generate Co-Admin Invite Hash</div>
-        <button class="btn btn-secondary btn-sm" onclick="closeCreateInviteModal()">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label class="form-label">Slot Label / Description</label>
-          <input type="text" id="new-invite-label" class="form-input" placeholder="e.g. Co-Founder / Friend Admin Seat" value="Co-Founder / Friend Admin Seat">
-          <span style="font-size: 0.7rem; color: var(--text-subtle);">This will issue a unique secret hash code usable once for admin onboarding.</span>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeCreateInviteModal()">Cancel</button>
-        <button class="btn btn-primary" onclick="submitCreateInvite()">Generate Code</button>
       </div>
     </div>
   </div>

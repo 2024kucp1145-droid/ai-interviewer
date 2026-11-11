@@ -56,6 +56,7 @@ export async function generateAndSendAdminOtp(email, purpose = 'signup_verify', 
     success: true,
     email: cleanEmail,
     emailSent: emailResult.sent,
+    forwardedTo: emailResult.forwardedTo || null,
     smtpConfigured: smtpConfig.isConfigured,
     expiresAt,
     // If SMTP is NOT configured or failed to deliver, provide devOtp strictly as fallback for local dev so admin is not locked out

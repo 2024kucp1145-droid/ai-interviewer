@@ -357,57 +357,6 @@ app.get('/auth/me', requireAuth, (req, res) => {
   }
 });
 
-// --- Platform Admin: Registered Users & Organizations Directory ---
-app.get('/api/admin/users', requireAuth, (req, res) => {
-  try {
-    const users = db.prepare(`
-      SELECT 
-        u.id, 
-        u.full_name, 
-        u.email, 
-        u.phone, 
-        u.job_title, 
-        u.role, 
-        u.is_verified, 
-        u.created_at,
-        o.id as org_id, 
-        o.name as org_name, 
-        o.website as org_website, 
-        o.industry as org_industry, 
-        o.company_size as org_size, 
-        o.country as org_country, 
-        o.plan as org_plan, 
-        o.included_interviews as org_credits,
-        (SELECT COUNT(*) FROM jobs j WHERE j.org_id = o.id) as total_jobs,
-        (SELECT COUNT(*) FROM interviews i JOIN jobs j ON i.job_id = j.id WHERE j.org_id = o.id) as total_interviews,
-        (SELECT COUNT(*) FROM candidates c WHERE c.org_id = o.id) as total_candidates
-      FROM users u
-      LEFT JOIN organizations o ON u.org_id = o.id
-      ORDER BY u.created_at DESC
-    `).all();
-
-    const totalUsers = users.length;
-    const totalOrgs = new Set(users.map(u => u.org_id).filter(Boolean)).size;
-    const totalJobs = users.reduce((acc, u) => acc + (u.total_jobs || 0), 0);
-    const totalInterviews = users.reduce((acc, u) => acc + (u.total_interviews || 0), 0);
-    const totalCandidates = users.reduce((acc, u) => acc + (u.total_candidates || 0), 0);
-
-    res.json({
-      success: true,
-      stats: {
-        totalUsers,
-        totalOrgs,
-        totalJobs,
-        totalInterviews,
-        totalCandidates
-      },
-      users
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // --- Provider Key Endpoints (Customer-Owned Key Model, Section 4.3) ---
 app.post('/org/provider-key', requireAuth, async (req, res) => {
   try {

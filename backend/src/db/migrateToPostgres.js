@@ -83,17 +83,18 @@ export async function runMigration(explicitUrl) {
       name: 'users',
       sqliteSql: 'SELECT * FROM users',
       insertSql: `
-        INSERT INTO users (id, org_id, full_name, phone, job_title, email, password_hash, role, is_verified, verification_code, approval_status, last_login_at, admin_notes, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        INSERT INTO users (id, org_id, full_name, phone, job_title, email, password_hash, role, admin_uid, is_verified, verification_code, approval_status, last_login_at, admin_notes, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
         ON CONFLICT (id) DO UPDATE SET
           full_name = EXCLUDED.full_name,
           email = EXCLUDED.email,
           password_hash = EXCLUDED.password_hash,
           role = EXCLUDED.role,
+          admin_uid = EXCLUDED.admin_uid,
           is_verified = EXCLUDED.is_verified,
           approval_status = EXCLUDED.approval_status
       `,
-      mapRow: (r) => [r.id, r.org_id, r.full_name, r.phone, r.job_title, r.email, r.password_hash, r.role, r.is_verified, r.verification_code, r.approval_status, r.last_login_at, r.admin_notes, r.created_at]
+      mapRow: (r) => [r.id, r.org_id, r.full_name, r.phone, r.job_title, r.email, r.password_hash, r.role, r.admin_uid || null, r.is_verified, r.verification_code, r.approval_status, r.last_login_at, r.admin_notes, r.created_at]
     },
     {
       name: 'provider_keys',

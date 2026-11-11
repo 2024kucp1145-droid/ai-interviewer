@@ -302,34 +302,23 @@ export function initDatabase() {
   addColumn('users', 'approval_status', "TEXT DEFAULT 'approved'");
   addColumn('users', 'last_login_at', 'DATETIME');
   addColumn('users', 'admin_notes', 'TEXT');
+  addColumn('users', 'admin_uid', 'TEXT');
+
+  try {
+    db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_admin_uid ON users(admin_uid) WHERE admin_uid IS NOT NULL');
+  } catch (e) {
+    // Ignore if exists
+  }
 
   // Platform Settings Initial Seeding
   try {
     const insertSetting = db.prepare('INSERT OR IGNORE INTO platform_settings (key, value) VALUES (?, ?)');
     insertSetting.run('require_admin_approval', '0');
-    insertSetting.run('max_admin_seats', '3');
+    insertSetting.run('max_admin_seats', 'unlimited');
+    db.prepare("UPDATE platform_settings SET value = 'unlimited' WHERE key = 'max_admin_seats' AND value = '3'").run();
     insertSetting.run('default_trial_credits', '10');
   } catch (e) {
     console.warn('Settings seed notice:', e.message);
-  }
-
-  // Admin Invite Codes Initial Seeding (Strictly 3 unique hash codes for Platform Admins)
-  try {
-    const inviteCount = db.prepare('SELECT COUNT(*) as c FROM admin_invites').get().c;
-    if (inviteCount === 0) {
-      const initialInvites = [
-        { id: 'inv_adm_1', code: 'ADM-ALPHA-9821-X7', label: 'Primary Platform Owner (Admin #1)' },
-        { id: 'inv_adm_2', code: 'ADM-BETA-4432-Y2', label: 'Co-Founder / Friend (Admin #2)' },
-        { id: 'inv_adm_3', code: 'ADM-GAMMA-6119-Z9', label: 'Backup / Team (Admin #3)' }
-      ];
-      const insertInvite = db.prepare('INSERT OR IGNORE INTO admin_invites (id, code_hash, label, created_by) VALUES (?, ?, ?, ?)');
-      for (const inv of initialInvites) {
-        insertInvite.run(inv.id, inv.code, inv.label, 'system_init');
-      }
-      console.log('✓ Seeded 3 unique Admin Invite Hash Codes for restricted admin access');
-    }
-  } catch (e) {
-    console.warn('Admin invites seed notice:', e.message);
   }
 
   // Seed default admin organization
@@ -342,66 +331,14 @@ export function initDatabase() {
     // Non-fatal
   }
 
-  // Seed Primary Platform Admin (adityavyamawar@gmail.com) with password Admin@1234
-  try {
-    const adminCheck = db.prepare("SELECT id FROM users WHERE email = 'adityavyamawar@gmail.com'").get();
-    if (!adminCheck) {
-      // Hash for Admin@1234
-      const defaultHash = '$2b$10$ssgPT4ykcMacLbsp0UiUGuB5iPVLL5NILpKtca02skn5poRv5Y7gq';
-      db.prepare(`
-        INSERT INTO users (id, org_id, full_name, email, password_hash, role, is_verified, approval_status, last_login_at)
-        VALUES ('usr_admin_primary', 'org_platform_admins', 'Aditya Vyamawar (Platform Owner)', 'adityavyamawar@gmail.com', ?, 'superadmin', 1, 'approved', CURRENT_TIMESTAMP)
-      `).run(defaultHash);
-
-      db.prepare(`
-        UPDATE admin_invites 
-        SET is_used = 1, used_by = 'adityavyamawar@gmail.com' 
-        WHERE code_hash = 'ADM-ALPHA-9821-X7'
-      `).run();
-      console.log('✓ Seeded primary platform admin adityavyamawar@gmail.com');
-    }
-  } catch (e) {
-    console.warn('Admin seed notice:', e.message);
-  }
-
   // Seed initial platform activity audit logs if empty
   try {
     const actCount = db.prepare('SELECT COUNT(*) as c FROM platform_activities').get().c;
     if (actCount === 0) {
-      const initialActivities = [
-        {
-          id: 'act_init_1',
-          action: 'PLATFORM_INITIALIZED',
-          actor_type: 'system',
-          actor_email: 'system@platform.internal',
-          actor_name: 'Platform Core',
-          details: JSON.stringify({ environment: isVercel ? 'vercel' : 'production', maxSeats: 3 })
-        },
-        {
-          id: 'act_init_2',
-          action: 'ADMIN_REGISTERED',
-          actor_type: 'admin',
-          actor_email: 'adityavyamawar@gmail.com',
-          actor_name: 'Aditya Vyamawar (Platform Owner)',
-          details: JSON.stringify({ role: 'superadmin', method: 'primary_seed', inviteCode: 'ADM-ALPHA-9821-X7' })
-        },
-        {
-          id: 'act_init_3',
-          action: 'STARTER_ROLES_CREATED',
-          actor_type: 'system',
-          actor_email: 'system@platform.internal',
-          actor_name: 'Platform Core',
-          details: JSON.stringify({ roles: ['Fullstack Software Engineer', 'Backend Python Engineer', 'Frontend React Developer'] })
-        }
-      ];
-
-      const insertAct = db.prepare(`
+      db.prepare(`
         INSERT INTO platform_activities (id, action, actor_type, actor_email, actor_name, details, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-      `);
-      for (const a of initialActivities) {
-        insertAct.run(a.id, a.action, a.actor_type, a.actor_email, a.actor_name, a.details);
-      }
+        VALUES ('act_init_1', 'PLATFORM_INITIALIZED', 'system', 'system@platform.internal', 'Platform Core', ?, CURRENT_TIMESTAMP)
+      `).run(JSON.stringify({ environment: isVercel ? 'vercel' : 'local', adminMode: 'open_registration' }));
     }
   } catch (e) {
     console.warn('Activity seed notice:', e.message);

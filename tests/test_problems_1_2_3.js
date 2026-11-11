@@ -73,9 +73,29 @@ const balRes = await fetch(`${baseUrl}/billing/balance`, {
 const balData = await balRes.json();
 assert.strictEqual(balData.creditsRemaining, 20, 'GET /billing/balance must return 20');
 
-// 1.2 Check Admin Orders endpoint
-const adminUser = db.prepare("SELECT * FROM users WHERE role = 'superadmin' LIMIT 1").get();
-const adminToken = signToken({ id: adminUser.id, org_id: adminUser.org_id, email: adminUser.email, role: 'superadmin' });
+// 1.2 Check Admin Orders endpoint using a temporary test admin
+const tempAdminId = 'usr_adm_test_' + Date.now();
+const tempAdminUid = 'ADM-TEST-' + Math.floor(1000 + Math.random() * 9000);
+const tempAdminEmail = `temp_admin_${Date.now()}@company.test`;
+const tempAdminName = 'Temp Test Admin';
+
+db.prepare(`
+  INSERT OR IGNORE INTO organizations (id, name, industry, plan, included_interviews)
+  VALUES ('org_platform_admins', 'Platform Operations & Administration', 'Platform Management', 'enterprise', 999999)
+`).run();
+db.prepare(`
+  INSERT INTO users (id, org_id, full_name, job_title, email, password_hash, role, admin_uid, is_verified, approval_status)
+  VALUES (?, 'org_platform_admins', ?, 'Platform Administrator', ?, ?, 'superadmin', ?, 1, 'approved')
+`).run(tempAdminId, tempAdminName, tempAdminEmail, hashPassword('TempPass123!'), tempAdminUid);
+
+const adminToken = signToken({
+  id: tempAdminId,
+  org_id: 'org_platform_admins',
+  email: tempAdminEmail,
+  full_name: tempAdminName,
+  admin_uid: tempAdminUid,
+  role: 'superadmin'
+});
 
 const adminOrdersRes = await fetch(`${baseUrl}/api/admin/orders`, {
   headers: { 'Authorization': `Bearer ${adminToken}` }
@@ -156,14 +176,13 @@ const adminLoginRes = await fetch(`${baseUrl}/api/admin/auth/login-request`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    email: adminUser.email,
-    password: 'password123'
+    name: tempAdminName,
+    adminId: tempAdminUid
   })
 });
-if (adminLoginRes.status === 200) {
-  const adminLoginData = await adminLoginRes.json();
-  assert.strictEqual(adminLoginData.devOtp, undefined, 'CRITICAL: devOtp must NOT be leaked to admin login response');
-}
+assert.strictEqual(adminLoginRes.status, 200, 'Valid admin Name + ID login-request should succeed');
+const adminLoginData = await adminLoginRes.json();
+assert.strictEqual(adminLoginData.devOtp, undefined, 'CRITICAL: devOtp must NOT be leaked to admin login response');
 
 console.log('   ✓ Problem 2: OTP is sent via email and strictly hidden from responses and UI DOM.\n');
 
@@ -192,13 +211,25 @@ for (let i = 0; i < 6; i++) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      email: 'attacker@evil.com',
-      password: 'bad_password_' + i
+      name: 'Attacker',
+      adminId: 'ADM-FAKE-999' + i
     })
   });
   lastStatus = bfRes.status;
 }
 assert.strictEqual(lastStatus, 429, 'Excessive failed login attempts must trigger HTTP 429 Too Many Requests lockout');
+
+// Clean up temporary admin & test rows so database remains clean
+const signupUserRow = db.prepare('SELECT id, org_id FROM users WHERE email = ?').get(signupEmail);
+if (signupUserRow) {
+  db.prepare('DELETE FROM users WHERE id = ?').run(signupUserRow.id);
+  db.prepare('DELETE FROM organizations WHERE id = ?').run(signupUserRow.org_id);
+}
+db.prepare('DELETE FROM users WHERE id IN (?, ?)').run(tempAdminId, testUserId);
+db.prepare('DELETE FROM admin_otps WHERE email = ?').run(tempAdminEmail);
+db.prepare('DELETE FROM billing_orders WHERE org_id = ?').run(testOrgId);
+db.prepare('DELETE FROM organizations WHERE id = ?').run(testOrgId);
+db.prepare('DELETE FROM platform_activities WHERE actor_email IN (?, ?, ?) OR actor_name = ?').run(tempAdminEmail, testUserEmail, signupEmail, 'Attacker');
 
 console.log('   ✓ Problem 3: Admin UI is separated from user portal and hardened against brute-force attacks.\n');
 

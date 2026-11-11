@@ -1,20 +1,27 @@
 /**
  * Platform Super Admin Controller
- * Manages restricted admin operations, user approvals, real-time activity stream,
- * global interview oversight, and 2-3 administrator seat management.
+ * Manages unrestricted multi-admin operations, Unique Admin ID auth,
+ * user approvals, real-time activity stream, and global interview oversight.
  */
 
 const API_BASE = '/api/admin';
 let adminToken = localStorage.getItem('platform_admin_token') || null;
-let currentAdmin = null;
+let currentAdmin = (() => {
+  try {
+    return JSON.parse(localStorage.getItem('platform_admin_user') || 'null');
+  } catch {
+    return null;
+  }
+})();
 let currentTab = 'overview';
 let cachedUsers = [];
 let cachedInterviews = [];
 let activityPollInterval = null;
 
 // Temporary states for multi-step auth
-let pendingLoginEmail = '';
+let pendingLoginAdminId = '';
 let pendingRegData = {};
+let generatedAdminUid = '';
 
 // DOM Elements
 const authView = document.getElementById('auth-view');
@@ -63,54 +70,46 @@ async function checkSeatsStatus() {
     const data = await res.json();
     if (data.success) {
       if (seatsTextEl) {
-        seatsTextEl.textContent = `Admin Seats: ${data.registeredAdmins} of ${data.maxSeats} filled (${data.seatsRemaining} available)`;
+        seatsTextEl.textContent = `Active Admins: ${data.registeredAdmins} (Unlimited Access)`;
       }
 
-      const helperBox = document.getElementById('auth-invite-helper-box');
-      if (helperBox && Array.isArray(data.invites)) {
-        helperBox.innerHTML = `
-          <strong style="display:block; margin-bottom: 6px;">🔑 Administrator Invitation Codes:</strong>
-          ${data.invites.map((inv, idx) => `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">
-              <span>Slot ${idx + 1}: <code style="font-weight:700; color:var(--primary); cursor:pointer; text-decoration: underline;" onclick="selectInviteCode('${inv.code_hash}')" title="Click to insert">${inv.code_hash}</code></span>
-              <span class="badge ${inv.is_used ? 'badge-neutral' : 'badge-success'}" style="font-size:0.68rem;">
-                ${inv.is_used ? (inv.used_by_email ? `Used by: ${inv.used_by_email}` : 'Redeemed') : 'Available (Click to use)'}
-              </span>
-            </div>
-          `).join('')}
-        `;
+      // If database has zero admins yet and visitor is unauthenticated, open Sign Up automatically
+      if (!adminToken && data.registeredAdmins === 0) {
+        window.switchAuthMode('register');
       }
     }
   } catch (err) {
-    console.warn('Could not fetch admin seats status:', err);
+    console.warn('Could not fetch admin status:', err);
   }
 }
-
-window.selectInviteCode = function(code) {
-  const input = document.getElementById('reg-invite-code');
-  if (input) {
-    input.value = code;
-    input.focus();
-    showToast(`Selected invite code: ${code}`, 'info');
-  }
-};
 
 async function verifyAdminSession() {
   try {
     const res = await fetch(`${API_BASE}/auth/me`, {
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (res.ok && data.success) {
       currentAdmin = data.user;
+      localStorage.setItem('platform_admin_user', JSON.stringify(data.user));
       showDashboardView();
       loadAllDashboardData();
+    } else if (res.status === 401 || res.status === 403) {
+      logoutAdmin(true);
+      if (data.error) showToast(data.error, 'info');
     } else {
-      logoutAdmin();
+      // Transient 5xx error: do NOT log out or clear adminToken
+      if (currentAdmin) {
+        showDashboardView();
+      }
+      showToast('Server temporarily unavailable — keeping session active.', 'warning');
     }
   } catch (err) {
     console.error('Session verify failed:', err);
-    logoutAdmin();
+    // Network blip or server reload: do NOT destroy token
+    if (currentAdmin) {
+      showDashboardView();
+    }
   }
 }
 
@@ -125,7 +124,8 @@ function showDashboardView() {
   if (dashboardView) dashboardView.style.display = 'block';
   if (authControls) authControls.style.display = 'flex';
   if (adminNameEl && currentAdmin) {
-    adminNameEl.textContent = currentAdmin.full_name || currentAdmin.email;
+    const uidPart = currentAdmin.admin_uid ? ` (${currentAdmin.admin_uid})` : '';
+    adminNameEl.textContent = `${currentAdmin.full_name || currentAdmin.email}${uidPart}`;
   }
 }
 
@@ -164,26 +164,26 @@ window.switchAuthMode = function(mode) {
 };
 
 window.handleLoginRequest = async function() {
-  const emailInput = document.getElementById('login-email');
-  const passInput = document.getElementById('login-password');
+  const nameInput = document.getElementById('login-name');
+  const idInput = document.getElementById('login-admin-id');
   const btn = document.getElementById('btn-login-request');
 
-  const email = emailInput.value.trim();
-  const password = passInput.value;
+  const name = nameInput.value.trim();
+  const adminId = idInput.value.trim().toUpperCase();
 
-  if (!email || !password) {
-    showToast('Please enter both admin email and password.', 'warning');
+  if (!name || !adminId) {
+    showToast('Please enter both your Admin Name and Unique Admin ID.', 'warning');
     return;
   }
 
   btn.disabled = true;
-  btn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Verifying...';
+  btn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Verifying Name &amp; ID...';
 
   try {
     const res = await fetch(`${API_BASE}/auth/login-request`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ name, adminId })
     });
     const data = await res.json();
 
@@ -191,15 +191,17 @@ window.handleLoginRequest = async function() {
       throw new Error(data.error || 'Login verification failed');
     }
 
-    pendingLoginEmail = email;
+    pendingLoginAdminId = data.adminUid || adminId;
     document.getElementById('login-step-1').style.display = 'none';
     document.getElementById('login-step-2').style.display = 'block';
-    document.getElementById('login-target-email').textContent = email;
+    document.getElementById('login-target-email').textContent = data.emailHint || 'your registered email';
 
-    if (data.emailSent) {
-      showToast('✓ 2FA Security OTP dispatched to your admin email inbox!', 'success');
+    if (data.forwardedTo) {
+      showToast(`✓ Login OTP dispatched (sandbox forwarded to ${data.forwardedTo}).`, 'success');
+    } else if (data.emailSent) {
+      showToast(`✓ Login OTP sent to ${data.emailHint || 'your registered email'}!`, 'success');
     } else {
-      showToast('ℹ️ Notice: Enter fallback code 000000 to verify and log in.', 'info');
+      showToast('ℹ️ Email delivery fallback: Enter code 000000 (or check console) to log in.', 'info');
       const otpInput = document.getElementById('login-otp');
       if (otpInput) otpInput.value = '000000';
     }
@@ -207,7 +209,7 @@ window.handleLoginRequest = async function() {
     showToast(err.message, 'danger');
   } finally {
     btn.disabled = false;
-    btn.innerHTML = 'Verify Credentials &amp; Send OTP &rarr;';
+    btn.innerHTML = 'Verify Name &amp; ID &rarr; Send Email OTP';
   }
 };
 
@@ -228,7 +230,7 @@ window.handleLoginVerify = async function() {
     const res = await fetch(`${API_BASE}/auth/login-verify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: pendingLoginEmail, otp })
+      body: JSON.stringify({ adminId: pendingLoginAdminId, otp })
     });
     const data = await res.json();
 
@@ -237,10 +239,12 @@ window.handleLoginVerify = async function() {
     }
 
     adminToken = data.token;
-    localStorage.setItem('platform_admin_token', adminToken);
     currentAdmin = data.user;
+    localStorage.setItem('platform_admin_token', adminToken);
+    localStorage.setItem('platform_admin_user', JSON.stringify(data.user));
 
-    showToast('Authenticated as Super Administrator!', 'success');
+    showToast(`Welcome back, ${data.user.fullName || 'Admin'}!`, 'success');
+    resetLoginStep();
     showDashboardView();
     loadAllDashboardData();
     checkSeatsStatus();
@@ -248,7 +252,7 @@ window.handleLoginVerify = async function() {
     showToast(err.message, 'danger');
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '<i class="bi bi-unlock-fill"></i> Authenticate &amp; Access Control Center';
+    btn.innerHTML = '<i class="bi bi-unlock-fill"></i> Verify OTP &amp; Enter Admin Portal';
   }
 };
 
@@ -259,32 +263,32 @@ window.resetLoginStep = function() {
 };
 
 window.copyLoginDevOtp = function() {
-  const code = document.getElementById('login-dev-otp-code').textContent;
+  const code = document.getElementById('login-dev-otp-code')?.textContent;
+  if (!code) return;
   navigator.clipboard.writeText(code);
   showToast('Copied OTP to clipboard!', 'info');
 };
 
-// --- Secret Hash Code Admin Registration ---
+// --- Open Admin Sign Up (Name, Email, Password + OTP -> Unique Admin ID) ---
 window.handleRegisterRequest = async function() {
-  const inviteCode = document.getElementById('reg-invite-code').value.trim();
   const fullName = document.getElementById('reg-name').value.trim();
   const email = document.getElementById('reg-email').value.trim();
   const password = document.getElementById('reg-password').value;
   const btn = document.getElementById('btn-register-request');
 
-  if (!inviteCode || !email || !password) {
-    showToast('Invite code, email, and password are required.', 'warning');
+  if (!fullName || fullName.length < 2 || !email || !password) {
+    showToast('Full Name, Email, and Password (min 8 chars) are required.', 'warning');
     return;
   }
 
   btn.disabled = true;
-  btn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Validating Invite Code...';
+  btn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Sending OTP...';
 
   try {
     const res = await fetch(`${API_BASE}/auth/register-request`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ inviteCode, fullName, email, password })
+      body: JSON.stringify({ fullName, email, password })
     });
     const data = await res.json();
 
@@ -293,32 +297,35 @@ window.handleRegisterRequest = async function() {
         showToast(data.error, 'info');
         setTimeout(() => {
           window.switchAuthMode('login');
-          const loginEmailEl = document.getElementById('login-email');
-          if (loginEmailEl) {
-            loginEmailEl.value = email;
-            loginEmailEl.focus();
-          }
+          const nameEl = document.getElementById('login-name');
+          const idEl = document.getElementById('login-admin-id');
+          if (nameEl && data.fullName) nameEl.value = data.fullName;
+          if (idEl && data.adminUid) idEl.value = data.adminUid;
         }, 1200);
         return;
       }
-      throw new Error(data.error || 'Registration request rejected');
+      throw new Error(data.error || 'Registration request failed');
     }
 
-    pendingRegData = { inviteCode, fullName, email, password };
+    pendingRegData = { fullName, email, password };
     document.getElementById('register-step-1').style.display = 'none';
     document.getElementById('register-step-2').style.display = 'block';
     document.getElementById('reg-target-email').textContent = email;
 
-    if (data.emailSent) {
-      showToast('✓ Unique invite code validated! 2FA OTP sent to ' + email, 'success');
+    if (data.forwardedTo) {
+      showToast(`✓ OTP sent! (Resend sandbox forwarded it to ${data.forwardedTo})`, 'success');
+    } else if (data.emailSent) {
+      showToast(`✓ Verification OTP sent to ${email}!`, 'success');
     } else {
-      showToast('⚠️ Invite validated! Email service not configured yet: Your OTP code is printed in the server terminal console.', 'warning');
+      showToast('⚠️ Email delivery fallback: Enter 000000 (or check console) to continue.', 'warning');
+      const regOtpEl = document.getElementById('reg-otp');
+      if (regOtpEl) regOtpEl.value = '000000';
     }
   } catch (err) {
     showToast(err.message, 'danger');
   } finally {
     btn.disabled = false;
-    btn.innerHTML = 'Validate Code &amp; Send Email OTP &rarr;';
+    btn.innerHTML = 'Send Verification OTP &rarr;';
   }
 };
 
@@ -333,7 +340,7 @@ window.handleRegisterVerify = async function() {
   }
 
   btn.disabled = true;
-  btn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Finalizing Admin Seat...';
+  btn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Creating Admin Account...';
 
   try {
     const res = await fetch(`${API_BASE}/auth/register-verify`, {
@@ -351,24 +358,45 @@ window.handleRegisterVerify = async function() {
     }
 
     adminToken = data.token;
-    localStorage.setItem('platform_admin_token', adminToken);
     currentAdmin = data.user;
+    generatedAdminUid = data.adminUid || data.user?.admin_uid || '';
+    localStorage.setItem('platform_admin_token', adminToken);
+    localStorage.setItem('platform_admin_user', JSON.stringify(data.user));
 
-    showToast('Welcome! Your Superadmin seat is now activated.', 'success');
-    showDashboardView();
-    loadAllDashboardData();
+    document.getElementById('register-step-2').style.display = 'none';
+    document.getElementById('register-step-3').style.display = 'block';
+    document.getElementById('reg-generated-uid').textContent = generatedAdminUid;
+    document.getElementById('reg-confirmed-email').textContent = data.user?.email || pendingRegData.email;
+
+    showToast(`✓ Admin created! Save your Unique ID: ${generatedAdminUid}`, 'success');
     checkSeatsStatus();
   } catch (err) {
     showToast(err.message, 'danger');
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Complete Activation &amp; Enter Portal';
+    btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Verify OTP &amp; Generate Unique Admin ID';
   }
+};
+
+window.copyGeneratedAdminUid = function() {
+  if (!generatedAdminUid) return;
+  navigator.clipboard.writeText(generatedAdminUid);
+  showToast(`Copied Unique Admin ID: ${generatedAdminUid}`, 'success');
+};
+
+window.enterPortalAfterSignup = function() {
+  document.getElementById('register-step-3').style.display = 'none';
+  document.getElementById('register-step-1').style.display = 'block';
+  document.getElementById('reg-otp').value = '';
+  showDashboardView();
+  loadAllDashboardData();
 };
 
 window.resetRegisterStep = function() {
   document.getElementById('register-step-1').style.display = 'block';
   document.getElementById('register-step-2').style.display = 'none';
+  const step3 = document.getElementById('register-step-3');
+  if (step3) step3.style.display = 'none';
   document.getElementById('reg-otp').value = '';
 };
 
@@ -482,12 +510,15 @@ document.getElementById('btn-admin-logout')?.addEventListener('click', () => {
   logoutAdmin();
 });
 
-function logoutAdmin() {
+function logoutAdmin(isSilent = false) {
   adminToken = null;
   currentAdmin = null;
   localStorage.removeItem('platform_admin_token');
+  localStorage.removeItem('platform_admin_user');
   showAuthView();
-  showToast('Signed out of admin portal.', 'info');
+  if (!isSilent) {
+    showToast('Signed out of admin portal.', 'info');
+  }
   checkSeatsStatus();
 }
 
@@ -541,7 +572,8 @@ async function loadDashboardStats(isSilent = false) {
     const res = await fetch(`${API_BASE}/stats`, {
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
-    if (res.status === 401 || res.status === 403) return logoutAdmin();
+    if (res.status === 401) return logoutAdmin(true);
+    if (!res.ok) return;
 
     const data = await res.json();
     if (!data.success) return;
@@ -573,7 +605,7 @@ async function loadDashboardStats(isSilent = false) {
     }
 
     if (seatsTextEl) {
-      seatsTextEl.textContent = `Admin Seats: ${s.admins.occupied} of ${s.admins.max} filled (${s.admins.remaining} left)`;
+      seatsTextEl.textContent = `Active Admins: ${s.admins.occupied} (Unlimited Access)`;
     }
   } catch (err) {
     if (!isSilent) console.error('Failed to load stats:', err);
@@ -1053,146 +1085,59 @@ window.closeInspectModal = function() {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TAB 5: ADMIN SEATS & INVITE CODE VAULT (Max 3 Admins)
+// TAB 5: PLATFORM ADMINISTRATORS & UNIQUE IDS (UNLIMITED ACCESS)
 // ─────────────────────────────────────────────────────────────────────────────
 
 window.loadAdminInvites = async function() {
   try {
-    const res = await fetch(`${API_BASE}/invites`, {
+    const res = await fetch(`${API_BASE}/team`, {
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
     const data = await res.json();
     if (!data.success) return;
 
-    // Render current admins
     const adminsContainer = document.getElementById('admins-list-container');
     if (adminsContainer) {
-      adminsContainer.innerHTML = (data.admins || []).map((adm, idx) => `
-        <div style="display:flex; align-items:center; justify-content:space-between; padding:0.85rem 1.15rem; background-color:var(--surface-elevated); border:1px solid var(--border); border-radius:8px;">
-          <div style="display:flex; align-items:center; gap:0.75rem;">
-            <div style="width:36px; height:36px; border-radius:8px; background:linear-gradient(135deg, #6366f1, #8b5cf6); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800;">
-              ${idx + 1}
-            </div>
-            <div>
-              <strong style="display:block; font-size:0.85rem; color:var(--text);">${escapeHtml(adm.full_name || 'Admin')}</strong>
-              <span style="font-size:0.75rem; color:var(--text-muted); font-family:var(--mono);">${escapeHtml(adm.email)}</span>
-            </div>
-          </div>
-          <div style="text-align:right;">
-            <span class="badge badge-primary"><i class="bi bi-shield-fill"></i> Seat #${idx + 1} &middot; Active</span>
-            <div style="font-size:0.7rem; color:var(--text-subtle); margin-top:0.2rem;">Joined: ${formatTimeAgo(adm.created_at)}</div>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    // Render invite codes table
-    const tbody = document.getElementById('invites-table-body');
-    if (tbody) {
-      if ((data.invites || []).length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">No invite codes.</td></tr>';
+      if ((data.admins || []).length === 0) {
+        adminsContainer.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">No administrators registered yet.</p>';
       } else {
-        tbody.innerHTML = data.invites.map(inv => `
-          <tr>
-            <td>
-              <code style="font-size:0.9rem; font-weight:700; color:var(--primary);">${escapeHtml(inv.code_hash)}</code>
-            </td>
-            <td>${escapeHtml(inv.label || 'Admin Seat')}</td>
-            <td>
-              ${inv.is_used ? '<span class="badge badge-neutral">Consumed</span>' : '<span class="badge badge-success">Available</span>'}
-            </td>
-            <td style="font-size:0.75rem; color:var(--text-muted);">
-              ${inv.used_by_email ? `<strong>${escapeHtml(inv.used_by_email)}</strong>` : '&mdash;'}
-            </td>
-            <td style="font-size:0.72rem; color:var(--text-subtle); font-family:var(--mono);">
-              ${formatTimeAgo(inv.created_at)}
-            </td>
-            <td style="text-align:right;">
-              ${!inv.is_used ? `
-                <button class="btn btn-secondary btn-sm" onclick="copyInviteCode('${inv.code_hash}')" title="Copy Secret Code">
-                  <i class="bi bi-clipboard"></i> Copy
+        adminsContainer.innerHTML = data.admins.map((adm, idx) => `
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; padding:0.9rem 1.15rem; background-color:var(--surface-elevated); border:1px solid var(--border); border-radius:8px;">
+            <div style="display:flex; align-items:center; gap:0.75rem;">
+              <div style="width:36px; height:36px; border-radius:8px; background:linear-gradient(135deg, #6366f1, #8b5cf6); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800;">
+                ${idx + 1}
+              </div>
+              <div>
+                <strong style="display:block; font-size:0.88rem; color:var(--text);">${escapeHtml(adm.full_name || 'Admin')}</strong>
+                <span style="font-size:0.75rem; color:var(--text-muted); font-family:var(--mono);">${escapeHtml(adm.email)}</span>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+              <code class="code-font" style="padding:0.25rem 0.6rem; border-radius:6px; background:rgba(99,102,241,0.12); color:var(--primary); font-weight:700; font-size:0.82rem;">
+                ${escapeHtml(adm.admin_uid || 'N/A')}
+              </code>
+              ${adm.admin_uid ? `
+                <button class="btn btn-secondary btn-sm" onclick="copyAdminUid('${escapeHtml(adm.admin_uid)}')" title="Copy Unique Admin ID">
+                  <i class="bi bi-clipboard"></i> Copy ID
                 </button>
-                <button class="btn btn-secondary btn-sm" onclick="revokeInviteCode('${inv.id}')" title="Revoke Code" style="color:var(--danger);">
-                  <i class="bi bi-trash"></i>
-                </button>
-              ` : `
-                <span style="font-size:0.72rem; color:var(--text-subtle);">Redeemed</span>
-              `}
-            </td>
-          </tr>
+              ` : ''}
+              <span class="badge badge-success"><i class="bi bi-shield-fill-check"></i> Active</span>
+              <span style="font-size:0.7rem; color:var(--text-subtle);">Joined ${formatTimeAgo(adm.created_at)}</span>
+            </div>
+          </div>
         `).join('');
       }
     }
-
-    // Toggle "Generate Invite" button based on capacity
-    const btnCreate = document.getElementById('btn-create-invite');
-    if (btnCreate) {
-      if (data.seatsRemaining <= 0) {
-        btnCreate.disabled = true;
-        btnCreate.innerHTML = '<i class="bi bi-lock-fill"></i> Maximum 3 Admin Seats Reached';
-      } else {
-        btnCreate.disabled = false;
-        btnCreate.innerHTML = '<i class="bi bi-plus-circle"></i> Generate Co-Admin Invite Hash';
-      }
-    }
   } catch (err) {
-    console.error('Failed to load invites:', err);
+    console.error('Failed to load admin team:', err);
   }
 };
 
-window.copyInviteCode = function(code) {
-  navigator.clipboard.writeText(code);
-  showToast(`Copied Admin Code: ${code} to clipboard! Share this with your friend.`, 'success');
-};
+window.loadAdminTeam = window.loadAdminInvites;
 
-window.openCreateInviteModal = function() {
-  document.getElementById('modal-create-invite').classList.add('show');
-};
-
-window.closeCreateInviteModal = function() {
-  document.getElementById('modal-create-invite').classList.remove('show');
-};
-
-window.submitCreateInvite = async function() {
-  const label = document.getElementById('new-invite-label').value.trim();
-
-  try {
-    const res = await fetch(`${API_BASE}/invites`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${adminToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ label })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to create invite');
-
-    showToast(`New Invite Code generated: ${data.invite.code_hash}`, 'success');
-    closeCreateInviteModal();
-    loadAdminInvites();
-    checkSeatsStatus();
-  } catch (err) {
-    showToast(err.message, 'danger');
-  }
-};
-
-window.revokeInviteCode = async function(inviteId) {
-  if (!confirm('Are you sure you want to revoke this unused invite code?')) return;
-  try {
-    const res = await fetch(`${API_BASE}/invites/${inviteId}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${adminToken}` }
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to revoke invite');
-
-    showToast('Invite code revoked successfully.', 'info');
-    loadAdminInvites();
-    checkSeatsStatus();
-  } catch (err) {
-    showToast(err.message, 'danger');
-  }
+window.copyAdminUid = function(uid) {
+  navigator.clipboard.writeText(uid);
+  showToast(`Copied Unique Admin ID: ${uid}`, 'success');
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

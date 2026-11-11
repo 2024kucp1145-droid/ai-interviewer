@@ -64,19 +64,18 @@ async function checkAuthSession() {
 
       updateUserBadge();
       loadJobs();
-      loadRegisteredUsers();
       return true;
-    } else {
+    } else if (res.status === 401) {
       authToken = null;
       localStorage.removeItem('ai_interviewer_token');
       updateUserBadge();
       openAuthModal();
       return false;
     }
+    return true;
   } catch (e) {
-    console.error('Session check error:', e);
-    openAuthModal();
-    return false;
+    console.error('Session check notice:', e);
+    return true;
   }
 }
 
@@ -5421,10 +5420,3 @@ window.exportRegisteredUsersCsv = function() {
   link.click();
   document.body.removeChild(link);
 };
-
-// Auto-fetch count on startup
-if (typeof authToken !== 'undefined' && authToken) {
-  setTimeout(() => {
-    loadRegisteredUsers();
-  }, 1000);
-}

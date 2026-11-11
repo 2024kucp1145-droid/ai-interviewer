@@ -13,7 +13,7 @@ export function comparePassword(password, hash) {
 }
 
 export function signToken(payload) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' });
 }
 
 export function verifyToken(token) {
@@ -41,8 +41,7 @@ export function requireAuth(req, res, next) {
 
   req.user = decoded; // { id, org_id, email, role }
 
-  // Safeguard: Ensure user's organization exists in organizations table
-  // This prevents any foreign key mismatches across container restarts or new databases
+  // Safeguard: Ensure user's organization & user row exist across container restarts/serverless lambdas
   if (req.user && req.user.org_id) {
     try {
       const orgCheck = db.prepare('SELECT id FROM organizations WHERE id = ?').get(req.user.org_id);
@@ -51,6 +50,15 @@ export function requireAuth(req, res, next) {
           INSERT OR IGNORE INTO organizations (id, name, plan, included_interviews)
           VALUES (?, 'My Organization', 'free_trial', 10)
         `).run(req.user.org_id);
+      }
+      if (req.user.id && req.user.email) {
+        const userCheck = db.prepare('SELECT id FROM users WHERE id = ?').get(req.user.id);
+        if (!userCheck) {
+          db.prepare(`
+            INSERT OR IGNORE INTO users (id, org_id, full_name, email, password_hash, role, is_verified, approval_status)
+            VALUES (?, ?, ?, ?, 'jwt_rehydrated', ?, 1, 'approved')
+          `).run(req.user.id, req.user.org_id, req.user.full_name || 'User', req.user.email, req.user.role || 'owner');
+        }
       }
     } catch (e) {
       // Non-fatal fallback
