@@ -1550,6 +1550,32 @@ async function loadJobs() {
   }
 }
 
+window.loadJobs = loadJobs;
+
+window.refreshDashboard = async function(btnEl) {
+  let icon = null;
+  if (btnEl) {
+    icon = btnEl.querySelector('i');
+    if (icon) icon.classList.add('spinning');
+    btnEl.disabled = true;
+  }
+
+  try {
+    await loadJobs();
+    if (typeof loadInterviews === 'function') {
+      await loadInterviews();
+    }
+    if (typeof updateResponsesBadgeCount === 'function') {
+      await updateResponsesBadgeCount();
+    }
+  } catch (err) {
+    console.error('Refresh dashboard error:', err);
+  } finally {
+    if (icon) icon.classList.remove('spinning');
+    if (btnEl) btnEl.disabled = false;
+  }
+};
+
 window.setCategoryFilter = function(cat) {
   const catFilter = document.getElementById('dashboard-category-filter');
   if (catFilter) catFilter.value = cat;
@@ -2617,11 +2643,15 @@ async function loadInterviews() {
     const res = await apiRequest(`/jobs/${jobId}/interviews`);
     const list = await res.json();
     currentRosterCandidates = Array.isArray(list) ? list : [];
-    applyCandidateFilters();
+    if (typeof applyCandidateFilters === 'function') {
+      applyCandidateFilters();
+    }
   } catch (err) {
     console.error('Load interviews error:', err);
   }
 }
+
+window.loadInterviews = loadInterviews;
 
 // --- Top Right Drawer: Candidate Responses, Scores & Clarifications ---
 let allResponsesCache = [];
@@ -2654,10 +2684,19 @@ async function updateResponsesBadgeCount() {
   } catch (e) {}
 }
 
-window.loadOrgResponses = async function() {
+window.loadOrgResponses = async function(btnEl) {
+  let icon = null;
+  if (btnEl) {
+    icon = btnEl.querySelector('i');
+    if (icon) icon.classList.add('spinning');
+    btnEl.disabled = true;
+  }
+
   const listEl = document.getElementById('responses-drawer-list');
   const countBadge = document.getElementById('responses-count-badge');
-  listEl.innerHTML = '<p style="color:var(--text-muted); font-size:0.775rem;"><i class="bi bi-hourglass-split"></i> Loading responses and AI scores...</p>';
+  if (listEl) {
+    listEl.innerHTML = '<p style="color:var(--text-muted); font-size:0.775rem;"><i class="bi bi-hourglass-split"></i> Loading responses and AI scores...</p>';
+  }
 
   try {
     const res = await apiRequest('/org/responses');
@@ -2667,7 +2706,10 @@ window.loadOrgResponses = async function() {
     if (countBadge) countBadge.textContent = responses.length;
     renderResponsesList(responses);
   } catch (err) {
-    listEl.innerHTML = `<p style="color:#000; font-size:0.775rem;">Error: ${err.message}</p>`;
+    if (listEl) listEl.innerHTML = `<p style="color:#000; font-size:0.775rem;">Error: ${err.message}</p>`;
+  } finally {
+    if (icon) icon.classList.remove('spinning');
+    if (btnEl) btnEl.disabled = false;
   }
 };
 
@@ -3375,10 +3417,21 @@ window.handleWizardQuestionCountChange = function() {
   refreshQuestionsPreview();
 };
 
-window.refreshQuestionsPreview = async function() {
+window.refreshQuestionsPreview = async function(btnEl) {
+  let icon = null;
+  if (btnEl) {
+    icon = btnEl.querySelector('i');
+    if (icon) icon.classList.add('spinning');
+    btnEl.disabled = true;
+  }
+
   const listEl = document.getElementById('sum-questions-preview-list');
   const countBadge = document.getElementById('sum-questions-count');
-  if (!listEl) return;
+  if (!listEl) {
+    if (icon) icon.classList.remove('spinning');
+    if (btnEl) btnEl.disabled = false;
+    return;
+  }
 
   const role = document.getElementById('wiz-job-title')?.value || 'Software Engineer';
   const category = document.getElementById('role-category-select')?.value || 'Software & Tech';
@@ -3447,6 +3500,9 @@ window.refreshQuestionsPreview = async function() {
     }).join('');
   } catch (err) {
     listEl.innerHTML = `<div style="color: var(--text-muted); font-size: 0.75rem;">Preview loaded with adaptive fallback.</div>`;
+  } finally {
+    if (icon) icon.classList.remove('spinning');
+    if (btnEl) btnEl.disabled = false;
   }
 };
 

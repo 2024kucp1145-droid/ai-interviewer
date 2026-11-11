@@ -414,6 +414,15 @@
     .print-only-header {
       display: none;
     }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .spinning {
+      animation: spin 0.75s linear infinite !important;
+      display: inline-block !important;
+    }
   </style>
 </head>
 <body>
@@ -438,8 +447,8 @@
       <button class="btn btn-outline btn-sm" onclick="exportJobCsv()">
         <i class="bi bi-download"></i> Export CSV
       </button>
-      <button class="btn btn-ghost btn-sm" onclick="loadJobResults()" title="Refresh Results">
-        <i class="bi bi-arrow-clockwise"></i>
+      <button class="btn btn-ghost btn-sm" onclick="refreshResultsPage(this)" title="Refresh Results">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
       </button>
     </div>
   </header>
@@ -1000,6 +1009,23 @@
     function downloadPdfReport() {
       window.print();
     }
+
+    window.refreshResultsPage = async function(btnEl) {
+      let icon = null;
+      if (btnEl) {
+        icon = btnEl.querySelector('i');
+        if (icon) icon.classList.add('spinning');
+        btnEl.disabled = true;
+      }
+      try {
+        await loadJobResults();
+      } catch (err) {
+        console.error('Refresh error:', err);
+      } finally {
+        if (icon) icon.classList.remove('spinning');
+        if (btnEl) btnEl.disabled = false;
+      }
+    };
 
     function exportJobCsv() {
       if (!jobId || !authToken) return;

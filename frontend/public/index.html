@@ -1499,6 +1499,15 @@
       color: #000000;
       border-color: #ffffff;
     }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .spinning {
+      animation: spin 0.75s linear infinite !important;
+      display: inline-block !important;
+    }
   </style>
   <script src="/js/theme.js"></script>
 </head>
@@ -1561,7 +1570,7 @@
               <span><i class="bi bi-folder2-open"></i> Configured Interviews</span>
               <span id="active-jobs-count" class="badge badge-dark">0 Active</span>
             </div>
-            <button class="btn btn-ghost btn-sm" onclick="loadJobs()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+            <button class="btn btn-ghost btn-sm" onclick="window.refreshDashboard(this)"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
           </div>
 
           <!-- Category, Search & Sort Filter Bar -->
@@ -2196,7 +2205,7 @@
                   <h5 style="font-size: 0.8rem; font-weight: 700; color: var(--text); margin: 0; display: flex; align-items: center; gap: 0.35rem;">
                     <i class="bi bi-eye-fill"></i> Question Preview (Company Pre-check):
                   </h5>
-                  <button type="button" class="btn btn-ghost btn-sm" onclick="refreshQuestionsPreview()" style="font-size: 0.7rem; padding: 0.15rem 0.4rem;">
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="window.refreshQuestionsPreview(this)" style="font-size: 0.7rem; padding: 0.15rem 0.4rem;">
                     <i class="bi bi-arrow-clockwise"></i> Refresh Preview
                   </button>
                 </div>
@@ -2241,7 +2250,7 @@
             <button class="btn btn-outline btn-sm" onclick="switchTab('jobs')">
               <i class="bi bi-plus-circle"></i> New Interview Round
             </button>
-            <button class="btn btn-ghost btn-sm" onclick="loadJobs(); loadInterviews();" title="Refresh Blocks &amp; Results">
+            <button class="btn btn-ghost btn-sm" onclick="window.refreshDashboard(this)" title="Refresh Blocks &amp; Results">
               <i class="bi bi-arrow-clockwise"></i> Refresh
             </button>
           </div>
@@ -2949,7 +2958,7 @@
             <option value="POTENTIAL_HIRE">Potential Hire</option>
             <option value="NOT_RECOMMENDED">Not Recommended</option>
           </select>
-          <button class="btn btn-outline btn-sm" onclick="loadOrgResponses()"><i class="bi bi-arrow-clockwise"></i></button>
+          <button class="btn btn-outline btn-sm" onclick="window.loadOrgResponses(this)" title="Refresh Candidate Responses"><i class="bi bi-arrow-clockwise"></i></button>
         </div>
 
         <div class="drawer-body" id="responses-drawer-list">
