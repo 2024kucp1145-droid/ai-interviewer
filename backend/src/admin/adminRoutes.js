@@ -1177,6 +1177,27 @@ adminRouter.get('/settings', requireAdmin, async (req, res) => {
   }
 });
 
+function upsertPlatformSettings(settings) {
+  if (!settings || typeof settings !== 'object') return [];
+  const upsert = db.prepare(`
+    INSERT INTO platform_settings (key, value, updated_at) 
+    VALUES (?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+  `);
+
+  const updatedKeys = [];
+  db.transaction(() => {
+    for (const [key, val] of Object.entries(settings)) {
+      if ((key === 'smtp_pass' || key === 'resend_api_key') && (String(val).includes('••••') || val === '')) {
+        continue;
+      }
+      upsert.run(key, String(val));
+      updatedKeys.push(key);
+    }
+  })();
+  return updatedKeys;
+}
+
 adminRouter.put('/settings', requireAdmin, (req, res) => {
   try {
     const { settings } = req.body || {};
@@ -1184,21 +1205,7 @@ adminRouter.put('/settings', requireAdmin, (req, res) => {
       return res.status(400).json({ error: 'Settings object is required' });
     }
 
-    const upsert = db.prepare(`
-      INSERT INTO platform_settings (key, value, updated_at) 
-      VALUES (?, ?, CURRENT_TIMESTAMP)
-      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
-    `);
-
-    db.transaction(() => {
-      for (const [key, val] of Object.entries(settings)) {
-        // If password/key was masked or empty, don't overwrite existing
-        if ((key === 'smtp_pass' || key === 'resend_api_key') && (String(val).includes('••••') || val === '')) {
-          continue;
-        }
-        upsert.run(key, String(val));
-      }
-    })();
+    upsertPlatformSettings(settings);
 
     logActivity({
       action: 'PLATFORM_SETTINGS_UPDATED',
@@ -1220,7 +1227,10 @@ adminRouter.put('/settings', requireAdmin, (req, res) => {
  */
 adminRouter.post('/settings/test-email', requireAdmin, async (req, res) => {
   try {
-    const { recipientEmail } = req.body || {};
+    const { recipientEmail, settings } = req.body || {};
+    if (settings && typeof settings === 'object') {
+      upsertPlatformSettings(settings);
+    }
     const target = (recipientEmail || req.admin.email).toLowerCase().trim();
 
     const result = await sendTestEmail(target);

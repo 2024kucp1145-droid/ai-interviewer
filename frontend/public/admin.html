@@ -1274,13 +1274,16 @@
             To deliver verification codes, OTPs, and feedback directly to user and administrator inboxes across all email domains, select your active provider below.
           </p>
 
-          <div class="form-group" style="margin-bottom: 1.25rem; max-width: 420px;">
+          <div class="form-group" style="margin-bottom: 1rem; max-width: 460px;">
             <label class="form-label">Active Email Provider</label>
             <select id="setting-email-provider" class="form-input">
               <option value="smtp">Option B: Custom / Gmail SMTP (Allows all email domains free)</option>
               <option value="resend">Option A: Resend API (Requires verified domain for all recipients)</option>
               <option value="auto">Auto (Resend if key saved, otherwise SMTP)</option>
             </select>
+          </div>
+          <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.35); color: #fcd34d; border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.75rem; margin-bottom: 1.25rem;">
+            <strong>Vercel Production Note (<code>prinai.vercel.app</code>):</strong> Serverless instances use isolated <code>/tmp</code> storage. For OTPs to work across every request for all users &amp; admins on Vercel, also set <code>EMAIL_PROVIDER</code>, <code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code>, and <code>SMTP_FROM_EMAIL</code> (or <code>RESEND_API_KEY</code>) in Vercel &rarr; Settings &rarr; Environment Variables and redeploy.
           </div>
 
           <!-- OPTION A: RESEND API KEY -->

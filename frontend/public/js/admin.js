@@ -1267,7 +1267,7 @@ window.loadPlatformSettings = async function() {
 
     // Email Settings Inputs
     const setVal = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
-    setVal('setting-email-provider', s.email_provider || 'auto');
+    setVal('setting-email-provider', s.email_provider || (s.resend_api_key ? 'auto' : 'smtp'));
     setVal('setting-resend-api-key', s.resend_api_key || '');
     setVal('setting-smtp-host', s.smtp_host || 'smtp.gmail.com');
     setVal('setting-smtp-port', s.smtp_port || '587');
@@ -1351,7 +1351,7 @@ window.savePlatformSettings = async function() {
   }
 };
 
-window.saveSmtpSettings = async function() {
+function collectEmailSettingsPayload() {
   const emailProvider = document.getElementById('setting-email-provider')?.value || 'auto';
   const resendKey = document.getElementById('setting-resend-api-key')?.value.trim();
   let host = document.getElementById('setting-smtp-host')?.value.trim();
@@ -1362,7 +1362,6 @@ window.saveSmtpSettings = async function() {
   const fromEmail = document.getElementById('setting-smtp-from-email')?.value.trim();
   let secure = document.getElementById('setting-smtp-secure')?.checked ? '1' : '0';
 
-  // Smart validation and auto-correction
   if (host && host.includes('@')) {
     host = 'smtp.gmail.com';
     const hostInput = document.getElementById('setting-smtp-host');
@@ -1370,7 +1369,6 @@ window.saveSmtpSettings = async function() {
     showToast('Auto-corrected SMTP Host to smtp.gmail.com (server address)', 'warning');
   }
 
-  // Port 587 uses STARTTLS, SSL must be 0
   if (port === '587' && secure === '1') {
     secure = '0';
     const chkSecure = document.getElementById('setting-smtp-secure');
@@ -1378,7 +1376,22 @@ window.saveSmtpSettings = async function() {
     showToast('Auto-disabled SSL for Port 587 (Port 587 uses STARTTLS)', 'warning');
   }
 
+  return {
+    email_provider: emailProvider,
+    resend_api_key: resendKey,
+    smtp_host: host,
+    smtp_port: port,
+    smtp_user: user,
+    smtp_pass: pass,
+    smtp_from_name: fromName,
+    smtp_from_email: fromEmail,
+    smtp_secure: secure
+  };
+}
+
+window.saveSmtpSettings = async function() {
   try {
+    const settingsPayload = collectEmailSettingsPayload();
     const res = await fetch(`${API_BASE}/settings`, {
       method: 'PUT',
       headers: {
@@ -1386,17 +1399,7 @@ window.saveSmtpSettings = async function() {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        settings: {
-          email_provider: emailProvider,
-          resend_api_key: resendKey,
-          smtp_host: host,
-          smtp_port: port,
-          smtp_user: user,
-          smtp_pass: pass,
-          smtp_from_name: fromName,
-          smtp_from_email: fromEmail,
-          smtp_secure: secure
-        }
+        settings: settingsPayload
       })
     });
     const data = await res.json();
@@ -1419,13 +1422,14 @@ window.sendTestSmtpEmail = async function() {
   if (resultDiv) { resultDiv.style.display = 'none'; }
 
   try {
+    const settingsPayload = collectEmailSettingsPayload();
     const res = await fetch(`${API_BASE}/settings/test-email`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${adminToken}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ recipientEmail })
+      body: JSON.stringify({ recipientEmail, settings: settingsPayload })
     });
     const data = await res.json();
 
