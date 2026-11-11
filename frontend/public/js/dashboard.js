@@ -225,12 +225,14 @@ function setVerifyStatusBanner(text, tone = 'info') {
   el.textContent = text;
 }
 
-function beginRecruiterOtpStep({ mode, email, token, otpToken, user, org, emailSent, message, emailError }) {
+function beginRecruiterOtpStep({ mode, email, token, otpToken, pendingPassword, user, org, emailSent, message, emailError }) {
+  const normalizedMode = ['login', 'reset', 'signup'].includes(mode) ? mode : 'signup';
   pendingRecruiterAuth = {
-    mode: mode === 'login' ? 'login' : 'signup',
+    mode: normalizedMode,
     email: email || user?.email || '',
     token: token || null,
     otpToken: otpToken || null,
+    pendingPassword: pendingPassword || null,
     user: user || null,
     org: org || null
   };
@@ -248,12 +250,17 @@ function beginRecruiterOtpStep({ mode, email, token, otpToken, user, org, emailS
   const titleEl = document.getElementById('verify-step-title');
   const descEl = document.getElementById('verify-step-desc');
   if (titleEl) {
-    titleEl.innerHTML = pendingRecruiterAuth.mode === 'login'
+    titleEl.innerHTML = normalizedMode === 'login'
       ? '<i class="bi bi-shield-lock"></i> Sign In Verification Code Sent'
-      : '<i class="bi bi-envelope-check"></i> Verification Code Sent to Email';
+      : (normalizedMode === 'reset'
+        ? '<i class="bi bi-key"></i> Password Reset Verification Code Sent'
+        : '<i class="bi bi-envelope-check"></i> Verification Code Sent to Email');
   }
   if (descEl) {
-    descEl.innerHTML = `We sent a 6-digit verification code to <strong>${escapeAuthHtml(pendingRecruiterAuth.email)}</strong>. Please check your inbox (and spam folder) and enter it below to ${pendingRecruiterAuth.mode === 'login' ? 'complete sign in' : 'verify your account'}.`;
+    const actionLabel = normalizedMode === 'login'
+      ? 'complete sign in'
+      : (normalizedMode === 'reset' ? 'confirm your password reset and sign in' : 'verify your account');
+    descEl.innerHTML = `We sent a 6-digit verification code to <strong>${escapeAuthHtml(pendingRecruiterAuth.email)}</strong>. Please check your inbox (and spam folder) and enter it below to ${actionLabel}.`;
   }
 
   if (emailSent) {
@@ -355,11 +362,78 @@ document.getElementById('form-signup').addEventListener('submit', async (e) => {
   }
 });
 
-// Step 1: Form Login (Email + Password -> Email OTP)
+// Reset password action triggered from login form -> requires Email OTP verification
+window.resetPasswordFromLogin = async function() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  if (!email || !password) {
+    alert('Please enter your email and the new password you want to set first.');
+    document.getElementById(!email ? 'login-email' : 'login-password')?.focus();
+    return;
+  }
+
+  const btn = document.getElementById('btn-login-reset-pwd');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Sending reset OTP...';
+  }
+
+  try {
+    const res = await fetch('/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to initiate password reset');
+
+    const errBox = document.getElementById('login-error-container');
+    if (errBox) errBox.style.display = 'none';
+
+    if (data.requiresOtp) {
+      beginRecruiterOtpStep({
+        mode: 'reset',
+        email: data.email || email,
+        token: null,
+        otpToken: data.otpToken,
+        pendingPassword: password,
+        user: null,
+        org: null,
+        emailSent: data.emailSent,
+        message: data.message,
+        emailError: data.emailError
+      });
+      return;
+    }
+
+    authToken = data.token;
+    localStorage.setItem('roundone_token', authToken);
+    localStorage.setItem('ai_interviewer_token', authToken);
+    currentUser = data.user;
+    currentOrg = data.org;
+
+    authModal.style.display = 'none';
+    updateUserBadge();
+    loadJobs();
+    loadRegisteredUsers();
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-envelope-check"></i> Verify Email OTP & Set This Password';
+    }
+  }
+};
+
+// Step 1: Form Login (Email + Password -> Email OTP + Verified Reset Safeguard)
 document.getElementById('form-login').addEventListener('submit', async (e) => {
   e.preventDefault();
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
+  const errBox = document.getElementById('login-error-container');
+  const errMsg = document.getElementById('login-error-msg');
+  if (errBox) errBox.style.display = 'none';
 
   const btn = e.target.querySelector('button[type=submit]');
   const defaultBtnHtml = btn ? btn.innerHTML : '';
@@ -375,7 +449,14 @@ document.getElementById('form-login').addEventListener('submit', async (e) => {
       body: JSON.stringify({ email, password })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to sign in');
+    if (!res.ok) {
+      if (data.canReset && errBox && errMsg) {
+        errMsg.innerHTML = `⚠️ Incorrect password for <strong>${escapeAuthHtml(email)}</strong>.<br>Want to set what you typed as your new password? Click below to verify via Email OTP:`;
+        errBox.style.display = 'block';
+        return;
+      }
+      throw new Error(data.error || 'Failed to sign in');
+    }
 
     if (data.requiresOtp) {
       beginRecruiterOtpStep({
@@ -425,14 +506,25 @@ document.getElementById('form-verify').addEventListener('submit', async (e) => {
       btn.textContent = 'Verifying...';
     }
 
-    const isLoginOtp = pendingRecruiterAuth?.mode === 'login';
+    const authMode = pendingRecruiterAuth?.mode || 'signup';
     let res;
-    if (isLoginOtp) {
+    if (authMode === 'login') {
       res = await fetch('/auth/login-otp-verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: pendingRecruiterAuth.email,
+          code,
+          otpToken: pendingRecruiterAuth.otpToken
+        })
+      });
+    } else if (authMode === 'reset') {
+      res = await fetch('/auth/reset-password-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: pendingRecruiterAuth.email,
+          password: pendingRecruiterAuth.pendingPassword,
           code,
           otpToken: pendingRecruiterAuth.otpToken
         })
@@ -468,7 +560,7 @@ document.getElementById('form-verify').addEventListener('submit', async (e) => {
     currentOrg = data.org || pendingRecruiterAuth?.org || currentOrg;
     if (currentUser) currentUser.is_verified = 1;
 
-    const wasSignup = !isLoginOtp;
+    const wasSignup = authMode === 'signup';
     pendingRecruiterAuth = null;
     document.getElementById('verify-code').value = '';
     setVerifyStatusBanner('');

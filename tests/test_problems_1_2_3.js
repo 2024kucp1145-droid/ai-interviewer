@@ -213,6 +213,46 @@ assert.strictEqual(goodLoginVerify.status, 200, 'Real recruiter login OTP must v
 const goodLoginData = await goodLoginVerify.json();
 assert(goodLoginData.token, 'Recruiter login Step 2 must issue JWT token');
 
+// Recruiter Password Reset must require Email OTP (never overwrite without OTP)
+const resetReqRes = await fetch(`${baseUrl}/auth/reset-password`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ email: signupEmail, password: 'UpdatedPassword123!' })
+});
+assert.strictEqual(resetReqRes.status, 200, 'Password reset Step 1 must succeed');
+const resetReqData = await resetReqRes.json();
+assert.strictEqual(resetReqData.requiresOtp, true, 'Password reset must require Email OTP');
+assert.strictEqual(resetReqData.token, undefined, 'Password reset Step 1 must NOT issue JWT before OTP');
+assert(resetReqData.otpToken, 'Password reset Step 1 must return otpToken');
+
+const badResetVerify = await fetch(`${baseUrl}/auth/reset-password-verify`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    email: signupEmail,
+    password: 'UpdatedPassword123!',
+    code: '999999',
+    otpToken: resetReqData.otpToken
+  })
+});
+assert.strictEqual(badResetVerify.status, 400, 'Wrong password reset OTP must be rejected');
+
+const resetOtpRow = db.prepare('SELECT verification_code FROM users WHERE email = ?').get(signupEmail);
+assert(resetOtpRow?.verification_code, 'Recruiter reset OTP must exist in DB');
+const goodResetVerify = await fetch(`${baseUrl}/auth/reset-password-verify`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    email: signupEmail,
+    password: 'UpdatedPassword123!',
+    code: resetOtpRow.verification_code,
+    otpToken: resetReqData.otpToken
+  })
+});
+assert.strictEqual(goodResetVerify.status, 200, 'Valid password reset OTP must update password and sign in');
+const goodResetData = await goodResetVerify.json();
+assert(goodResetData.token, 'Verified password reset must issue session JWT');
+
 // Feedback endpoint creates DB record & triggers response email handler cleanly
 const badFeedbackRes = await fetch(`${baseUrl}/api/feedback`, {
   method: 'POST',

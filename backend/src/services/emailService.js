@@ -273,17 +273,30 @@ function buildLightEmailCard({ subtitle, bodyHtml, footerText = 'Secured with Ro
  */
 export async function sendRecruiterVerificationEmail(email, verificationCode, fullName = 'Recruiter', mode = 'signup') {
   const cleanEmail = email.toLowerCase().trim();
-  const isLogin = mode === 'login';
-  const subtitle = isLogin ? 'Account Sign-In Verification' : 'Work Email Verification';
-  const introText = isLogin
-    ? 'Please enter the following 6-digit One-Time Password (OTP) on the login screen to confirm your sign-in:'
-    : 'Thank you for creating your account on RoundOne AI. Please enter the following 6-digit verification code to activate your workspace:';
+  const modeConfig = {
+    login: {
+      subtitle: 'Account Sign-In Verification',
+      introText: 'Please enter the following 6-digit One-Time Password (OTP) on the login screen to confirm your sign-in:',
+      subject: `[Login OTP] ${verificationCode} — Verify Your Sign-In to RoundOne AI`
+    },
+    reset: {
+      subtitle: 'Password Reset Verification',
+      introText: 'We received a request to reset the password for your RoundOne AI account. Enter this 6-digit verification code to confirm your password update:',
+      subject: `[Password Reset OTP] ${verificationCode} — Verify Password Change`
+    },
+    signup: {
+      subtitle: 'Work Email Verification',
+      introText: 'Thank you for creating your account on RoundOne AI. Please enter the following 6-digit verification code to activate your workspace:',
+      subject: `[Verification Code] ${verificationCode} — Verify Your RoundOne AI Account`
+    }
+  };
+  const cfg = modeConfig[mode] || modeConfig.signup;
 
   const html = buildLightEmailCard({
-    subtitle,
+    subtitle: cfg.subtitle,
     bodyHtml: `
       <p style="font-size: 14px; color: #334155; margin: 0 0 12px;">Hello <strong>${escapeEmailHtml(fullName)}</strong>,</p>
-      <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin: 0;">${introText}</p>
+      <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin: 0;">${cfg.introText}</p>
       <div class="otp-box"><div class="otp-code">${escapeEmailHtml(verificationCode)}</div></div>
       <p style="font-size: 12px; color: #94a3b8; margin: 0;">
         This code is valid for 15 minutes. If you did not request this, you can safely ignore this email.
@@ -293,9 +306,7 @@ export async function sendRecruiterVerificationEmail(email, verificationCode, fu
 
   return await sendPlatformEmail({
     to: cleanEmail,
-    subject: isLogin
-      ? `[Login OTP] ${verificationCode} — Verify Your Sign-In to RoundOne AI`
-      : `[Verification Code] ${verificationCode} — Verify Your RoundOne AI Account`,
+    subject: cfg.subject,
     html
   });
 }

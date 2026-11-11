@@ -159,7 +159,7 @@ app.post('/auth/signup', async (req, res) => {
 
     if (user) {
       if (!comparePassword(password, user.password_hash)) {
-        return res.status(400).json({ error: 'An account with this email already exists. Please use Existing User Sign In.' });
+        return res.status(400).json({ error: 'An account with this email already exists. Please sign in or reset your password via Email OTP.' });
       }
 
       db.prepare(`UPDATE users SET verification_code = ?, last_login_at = CURRENT_TIMESTAMP WHERE id = ?`).run(otpCode, user.id);
@@ -348,8 +348,8 @@ async function handleRecruiterResendCode(req, res) {
       return res.status(400).json({ error: 'Email address is required to resend verification code.' });
     }
 
-    const mode = req.body?.mode === 'login' ? 'login' : 'signup';
-    const purpose = mode === 'login' ? 'recruiter_login' : 'recruiter_signup';
+    const mode = ['login', 'reset', 'signup'].includes(req.body?.mode) ? req.body.mode : 'signup';
+    const purpose = mode === 'login' ? 'recruiter_login' : (mode === 'reset' ? 'recruiter_reset' : 'recruiter_signup');
     const user = req.user?.id
       ? db.prepare('SELECT * FROM users WHERE id = ? OR email = ?').get(req.user.id, cleanEmail)
       : db.prepare('SELECT * FROM users WHERE email = ?').get(cleanEmail);
@@ -451,7 +451,11 @@ app.post('/auth/login', async (req, res) => {
 
       user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
     } else if (!comparePassword(password, user.password_hash)) {
-      return res.status(401).json({ error: 'Incorrect password. Please try again.' });
+      return res.status(401).json({
+        error: 'Incorrect password. Click "Verify Email & Set This Password" below to confirm your email via OTP and update your password.',
+        canReset: true,
+        email: cleanEmail
+      });
     }
 
     // Ensure organization exists
@@ -582,6 +586,130 @@ app.post('/auth/login-otp-verify', (req, res) => {
         plan: 'free_trial',
         included_interviews: 10
       }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Password Reset Step 1 -> Send 6-digit Email OTP (never overwrites password without OTP verification)
+app.post('/auth/reset-password', async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and new password are required' });
+    }
+    const cleanEmail = email.toLowerCase().trim();
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(cleanEmail);
+    const otpCode = generate6DigitOtp();
+
+    if (user) {
+      db.prepare('UPDATE users SET verification_code = ? WHERE id = ?').run(otpCode, user.id);
+    }
+
+    const otpToken = createStatelessOtpChallenge(cleanEmail, otpCode, 'recruiter_reset', {
+      userId: user?.id || ('usr_' + crypto.randomUUID()),
+      orgId: user?.org_id || ('org_' + crypto.randomUUID()),
+      fullName: user?.full_name || 'Hiring Manager',
+      jobTitle: user?.job_title || 'Recruiter',
+      role: user?.role || 'owner'
+    });
+
+    const mailRes = await sendRecruiterVerificationEmail(cleanEmail, otpCode, user?.full_name || 'Hiring Manager', 'reset');
+    res.json({
+      success: true,
+      requiresOtp: true,
+      email: cleanEmail,
+      otpToken,
+      emailSent: !!mailRes.sent,
+      forwardedTo: mailRes.forwardedTo || cleanEmail,
+      emailError: mailRes.error || null,
+      message: mailRes.sent
+        ? `A 6-digit password reset code has been sent to ${cleanEmail}.`
+        : 'Enter the 6-digit verification code to confirm your password reset.'
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Password Reset Step 2 -> Verify 6-digit Email OTP, update password, and sign in
+app.post('/auth/reset-password-verify', (req, res) => {
+  try {
+    const { email, password, code, otp, otpToken } = req.body || {};
+    if (!email || !password || !(code || otp)) {
+      return res.status(400).json({ error: 'Email, new password, and 6-digit verification code are required.' });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    let user = db.prepare('SELECT * FROM users WHERE email = ?').get(cleanEmail);
+    const check = verifyRecruiterOtpCode({
+      dbUser: user,
+      cleanEmail,
+      code: code || otp,
+      purposes: ['recruiter_reset'],
+      otpToken
+    });
+    if (!check.valid) {
+      return res.status(400).json({ error: check.error });
+    }
+
+    const passHash = hashPassword(password);
+    if (!user) {
+      const dec = check.decoded || {};
+      const resolvedOrgId = dec.orgId || ('org_' + crypto.randomUUID());
+      const resolvedUserId = dec.userId || ('usr_' + crypto.randomUUID());
+      db.transaction(() => {
+        db.prepare(`
+          INSERT OR IGNORE INTO organizations (id, name, plan, included_interviews)
+          VALUES (?, 'My Organization', 'free_trial', 10)
+        `).run(resolvedOrgId);
+        db.prepare(`
+          INSERT OR IGNORE INTO users (id, org_id, full_name, phone, job_title, email, password_hash, role, is_verified, verification_code, approval_status, last_login_at)
+          VALUES (?, ?, ?, '', ?, ?, ?, ?, 1, NULL, 'approved', CURRENT_TIMESTAMP)
+        `).run(resolvedUserId, resolvedOrgId, dec.fullName || 'Hiring Manager', dec.jobTitle || 'Recruiter', cleanEmail, passHash, dec.role || 'owner');
+      })();
+      user = db.prepare('SELECT * FROM users WHERE email = ?').get(cleanEmail);
+    } else {
+      db.prepare("UPDATE users SET password_hash = ?, is_verified = 1, verification_code = NULL, approval_status = 'approved', last_login_at = CURRENT_TIMESTAMP WHERE id = ?").run(passHash, user.id);
+    }
+
+    let org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(user.org_id);
+    if (!org) {
+      db.prepare(`
+        INSERT OR IGNORE INTO organizations (id, name, plan, included_interviews)
+        VALUES (?, 'My Organization', 'free_trial', 10)
+      `).run(user.org_id);
+      org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(user.org_id);
+    }
+
+    markRecruiterOtpUsed(otpToken);
+    const token = signToken({ id: user.id, org_id: user.org_id, email: user.email, role: user.role });
+
+    logActivity({
+      action: 'USER_PASSWORD_RESET',
+      actorType: 'user',
+      actorId: user.id,
+      actorEmail: user.email,
+      actorName: user.full_name,
+      orgId: user.org_id,
+      ipAddress: req.ip
+    });
+
+    res.json({
+      success: true,
+      token,
+      message: 'Password updated and signed in successfully!',
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.full_name || 'Hiring Manager',
+        jobTitle: user.job_title || 'Recruiter',
+        role: user.role,
+        is_verified: 1,
+        approval_status: 'approved'
+      },
+      org: org || { id: user.org_id, name: 'My Organization', plan: 'free_trial', included_interviews: 10 }
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
