@@ -163,7 +163,40 @@ document.getElementById('btn-auth-switch').addEventListener('click', () => {
   }
 });
 
-// Step 1: Form Sign Up (Direct Email + Password)
+// Password visibility toggle helper
+window.togglePasswordVisibility = function(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const icon = btn.querySelector('i');
+  if (input.type === 'password') {
+    input.type = 'text';
+    if (icon) icon.className = 'bi bi-eye-slash';
+  } else {
+    input.type = 'password';
+    if (icon) icon.className = 'bi bi-eye';
+  }
+};
+
+// Real-time password match listener
+['su-password', 'su-confirm-password'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener('input', () => {
+      const p1 = document.getElementById('su-password')?.value || '';
+      const p2 = document.getElementById('su-confirm-password')?.value || '';
+      const err = document.getElementById('su-password-match-error');
+      if (err) {
+        if (p2.length > 0 && p1 !== p2) {
+          err.style.display = 'block';
+        } else {
+          err.style.display = 'none';
+        }
+      }
+    });
+  }
+});
+
+// Step 1: Form Sign Up (Direct Email + Password with Double Confirmation)
 document.getElementById('form-signup').addEventListener('submit', async (e) => {
   e.preventDefault();
   const fullName = document.getElementById('su-name').value.trim();
@@ -171,6 +204,16 @@ document.getElementById('form-signup').addEventListener('submit', async (e) => {
   const email = document.getElementById('su-email').value.trim();
   const phone = (document.getElementById('su-phone')?.value || '').trim();
   const password = document.getElementById('su-password').value;
+  const confirmPassword = document.getElementById('su-confirm-password')?.value;
+
+  // Double confirmation check
+  if (confirmPassword !== undefined && password !== confirmPassword) {
+    const err = document.getElementById('su-password-match-error');
+    if (err) err.style.display = 'block';
+    alert('Passwords do not match! Please make sure both password fields are identical.');
+    document.getElementById('su-confirm-password')?.focus();
+    return;
+  }
 
   try {
     const btn = e.target.querySelector('button[type=submit]');

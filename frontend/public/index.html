@@ -2880,8 +2880,29 @@
               </div>
             </div>
 
-            <label>Password</label>
-            <input type="password" id="su-password" placeholder="Create a secure password" required minlength="4">
+            <div class="grid-2">
+              <div>
+                <label>Password</label>
+                <div style="position: relative;">
+                  <input type="password" id="su-password" placeholder="Create a password" required minlength="4" style="padding-right: 2.5rem; width: 100%;">
+                  <button type="button" onclick="togglePasswordVisibility('su-password', this)" title="Show/Hide Password" style="position: absolute; right: 0.7rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 0.2rem; font-size: 1rem; display: flex; align-items: center;">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label>Confirm Password</label>
+                <div style="position: relative;">
+                  <input type="password" id="su-confirm-password" placeholder="Re-enter password" required minlength="4" style="padding-right: 2.5rem; width: 100%;">
+                  <button type="button" onclick="togglePasswordVisibility('su-confirm-password', this)" title="Show/Hide Password" style="position: absolute; right: 0.7rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 0.2rem; font-size: 1rem; display: flex; align-items: center;">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div id="su-password-match-error" style="display: none; color: #ef4444; font-size: 0.75rem; margin-top: 0.35rem; font-weight: 500;">
+              <i class="bi bi-exclamation-circle"></i> Passwords do not match. Please verify both fields.
+            </div>
 
             <button type="submit" class="btn" style="width: 100%; margin-top: 0.75rem;">
               Create Account & Enter Dashboard <i class="bi bi-arrow-right"></i>
@@ -2894,7 +2915,12 @@
             <input type="email" id="login-email" placeholder="name@company.com" required>
 
             <label style="margin-top: 0.5rem;">Password</label>
-            <input type="password" id="login-password" placeholder="Enter your password" required>
+            <div style="position: relative;">
+              <input type="password" id="login-password" placeholder="Enter your password" required style="padding-right: 2.5rem; width: 100%;">
+              <button type="button" onclick="togglePasswordVisibility('login-password', this)" title="Show/Hide Password" style="position: absolute; right: 0.7rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 0.2rem; font-size: 1rem; display: flex; align-items: center;">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
 
             <button type="submit" class="btn" style="width: 100%; margin-top: 0.85rem;">
               Sign In & Enter Dashboard <i class="bi bi-box-arrow-in-right"></i>
