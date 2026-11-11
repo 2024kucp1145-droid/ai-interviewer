@@ -1,0 +1,12 @@
+node_modules
+npm-debug.log*
+.git
+.gitignore
+.env
+.env.local
+*.db
+*.db-shm
+*.db-wal
+.DS_Store
+Thumbs.db
+tests
