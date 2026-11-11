@@ -1891,9 +1891,7 @@ function renderDashboardJobsList(jobs, catalogMatches = [], searchQ = '', catego
 
 window.selectJobForCandidates = function(jobId) {
   activeJobId = jobId;
-  switchTab('candidates');
-  inviteJobSelect.value = jobId;
-  loadInterviews();
+  window.location.href = `/results.html?jobId=${jobId}`;
 };
 
 // Quick Demo Job helper
@@ -2059,15 +2057,17 @@ if (inviteJobSelect) {
 }
 
 // Form: Candidate Invite Link Generation with Timer & Dispatch
-document.getElementById('form-invite').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const jobId = inviteJobSelect.value;
-  const name = document.getElementById('invite-name').value.trim();
-  const email = document.getElementById('invite-email').value.trim();
-  const phone = document.getElementById('invite-phone')?.value.trim() || '';
-  const resume_text = document.getElementById('invite-resume').value.trim();
-  const link_timer_minutes = parseInt(document.getElementById('invite-timer-minutes')?.value, 10) || 60;
-  const send_notification = document.getElementById('invite-send-notification')?.checked ?? true;
+const formInviteEl = document.getElementById('form-invite');
+if (formInviteEl) {
+  formInviteEl.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const jobId = inviteJobSelect ? inviteJobSelect.value : activeJobId;
+    const name = document.getElementById('invite-name')?.value.trim() || '';
+    const email = document.getElementById('invite-email')?.value.trim() || '';
+    const phone = document.getElementById('invite-phone')?.value.trim() || '';
+    const resume_text = document.getElementById('invite-resume')?.value.trim() || '';
+    const link_timer_minutes = parseInt(document.getElementById('invite-timer-minutes')?.value, 10) || 60;
+    const send_notification = document.getElementById('invite-send-notification')?.checked ?? true;
 
   if (!jobId) {
     alert('Please select or create an interview role first.');
@@ -2138,7 +2138,8 @@ document.getElementById('form-invite').addEventListener('submit', async (e) => {
   } catch (err) {
     alert(err.message);
   }
-});
+  });
+}
 
 window.copyInviteUrl = function() {
   const urlEl = document.getElementById('invite-generated-url');
@@ -3182,7 +3183,7 @@ async function loadMetrics() {
 
 // --- CSV Export for Candidates ---
 window.exportCandidatesCsv = function() {
-  const jobId = inviteJobSelect.value || activeJobId;
+  const jobId = (inviteJobSelect ? inviteJobSelect.value : null) || activeJobId;
   if (!jobId) {
     alert('Please select a job role first to export candidates.');
     return;

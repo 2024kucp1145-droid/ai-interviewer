@@ -2233,17 +2233,17 @@
 
     </div>
 
-    <!-- TAB 2: Candidate Pipeline & Evidence Reports -->
+    <!-- TAB 2: Candidate Pipeline & Interview Results Hub -->
     <div id="tab-candidates" class="tab-pane" style="display: none;">
 
-      <!-- SECTION 1: INTERVIEW ASSESSMENT ROUNDS (RESULTS HUB BLOCKS) -->
+      <!-- INTERVIEW ASSESSMENT ROUNDS (RESULTS HUB BLOCKS) -->
       <div class="card" style="margin-bottom: 1.5rem;">
         <div class="card-title">
           <div style="display: flex; align-items: center; gap: 0.5rem;">
             <i class="bi bi-grid-fill" style="color: #2563eb; font-size: 1.1rem;"></i>
             <div>
-              <strong style="font-size: 0.95rem; color: var(--text);">Interview Assessment Rounds (Results Hub)</strong>
-              <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">Click any interview block below to view all assessed candidates, point-wise rankings, and pass/fail distribution</div>
+              <strong style="font-size: 0.95rem; color: var(--text);">Candidate Pipeline &amp; Interview Results Hub</strong>
+              <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">Select any interview assessment round to view categorized candidate results, rankings &amp; PDF reports</div>
             </div>
           </div>
           <div style="display: flex; gap: 0.35rem; align-items: center;">
@@ -2264,121 +2264,6 @@
         </div>
       </div>
 
-      <!-- SECTION 2: Invite Candidate Card -->
-      <div class="card" id="card-invite-candidate">
-        <div class="card-title">
-          <span><i class="bi bi-send"></i> Send Timed Interview Link to Candidate</span>
-          <span class="badge badge-dark">Secure 128-bit Link</span>
-        </div>
-
-        <!-- Drag & Drop Resume PDF/DOCX Parser -->
-        <div id="resume-dropzone" class="resume-dropzone" ondragover="handleResumeDragOver(event)" ondragleave="handleResumeDragLeave(event)" ondrop="handleResumeDrop(event)">
-          <input type="file" id="resume-file-input" accept=".pdf,.docx,.txt" style="display: none;" onchange="handleResumeFileSelect(this.files)">
-          <div style="text-align: center; padding: 1.25rem 1rem;" onclick="document.getElementById('resume-file-input').click()">
-            <div id="dropzone-idle-state">
-              <i class="bi bi-file-earmark-pdf" style="font-size: 2rem; color: var(--text-muted); display: block; margin-bottom: 0.35rem;"></i>
-              <strong style="color: var(--text); font-size: 0.85rem; display: block;">
-                Drag &amp; Drop Candidate Resume (PDF / DOCX) here, or <span style="text-decoration: underline;">click to browse</span>
-              </strong>
-              <p style="color: var(--text-muted); font-size: 0.72rem; margin-top: 0.25rem; margin-bottom: 0;">
-                AI extracts Candidate Name, Email, Skills, Experience &amp; Projects automatically
-              </p>
-            </div>
-            <div id="dropzone-loading-state" style="display: none; padding: 0.5rem 0;">
-              <div class="spinner-border spinner-border-sm" role="status" style="width: 1.5rem; height: 1.5rem; border-width: 2px; color: var(--text); display: inline-block; margin-bottom: 0.35rem;"></div>
-              <strong style="color: var(--text); font-size: 0.85rem; display: block;">Analyzing Resume with AI...</strong>
-              <p style="color: var(--text-muted); font-size: 0.72rem; margin-top: 0.2rem; margin-bottom: 0;">Parsing technical skills, verified experience, and project claims...</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Parsed Resume Confirmation & Skills Pill Box (shown after parse) -->
-        <div id="resume-parsed-card" style="display: none; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 6px; padding: 0.85rem 1rem; margin-bottom: 1.25rem;">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
-            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-              <span class="badge badge-dark"><i class="bi bi-check-circle-fill"></i> Resume Parsed</span>
-              <strong id="parsed-candidate-name-badge" style="font-size: 0.85rem; color: var(--text);">Alex Morgan</strong>
-              <span id="parsed-experience-badge" class="badge badge-outline">3-5 Yrs Exp</span>
-              <span id="parsed-skills-count-badge" class="badge badge-outline" style="font-weight: 600;">12 Skills Detected</span>
-            </div>
-            <button type="button" class="btn btn-ghost btn-sm" onclick="clearParsedResume()" style="font-size: 0.72rem; color: var(--text-muted);" title="Clear parsed resume">
-              <i class="bi bi-x-circle"></i> Clear
-            </button>
-          </div>
-          <div id="parsed-skills-cloud" style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.45rem;">
-            <!-- Populated dynamically with skill pills -->
-          </div>
-        </div>
-
-        <form id="form-invite" class="grid-4" style="align-items: flex-end;">
-          <div>
-            <label>Select Job Position</label>
-            <select id="invite-job-id" required>
-              <option value="">Select a role...</option>
-            </select>
-          </div>
-          <div>
-            <label>Candidate Name</label>
-            <input type="text" id="invite-name" placeholder="Alex Morgan">
-          </div>
-          <div>
-            <label>Candidate Email</label>
-            <input type="email" id="invite-email" placeholder="alex@example.com">
-          </div>
-          <div>
-            <label>WhatsApp / Phone</label>
-            <input type="tel" id="invite-phone" placeholder="+91 98765 43210">
-          </div>
-
-          <div>
-            <label>Link Expiration Timer</label>
-            <select id="invite-timer-minutes">
-              <option value="30">30 Minutes</option>
-              <option value="60" selected>60 Minutes (1 Hour)</option>
-              <option value="120">120 Minutes (2 Hours)</option>
-              <option value="1440">24 Hours (1 Day)</option>
-              <option value="2880">48 Hours (2 Days)</option>
-              <option value="10080">7 Days (1 Week)</option>
-            </select>
-          </div>
-
-          <div style="grid-column: 2 / -1;">
-            <label>Qualifications / Resume Claims (Context)</label>
-            <input type="text" id="invite-resume" placeholder="e.g. 2 yrs Python, FastAPI, Docker experience...">
-          </div>
-
-          <div style="grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.25rem;">
-            <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; margin-bottom: 0; font-size: 0.775rem; text-transform: none;">
-              <input type="checkbox" id="invite-send-notification" checked>
-              <span><strong>Send invitation immediately</strong> via Email &amp; WhatsApp (with full rules &amp; instructions)</span>
-            </label>
-            <button type="submit" class="btn btn-primary" style="padding: 0.55rem 1.45rem; font-weight: 700;">
-              <i class="bi bi-send-fill"></i> Generate &amp; Dispatch Interview Link
-            </button>
-          </div>
-        </form>
-
-        <div id="invite-result-box" style="display: none; background: #fafcff; border: 1.5px solid #bfdbfe; padding: 1rem 1.25rem; border-radius: 8px; margin-top: 1rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-            <span style="font-size: 0.8rem; font-weight: 700; color: #1e3a8a;" id="invite-timer-label">
-              <i class="bi bi-check-circle-fill" style="color: #10b981;"></i> Interview Link Ready:
-            </span>
-            <div style="display: flex; gap: 0.4rem;">
-              <button class="btn btn-outline btn-sm" onclick="copyInviteUrl()"><i class="bi bi-clipboard"></i> Copy Link</button>
-              <a id="invite-whatsapp-btn" href="#" target="_blank" class="btn btn-sm" style="display: none; background: #059669; color: #fff; font-weight: 600;">
-                <i class="bi bi-whatsapp"></i> Chat on WhatsApp
-              </a>
-            </div>
-          </div>
-          <input type="text" id="invite-generated-url" readonly style="margin-top: 0.2rem; margin-bottom: 0.5rem; font-family: monospace; font-size: 0.78rem; background: #fff;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span id="invite-dispatch-note" style="font-size: 0.725rem; color: #047857; font-weight: 600;"></span>
-            <a id="invite-test-link" href="#" target="_blank" class="btn btn-sm btn-outline">
-              <i class="bi bi-box-arrow-up-right"></i> Open Candidate Room (Test Now)
-            </a>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- TAB 3: BYOK / Provider Key Vault -->
