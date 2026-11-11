@@ -1,0 +1,310 @@
+import nodemailer from 'nodemailer';
+import { db } from '../db/database.js';
+
+/**
+ * Unified Platform Email Service
+ * Supports:
+ * 1. Resend API Key (Simplest HTTP API, free at resend.com)
+ * 2. Gmail / Standard SMTP (via Nodemailer with Google App Password)
+ *
+ * Dispatches:
+ * - Recruiter email verification codes
+ * - Admin 2FA login & registration OTPs
+ * - Candidate interview invitations
+ * - Test delivery handshakes
+ */
+
+export function getEmailConfig() {
+  const settings = db.prepare("SELECT key, value FROM platform_settings WHERE key LIKE 'smtp_%' OR key = 'resend_api_key'").all();
+  const map = {};
+  settings.forEach(s => { map[s.key] = s.value; });
+
+  const resendApiKey = map.resend_api_key || process.env.RESEND_API_KEY || '';
+  const host = map.smtp_host || process.env.SMTP_HOST || 'smtp.gmail.com';
+  const port = parseInt(map.smtp_port || process.env.SMTP_PORT || '587', 10);
+  const user = map.smtp_user || process.env.SMTP_USER || '';
+  const pass = map.smtp_pass || process.env.SMTP_PASS || '';
+  const secure = (map.smtp_secure === '1' || port === 465);
+  const fromName = map.smtp_from_name || process.env.SMTP_FROM_NAME || 'AI Interviewer Platform';
+  const fromEmail = map.smtp_from_email || process.env.SMTP_FROM_EMAIL || user || 'onboarding@resend.dev';
+
+  const isResendConfigured = Boolean(resendApiKey && resendApiKey.trim().length > 5);
+  const isSmtpConfigured = Boolean(user && pass && user.trim().length > 3 && pass.trim().length > 3);
+
+  let provider = 'none';
+  if (isResendConfigured) {
+    provider = 'resend';
+  } else if (isSmtpConfigured) {
+    provider = 'smtp';
+  }
+
+  return {
+    provider,
+    resendApiKey,
+    host,
+    port,
+    user,
+    pass,
+    secure,
+    fromName,
+    fromEmail,
+    isConfigured: provider !== 'none'
+  };
+}
+
+// Backward-compatible alias
+export const getSmtpConfig = getEmailConfig;
+
+export function createTransporter() {
+  const config = getEmailConfig();
+  if (config.provider !== 'smtp') return null;
+
+  return nodemailer.createTransport({
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
+    auth: {
+      user: config.user,
+      pass: config.pass
+    },
+    tls: {
+      rejectUnauthorized: false
+    }
+  });
+}
+
+/**
+ * Core unified email dispatcher
+ */
+export async function sendPlatformEmail({ to, subject, html }) {
+  const config = getEmailConfig();
+  const cleanEmail = (to || '').toLowerCase().trim();
+
+  // 1. Resend API Provider
+  if (config.provider === 'resend') {
+    try {
+      let fromAddress = config.fromEmail;
+      // Resend sandbox strictly requires onboarding@resend.dev unless a custom domain is verified
+      if (!fromAddress || fromAddress.includes('@gmail.com') || fromAddress.includes('@yahoo.com') || fromAddress.includes('@hotmail.com') || fromAddress.includes('@outlook.com') || fromAddress.includes('resend.dev')) {
+        fromAddress = 'onboarding@resend.dev';
+      }
+      const sender = config.fromName ? `${config.fromName} <${fromAddress}>` : fromAddress;
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${config.resendApiKey.trim()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: sender,
+          to: [cleanEmail],
+          subject,
+          html
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || (data.name ? `${data.name}: ${data.message}` : 'Resend API delivery error'));
+      }
+      console.log(`✓ [Resend API] Email successfully delivered to: ${cleanEmail}`);
+      return { sent: true, provider: 'resend', messageId: data.id };
+    } catch (err) {
+      console.error(`❌ [Resend API Error] Failed to deliver email to ${cleanEmail}:`, err.message);
+      return { sent: false, provider: 'resend', error: err.message };
+    }
+  }
+
+  // 2. SMTP / Gmail Provider
+  if (config.provider === 'smtp') {
+    const transporter = createTransporter();
+    if (!transporter) {
+      return { sent: false, provider: 'smtp', error: 'SMTP transporter initialization failed' };
+    }
+    try {
+      const info = await transporter.sendMail({
+        from: `"${config.fromName}" <${config.fromEmail || config.user}>`,
+        to: cleanEmail,
+        subject,
+        html
+      });
+      console.log(`✓ [SMTP] Email successfully delivered to: ${cleanEmail}`);
+      return { sent: true, provider: 'smtp', messageId: info.messageId };
+    } catch (err) {
+      console.error(`❌ [SMTP Error] Failed to send email to ${cleanEmail}:`, err.message);
+      return { sent: false, provider: 'smtp', error: err.message };
+    }
+  }
+
+  // 3. Fallback when not configured
+  console.warn(`\n======================================================`);
+  console.warn(`⚠️  [EMAIL DELIVERY NOTICE]`);
+  console.warn(`   No live email credentials (Gmail SMTP or Resend API Key) configured yet.`);
+  console.warn(`   Recipient: ${cleanEmail}`);
+  console.warn(`   Subject:   ${subject}`);
+  console.warn(`👉 To send real emails to inboxes, add either:`);
+  console.warn(`   Option 1: RESEND_API_KEY in .env or /admin Settings (free at resend.com)`);
+  console.warn(`   Option 2: Gmail SMTP in .env or /admin Settings (Your Gmail + 16-char Google App Password)`);
+  console.warn(`======================================================\n`);
+
+  return {
+    sent: false,
+    provider: 'none',
+    error: 'Email service credentials not configured. Please add Gmail SMTP or Resend API key in Admin Settings.'
+  };
+}
+
+/**
+ * Send 6-Digit Email Verification Code to newly registered Recruiter
+ */
+export async function sendRecruiterVerificationEmail(email, verificationCode, fullName = 'Recruiter') {
+  const cleanEmail = email.toLowerCase().trim();
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; margin: 0; padding: 24px; color: #0f172a; }
+    .card { max-width: 520px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+    .header { background: #0f172a; padding: 24px 32px; color: #ffffff; }
+    .header h2 { margin: 0; font-size: 20px; font-weight: 800; }
+    .body { padding: 32px; }
+    .otp-box { background: #f1f5f9; border: 2px dashed #2563eb; border-radius: 10px; padding: 18px; text-align: center; margin: 24px 0; }
+    .otp-code { font-family: 'Courier New', monospace; font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #2563eb; }
+    .footer { border-top: 1px solid #e2e8f0; padding: 16px 32px; font-size: 11px; color: #94a3b8; text-align: center; background: #f8fafc; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <h2>AI Interviewer Platform</h2>
+      <p style="margin: 4px 0 0; font-size: 13px; color: #94a3b8;">Work Email Verification</p>
+    </div>
+    <div class="body">
+      <p style="font-size: 14px; color: #334155; margin: 0 0 12px;">Hello <strong>${fullName}</strong>,</p>
+      <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin: 0;">
+        Thank you for registering your recruiter account. Please enter the following 6-digit verification code on the platform to activate your account:
+      </p>
+      
+      <div class="otp-box">
+        <div class="otp-code">${verificationCode}</div>
+      </div>
+      
+      <p style="font-size: 12px; color: #94a3b8; margin: 0;">
+        This code is valid for 15 minutes. If you did not create an account on AI Interviewer, you can safely ignore this email.
+      </p>
+    </div>
+    <div class="footer">
+      Secured with AI Interviewer SaaS &middot; Automated Technical Screening
+    </div>
+  </div>
+</body>
+</html>
+  `.trim();
+
+  return await sendPlatformEmail({
+    to: cleanEmail,
+    subject: `[Verification Code] ${verificationCode} — Verify Your Recruiter Account`,
+    html
+  });
+}
+
+/**
+ * Send 6-Digit Admin 2FA / Registration Security Code
+ */
+export async function sendAdminSecurityEmail(email, otpCode, purposeTitle, adminName = 'Platform Administrator') {
+  const cleanEmail = email.toLowerCase().trim();
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #09090b; margin: 0; padding: 24px; color: #f4f4f5; }
+    .card { max-width: 500px; margin: 0 auto; background: #121215; border: 1px solid #27272a; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    .header { background: linear-gradient(135deg, #1e1b4b, #312e81); padding: 24px 32px; border-bottom: 1px solid #3730a3; }
+    .header h2 { margin: 0; font-size: 20px; color: #ffffff; }
+    .body { padding: 32px; }
+    .otp-box { background: #18181b; border: 1px dashed #6366f1; border-radius: 10px; padding: 18px; text-align: center; margin: 24px 0; }
+    .otp-code { font-family: 'Courier New', monospace; font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #a5b4fc; }
+    .note { font-size: 12px; color: #a1a1aa; line-height: 1.5; margin-top: 16px; border-top: 1px solid #27272a; padding-top: 16px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <h2>🛡️ Super Admin Security Verification</h2>
+      <p style="margin: 4px 0 0; font-size: 12px; color: #c7d2fe;">${purposeTitle}</p>
+    </div>
+    <div class="body">
+      <p style="font-size: 14px; color: #d4d4d8; margin: 0 0 12px;">Hello <strong>${adminName}</strong>,</p>
+      <p style="font-size: 13px; color: #a1a1aa; margin: 0;">
+        Use the following 6-digit One-Time Password (OTP) to authenticate your Superadmin access. This code expires in 10 minutes.
+      </p>
+      
+      <div class="otp-box">
+        <div class="otp-code">${otpCode}</div>
+      </div>
+      
+      <div class="note">
+        <strong>Security Warning:</strong> This code grants full operational privileges over the entire platform. If you did not initiate this request, take immediate security action.
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+  `.trim();
+
+  return await sendPlatformEmail({
+    to: cleanEmail,
+    subject: `[Admin Security OTP] ${otpCode} — ${purposeTitle}`,
+    html
+  });
+}
+
+/**
+ * Test delivery handshake with recipient email
+ */
+export async function sendTestEmail(recipientEmail) {
+  const config = getEmailConfig();
+  if (!config.isConfigured) {
+    throw new Error(
+      'Email service is not configured! Please provide either a Resend API Key (re_...) OR your Gmail address and 16-character Google App Password in Settings.'
+    );
+  }
+
+  const testId = 'test_' + Date.now();
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 24px; background: #f8fafc; color: #0f172a; border-radius: 10px; max-width: 500px; margin: 0 auto; border: 1px solid #e2e8f0;">
+      <h2 style="color: #059669; margin-top: 0;">✓ Email Delivery Test Successful!</h2>
+      <p style="font-size: 14px; line-height: 1.5;">Your email configuration on AI Interviewer is working and delivering directly to inboxes.</p>
+      <div style="background: #ffffff; padding: 12px 16px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; margin: 16px 0;">
+        <div><strong>Provider:</strong> ${config.provider.toUpperCase()}</div>
+        ${config.provider === 'smtp' ? `<div><strong>SMTP Host:</strong> ${config.host}:${config.port}</div>` : ''}
+        <div><strong>Sender:</strong> ${config.fromEmail || config.user}</div>
+        <div><strong>Recipient:</strong> ${recipientEmail}</div>
+        <div><strong>Timestamp:</strong> ${new Date().toISOString()}</div>
+      </div>
+      <p style="color: #64748b; font-size: 11px; margin-bottom: 0;">Automated test notification from AI Interviewer Platform Control Center.</p>
+    </div>
+  `;
+
+  const result = await sendPlatformEmail({
+    to: recipientEmail,
+    subject: `[Test Successful] AI Interviewer Email Delivery Test (${testId})`,
+    html
+  });
+
+  if (!result.sent) {
+    throw new Error(result.error || 'Failed to dispatch test email');
+  }
+
+  return {
+    success: true,
+    provider: config.provider,
+    messageId: result.messageId,
+    recipient: recipientEmail
+  };
+}

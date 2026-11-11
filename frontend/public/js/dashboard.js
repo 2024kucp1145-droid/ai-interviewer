@@ -52,7 +52,6 @@ async function checkAuthSession() {
       if (!currentUser.is_verified) {
         openAuthModal();
         goToStep(2);
-        document.getElementById('demo-verification-hint').textContent = `Demo Verification Code: ${currentUser.verification_code || '123456'}`;
         return false;
       }
 
@@ -198,8 +197,12 @@ document.getElementById('form-signup').addEventListener('submit', async (e) => {
     currentUser = data.user;
     currentOrg = data.org;
 
-    document.getElementById('demo-verification-hint').textContent = `Demo Verification Code: ${data.verificationCode || '123456'}`;
     goToStep(2);
+    if (data.emailSent) {
+      alert(`✓ Verification code sent to ${data.user.email}! Please check your email inbox (and spam folder).`);
+    } else {
+      alert(`⚠️ Notice: Live email delivery requires SMTP or Resend API configured in Admin Settings.\nFor local development, your 6-digit code is visible in the server terminal output.`);
+    }
   } catch (err) {
     alert(err.message);
   }
@@ -259,8 +262,25 @@ document.getElementById('form-verify').addEventListener('submit', async (e) => {
   }
 });
 
-window.resendVerificationCode = function() {
-  alert('Verification code resent! (For instant demo testing, you can also use master code: 123456)');
+window.resendVerificationCode = async function() {
+  if (!authToken) {
+    alert('Please sign up or sign in first.');
+    return;
+  }
+  try {
+    const res = await fetch('/auth/resend-code', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to resend code');
+    alert(`📨 ${data.message || 'Verification code resent to your email!'}`);
+  } catch (err) {
+    alert(`Error resending code: ${err.message}`);
+  }
 };
 
 // Step 3: Form Company Profile
@@ -5056,19 +5076,80 @@ window.closeBillingModal = function() {
 
 window.confirmBillingPayment = async function() {
   const btn = document.getElementById('pay-btn');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing…'; }
+  if (!authToken) {
+    alert('Please sign in to complete purchase.');
+    if (typeof openAuthModal === 'function') openAuthModal();
+    return;
+  }
 
-  await new Promise(r => setTimeout(r, 1800));
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing Payment…'; }
 
-  closeBillingModal();
-  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-circle"></i> Pay Now'; }
+  try {
+    let orderPayload;
+    if (billingCheckoutType === 'ppu') {
+      const qty = Math.max(1, parseInt(document.getElementById('ppu-qty')?.value) || 1);
+      orderPayload = {
+        type: 'pay_per_use',
+        quantity: qty,
+        minutes: billingSelectedDuration || 30
+      };
+    } else {
+      if (!billingCheckoutPlan) {
+        throw new Error('Please select a subscription plan first');
+      }
+      orderPayload = {
+        type: 'subscription',
+        planId: billingCheckoutPlan.id
+      };
+    }
 
-  const credits = billingCheckoutType === 'ppu'
-    ? Math.max(1, parseInt(document.getElementById('ppu-qty')?.value) || 1)
-    : (billingCheckoutPlan?.includedInterviews || 0);
+    // 1. Create order
+    const orderRes = await fetch('/billing/order', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify(orderPayload)
+    });
 
-  alert(`✅ Payment confirmed! ${credits} interview credits added.`);
-  loadBillingBalance();
+    const orderData = await orderRes.json();
+    if (!orderRes.ok) {
+      throw new Error(orderData.error || 'Failed to initialize order');
+    }
+
+    // 2. Confirm order payment
+    const confirmRes = await fetch(`/billing/order/${orderData.orderId}/confirm`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      }
+    });
+
+    const confirmData = await confirmRes.json();
+    if (!confirmRes.ok) {
+      throw new Error(confirmData.error || 'Payment confirmation failed');
+    }
+
+    // 3. Update local state & badges
+    if (currentOrg) {
+      currentOrg.included_interviews = confirmData.creditsRemaining;
+      currentOrg.plan = confirmData.plan;
+    }
+    if (typeof updateUserBadge === 'function') updateUserBadge();
+    await loadBillingBalance();
+    if (typeof loadBillingHistory === 'function') {
+      loadBillingHistory();
+    }
+
+    closeBillingModal();
+    alert(`🎉 Success! ${confirmData.message || 'Payment confirmed and interview credits updated.'}\nTotal Available Credits: ${confirmData.creditsRemaining}`);
+  } catch (err) {
+    alert(`❌ Purchase failed: ${err.message}`);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-circle"></i> Pay Now'; }
+  }
 };
 
 // Card input formatting

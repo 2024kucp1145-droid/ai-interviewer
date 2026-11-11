@@ -19,6 +19,9 @@ import { billingRouter } from './billing/billingRoutes.js';
 import { dispatchCandidateNotification, buildInterviewRulesText } from './services/dispatchService.js';
 import { judgeLeetCodeSolution } from './services/leetcodeJudge.js';
 import { generateNeuralAudio, NEURAL_VOICES } from './services/neuralTtsService.js';
+import { adminRouter } from './admin/adminRoutes.js';
+import { logActivity } from './services/activityService.js';
+import { sendRecruiterVerificationEmail } from './services/emailService.js';
 
 dotenv.config();
 
@@ -43,8 +46,17 @@ app.use(express.json());
 // Billing routes
 app.use('/billing', billingRouter);
 
+// Platform Admin API & routes
+app.use('/api/admin', adminRouter);
+
 // Serve static frontend assets
 const frontendPath = path.resolve(__dirname, '../../frontend/public');
+
+// Dedicated Platform Admin Portal Web Page
+app.get('/admin', (req, res) => {
+  res.sendFile(path.resolve(frontendPath, 'admin.html'));
+});
+
 app.use(express.static(frontendPath));
 
 // --- Health Check ---
@@ -57,7 +69,7 @@ app.get('/health', (req, res) => {
 });
 
 // --- Auth Endpoints ---
-app.post('/auth/signup', (req, res) => {
+app.post('/auth/signup', async (req, res) => {
   try {
     const { 
       email, 
@@ -87,22 +99,30 @@ app.post('/auth/signup', (req, res) => {
     // Generate 6 digit verification code (e.g. 849201)
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
 
+    // Check platform settings for admin approval requirement & default trial credits
+    const settingApproval = db.prepare("SELECT value FROM platform_settings WHERE key = 'require_admin_approval'").get();
+    const initialApproval = (settingApproval && settingApproval.value === '1') ? 'pending_approval' : 'approved';
+
+    const settingCredits = db.prepare("SELECT value FROM platform_settings WHERE key = 'default_trial_credits'").get();
+    const trialCredits = parseInt(settingCredits?.value || '10', 10) || 10;
+
     db.transaction(() => {
       db.prepare(`
         INSERT INTO organizations (id, name, website, industry, company_size, country, plan, included_interviews)
-        VALUES (?, ?, ?, ?, ?, ?, 'free_trial', 10)
+        VALUES (?, ?, ?, ?, ?, ?, 'free_trial', ?)
       `).run(
         orgId, 
         (companyName || 'My Organization').trim(), 
         (website || '').trim(), 
         (industry || 'Technology').trim(), 
         (companySize || '1-20').trim(), 
-        (country || 'India').trim()
+        (country || 'India').trim(),
+        trialCredits
       );
 
       db.prepare(`
-        INSERT INTO users (id, org_id, full_name, phone, job_title, email, password_hash, role, is_verified, verification_code)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'owner', 0, ?)
+        INSERT INTO users (id, org_id, full_name, phone, job_title, email, password_hash, role, is_verified, verification_code, approval_status, last_login_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'owner', 0, ?, ?, CURRENT_TIMESTAMP)
       `).run(
         userId, 
         orgId, 
@@ -111,16 +131,42 @@ app.post('/auth/signup', (req, res) => {
         (jobTitle || 'Recruiter').trim(), 
         email.toLowerCase().trim(), 
         passHash,
-        verificationCode
+        verificationCode,
+        initialApproval
       );
     })();
+
+    // Send 6-digit confirmation code via real SMTP email
+    const emailResult = await sendRecruiterVerificationEmail(
+      email.toLowerCase().trim(), 
+      verificationCode, 
+      fullName || 'Hiring Manager'
+    );
+
+    // Log platform activity for Superadmin visibility
+    logActivity({
+      action: 'USER_SIGNUP',
+      actorType: 'user',
+      actorId: userId,
+      actorEmail: email.toLowerCase().trim(),
+      actorName: fullName || 'Hiring Manager',
+      orgId,
+      entityType: 'user',
+      entityId: userId,
+      details: { companyName, jobTitle, approvalStatus: initialApproval, trialCredits, emailSent: emailResult.sent },
+      ipAddress: req.ip
+    });
 
     const token = signToken({ id: userId, org_id: orgId, email, role: 'owner' });
     res.json({
       token,
-      verificationCode, // Returned for instant demo testing & visual feedback
-      user: { id: userId, email, fullName, jobTitle, is_verified: 0 },
-      org: { id: orgId, name: companyName || 'My Organization', plan: 'free_trial' }
+      message: emailResult.sent 
+        ? 'Verification code sent to your email.' 
+        : 'Account created. Please check your email for the verification code.',
+      user: { id: userId, email: email.toLowerCase().trim(), fullName, jobTitle, is_verified: 0, approval_status: initialApproval },
+      org: { id: orgId, name: companyName || 'My Organization', plan: 'free_trial', included_interviews: trialCredits },
+      isPendingApproval: initialApproval === 'pending_approval',
+      emailSent: emailResult.sent
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -134,13 +180,64 @@ app.post('/auth/verify', requireAuth, (req, res) => {
     const user = db.prepare('SELECT id, verification_code, is_verified FROM users WHERE id = ?').get(req.user.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    // Allow user's code match or master demo code 123456
-    if (code === user.verification_code || code === '123456') {
+    const cleanCode = (code || '').trim();
+    const isDevTestBypass = process.env.NODE_ENV === 'test' && cleanCode === '123456';
+
+    if (cleanCode === user.verification_code || isDevTestBypass) {
       db.prepare('UPDATE users SET is_verified = 1 WHERE id = ?').run(req.user.id);
+      
+      logActivity({
+        action: 'USER_VERIFIED',
+        actorType: 'user',
+        actorId: req.user.id,
+        actorEmail: req.user.email,
+        orgId: req.user.org_id,
+        ipAddress: req.ip
+      });
+
       return res.json({ success: true, message: 'Identity verified successfully!' });
     }
 
-    return res.status(400).json({ error: 'Invalid verification code. Please check and try again.' });
+    return res.status(400).json({ error: 'Invalid verification code. Please check your email inbox and try again.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Resend Verification Code step
+app.post('/auth/resend-code', requireAuth, async (req, res) => {
+  try {
+    const user = db.prepare('SELECT id, email, full_name, is_verified FROM users WHERE id = ?').get(req.user.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.is_verified) {
+      return res.json({ success: true, message: 'Your account is already verified.' });
+    }
+
+    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+    db.prepare('UPDATE users SET verification_code = ? WHERE id = ?').run(newCode, user.id);
+
+    const emailResult = await sendRecruiterVerificationEmail(user.email, newCode, user.full_name || 'Hiring Manager');
+
+    logActivity({
+      action: 'VERIFICATION_CODE_RESENT',
+      actorType: 'user',
+      actorId: user.id,
+      actorEmail: user.email,
+      actorName: user.full_name,
+      orgId: req.user.org_id,
+      entityType: 'user',
+      entityId: user.id,
+      details: { emailSent: emailResult.sent },
+      ipAddress: req.ip
+    });
+
+    res.json({
+      success: true,
+      message: emailResult.sent
+        ? `A fresh 6-digit verification code was emailed to ${user.email}.`
+        : `New code generated. Please check your email inbox.`,
+      emailSent: emailResult.sent
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -167,6 +264,16 @@ app.post('/auth/company-profile', requireAuth, (req, res) => {
       req.user.org_id
     );
 
+    logActivity({
+      action: 'COMPANY_PROFILE_UPDATED',
+      actorType: 'user',
+      actorId: req.user.id,
+      actorEmail: req.user.email,
+      orgId: req.user.org_id,
+      details: { companyName, industry, companySize, country },
+      ipAddress: req.ip
+    });
+
     const updatedOrg = db.prepare('SELECT * FROM organizations WHERE id = ?').get(req.user.org_id);
     res.json({ success: true, org: updatedOrg });
   } catch (err) {
@@ -186,6 +293,31 @@ app.post('/auth/login', (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
+    // Enforce Admin Approval and Suspension status
+    if (user.approval_status === 'suspended') {
+      return res.status(403).json({ error: 'Your recruiter account has been suspended by the platform administrator. Please contact support.' });
+    }
+    if (user.approval_status === 'pending_approval') {
+      return res.status(403).json({ error: 'Your recruiter account is pending administrator review and approval. You will be notified once activated.' });
+    }
+    if (user.approval_status === 'rejected') {
+      return res.status(403).json({ error: 'Your account registration request was not approved.' });
+    }
+
+    // Update last login
+    db.prepare('UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?').run(user.id);
+
+    // Log platform activity
+    logActivity({
+      action: 'USER_LOGIN',
+      actorType: 'user',
+      actorId: user.id,
+      actorEmail: user.email,
+      actorName: user.full_name,
+      orgId: user.org_id,
+      ipAddress: req.ip
+    });
+
     const org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(user.org_id);
     const token = signToken({ id: user.id, org_id: user.org_id, email: user.email, role: user.role });
 
@@ -197,7 +329,8 @@ app.post('/auth/login', (req, res) => {
         fullName: user.full_name, 
         jobTitle: user.job_title, 
         role: user.role,
-        is_verified: user.is_verified 
+        is_verified: user.is_verified,
+        approval_status: user.approval_status
       },
       org: { 
         id: org.id, 
@@ -205,7 +338,8 @@ app.post('/auth/login', (req, res) => {
         website: org.website, 
         industry: org.industry, 
         companySize: org.company_size, 
-        plan: org.plan 
+        plan: org.plan,
+        included_interviews: org.included_interviews
       }
     });
   } catch (err) {
@@ -215,7 +349,7 @@ app.post('/auth/login', (req, res) => {
 
 app.get('/auth/me', requireAuth, (req, res) => {
   try {
-    const user = db.prepare('SELECT id, full_name, email, phone, job_title, role, is_verified, verification_code FROM users WHERE id = ?').get(req.user.id);
+    const user = db.prepare('SELECT id, full_name, email, phone, job_title, role, is_verified, approval_status FROM users WHERE id = ?').get(req.user.id);
     const org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(req.user.org_id);
     res.json({ user, org });
   } catch (err) {
@@ -424,6 +558,19 @@ app.post('/jobs', requireAuth, (req, res) => {
     );
 
     const created = db.prepare('SELECT * FROM jobs WHERE id = ?').get(jobId);
+
+    logActivity({
+      action: 'JOB_CREATED',
+      actorType: 'user',
+      actorId: req.user.id,
+      actorEmail: req.user.email,
+      orgId: req.user.org_id,
+      entityType: 'job',
+      entityId: jobId,
+      details: { title: title.trim(), skills: skillList, category },
+      ipAddress: req.ip
+    });
+
     res.json(created);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -566,6 +713,18 @@ app.delete('/jobs/:id', requireAuth, (req, res) => {
       db.prepare('DELETE FROM interviews WHERE job_id = ?').run(jobId);
       db.prepare('DELETE FROM jobs WHERE id = ? AND org_id = ?').run(jobId, req.user.org_id);
     })();
+
+    logActivity({
+      action: 'JOB_DELETED',
+      actorType: 'user',
+      actorId: req.user.id,
+      actorEmail: req.user.email,
+      orgId: req.user.org_id,
+      entityType: 'job',
+      entityId: jobId,
+      details: { title: existing.title },
+      ipAddress: req.ip
+    });
 
     res.json({ success: true, message: `Interview "${existing.title}" deleted successfully.` });
   } catch (err) {
@@ -716,6 +875,18 @@ app.post('/jobs/:id/interviews', requireAuth, async (req, res) => {
       });
       db.prepare("UPDATE interviews SET dispatch_status = 'dispatched' WHERE id = ?").run(interviewId);
     }
+
+    logActivity({
+      action: 'INTERVIEW_DISPATCHED',
+      actorType: 'user',
+      actorId: req.user.id,
+      actorEmail: req.user.email,
+      orgId: effectiveOrgId,
+      entityType: 'interview',
+      entityId: interviewId,
+      details: { candidateName: cleanName, candidateEmail: cleanEmail, channel: dispatch_channel, jobTitle: job.title },
+      ipAddress: req.ip
+    });
 
     res.json({
       interviewId,
@@ -1399,6 +1570,15 @@ app.post('/i/:token/consent', (req, res) => {
 
     db.prepare(`UPDATE interviews SET state = 'in_progress', started_at = COALESCE(started_at, CURRENT_TIMESTAMP) WHERE id = ?`).run(interview.id);
 
+    logActivity({
+      action: 'INTERVIEW_STARTED',
+      actorType: 'candidate',
+      actorId: interview.candidate_id,
+      entityType: 'interview',
+      entityId: interview.id,
+      ipAddress: req.ip
+    });
+
     res.json({ success: true, state: 'in_progress' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1535,6 +1715,15 @@ app.post('/i/:token/finish', async (req, res) => {
     // Generate evidence-backed report automatically
     const report = await generateReport(interview.id);
 
+    logActivity({
+      action: 'INTERVIEW_COMPLETED',
+      actorType: 'candidate',
+      entityType: 'interview',
+      entityId: interview.id,
+      details: { score: report?.overall_score, verdict: report?.candidate_verdict, recommendation: report?.recommendation },
+      ipAddress: req.ip
+    });
+
     res.json({ success: true, message: 'Interview completed and report generated.', report });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1599,6 +1788,15 @@ app.post('/i/:token/disqualify', async (req, res) => {
         model = excluded.model,
         created_at = CURRENT_TIMESTAMP
     `).run(reportId, interview.id, JSON.stringify(disqualifiedReport));
+
+    logActivity({
+      action: 'INTERVIEW_DISQUALIFIED',
+      actorType: 'candidate',
+      entityType: 'interview',
+      entityId: interview.id,
+      details: { reason: disqualificationReason, warnings: warnings || 3 },
+      ipAddress: req.ip
+    });
 
     res.json({ success: true, message: 'Candidate disqualified', reason: disqualificationReason });
   } catch (err) {

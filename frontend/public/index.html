@@ -1525,7 +1525,6 @@
       <button class="nav-btn active" onclick="switchTab('jobs')"><i class="bi bi-briefcase"></i> Roles & Skills</button>
       <button class="nav-btn" onclick="switchTab('candidates')"><i class="bi bi-people"></i> Candidate Pipeline</button>
       <button class="nav-btn" onclick="openQuestionBankModal()"><i class="bi bi-collection"></i> Question Bank</button>
-      <button class="nav-btn" id="nav-btn-registered-users" onclick="openRegisteredUsersModal()" title="View live list of all signed up users & organizations"><i class="bi bi-people-fill" style="color: #2563eb;"></i> Registered Users (<span id="nav-users-count">0</span>)</button>
       <button class="nav-btn" onclick="switchTab('keys')"><i class="bi bi-key"></i> API Key (BYOK)</button>
       <button class="nav-btn" onclick="switchTab('metrics')"><i class="bi bi-graph-up"></i> Usage & Pricing</button>
       <button class="nav-btn" onclick="switchTab('leadmagnet')"><i class="bi bi-magic"></i> Free Question Gen</button>
@@ -2906,11 +2905,10 @@
         <!-- Step 2: Verification (Code Confirmation) -->
         <div id="auth-step-2" style="display: none;">
           <div style="background: var(--surface-subtle); border: 1px solid var(--border); padding: 0.85rem; border-radius: 6px; margin-bottom: 1rem;">
-            <div style="font-weight: 600; font-size: 0.775rem; margin-bottom: 0.2rem;"><i class="bi bi-envelope-check"></i> Verification Code Sent</div>
-            <p style="color: var(--text-muted); font-size: 0.725rem;">
-              We sent a 6-digit confirmation code to your work email. Enter it below to verify your employer identity.
+            <div style="font-weight: 600; font-size: 0.775rem; margin-bottom: 0.2rem;"><i class="bi bi-envelope-check"></i> Verification Code Sent to Email</div>
+            <p style="color: var(--text-muted); font-size: 0.725rem; margin-bottom: 0;">
+              We sent a 6-digit confirmation code directly to your work email address. Please check your inbox (and spam folder) and enter it below to verify your employer account.
             </p>
-            <div id="demo-verification-hint" style="margin-top: 0.4rem; font-size: 0.725rem; font-family: monospace; color: #000; font-weight: 600;"></div>
           </div>
 
           <form id="form-verify">

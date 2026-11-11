@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Super Admin Platform Operations | AI Interviewer SaaS</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #09090b;
+      --surface: #121215;
+      --surface-elevated: #18181b;
+      --surface-subtle: #202024;
+      --border: #27272a;
+      --border-bright: #3f3f46;
+      --text: #f4f4f5;
+      --text-muted: #a1a1aa;
+      --text-subtle: #71717a;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --primary-subtle: rgba(99, 102, 241, 0.12);
+      --success: #10b981;
+      --success-subtle: rgba(16, 185, 129, 0.12);
+      --warning: #f59e0b;
+      --warning-subtle: rgba(245, 158, 11, 0.12);
+      --danger: #ef4444;
+      --danger-subtle: rgba(239, 68, 68, 0.12);
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-elevated: #f1f5f9;
+      --surface-subtle: #e2e8f0;
+      --border: #cbd5e1;
+      --border-bright: #94a3b8;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --text-subtle: #64748b;
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-subtle: #e0e7ff;
+      --success: #059669;
+      --success-subtle: #d1fae5;
+      --warning: #d97706;
+      --warning-subtle: #fef3c7;
+      --danger: #dc2626;
+      --danger-subtle: #fee2e2;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Navigation Header */
+    header {
+      background-color: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 0.875rem;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: #fff;
+      padding: 0.35rem 0.65rem;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      letter-spacing: -0.02em;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    }
+
+    .brand-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-subtitle {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      display: block;
+    }
+
+    .header-meta {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .admin-pill {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.3rem 0.75rem;
+      border-radius: 9999px;
+      background-color: var(--surface-elevated);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .admin-pill.seats-alert {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: var(--success);
+      display: inline-block;
+      box-shadow: 0 0 8px var(--success);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      padding: 0.5rem 0.9rem;
+      border-radius: 7px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-decoration: none;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: #ffffff;
+    }
+    .btn-primary:hover {
+      background-color: var(--primary-hover);
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+    }
+
+    .btn-secondary {
+      background-color: var(--surface-elevated);
+      border-color: var(--border);
+      color: var(--text);
+    }
+    .btn-secondary:hover {
+      background-color: var(--surface-subtle);
+      border-color: var(--border-bright);
+    }
+
+    .btn-success {
+      background-color: var(--success);
+      color: #fff;
+    }
+    .btn-success:hover {
+      filter: brightness(1.1);
+    }
+
+    .btn-danger {
+      background-color: var(--danger);
+      color: #fff;
+    }
+    .btn-danger:hover {
+      filter: brightness(1.1);
+    }
+
+    .btn-sm {
+      padding: 0.3rem 0.6rem;
+      font-size: 0.75rem;
+      border-radius: 5px;
+    }
+
+    /* Auth Gateway Screens */
+    .auth-container {
+      max-width: 480px;
+      margin: 4rem auto;
+      padding: 0 1.5rem;
+      width: 100%;
+    }
+
+    .auth-card {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 2.25rem;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .auth-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .auth-icon {
+      width: 54px;
+      height: 54px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(124, 58, 237, 0.2));
+      border: 1px solid var(--primary);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      margin: 0 auto 1rem;
+    }
+
+    .auth-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.35rem;
+    }
+
+    .auth-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .auth-tabs {
+      display: flex;
+      background-color: var(--surface-elevated);
+      padding: 0.25rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--border);
+    }
+
+    .auth-tab {
+      flex: 1;
+      padding: 0.5rem;
+      text-align: center;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-radius: 6px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      transition: all 0.15s ease;
+    }
+
+    .auth-tab.active {
+      background-color: var(--surface);
+      color: var(--text);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .form-group {
+      margin-bottom: 1.15rem;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      color: var(--text-muted);
+    }
+
+    .form-input {
+      width: 100%;
+      background-color: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.65rem 0.85rem;
+      color: var(--text);
+      font-size: 0.8125rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    .form-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-subtle);
+    }
+
+    .form-input.code-font {
+      font-family: var(--mono);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    .otp-input-grid {
+      display: flex;
+      gap: 0.6rem;
+      justify-content: center;
+      margin: 1.5rem 0;
+    }
+
+    .otp-digit {
+      width: 48px;
+      height: 56px;
+      text-align: center;
+      font-size: 1.5rem;
+      font-family: var(--mono);
+      font-weight: 800;
+      background-color: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      outline: none;
+    }
+
+    .otp-digit:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-subtle);
+    }
+
+    .helper-box {
+      background-color: var(--surface-elevated);
+      border: 1px dashed var(--border-bright);
+      border-radius: 8px;
+      padding: 0.75rem;
+      margin-top: 1rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Main Dashboard Layout */
+    .dashboard-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 1.5rem;
+      width: 100%;
+      flex: 1;
+    }
+
+    .nav-tabs {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+      overflow-x: auto;
+      padding-bottom: 0.25rem;
+    }
+
+    .nav-tab-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.1rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      border: none;
+      background: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .nav-tab-btn:hover {
+      color: var(--text);
+      background-color: var(--surface-elevated);
+    }
+
+    .nav-tab-btn.active {
+      color: #fff;
+      background-color: var(--primary);
+      box-shadow: 0 3px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    /* Metric Cards Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .kpi-card {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+
+    .kpi-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .kpi-icon {
+      font-size: 1.25rem;
+      color: var(--primary);
+    }
+
+    .kpi-value {
+      font-size: 1.85rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin-bottom: 0.35rem;
+    }
+
+    .kpi-subtext {
+      font-size: 0.72rem;
+      color: var(--text-subtle);
+    }
+
+    /* Content Cards */
+    .card {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+
+    .card-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: var(--surface-elevated);
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card-body {
+      padding: 1.25rem;
+    }
+
+    /* Tables */
+    .table-responsive {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.8125rem;
+    }
+
+    th {
+      padding: 0.75rem 1rem;
+      background-color: var(--surface-elevated);
+      color: var(--text-muted);
+      font-weight: 700;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    tr:hover td {
+      background-color: var(--surface-elevated);
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    .badge-success {
+      background-color: var(--success-subtle);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    .badge-warning {
+      background-color: var(--warning-subtle);
+      color: var(--warning);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+
+    .badge-danger {
+      background-color: var(--danger-subtle);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+    }
+
+    .badge-primary {
+      background-color: var(--primary-subtle);
+      color: var(--primary);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+    }
+
+    .badge-neutral {
+      background-color: var(--surface-subtle);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    /* Activity Stream Timeline */
+    .activity-feed {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .activity-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.85rem;
+      padding: 0.85rem 1rem;
+      background-color: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+
+    .activity-item:hover {
+      border-color: var(--border-bright);
+      transform: translateX(2px);
+    }
+
+    .activity-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+      flex-shrink: 0;
+    }
+
+    .activity-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .activity-title {
+      font-weight: 700;
+      font-size: 0.8125rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .activity-desc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .activity-time {
+      font-size: 0.72rem;
+      color: var(--text-subtle);
+      white-space: nowrap;
+      font-family: var(--mono);
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .modal-backdrop.show {
+      display: flex;
+    }
+
+    .modal-box {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 700px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 1.15rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: var(--surface-elevated);
+    }
+
+    .modal-title {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .modal-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      background-color: var(--surface-elevated);
+    }
+
+    /* Code Snippet Box */
+    .code-box {
+      background-color: #050507;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.85rem;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: #cbd5e1;
+      overflow-x: auto;
+      margin: 0.5rem 0;
+    }
+
+    /* Toast Notification */
+    .toast-container {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      z-index: 150;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .toast {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.85rem 1.25rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      min-width: 280px;
+      animation: slideIn 0.2s ease;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Global Header -->
+  <header>
+    <div class="header-inner">
+      <div class="brand-group">
+        <div class="brand-badge">
+          <i class="bi bi-shield-lock-fill"></i> SUPERADMIN
+        </div>
+        <div>
+          <span class="brand-title">AI Interviewer Platform Ops</span>
+          <span class="brand-subtitle">Restricted Administrative Operations &amp; Recruiter Monitoring</span>
+        </div>
+      </div>
+
+      <div class="header-meta">
+        <div id="seats-indicator" class="admin-pill seats-alert" title="Strictly limited to 2-3 Administrators">
+          <span class="status-dot"></span>
+          <span id="seats-text">Admin Seats: Checking...</span>
+        </div>
+
+        <button id="btn-theme-toggle" class="btn btn-secondary btn-sm" title="Toggle Theme">
+          <i class="bi bi-moon-stars"></i>
+        </button>
+
+        <!-- Logged In Controls -->
+        <div id="auth-controls" style="display: none; align-items: center; gap: 0.75rem;">
+          <span id="admin-user-badge" class="admin-pill">
+            <i class="bi bi-person-badge"></i> <strong id="admin-name">Admin</strong>
+          </span>
+          <button id="btn-admin-logout" class="btn btn-secondary btn-sm">
+            <i class="bi bi-box-arrow-right"></i> Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- 1. AUTHENTICATION & ACCESS CODE GATEWAY (When not signed in) -->
+  <!-- ========================================================================= -->
+  <div id="auth-view" class="auth-container">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="auth-icon">
+          <i class="bi bi-shield-shaded"></i>
+        </div>
+        <h1 class="auth-title">Superadmin Gateway</h1>
+        <p class="auth-subtitle">Restricted to authorized platform administrators only (2–3 max seats)</p>
+      </div>
+
+      <div class="auth-tabs">
+        <button id="tab-auth-login" class="auth-tab active" onclick="switchAuthMode('login')">
+          <i class="bi bi-key-fill"></i> Admin Login (2FA OTP)
+        </button>
+        <button id="tab-auth-register" class="auth-tab" onclick="switchAuthMode('register')">
+          <i class="bi bi-ticket-perforated-fill"></i> Activate by Hash Code
+        </button>
+      </div>
+
+      <!-- Mode A: Admin Login Flow -->
+      <div id="flow-login">
+        <!-- Step 1: Password -->
+        <div id="login-step-1">
+          <div class="form-group">
+            <label class="form-label">Administrator Email</label>
+            <input type="email" id="login-email" class="form-input" placeholder="admin@platform.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" id="login-password" class="form-input" placeholder="••••••••••••" required>
+            <div style="display: flex; justify-content: flex-end; margin-top: 0.35rem;">
+              <a href="javascript:void(0)" onclick="openResetPasswordFlow()" style="font-size: 0.73rem; color: var(--primary); text-decoration: none;">
+                <i class="bi bi-question-circle"></i> Forgot password?
+              </a>
+            </div>
+          </div>
+          <button id="btn-login-request" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;" onclick="handleLoginRequest()">
+            Verify Credentials &amp; Send OTP &rarr;
+          </button>
+        </div>
+
+        <!-- Step 2: 2FA OTP -->
+        <div id="login-step-2" style="display: none;">
+          <div style="text-align: center; margin-bottom: 1rem;">
+            <span class="badge badge-primary"><i class="bi bi-envelope-check"></i> Security Code Sent</span>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.4rem;">
+              We sent a 6-digit 2FA security OTP code to <strong id="login-target-email">your email</strong>.
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="text-align: center;">Enter 6-Digit Email OTP</label>
+            <div class="otp-input-grid">
+              <input type="text" maxlength="6" id="login-otp" class="form-input code-font" placeholder="123456" style="text-align: center; font-size: 1.4rem; letter-spacing: 0.4em;" autofocus>
+            </div>
+          </div>
+
+          <button id="btn-login-verify" class="btn btn-success" style="width: 100%;" onclick="handleLoginVerify()">
+            <i class="bi bi-unlock-fill"></i> Authenticate &amp; Access Control Center
+          </button>
+
+          <button class="btn btn-secondary btn-sm" style="width: 100%; margin-top: 0.6rem;" onclick="resetLoginStep()">
+            &larr; Back to Email / Password
+          </button>
+        </div>
+      </div>
+
+      <!-- Mode C: Admin Password Reset via 2FA OTP -->
+      <div id="flow-reset" style="display: none;">
+        <!-- Step 1: Email -->
+        <div id="reset-step-1">
+          <div style="text-align: center; margin-bottom: 1rem;">
+            <span class="badge badge-warning"><i class="bi bi-key"></i> Password Recovery</span>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.4rem;">
+              Enter your administrator email to receive a 6-digit recovery OTP.
+            </p>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Administrator Email</label>
+            <input type="email" id="reset-email" class="form-input" placeholder="admin@example.com" required>
+          </div>
+          <button id="btn-reset-request" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;" onclick="handleResetPasswordRequest()">
+            Send Reset Code &rarr;
+          </button>
+          <button class="btn btn-secondary btn-sm" style="width: 100%; margin-top: 0.6rem;" onclick="cancelResetPassword()">
+            &larr; Back to Login
+          </button>
+        </div>
+
+        <!-- Step 2: OTP & New Password -->
+        <div id="reset-step-2" style="display: none;">
+          <div style="text-align: center; margin-bottom: 1rem;">
+            <span class="badge badge-primary"><i class="bi bi-envelope-check"></i> Reset Code Sent</span>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.4rem;">
+              Check your email for the 6-digit recovery OTP dispatched to <strong id="reset-target-email"></strong>.
+            </p>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="text-align: center;">Enter 6-Digit Email OTP</label>
+            <input type="text" maxlength="6" id="reset-otp" class="form-input code-font" placeholder="123456" style="text-align: center; font-size: 1.4rem; letter-spacing: 0.4em;">
+          </div>
+          <div class="form-group">
+            <label class="form-label">New Password (Min 8 Characters)</label>
+            <input type="password" id="reset-new-password" class="form-input" placeholder="••••••••••••" required>
+          </div>
+          <button id="btn-reset-verify" class="btn btn-success" style="width: 100%; margin-top: 0.5rem;" onclick="handleResetPasswordVerify()">
+            <i class="bi bi-check-lg"></i> Update Password &amp; Proceed to Login
+          </button>
+          <button class="btn btn-secondary btn-sm" style="width: 100%; margin-top: 0.6rem;" onclick="cancelResetPassword()">
+            &larr; Cancel
+          </button>
+        </div>
+      </div>
+
+      <!-- Mode B: Admin Secret Hash Code Activation / Signup Flow -->
+      <div id="flow-register" style="display: none;">
+        <!-- Step 1: Details & Secret Invite Code -->
+        <div id="register-step-1">
+          <div class="form-group">
+            <label class="form-label">Unique Admin Invite Hash Code <span style="color: var(--danger);">*</span></label>
+            <input type="text" id="reg-invite-code" class="form-input code-font" placeholder="ADM-ALPHA-9821-X7" required>
+            <span style="font-size: 0.7rem; color: var(--text-subtle);">Must be one of the pre-seeded secret tokens for your 2-3 administrator seats.</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input type="text" id="reg-name" class="form-input" placeholder="e.g. Aditya (Lead Admin)" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Admin Email Address</label>
+            <input type="email" id="reg-email" class="form-input" placeholder="aditya@admin.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password (Min 8 Characters)</label>
+            <input type="password" id="reg-password" class="form-input" placeholder="••••••••••••" required>
+          </div>
+          <button id="btn-register-request" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;" onclick="handleRegisterRequest()">
+            Validate Code &amp; Send Email OTP &rarr;
+          </button>
+
+          <div id="auth-invite-helper-box" class="helper-box" style="margin-top: 1rem;">
+            <strong>🔑 Seeded Initial Admin Codes:</strong><br>
+            Slot 1: <code>ADM-ALPHA-9821-X7</code><br>
+            Slot 2: <code>ADM-BETA-4432-Y2</code><br>
+            Slot 3: <code>ADM-GAMMA-6119-Z9</code>
+          </div>
+        </div>
+
+        <!-- Step 2: Verification of Email OTP -->
+        <div id="register-step-2" style="display: none;">
+          <div style="text-align: center; margin-bottom: 1rem;">
+            <span class="badge badge-success"><i class="bi bi-shield-check"></i> Code Validated</span>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.4rem;">
+              Enter the 6-digit confirmation code dispatched to <strong id="reg-target-email"></strong> to finalize your admin seat.
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="text-align: center;">Enter 6-Digit Email OTP</label>
+            <input type="text" maxlength="6" id="reg-otp" class="form-input code-font" placeholder="123456" style="text-align: center; font-size: 1.4rem; letter-spacing: 0.4em;" autofocus>
+          </div>
+
+          <button id="btn-register-verify" class="btn btn-success" style="width: 100%;" onclick="handleRegisterVerify()">
+            <i class="bi bi-check-circle-fill"></i> Complete Activation &amp; Enter Portal
+          </button>
+
+          <button class="btn btn-secondary btn-sm" style="width: 100%; margin-top: 0.6rem;" onclick="resetRegisterStep()">
+            &larr; Back to Details
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 2. MAIN PLATFORM OPERATIONS DASHBOARD (When Authenticated) -->
+  <!-- ========================================================================= -->
+  <div id="dashboard-view" class="dashboard-container" style="display: none;">
+    
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+      <button class="nav-tab-btn active" onclick="switchDashboardTab('overview')">
+        <i class="bi bi-speedometer2"></i> Live Overview
+      </button>
+      <button class="nav-tab-btn" onclick="switchDashboardTab('activities')">
+        <i class="bi bi-broadcast"></i> Activity Stream <span id="activities-badge" class="badge badge-neutral" style="margin-left: 0.3rem;">0</span>
+      </button>
+      <button class="nav-tab-btn" onclick="switchDashboardTab('users')">
+        <i class="bi bi-people-fill"></i> Recruiters &amp; Approvals <span id="pending-users-badge" class="badge badge-warning" style="display:none; margin-left: 0.3rem;">0 Pending</span>
+      </button>
+      <button class="nav-tab-btn" onclick="switchDashboardTab('interviews')">
+        <i class="bi bi-camera-video-fill"></i> Global Interviews
+      </button>
+      <button class="nav-tab-btn" onclick="switchDashboardTab('orders')">
+        <i class="bi bi-credit-card-2-front-fill"></i> Orders &amp; Subscriptions
+      </button>
+      <button class="nav-tab-btn" onclick="switchDashboardTab('invites')">
+        <i class="bi bi-key-fill"></i> Admin Seats &amp; Invites
+      </button>
+      <button class="nav-tab-btn" onclick="switchDashboardTab('settings')">
+        <i class="bi bi-sliders"></i> Governance Settings
+      </button>
+    </div>
+
+    <!-- TAB 1: LIVE OVERVIEW & KPIS -->
+    <div id="tab-content-overview">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-card-header">
+            <span class="kpi-label">Registered Recruiters</span>
+            <i class="bi bi-person-lines-fill kpi-icon"></i>
+          </div>
+          <div id="kpi-total-users" class="kpi-value">0</div>
+          <div id="kpi-users-sub" class="kpi-subtext">0 Pending &middot; 0 Approved</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-card-header">
+            <span class="kpi-label">Active Organizations</span>
+            <i class="bi bi-building kpi-icon"></i>
+          </div>
+          <div id="kpi-total-orgs" class="kpi-value">0</div>
+          <div class="kpi-subtext">Companies using platform</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-card-header">
+            <span class="kpi-label">Jobs Created</span>
+            <i class="bi bi-briefcase-fill kpi-icon"></i>
+          </div>
+          <div id="kpi-total-jobs" class="kpi-value">0</div>
+          <div class="kpi-subtext">Active screening roles</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-card-header">
+            <span class="kpi-label">Candidate Sessions</span>
+            <i class="bi bi-person-video2 kpi-icon"></i>
+          </div>
+          <div id="kpi-total-interviews" class="kpi-value">0</div>
+          <div id="kpi-interviews-sub" class="kpi-subtext">0 Completed &middot; 0 Live</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-card-header">
+            <span class="kpi-label">AI Token Spend</span>
+            <i class="bi bi-cpu kpi-icon"></i>
+          </div>
+          <div id="kpi-token-cost" class="kpi-value">₹0</div>
+          <div id="kpi-tokens-sub" class="kpi-subtext">0 Total Tokens</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-card-header">
+            <span class="kpi-label">Today's Activities</span>
+            <i class="bi bi-activity kpi-icon"></i>
+          </div>
+          <div id="kpi-today-events" class="kpi-value">0</div>
+          <div class="kpi-subtext">Platform audit events</div>
+        </div>
+      </div>
+
+      <!-- Quick Recent Feed & Pending Approvals Box -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+        <!-- Pending Recruiters Approval Box -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="bi bi-person-check-fill" style="color: var(--warning);"></i> Pending Recruiter Approvals
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="switchDashboardTab('users')">Manage All</button>
+          </div>
+          <div class="card-body" id="overview-pending-users-list">
+            <p style="color: var(--text-muted); font-size: 0.8rem;">No recruiters pending approval.</p>
+          </div>
+        </div>
+
+        <!-- Latest Platform Activities -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="bi bi-broadcast" style="color: var(--primary);"></i> Live Event Pulse
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="switchDashboardTab('activities')">View Full Stream</button>
+          </div>
+          <div class="card-body" id="overview-recent-activities-list">
+            <p style="color: var(--text-muted); font-size: 0.8rem;">Listening for live platform events...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: REAL-TIME ACTIVITY STREAM -->
+    <div id="tab-content-activities" style="display: none;">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="bi bi-activity"></i> Platform Real-Time Activity Stream
+          </div>
+          <div style="display: flex; gap: 0.6rem;">
+            <select id="filter-activity-action" class="form-input" style="width: auto; padding: 0.35rem 0.6rem; font-size: 0.75rem;" onchange="loadActivityStream()">
+              <option value="">All Events</option>
+              <option value="USER_SIGNUP">Signups</option>
+              <option value="USER_LOGIN">Logins</option>
+              <option value="JOB_CREATED">Jobs Created</option>
+              <option value="INTERVIEW_DISPATCHED">Interview Dispatched</option>
+              <option value="INTERVIEW_STARTED">Interview Started</option>
+              <option value="INTERVIEW_COMPLETED">Interview Completed</option>
+              <option value="INTERVIEW_DISQUALIFIED">Disqualifications</option>
+              <option value="USER_STATUS_UPDATED">Admin Actions</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="loadActivityStream()">
+              <i class="bi bi-arrow-clockwise"></i> Refresh Stream
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="full-activity-stream" class="activity-feed">
+            <p style="color: var(--text-muted); text-align: center; padding: 2rem;">Loading stream...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: RECRUITER & USER MANAGEMENT -->
+    <div id="tab-content-users" style="display: none;">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="bi bi-people-fill"></i> Recruiter Accounts &amp; Organizations Directory
+          </div>
+          <div style="display: flex; gap: 0.6rem;">
+            <input type="text" id="search-users-input" class="form-input" placeholder="Search by name, email, company..." style="width: 260px; padding: 0.35rem 0.65rem;" oninput="renderUsersTable()">
+            <button class="btn btn-secondary btn-sm" onclick="loadRecruitersDirectory()">
+              <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Recruiter</th>
+                <th>Company / Industry</th>
+                <th>Status</th>
+                <th>Credits</th>
+                <th>Jobs / Sessions</th>
+                <th>Last Login</th>
+                <th style="text-align: right;">Operations</th>
+              </tr>
+            </thead>
+            <tbody id="recruiters-table-body">
+              <tr><td colspan="7" style="text-align:center; padding: 2rem; color: var(--text-muted);">Loading recruiters...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: GLOBAL CANDIDATE INTERVIEWS -->
+    <div id="tab-content-interviews" style="display: none;">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="bi bi-camera-video-fill"></i> Global Candidate Screening Sessions
+          </div>
+          <div style="display: flex; gap: 0.6rem;">
+            <button class="btn btn-secondary btn-sm" onclick="loadInterviewsList()">
+              <i class="bi bi-arrow-clockwise"></i> Refresh List
+            </button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Candidate</th>
+                <th>Applied Job</th>
+                <th>Company</th>
+                <th>State</th>
+                <th>Proctor / Score</th>
+                <th>Date</th>
+                <th style="text-align: right;">Inspection</th>
+              </tr>
+            </thead>
+            <tbody id="interviews-table-body">
+              <tr><td colspan="7" style="text-align:center; padding: 2rem; color: var(--text-muted);">Loading interviews...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: ADMIN SEATS & INVITE CODES -->
+    <div id="tab-content-invites" style="display: none;">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="bi bi-shield-lock-fill"></i> Administrator Access Vault (Max 3 Seats)
+          </div>
+          <button id="btn-create-invite" class="btn btn-primary btn-sm" onclick="openCreateInviteModal()">
+            <i class="bi bi-plus-circle"></i> Generate Co-Admin Invite Hash
+          </button>
+        </div>
+        <div class="card-body">
+          <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.8rem;">
+            To maintain strict platform security, administrative privileges are capped at <strong>3 seats max</strong> for you and your co-founders/friends. Each invite hash code is single-use and requires 2FA Email OTP verification.
+          </p>
+
+          <h3 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 0.75rem;">
+            Current Active Administrators
+          </h3>
+          <div id="admins-list-container" style="display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 2rem;">
+            <!-- Rendered dynamically -->
+          </div>
+
+          <h3 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 0.75rem;">
+            Admin Invitation Hash Codes
+          </h3>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Secret Hash Code</th>
+                  <th>Slot Label</th>
+                  <th>Status</th>
+                  <th>Redeemed By</th>
+                  <th>Created At</th>
+                  <th style="text-align: right;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="invites-table-body">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: ORDERS & SUBSCRIPTIONS -->
+    <div id="tab-content-orders" style="display: none;">
+      <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 1.5rem;">
+        <div class="kpi-card">
+          <div class="kpi-card-header"><span class="kpi-label">Total Revenue</span><i class="bi bi-currency-dollar kpi-icon"></i></div>
+          <div id="kpi-orders-revenue" class="kpi-value">$0.00</div>
+          <div class="kpi-subtext">Cumulative paid orders</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-header"><span class="kpi-label">Paid Orders</span><i class="bi bi-check-circle-fill kpi-icon" style="color:var(--success);"></i></div>
+          <div id="kpi-orders-paid" class="kpi-value">0</div>
+          <div class="kpi-subtext">Completed transactions</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-header"><span class="kpi-label">Pending Orders</span><i class="bi bi-hourglass-split kpi-icon" style="color:var(--warning);"></i></div>
+          <div id="kpi-orders-pending" class="kpi-value">0</div>
+          <div class="kpi-subtext">Awaiting payment / confirmation</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-header"><span class="kpi-label">Total Transactions</span><i class="bi bi-receipt kpi-icon"></i></div>
+          <div id="kpi-orders-total" class="kpi-value">0</div>
+          <div class="kpi-subtext">All platform order records</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="bi bi-credit-card-2-front-fill"></i> Organization Billing Orders &amp; Subscriptions</div>
+          <div style="display: flex; gap: 0.6rem;">
+            <select id="filter-orders-status" class="form-input" style="width: auto; padding: 0.35rem 0.65rem;" onchange="renderOrdersTable()">
+              <option value="">All Statuses</option>
+              <option value="paid">Paid</option>
+              <option value="pending">Pending</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="loadOrdersDirectory()">
+              <i class="bi bi-arrow-clockwise"></i> Refresh Orders
+            </button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Company / Recruiter</th>
+                <th>Package / Tier</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th style="text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="orders-table-body">
+              <tr><td colspan="7" style="text-align:center; padding: 2rem; color: var(--text-muted);">Loading orders...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 6: GOVERNANCE SETTINGS -->
+    <div id="tab-content-settings" style="display: none;">
+      <!-- Access Governance Card -->
+      <div class="card" style="max-width: 750px;">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="bi bi-sliders"></i> Platform Access &amp; Registration Governance
+          </div>
+        </div>
+        <div class="card-body">
+          <div style="margin-bottom: 1.5rem; padding: 1rem; background-color: var(--surface-elevated); border-radius: 8px; border: 1px solid var(--border);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+              <div>
+                <strong style="font-size: 0.9rem;">Require Admin Approval for New Recruiter Signups</strong>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">
+                  When turned ON, newly registered recruiters cannot log in or use the platform until you or your friend manually approves their account.
+                </p>
+              </div>
+              <input type="checkbox" id="setting-require-approval" style="width: 20px; height: 20px; cursor: pointer;">
+            </div>
+          </div>
+
+          <div class="form-group" style="max-width: 320px;">
+            <label class="form-label">Default Free Trial Interview Credits</label>
+            <input type="number" id="setting-trial-credits" class="form-input" min="0" max="1000" value="10">
+            <span style="font-size: 0.7rem; color: var(--text-subtle);">Credits automatically granted to newly approved recruiters.</span>
+          </div>
+
+          <button class="btn btn-primary" onclick="savePlatformSettings()">
+            <i class="bi bi-check-lg"></i> Save Governance Settings
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Email Delivery Configuration Card -->
+      <div class="card" style="max-width: 780px; margin-top: 1.5rem;">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="bi bi-envelope-at-fill"></i> Live Email Delivery &amp; OTP Configuration
+          </div>
+          <span id="smtp-status-badge" class="badge badge-warning">Checking Status...</span>
+        </div>
+        <div class="card-body">
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+            To deliver verification codes and 2FA OTPs directly to user and administrator inboxes, choose either <strong>Option A (Resend API Key)</strong> or <strong>Option B (Your Gmail SMTP)</strong>.
+          </p>
+
+          <!-- OPTION A: RESEND API KEY -->
+          <div style="background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+              <strong style="font-size: 0.9rem; color: var(--primary);"><i class="bi bi-lightning-fill"></i> Option A: Resend API Key (Recommended &middot; Easiest)</strong>
+              <span class="badge badge-success" style="font-size: 0.68rem;">Free 100 emails/day</span>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+              No port or SMTP settings required. Create a free account at <a href="https://resend.com" target="_blank" style="color:var(--primary);">resend.com</a>, generate an API key starting with <code>re_</code>, and paste it below.
+            </p>
+            <div class="form-group" style="margin-bottom: 0.75rem;">
+              <label class="form-label">Resend API Key</label>
+              <input type="password" id="setting-resend-api-key" class="form-input code-font" placeholder="re_123456789abcdef...">
+            </div>
+            <div style="font-size: 0.7rem; color: var(--text-subtle);">
+              Default sender: <code>onboarding@resend.dev</code> (or configure your custom verified domain).
+            </div>
+          </div>
+
+          <!-- OPTION B: GMAIL / STANDARD SMTP -->
+          <div style="background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+              <strong style="font-size: 0.9rem;"><i class="bi bi-google"></i> Option B: Personal Gmail / Custom SMTP</strong>
+              <span class="badge badge-neutral" style="font-size: 0.68rem;">100% Free with Gmail</span>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+              Use your existing Gmail account with a 16-character <strong>Google App Password</strong> (Generate at: Google Account &rarr; Security &rarr; 2-Step Verification &rarr; App passwords).
+            </p>
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+              <div class="form-group">
+                <label class="form-label">SMTP Host</label>
+                <input type="text" id="setting-smtp-host" class="form-input" placeholder="smtp.gmail.com">
+              </div>
+              <div class="form-group">
+                <label class="form-label">SMTP Port</label>
+                <input type="number" id="setting-smtp-port" class="form-input" placeholder="587">
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+              <div class="form-group">
+                <label class="form-label">SMTP Username / Email</label>
+                <input type="email" id="setting-smtp-user" class="form-input" placeholder="e.g. adityavyamawar@gmail.com">
+              </div>
+              <div class="form-group">
+                <label class="form-label">SMTP Password / Google App Password</label>
+                <input type="password" id="setting-smtp-pass" class="form-input" placeholder="••••••••••••••••">
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.8rem; background: var(--surface); border: 1px solid var(--border); border-radius: 6px;">
+              <div>
+                <strong style="font-size: 0.8rem;">Use SSL (Port 465)</strong>
+                <div style="font-size: 0.7rem; color: var(--text-muted);">Leave unchecked for Port 587 (STARTTLS). Check for Port 465 (SSL).</div>
+              </div>
+              <input type="checkbox" id="setting-smtp-secure" style="width: 18px; height: 18px; cursor: pointer;">
+            </div>
+          </div>
+
+          <!-- COMMON SENDER IDENTITY -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+            <div class="form-group">
+              <label class="form-label">Sender Display Name</label>
+              <input type="text" id="setting-smtp-from-name" class="form-input" placeholder="AI Interviewer Platform">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Sender Email Address</label>
+              <input type="email" id="setting-smtp-from-email" class="form-input" placeholder="adityavyamawar@gmail.com">
+            </div>
+          </div>
+
+          <button class="btn btn-primary" onclick="saveSmtpSettings()">
+            <i class="bi bi-save"></i> Save Email Delivery Configuration
+          </button>
+
+          <!-- Test Handshake -->
+          <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+            <h4 style="font-size: 0.85rem; margin-bottom: 0.4rem;"><i class="bi bi-send-check"></i> Test Live Email Delivery</h4>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+              Send an instant test email to verify that your credentials work and reach real inboxes.
+            </p>
+            <div style="display: flex; gap: 0.5rem; max-width: 520px;">
+              <input type="email" id="smtp-test-recipient" class="form-input" placeholder="Enter recipient email (e.g. adityavyamawar@gmail.com)">
+              <button class="btn btn-secondary" id="btn-test-smtp" onclick="sendTestSmtpEmail()">
+                <i class="bi bi-lightning-charge"></i> Send Test Email
+              </button>
+            </div>
+            <div id="smtp-test-result" style="margin-top: 0.6rem; font-size: 0.78rem; display: none;"></div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- PostgreSQL Database Architecture & Cloud Migration Card -->
+      <div class="card" style="max-width: 780px; margin-top: 1.5rem;">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="bi bi-database-fill-gear"></i> Database Architecture &amp; PostgreSQL Engine
+          </div>
+          <span id="db-status-badge" class="badge badge-info">Checking DB...</span>
+        </div>
+        <div class="card-body">
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+            Enterprise <strong>PostgreSQL</strong> integration: strict ACID compliance for billing/credits, native JSONB for AI transcripts &amp; rubrics, and pgvector readiness. Compatible with <strong>Supabase</strong>, <strong>Neon</strong>, <strong>AWS RDS</strong>, and local Docker.
+          </p>
+
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label class="form-label">Active Database Engine</label>
+            <div id="db-engine-display" style="padding: 0.6rem 0.8rem; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; font-size: 0.82rem; font-family: monospace; color: var(--primary);">
+              SQLite (ai_interviewer.db) — Fast local zero-config storage
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label class="form-label">PostgreSQL Connection URI (DATABASE_URL)</label>
+            <input type="text" id="setting-database-url" class="form-input" placeholder="postgresql://postgres:password@localhost:5432/ai_interviewer">
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.35rem;">
+              Paste your Supabase, Neon, or local PostgreSQL connection string. You can also define <code>DATABASE_URL</code> in your <code>.env</code> file.
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="saveDatabaseSettings()">
+              <i class="bi bi-save"></i> Save Database URL
+            </button>
+            <button class="btn btn-secondary" id="btn-test-db" onclick="testDatabaseConnection()">
+              <i class="bi bi-broadcast"></i> Test PostgreSQL Connection
+            </button>
+            <button class="btn btn-secondary" id="btn-migrate-db" onclick="runDatabaseMigration()" style="border-color: #f59e0b; color: #f59e0b;">
+              <i class="bi bi-arrow-repeat"></i> Migrate SQLite &rarr; PostgreSQL
+            </button>
+          </div>
+
+          <div id="db-test-result" style="margin-top: 0.75rem; font-size: 0.78rem; display: none;"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODALS -->
+  <!-- ========================================================================= -->
+
+  <!-- Modal 1: User Approval & Credits Management -->
+  <div id="modal-manage-user" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title" id="manage-user-title">Manage Recruiter Account</div>
+        <button class="btn btn-secondary btn-sm" onclick="closeManageUserModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="manage-user-id">
+        <div style="margin-bottom: 1rem;">
+          <p style="font-size: 0.8rem; color: var(--text-muted);">
+            Recruiter: <strong id="manage-user-email" style="color: var(--text);"></strong> &middot; Company: <strong id="manage-user-org" style="color: var(--text);"></strong>
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Account Approval Status</label>
+          <select id="manage-user-status-select" class="form-input">
+            <option value="approved">Approved / Active (Full Access)</option>
+            <option value="pending_approval">Pending Approval (Restricted)</option>
+            <option value="suspended">Suspended / Banned (Blocked)</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Admin Notes</label>
+          <input type="text" id="manage-user-notes" class="form-input" placeholder="e.g. Verified company domain, upgraded after call">
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border); margin: 1.25rem 0;">
+
+        <div class="form-group">
+          <label class="form-label">Adjust Interview Credits</label>
+          <div style="display: flex; gap: 0.5rem;">
+            <input type="number" id="manage-user-set-credits" class="form-input" placeholder="Total Credits (e.g. 50)">
+            <button class="btn btn-secondary btn-sm" onclick="quickAddCredits(25)">+25</button>
+            <button class="btn btn-secondary btn-sm" onclick="quickAddCredits(50)">+50</button>
+            <button class="btn btn-secondary btn-sm" onclick="quickAddCredits(100)">+100</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Subscription Plan</label>
+          <select id="manage-user-plan-select" class="form-input">
+            <option value="free_trial">Free Trial</option>
+            <option value="starter">Starter Plan</option>
+            <option value="growth">Growth Plan</option>
+            <option value="enterprise">Enterprise Tier</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeManageUserModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitUserManagement()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Interview Inspection Modal (Transcript + Proctor + Report) -->
+  <div id="modal-inspect-interview" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 850px;">
+      <div class="modal-header">
+        <div class="modal-title" id="inspect-title">Interview Inspection</div>
+        <button class="btn btn-secondary btn-sm" onclick="closeInspectModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="inspect-body">
+        <!-- Rendered dynamically -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeInspectModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Generate New Admin Invite Hash Code -->
+  <div id="modal-create-invite" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 480px;">
+      <div class="modal-header">
+        <div class="modal-title">Generate Co-Admin Invite Hash</div>
+        <button class="btn btn-secondary btn-sm" onclick="closeCreateInviteModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Slot Label / Description</label>
+          <input type="text" id="new-invite-label" class="form-input" placeholder="e.g. Co-Founder / Friend Admin Seat" value="Co-Founder / Friend Admin Seat">
+          <span style="font-size: 0.7rem; color: var(--text-subtle);">This will issue a unique secret hash code usable once for admin onboarding.</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeCreateInviteModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitCreateInvite()">Generate Code</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Platform Admin Controller Script -->
+  <script type="module" src="/js/admin.js"></script>
+</body>
+</html>

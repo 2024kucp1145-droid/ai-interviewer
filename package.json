@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node backend/src/server.js",
     "dev": "node --watch backend/src/server.js",
-    "test": "node tests/run_tests.js"
+    "test": "node tests/run_tests.js",
+    "db:migrate:pg": "node backend/src/db/migrateToPostgres.js",
+    "db:test:pg": "node tests/test_postgres.js"
   },
   "type": "module",
   "dependencies": {
@@ -19,6 +21,7 @@
     "multer": "^2.5.0",
     "node-edge-tts": "^1.2.12",
     "nodemailer": "^10.3.1",
-    "pdf-parse": "^2.4.5"
+    "pdf-parse": "^2.4.5",
+    "pg": "^8.23.1"
   }
 }

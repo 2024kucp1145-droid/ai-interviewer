@@ -185,11 +185,56 @@ export function initDatabase() {
       FOREIGN KEY (org_id) REFERENCES organizations(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS admin_invites (
+      id TEXT PRIMARY KEY,
+      code_hash TEXT UNIQUE NOT NULL,
+      label TEXT,
+      created_by TEXT,
+      used_by TEXT,
+      is_used INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS admin_otps (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL,
+      otp_code TEXT NOT NULL,
+      purpose TEXT NOT NULL,
+      expires_at DATETIME NOT NULL,
+      is_used INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS platform_activities (
+      id TEXT PRIMARY KEY,
+      action TEXT NOT NULL,
+      actor_type TEXT DEFAULT 'user',
+      actor_id TEXT,
+      actor_email TEXT,
+      actor_name TEXT,
+      org_id TEXT,
+      entity_type TEXT,
+      entity_id TEXT,
+      details TEXT,
+      ip_address TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS platform_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE INDEX IF NOT EXISTS idx_interviews_token ON interviews(token_hash);
     CREATE INDEX IF NOT EXISTS idx_turns_interview ON turns(interview_id);
     CREATE INDEX IF NOT EXISTS idx_candidates_org ON candidates(org_id);
     CREATE INDEX IF NOT EXISTS idx_billing_orders_org ON billing_orders(org_id);
     CREATE INDEX IF NOT EXISTS idx_question_bank_org ON org_question_bank(org_id);
+    CREATE INDEX IF NOT EXISTS idx_activities_created ON platform_activities(created_at);
+    CREATE INDEX IF NOT EXISTS idx_activities_action ON platform_activities(action);
+    CREATE INDEX IF NOT EXISTS idx_admin_invites_code ON admin_invites(code_hash);
+    CREATE INDEX IF NOT EXISTS idx_admin_otps_email ON admin_otps(email);
   `);
 
   // Auto-migration for existing tables
@@ -250,6 +295,50 @@ export function initDatabase() {
   // Automated LeetCode Judge & Coding Sandbox Results
   addColumn('interviews', 'dsa_result', 'TEXT');
 
+  // Platform Administration & Recruiter Approval
+  addColumn('users', 'approval_status', "TEXT DEFAULT 'approved'");
+  addColumn('users', 'last_login_at', 'DATETIME');
+  addColumn('users', 'admin_notes', 'TEXT');
+
+  // Platform Settings Initial Seeding
+  try {
+    const insertSetting = db.prepare('INSERT OR IGNORE INTO platform_settings (key, value) VALUES (?, ?)');
+    insertSetting.run('require_admin_approval', '0');
+    insertSetting.run('max_admin_seats', '3');
+    insertSetting.run('default_trial_credits', '10');
+  } catch (e) {
+    console.warn('Settings seed notice:', e.message);
+  }
+
+  // Admin Invite Codes Initial Seeding (Strictly 3 unique hash codes for Platform Admins)
+  try {
+    const inviteCount = db.prepare('SELECT COUNT(*) as c FROM admin_invites').get().c;
+    if (inviteCount === 0) {
+      const initialInvites = [
+        { id: 'inv_adm_1', code: 'ADM-ALPHA-9821-X7', label: 'Primary Platform Owner (Admin #1)' },
+        { id: 'inv_adm_2', code: 'ADM-BETA-4432-Y2', label: 'Co-Founder / Friend (Admin #2)' },
+        { id: 'inv_adm_3', code: 'ADM-GAMMA-6119-Z9', label: 'Backup / Team (Admin #3)' }
+      ];
+      const insertInvite = db.prepare('INSERT OR IGNORE INTO admin_invites (id, code_hash, label, created_by) VALUES (?, ?, ?, ?)');
+      for (const inv of initialInvites) {
+        insertInvite.run(inv.id, inv.code, inv.label, 'system_init');
+      }
+      console.log('✓ Seeded 3 unique Admin Invite Hash Codes for restricted admin access');
+    }
+  } catch (e) {
+    console.warn('Admin invites seed notice:', e.message);
+  }
+
+  // Seed default admin organization
+  try {
+    db.prepare(`
+      INSERT OR IGNORE INTO organizations (id, name, industry, plan, included_interviews)
+      VALUES ('org_platform_admins', 'Platform Administration Team', 'Platform Management', 'enterprise', 999999)
+    `).run();
+  } catch (e) {
+    // Non-fatal
+  }
+
   // Seed default organization & starter interview positions if database is freshly initialized
   try {
     const jobCount = db.prepare('SELECT COUNT(*) as c FROM jobs').get().c;
@@ -309,3 +398,7 @@ export function initDatabase() {
 
   console.log('✓ SQLite database initialized and migrated with interview customization options');
 }
+
+// Export PostgreSQL connection pool and query helpers
+export { getPostgresPool, query as pgQuery, queryOne as pgQueryOne, execute as pgExecute, checkPostgresConnection } from './postgres.js';
+

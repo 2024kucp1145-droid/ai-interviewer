@@ -7,6 +7,7 @@ import express from 'express';
 import crypto from 'crypto';
 import { db } from '../db/database.js';
 import { requireAuth } from '../auth/auth.js';
+import { logActivity } from '../services/activityService.js';
 import {
   DURATION_TIERS,
   SUBSCRIPTION_PLANS,
@@ -148,6 +149,26 @@ billingRouter.post('/order/:id/confirm', requireAuth, (req, res) => {
       INSERT INTO billing_events (id, org_id, order_id, event, amount_usd, created_at)
       VALUES (?, ?, ?, 'payment_confirmed', ?, CURRENT_TIMESTAMP)
     `).run('be_' + crypto.randomUUID(), orgId, orderId, order.amount_usd);
+
+    // Record platform audit activity for Superadmin visibility
+    const creditsAdded = order.type === 'pay_per_use' ? quote.quantity : (getPlan(order.plan_id)?.includedInterviews || 0);
+    logActivity({
+      action: 'BILLING_PURCHASE',
+      actorType: 'user',
+      actorId: req.user.id,
+      actorEmail: req.user.email,
+      actorName: req.user.full_name || req.user.email,
+      orgId,
+      entityType: 'billing_order',
+      entityId: orderId,
+      details: {
+        type: order.type,
+        amountUsd: order.amount_usd,
+        creditsAdded,
+        plan: order.type === 'subscription' ? order.plan_id : null,
+      },
+      ipAddress: req.ip
+    });
 
     // Fetch updated org
     const org = db.prepare('SELECT plan, included_interviews, subscription_expires_at FROM organizations WHERE id = ?').get(orgId);
