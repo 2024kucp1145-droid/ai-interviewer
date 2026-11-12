@@ -7,15 +7,38 @@
  *  3. Subscription Plans : monthly/multi-month with included interview quotas
  */
 
+import { getPlatformSettingsMap } from '../services/platformConfigService.js';
+
 // ─── 1. PER-INTERVIEW DURATION PRICING ───────────────────────────────────────
 export const DURATION_TIERS = [
-  { minutes: 10,  priceUsd: 0.50, label: '10 min' },
-  { minutes: 20,  priceUsd: 0.75, label: '20 min' },
-  { minutes: 30,  priceUsd: 1.00, label: '30 min' },
-  { minutes: 40,  priceUsd: 1.25, label: '40 min' },
-  { minutes: 50,  priceUsd: 1.50, label: '50 min' },
-  { minutes: 60,  priceUsd: 1.75, label: '60 min' },
+  { minutes: 10,  priceUsd: 0.50, label: '10 min', subtitle: 'Rapid Screening' },
+  { minutes: 20,  priceUsd: 0.75, label: '20 min', subtitle: 'Core Technical' },
+  { minutes: 30,  priceUsd: 1.00, label: '30 min', subtitle: 'Standard Full Round' },
+  { minutes: 40,  priceUsd: 1.25, label: '40 min', subtitle: 'Architecture & System' },
+  { minutes: 50,  priceUsd: 1.50, label: '50 min', subtitle: 'Staff / Senior' },
+  { minutes: 60,  priceUsd: 1.75, label: '60 min', subtitle: 'Master 1-Hour' },
 ];
+
+/**
+ * Resolve effective per-interview duration tiers (Admin overrides in `platform_settings` or defaults).
+ */
+export function getEffectiveDurationTiers() {
+  try {
+    const s = getPlatformSettingsMap();
+    if (s.duration_tiers_json) {
+      const parsed = JSON.parse(s.duration_tiers_json);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map(t => ({
+          minutes: Number(t.minutes),
+          priceUsd: Number(t.priceUsd),
+          label: String(t.label || `${t.minutes} min`),
+          subtitle: t.subtitle ? String(t.subtitle) : '',
+        })).filter(t => t.minutes > 0 && t.priceUsd >= 0);
+      }
+    }
+  } catch (_) {}
+  return DURATION_TIERS;
+}
 
 /**
  * Get price per interview for a given duration.
@@ -23,8 +46,9 @@ export const DURATION_TIERS = [
  * @returns {{ priceUsd: number, label: string }}
  */
 export function getPriceForDuration(minutes) {
-  const tier = DURATION_TIERS.find(t => t.minutes === Number(minutes));
-  if (!tier) throw new Error(`Invalid duration: ${minutes}. Must be 10, 20, 30, 40, 50, or 60.`);
+  const tiers = getEffectiveDurationTiers();
+  const tier = tiers.find(t => t.minutes === Number(minutes));
+  if (!tier) throw new Error(`Invalid duration: ${minutes}. Must be one of: ${tiers.map(t => t.minutes).join(', ')}.`);
   return tier;
 }
 
@@ -76,6 +100,8 @@ export const SUBSCRIPTION_PLANS = [
     includedInterviews: 150,
     savingsLabel: null,
     popular: false,
+    active: true,
+    subtitle: 'Individual hiring',
   },
   {
     id: 'monthly_2',
@@ -85,6 +111,8 @@ export const SUBSCRIPTION_PLANS = [
     includedInterviews: 280,
     savingsLabel: 'Save $19 vs monthly',
     popular: false,
+    active: true,
+    subtitle: 'Growing startup',
   },
   {
     id: 'quarterly',
@@ -94,6 +122,8 @@ export const SUBSCRIPTION_PLANS = [
     includedInterviews: 420,
     savingsLabel: 'Save $38 vs monthly',
     popular: false,
+    active: true,
+    subtitle: 'Quarterly hiring',
   },
   {
     id: 'biannual',
@@ -103,6 +133,8 @@ export const SUBSCRIPTION_PLANS = [
     includedInterviews: 900,
     savingsLabel: 'Save $75 vs monthly',
     popular: true,
+    active: true,
+    subtitle: 'Recruiting agency',
   },
   {
     id: 'annual',
@@ -112,15 +144,47 @@ export const SUBSCRIPTION_PLANS = [
     includedInterviews: 1800,
     savingsLabel: 'Save $189 vs monthly',
     popular: false,
+    active: true,
+    subtitle: 'Enterprise scale',
   },
 ];
+
+/**
+ * Resolve effective subscription plans (Admin overrides in `platform_settings` or defaults).
+ * @param {{ includeInactive?: boolean }} [opts]
+ */
+export function getEffectiveSubscriptionPlans({ includeInactive = false } = {}) {
+  let list = SUBSCRIPTION_PLANS;
+  try {
+    const s = getPlatformSettingsMap();
+    if (s.subscription_plans_json) {
+      const parsed = JSON.parse(s.subscription_plans_json);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        list = parsed
+          .map((p) => ({
+            id: String(p.id || '').trim(),
+            label: String(p.label || '').trim(),
+            months: Math.max(1, parseInt(p.months, 10) || 1),
+            priceUsd: Math.max(0, Number(p.priceUsd) || 0),
+            includedInterviews: Math.max(1, parseInt(p.includedInterviews, 10) || 10),
+            savingsLabel: p.savingsLabel ? String(p.savingsLabel).trim() : null,
+            popular: Boolean(p.popular),
+            active: p.active !== false,
+            subtitle: p.subtitle ? String(p.subtitle).trim() : '',
+          }))
+          .filter((p) => p.id && p.label);
+      }
+    }
+  } catch (_) {}
+  return includeInactive ? list : list.filter((p) => p.active !== false);
+}
 
 /**
  * Get a subscription plan by ID.
  * @param {string} planId
  */
 export function getPlan(planId) {
-  const plan = SUBSCRIPTION_PLANS.find(p => p.id === planId);
+  const plan = getEffectiveSubscriptionPlans({ includeInactive: true }).find(p => p.id === planId);
   if (!plan) throw new Error(`Unknown plan: ${planId}`);
   return plan;
 }

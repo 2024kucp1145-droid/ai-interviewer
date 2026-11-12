@@ -10,9 +10,13 @@ import QRCode from 'qrcode';
 import { db } from '../db/database.js';
 import { requireAuth } from '../auth/auth.js';
 import { logActivity } from '../services/activityService.js';
+import { getEffectivePaymentConfig } from '../services/platformConfigService.js';
+import { recordServerEvent } from '../services/serverMonitorService.js';
 import {
   DURATION_TIERS,
   SUBSCRIPTION_PLANS,
+  getEffectiveDurationTiers,
+  getEffectiveSubscriptionPlans,
   buildPayPerUseQuote,
   buildSubscriptionQuote,
   getPlan,
@@ -21,22 +25,12 @@ import {
 export const billingRouter = express.Router();
 
 function getStripeClient() {
-  const key = process.env.STRIPE_SECRET_KEY;
-  return key ? new Stripe(key) : null;
+  const cfg = getEffectivePaymentConfig();
+  return cfg.stripeSecretKey ? new Stripe(cfg.stripeSecretKey) : null;
 }
 
 function getMerchantPayoutConfig() {
-  const upiId = (process.env.MERCHANT_UPI_ID || '').trim();
-  const upiName = (process.env.MERCHANT_UPI_NAME || 'RoundOne AI').trim();
-  const usdToInrRate = Math.max(1, Number(process.env.USD_TO_INR_RATE) || 85);
-  const bankDetails = {
-    holder: (process.env.MERCHANT_BANK_HOLDER || '').trim(),
-    bankName: (process.env.MERCHANT_BANK_NAME || '').trim(),
-    accountNumber: (process.env.MERCHANT_BANK_ACCOUNT || '').trim(),
-    ifscOrSwift: (process.env.MERCHANT_BANK_IFSC || '').trim(),
-  };
-  const bankTransferConfigured = Boolean(bankDetails.accountNumber && bankDetails.ifscOrSwift);
-  return { upiId, upiName, usdToInrRate, bankDetails, bankTransferConfigured };
+  return getEffectivePaymentConfig();
 }
 
 function applyCouponDiscount(baseAmountUsd, rawCode, consume = false) {
@@ -266,8 +260,9 @@ async function createStripeCheckoutSession({ orderId, type, quote, amountUsd, ba
 }
 
 async function createRazorpayOrder({ orderId, amountUsd }) {
-  const keyId = process.env.RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  const cfg = getEffectivePaymentConfig();
+  const keyId = cfg.razorpayKeyId;
+  const keySecret = cfg.razorpayKeySecret;
   if (!keyId || !keySecret) return null;
   const auth = Buffer.from(`${keyId}:${keySecret}`).toString('base64');
   const resp = await fetch('https://api.razorpay.com/v1/orders', {
@@ -291,9 +286,11 @@ async function createRazorpayOrder({ orderId, amountUsd }) {
 // ─── GET /billing/pricing ─────────────────────────────────────────────────────
 // Returns all pricing data for the frontend pricing page (no auth required)
 billingRouter.get('/pricing', (req, res) => {
+  const tiers = getEffectiveDurationTiers();
+  const plans = getEffectiveSubscriptionPlans();
   res.json({
-    durationTiers: DURATION_TIERS,
-    subscriptionPlans: SUBSCRIPTION_PLANS.map(p => ({
+    durationTiers: tiers,
+    subscriptionPlans: plans.map(p => ({
       ...p,
       costPerInterview: +(p.priceUsd / p.includedInterviews).toFixed(3),
     })),
@@ -337,16 +334,22 @@ billingRouter.post('/quote', (req, res) => {
 billingRouter.get('/methods', (req, res) => {
   const payout = getMerchantPayoutConfig();
   res.json({
-    stripeConfigured: Boolean(process.env.STRIPE_SECRET_KEY),
-    stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || null,
-    razorpayConfigured: Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET),
-    razorpayKeyId: process.env.RAZORPAY_KEY_ID || null,
-    upiDirectConfigured: Boolean(payout.upiId),
+    stripeConfigured: payout.stripeConfigured,
+    stripePublishableKey: payout.stripePublishableKey || null,
+    razorpayConfigured: payout.razorpayConfigured,
+    razorpayKeyId: payout.razorpayKeyId || null,
+    upiDirectConfigured: payout.upiDirectConfigured,
     upiId: payout.upiId || null,
     upiName: payout.upiName,
     usdToInrRate: payout.usdToInrRate,
-    bankTransferConfigured: payout.bankTransferConfigured,
-    bankDetails: payout.bankTransferConfigured ? payout.bankDetails : null,
+    bankTransferConfigured: payout.bankAvailable,
+    bankDetails: payout.bankAvailable ? payout.bankDetails : null,
+    enabledMethods: {
+      card: payout.enableCard,
+      upiDirect: payout.enableUpiDirect,
+      bankTransfer: payout.enableBankTransfer,
+      razorpay: payout.enableRazorpay,
+    },
   });
 });
 
@@ -441,6 +444,15 @@ billingRouter.post('/order', requireAuth, async (req, res) => {
     }
 
     const payout = getMerchantPayoutConfig();
+    if (selectedMethod === 'upi_direct' && !payout.enableUpiDirect) {
+      return res.status(400).json({ error: 'Direct UPI payments are currently disabled by the administrator.' });
+    }
+    if (selectedMethod === 'bank_transfer' && !payout.enableBankTransfer) {
+      return res.status(400).json({ error: 'Direct Bank Transfer payments are currently disabled by the administrator.' });
+    }
+    if (selectedMethod === 'stripe' && !payout.enableCard) {
+      return res.status(400).json({ error: 'Card payments are currently disabled by the administrator.' });
+    }
     const amountInr = +(amountUsd * payout.usdToInrRate).toFixed(2);
     const baseUrl = `${req.protocol}://${req.get('host')}`;
 
@@ -469,9 +481,9 @@ billingRouter.post('/order', requireAuth, async (req, res) => {
     }
 
     let providerSession = null;
-    if (selectedMethod === 'razorpay' && process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+    if (selectedMethod === 'razorpay' && payout.razorpayConfigured) {
       providerSession = await createRazorpayOrder({ orderId, amountUsd });
-    } else if (process.env.STRIPE_SECRET_KEY && selectedMethod !== 'demo') {
+    } else if (payout.stripeConfigured && selectedMethod !== 'demo') {
       providerSession = await createStripeCheckoutSession({
         orderId,
         type,
@@ -495,6 +507,7 @@ billingRouter.post('/order', requireAuth, async (req, res) => {
       message: 'Order created. Proceed to checkout to complete payment.',
     });
   } catch (err) {
+    recordServerEvent({ level: 'error', source: 'billing.order', message: err.message });
     res.status(400).json({ error: err.message });
   }
 });
@@ -556,7 +569,7 @@ billingRouter.post('/order/:id/submit-utr', requireAuth, (req, res) => {
 // Verify client-side Razorpay Checkout signature & credit order immediately
 billingRouter.post('/order/:id/verify-razorpay', requireAuth, (req, res) => {
   try {
-    const secret = process.env.RAZORPAY_KEY_SECRET;
+    const secret = getEffectivePaymentConfig().razorpayKeySecret;
     if (!secret) return res.status(503).json({ error: 'Razorpay is not configured on this server.' });
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body || {};
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
@@ -644,7 +657,7 @@ billingRouter.get('/balance', requireAuth, (req, res) => {
 
     let subscriptionPlan = null;
     if (org.subscription_plan_id) {
-      subscriptionPlan = SUBSCRIPTION_PLANS.find(p => p.id === org.subscription_plan_id) || null;
+      subscriptionPlan = getEffectiveSubscriptionPlans({ includeInactive: true }).find(p => p.id === org.subscription_plan_id) || null;
     }
 
     res.json({
@@ -654,7 +667,7 @@ billingRouter.get('/balance', requireAuth, (req, res) => {
       subscriptionPlan,
       stripeSubscriptionStatus: org.stripe_subscription_status || null,
       hasStripeCustomer: Boolean(org.stripe_customer_id),
-      stripeConfigured: Boolean(process.env.STRIPE_SECRET_KEY),
+      stripeConfigured: getEffectivePaymentConfig().stripeConfigured,
       recentOrders,
     });
   } catch (err) {
@@ -750,7 +763,7 @@ billingRouter.get('/orders/:id/invoice', requireAuth, async (req, res) => {
 // Signed Stripe webhook handler (Checkout, Payments, Recurring Subscriptions & Invoices)
 billingRouter.post('/webhook/stripe', async (req, res) => {
   try {
-    const secret = process.env.STRIPE_WEBHOOK_SECRET;
+    const secret = getEffectivePaymentConfig().stripeWebhookSecret;
     if (!secret) {
       return res.status(503).json({ error: 'STRIPE_WEBHOOK_SECRET is not configured on this server.' });
     }
@@ -841,7 +854,7 @@ billingRouter.post('/webhook/stripe', async (req, res) => {
         if (!alreadyLogged) {
           const org = db.prepare('SELECT id, subscription_plan_id FROM organizations WHERE stripe_subscription_id = ?').get(subId);
           if (org && org.subscription_plan_id) {
-            const plan = SUBSCRIPTION_PLANS.find((p) => p.id === org.subscription_plan_id);
+            const plan = getEffectiveSubscriptionPlans({ includeInactive: true }).find((p) => p.id === org.subscription_plan_id);
             if (plan) {
               const renewOrderId = 'ord_ren_' + crypto.randomUUID().slice(0, 12);
               const amountUsd = obj.amount_paid != null ? +(obj.amount_paid / 100).toFixed(2) : plan.priceUsd;
@@ -898,7 +911,7 @@ billingRouter.post('/webhook/stripe', async (req, res) => {
 // Signed Razorpay webhook handler (payment.captured / order.paid)
 billingRouter.post('/webhook/razorpay', (req, res) => {
   try {
-    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    const secret = getEffectivePaymentConfig().razorpayWebhookSecret;
     if (!secret) {
       return res.status(503).json({ error: 'RAZORPAY_WEBHOOK_SECRET is not configured on this server.' });
     }

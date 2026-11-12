@@ -217,6 +217,24 @@ export async function runMigration(explicitUrl) {
       mapRow: (r) => [r.code, r.discount_percent || 0, r.discount_usd || 0, r.max_uses || 100, r.used_count || 0, r.active ?? 1, r.expires_at || null, r.created_at]
     },
     {
+      name: 'site_pages',
+      sqliteSql: 'SELECT * FROM site_pages',
+      insertSql: `
+        INSERT INTO site_pages (id, slug, title, content, link_url, placement, is_published, sort_order, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        ON CONFLICT (id) DO UPDATE SET
+          slug = EXCLUDED.slug,
+          title = EXCLUDED.title,
+          content = EXCLUDED.content,
+          link_url = EXCLUDED.link_url,
+          placement = EXCLUDED.placement,
+          is_published = EXCLUDED.is_published,
+          sort_order = EXCLUDED.sort_order,
+          updated_at = EXCLUDED.updated_at
+      `,
+      mapRow: (r) => [r.id, r.slug, r.title, r.content || '', r.link_url || '', r.placement || 'header', r.is_published ?? 1, r.sort_order || 0, r.created_at, r.updated_at]
+    },
+    {
       name: 'billing_events',
       sqliteSql: 'SELECT * FROM billing_events',
       insertSql: `

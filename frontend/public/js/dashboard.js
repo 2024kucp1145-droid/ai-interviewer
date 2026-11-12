@@ -5607,7 +5607,7 @@ window.closeQuestionsPreviewModal = function() {
 // BILLING & PRICING SECTION
 // ═══════════════════════════════════════════════════════════════════════════
 
-const DURATION_TIERS = [
+let DURATION_TIERS = [
   { minutes: 10, priceUsd: 0.50, label: '10 Min', subtitle: 'Rapid Screening', desc: 'Short initial filter round' },
   { minutes: 20, priceUsd: 0.75, label: '20 Min', subtitle: 'Core Technical', desc: 'Standard technical filter' },
   { minutes: 30, priceUsd: 1.00, label: '30 Min', subtitle: 'Standard Full Round', desc: 'Balanced Q&A + Coding' },
@@ -5616,7 +5616,7 @@ const DURATION_TIERS = [
   { minutes: 60, priceUsd: 1.75, label: '60 Min', subtitle: 'Master 1-Hour', desc: 'Full length evaluation round' },
 ];
 
-const SUBSCRIPTION_PLANS = [
+let SUBSCRIPTION_PLANS = [
   { id: 'monthly_1', label: '1 Month',  months: 1,  priceUsd: 49,  includedInterviews: 150,  popular: false, savingsLabel: null, subtitle: 'Individual hiring' },
   { id: 'monthly_2', label: '2 Months', months: 2,  priceUsd: 79,  includedInterviews: 280,  popular: false, savingsLabel: 'Save $19', subtitle: 'Growing startup' },
   { id: 'quarterly', label: '3 Months', months: 3,  priceUsd: 109, includedInterviews: 420,  popular: false, savingsLabel: 'Save $38', subtitle: 'Quarterly hiring' },
@@ -5628,6 +5628,25 @@ let billingSelectedDuration = 10;
 let billingCheckoutType = 'ppu';
 let billingCheckoutPlan = null;
 
+async function loadBillingPricing() {
+  try {
+    const res = await fetch('/billing/pricing');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (Array.isArray(data.durationTiers) && data.durationTiers.length > 0) {
+      DURATION_TIERS = data.durationTiers;
+    }
+    if (Array.isArray(data.subscriptionPlans) && data.subscriptionPlans.length > 0) {
+      SUBSCRIPTION_PLANS = data.subscriptionPlans;
+    }
+    renderDurGrid();
+    renderPriceTable();
+    renderSubPlans();
+    renderSubCompare();
+    updatePPUQuote();
+  } catch { /* ignore fallback to defaults */ }
+}
+
 // ── Init billing UI when switching to metrics tab ─────────────────────────
 function initBillingTab() {
   renderDurGrid();
@@ -5635,6 +5654,7 @@ function initBillingTab() {
   renderSubPlans();
   renderSubCompare();
   updatePPUQuote();
+  loadBillingPricing();
   loadBillingBalance();
 }
 
@@ -6101,6 +6121,18 @@ window.openBillingCheckout = async function(type) {
         if (demoFields) demoFields.style.display = 'none';
       } else {
         if (demoFields) demoFields.style.display = 'block';
+      }
+
+      const em = checkoutMethodsCache.enabledMethods || { card: true, upiDirect: true, bankTransfer: true };
+      const tabCard = document.getElementById('pay-tab-card');
+      const tabUpi = document.getElementById('pay-tab-upi');
+      const tabBank = document.getElementById('pay-tab-bank');
+      if (tabCard) tabCard.style.display = em.card !== false ? '' : 'none';
+      if (tabUpi) tabUpi.style.display = em.upiDirect !== false ? '' : 'none';
+      if (tabBank) tabBank.style.display = em.bankTransfer !== false ? '' : 'none';
+      if (em.card === false) {
+        if (em.upiDirect !== false) selectPaymentMethodTab('upi');
+        else if (em.bankTransfer !== false) selectPaymentMethodTab('bank');
       }
     }
   } catch { /* ignore */ }
@@ -6889,3 +6921,100 @@ window.exportRegisteredUsersCsv = function() {
   });
 
 })();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LIVE SITE CONFIG, ANNOUNCEMENT, MAINTENANCE & CUSTOM PAGES (Admin-Controlled)
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function loadPublicSiteConfig() {
+  try {
+    const res = await fetch('/api/site/config');
+    if (!res.ok) return;
+    const cfg = await res.json();
+    if (!cfg || !cfg.success) return;
+
+    // 1. Branding
+    if (cfg.brandName) {
+      const brandEl = document.getElementById('site-brand-title');
+      const footerBrand = document.getElementById('site-footer-brand');
+      if (brandEl) brandEl.textContent = cfg.brandName;
+      if (footerBrand) footerBrand.textContent = cfg.brandName;
+      document.title = `${cfg.brandName} — Recruiter Dashboard`;
+    }
+    if (cfg.tagline) {
+      const tagEl = document.getElementById('site-footer-tagline');
+      if (tagEl) tagEl.textContent = cfg.tagline;
+    }
+    if (cfg.supportEmail) {
+      const supEl = document.getElementById('site-support-link');
+      if (supEl) {
+        supEl.href = `mailto:${cfg.supportEmail}`;
+        supEl.textContent = cfg.supportEmail;
+        supEl.style.display = 'inline';
+      }
+    }
+
+    // 2. Announcement banner
+    const bar = document.getElementById('site-announcement-bar');
+    if (bar) {
+      if (cfg.announcement && cfg.announcement.enabled && cfg.announcement.text) {
+        const tone = cfg.announcement.tone || 'info';
+        const palette = tone === 'warning'
+          ? { bg: 'rgba(245,158,11,0.16)', fg: '#fbbf24' }
+          : tone === 'success'
+            ? { bg: 'rgba(16,185,129,0.16)', fg: '#34d399' }
+            : tone === 'danger'
+              ? { bg: 'rgba(239,68,68,0.18)', fg: '#f87171' }
+              : { bg: 'rgba(99,102,241,0.18)', fg: '#a5b4fc' };
+        bar.style.background = palette.bg;
+        bar.style.color = palette.fg;
+        bar.textContent = cfg.announcement.text;
+        bar.style.display = 'block';
+      } else {
+        bar.style.display = 'none';
+      }
+    }
+
+    // 3. Maintenance overlay
+    const maint = document.getElementById('site-maintenance-overlay');
+    if (maint) {
+      if (cfg.maintenance && cfg.maintenance.enabled) {
+        const msgEl = document.getElementById('site-maintenance-message');
+        if (msgEl && cfg.maintenance.message) msgEl.textContent = cfg.maintenance.message;
+        maint.style.display = 'flex';
+      } else {
+        maint.style.display = 'none';
+      }
+    }
+
+    // 4. Custom header / footer links & pages
+    const pages = Array.isArray(cfg.pages) ? cfg.pages : [];
+    const headerWrap = document.getElementById('dynamic-header-links');
+    const footerWrap = document.getElementById('dynamic-footer-links');
+    const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const toHref = (p) => (p.link_url ? p.link_url : `/p/${encodeURIComponent(p.slug)}`);
+
+    if (headerWrap) {
+      const headerItems = pages.filter((p) => p.placement === 'header' || p.placement === 'both');
+      headerWrap.innerHTML = headerItems.map((p) => {
+        const href = esc(toHref(p));
+        const ext = p.link_url ? ' target="_blank" rel="noopener noreferrer"' : '';
+        return `<a class="nav-btn" href="${href}"${ext} style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">${esc(p.title)}</a>`;
+      }).join('');
+    }
+    if (footerWrap) {
+      const footerItems = pages.filter((p) => p.placement === 'footer' || p.placement === 'both');
+      footerWrap.innerHTML = footerItems.map((p) => {
+        const href = esc(toHref(p));
+        const ext = p.link_url ? ' target="_blank" rel="noopener noreferrer"' : '';
+        return `<a href="${href}"${ext} style="color:#cbd5e1;text-decoration:none;">${esc(p.title)}</a>`;
+      }).join('');
+    }
+  } catch { /* ignore live site config errors */ }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', loadPublicSiteConfig);
+} else {
+  loadPublicSiteConfig();
+}

@@ -1989,8 +1989,14 @@
             <button type="button" class="nav-tab-btn ta-nav-item" data-tab="audit" onclick="switchDashboardTab('audit')">
               <span class="ta-nav-item-left"><i class="bi bi-shield-shaded"></i> <span>Audit Trail</span></span>
             </button>
+            <button type="button" class="nav-tab-btn ta-nav-item" data-tab="website" onclick="switchDashboardTab('website')">
+              <span class="ta-nav-item-left"><i class="bi bi-window-sidebar"></i> <span>Website &amp; Pages</span></span>
+            </button>
+            <button type="button" class="nav-tab-btn ta-nav-item" data-tab="server" onclick="switchDashboardTab('server')">
+              <span class="ta-nav-item-left"><i class="bi bi-hdd-rack-fill"></i> <span>Server &amp; Ops</span></span>
+            </button>
             <button type="button" class="nav-tab-btn ta-nav-item" data-tab="settings" onclick="switchDashboardTab('settings')">
-              <span class="ta-nav-item-left"><i class="bi bi-sliders"></i> <span>Settings</span></span>
+              <span class="ta-nav-item-left"><i class="bi bi-sliders"></i> <span>Settings &amp; Payments</span></span>
             </button>
           </div>
         </div>
@@ -2519,6 +2525,43 @@
           </div>
         </div>
       </div>
+
+      <!-- Subscription Plans & Live Pricing Editor Card -->
+      <div class="card" style="margin-top: 1.5rem;">
+        <div class="card-header" style="flex-wrap:wrap; gap:0.65rem;">
+          <div class="card-title"><i class="bi bi-layers-fill"></i> Live Subscription Plans (Synced to User Website)</div>
+          <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="addAdminPlanRow()"><i class="bi bi-plus-lg"></i> Add Plan</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="resetAdminPlansToDefault()"><i class="bi bi-arrow-counterclockwise"></i> Reset Defaults</button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="saveAdminSubscriptionPlans()"><i class="bi bi-cloud-upload"></i> Push Plans Live</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:0.85rem;">
+            Edit prices, duration months, included interviews, or enable/disable plans. Saving pushes changes immediately to user pricing &amp; checkout.
+          </p>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Plan ID</th>
+                  <th>Title</th>
+                  <th>Months</th>
+                  <th>Price ($)</th>
+                  <th>Interviews</th>
+                  <th>Savings Badge</th>
+                  <th>Popular</th>
+                  <th>Active</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="admin-plans-tbody">
+                <tr><td colspan="9" style="text-align:center; padding:1.25rem; color:var(--text-muted);">Loading subscription plans...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- TAB: FEEDBACKS INBOX -->
@@ -2547,11 +2590,190 @@
       </div>
     </div>
 
+    <!-- TAB: WEBSITE CONTROL, BRANDING & CUSTOM PAGES -->
+    <div id="tab-content-website" style="display: none;">
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header">
+          <div class="card-title"><i class="bi bi-window-sidebar"></i> Live User Website Control &amp; Maintenance</div>
+        </div>
+        <div class="card-body">
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Website Brand Name</label>
+              <input type="text" id="site-brand-name" class="form-input" placeholder="RoundOne AI">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Header Tagline / Badge</label>
+              <input type="text" id="site-tagline" class="form-input" placeholder="Technical Screening &amp; Hiring Platform">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Support Email Shown to Users</label>
+              <input type="email" id="site-support-email" class="form-input" placeholder="support@yourdomain.com">
+            </div>
+          </div>
+
+          <div style="padding: 1rem; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 1rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:0.75rem;">
+              <div>
+                <strong style="font-size:0.88rem;">Announcement Banner on User Website</strong>
+                <div style="font-size:0.74rem; color:var(--text-muted);">Display a top notice bar across the user dashboard (offers, UPI instructions, downtime notice).</div>
+              </div>
+              <input type="checkbox" id="site-announcement-enabled" style="width:20px; height:20px; cursor:pointer;">
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 160px; gap:0.75rem;">
+              <input type="text" id="site-announcement-text" class="form-input" placeholder="e.g. Use promo code LAUNCH20 for 20% off! UPI &amp; Card accepted.">
+              <select id="site-announcement-tone" class="form-input">
+                <option value="info">Blue (Info)</option>
+                <option value="success">Green (Offer)</option>
+                <option value="warning">Amber (Notice)</option>
+                <option value="danger">Red (Alert)</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="padding: 1rem; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 1.25rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:0.75rem;">
+              <div>
+                <strong style="font-size:0.88rem; color:var(--warning);"><i class="bi bi-cone-striped"></i> Maintenance Mode (User Portal Lock)</strong>
+                <div style="font-size:0.74rem; color:var(--text-muted);">Temporarily pause non-admin user actions and display a maintenance notice. Admin panel stays unlocked.</div>
+              </div>
+              <input type="checkbox" id="site-maintenance-enabled" style="width:20px; height:20px; cursor:pointer;">
+            </div>
+            <input type="text" id="site-maintenance-message" class="form-input" placeholder="Scheduled maintenance is in progress. Please check back shortly.">
+          </div>
+
+          <button type="button" class="btn btn-primary" onclick="saveWebsiteControlSettings()">
+            <i class="bi bi-check-lg"></i> Save &amp; Publish Website Controls
+          </button>
+        </div>
+      </div>
+
+      <!-- Custom Pages & Navigation Links Builder -->
+      <div class="card">
+        <div class="card-header" style="flex-wrap:wrap; gap:0.5rem;">
+          <div class="card-title"><i class="bi bi-file-earmark-plus-fill"></i> Create Custom Pages &amp; Navigation Links</div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="loadAdminPages()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+        </div>
+        <div class="card-body">
+          <form onsubmit="saveAdminPage(event)" style="display:grid; gap:0.85rem; margin-bottom:1.35rem; padding:1rem; border:1px solid var(--border); border-radius:10px; background:var(--surface-elevated);">
+            <input type="hidden" id="page-edit-id">
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:0.75rem;">
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">Page / Link Title</label>
+                <input type="text" id="page-title-input" class="form-input" placeholder="e.g. Pricing Guide or Support" required>
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">URL Slug (/p/slug)</label>
+                <input type="text" id="page-slug-input" class="form-input" placeholder="e.g. pricing-guide" required>
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">Placement on User Site</label>
+                <select id="page-placement-input" class="form-input">
+                  <option value="header">Header Navigation</option>
+                  <option value="footer">Footer Links</option>
+                  <option value="both">Header &amp; Footer</option>
+                  <option value="hidden">Hidden (Direct Link Only)</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">External Link Override (Optional)</label>
+                <input type="text" id="page-linkurl-input" class="form-input" placeholder="https://wa.me/... or /careers.html">
+              </div>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Page Body Content (leave blank if linking straight to External Link URL)</label>
+              <textarea id="page-content-input" class="form-input" rows="3" placeholder="Write Terms, FAQ, Help instructions, or custom page text..."></textarea>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+              <label style="display:flex; align-items:center; gap:0.45rem; font-size:0.8rem; cursor:pointer;">
+                <input type="checkbox" id="page-published-input" checked>
+                <strong>Published (Visible on User Website)</strong>
+              </label>
+              <div style="display:flex; gap:0.5rem;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="resetAdminPageForm()">Clear</button>
+                <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-save"></i> Save Page / Link</button>
+              </div>
+            </div>
+          </form>
+
+          <div id="admin-pages-list" style="display:flex; flex-direction:column; gap:0.55rem; font-size:0.82rem; color:var(--text-muted);">
+            Loading custom pages...
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: SERVER HEALTH, EMAIL OTP INSPECTOR & OPS -->
+    <div id="tab-content-server" style="display: none;">
+      <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin-bottom: 1.25rem;">
+        <div class="kpi-card">
+          <div class="kpi-card-header"><span class="kpi-label">Server Uptime</span><i class="bi bi-cpu-fill kpi-icon"></i></div>
+          <div id="srv-kpi-uptime" class="kpi-value">--</div>
+          <div id="srv-kpi-env" class="kpi-subtext">Node runtime</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-header"><span class="kpi-label">Memory (RSS / Heap)</span><i class="bi bi-memory kpi-icon"></i></div>
+          <div id="srv-kpi-memory" class="kpi-value">--</div>
+          <div id="srv-kpi-load" class="kpi-subtext">CPU load</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-header"><span class="kpi-label">Email &amp; Payment Rails</span><i class="bi bi-plug-fill kpi-icon"></i></div>
+          <div id="srv-kpi-rails" class="kpi-value" style="font-size:1.05rem;">Checking...</div>
+          <div id="srv-kpi-db" class="kpi-subtext">DB status</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-header"><span class="kpi-label">Active Rate Buckets</span><i class="bi bi-shield-lock-fill kpi-icon"></i></div>
+          <div id="srv-kpi-ratelimits" class="kpi-value">0</div>
+          <div class="kpi-subtext">Sliding-window trackers</div>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:0.6rem; flex-wrap:wrap; margin-bottom:1.25rem;">
+        <button type="button" class="btn btn-primary btn-sm" onclick="loadServerDiagnostics()"><i class="bi bi-arrow-clockwise"></i> Refresh Diagnostics</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="clearAllRateLimitsAdmin()"><i class="bi bi-unlock-fill"></i> Unlock All Rate-Limited IPs/Logins</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="testPaymentConfigAdmin()"><i class="bi bi-credit-card-2-back"></i> Test Payment Configuration</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="clearServerLogsAdmin()"><i class="bi bi-trash"></i> Clear Error Buffer</button>
+      </div>
+      <div id="srv-ops-feedback" style="display:none; margin-bottom:1.25rem; padding:0.85rem 1rem; border-radius:8px; border:1px solid var(--border); background:var(--surface-elevated); font-size:0.8rem;"></div>
+
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap:1.25rem; margin-bottom:1.25rem;">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="bi bi-key-fill"></i> Pending Email Verification Codes (OTP Inspector)</div>
+          </div>
+          <div class="card-body" id="srv-otps-container" style="max-height:320px; overflow-y:auto; font-size:0.78rem; color:var(--text-muted);">
+            Loading verification codes...
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="bi bi-table"></i> Live Database Row Counts</div>
+          </div>
+          <div class="card-body" id="srv-db-counts" style="max-height:320px; overflow-y:auto; font-size:0.8rem;">
+            Loading table counts...
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="bi bi-terminal-fill"></i> Server &amp; Integration Event Logs</div>
+        </div>
+        <div class="card-body" id="srv-logs-container" style="max-height:340px; overflow-y:auto; font-family:monospace; font-size:0.76rem; color:var(--text-muted);">
+          No errors recorded.
+        </div>
+      </div>
+    </div>
+
     <!-- TAB 6: GOVERNANCE SETTINGS -->
     <div id="tab-content-settings" style="display: none;">
       <div class="settings-subtabs">
         <button type="button" class="settings-subtab-btn active" data-subtab="governance" onclick="switchSettingsSubtab('governance')">
-          <i class="bi bi-shield-check"></i> Access &amp; Trial Credits
+          <i class="bi bi-shield-check"></i> Access &amp; Auth Rules
+        </button>
+        <button type="button" class="settings-subtab-btn" data-subtab="payments" onclick="switchSettingsSubtab('payments')">
+          <i class="bi bi-wallet2"></i> Payments, UPI &amp; Bank
         </button>
         <button type="button" class="settings-subtab-btn" data-subtab="email" onclick="switchSettingsSubtab('email')">
           <i class="bi bi-envelope-at-fill"></i> Email Delivery &amp; OTP
@@ -2565,30 +2787,162 @@
       <div id="settings-panel-governance" class="card" style="max-width: 780px;">
         <div class="card-header">
           <div class="card-title">
-            <i class="bi bi-sliders"></i> Platform Access &amp; Registration Governance
+            <i class="bi bi-sliders"></i> Platform Access, Auth &amp; Registration Governance
           </div>
         </div>
         <div class="card-body">
-          <div style="margin-bottom: 1.5rem; padding: 1rem; background-color: var(--surface-elevated); border-radius: 8px; border: 1px solid var(--border);">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+          <div style="display:flex; flex-direction:column; gap:0.85rem; margin-bottom:1.25rem;">
+            <label style="display:flex; align-items:center; justify-content:space-between; padding:0.9rem 1rem; background:var(--surface-elevated); border-radius:8px; border:1px solid var(--border); cursor:pointer;">
               <div>
-                <strong style="font-size: 0.9rem;">Require Admin Approval for New Recruiter Signups</strong>
-                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">
-                  Hold new recruiter accounts in pending review until an administrator approves them.
-                </p>
+                <strong style="font-size:0.88rem;">Allow Public User Signups</strong>
+                <div style="font-size:0.74rem; color:var(--text-muted);">Turn off to close new public registrations (invite-only mode).</div>
               </div>
-              <input type="checkbox" id="setting-require-approval" style="width: 20px; height: 20px; cursor: pointer;">
-            </div>
+              <input type="checkbox" id="setting-allow-public-signup" checked style="width:20px; height:20px; cursor:pointer;">
+            </label>
+
+            <label style="display:flex; align-items:center; justify-content:space-between; padding:0.9rem 1rem; background:var(--surface-elevated); border-radius:8px; border:1px solid var(--border); cursor:pointer;">
+              <div>
+                <strong style="font-size:0.88rem;">Require Admin Approval for New Recruiter Signups</strong>
+                <div style="font-size:0.74rem; color:var(--text-muted);">Hold new accounts in <code>pending_approval</code> until you approve them.</div>
+              </div>
+              <input type="checkbox" id="setting-require-approval" style="width:20px; height:20px; cursor:pointer;">
+            </label>
+
+            <label style="display:flex; align-items:center; justify-content:space-between; padding:0.9rem 1rem; background:var(--surface-elevated); border-radius:8px; border:1px solid var(--border); cursor:pointer;">
+              <div>
+                <strong style="font-size:0.88rem;">Require 6-Digit Email OTP Verification</strong>
+                <div style="font-size:0.74rem; color:var(--text-muted);">Disable for instant password login without waiting for OTP email.</div>
+              </div>
+              <input type="checkbox" id="setting-require-email-otp" checked style="width:20px; height:20px; cursor:pointer;">
+            </label>
+
+            <label style="display:flex; align-items:center; justify-content:space-between; padding:0.9rem 1rem; background:var(--surface-elevated); border-radius:8px; border:1px solid var(--border); cursor:pointer;">
+              <div>
+                <strong style="font-size:0.88rem;">Allow Dev OTP Fallback (Code <code>000000</code>)</strong>
+                <div style="font-size:0.74rem; color:var(--text-muted);">Allows fallback code when testing without SMTP. Keep OFF in production.</div>
+              </div>
+              <input type="checkbox" id="setting-allow-dev-otp" style="width:20px; height:20px; cursor:pointer;">
+            </label>
           </div>
 
           <div class="form-group" style="max-width: 320px;">
             <label class="form-label">Default Free Trial Interview Credits</label>
             <input type="number" id="setting-trial-credits" class="form-input" min="0" max="1000" value="10">
-            <span style="font-size: 0.7rem; color: var(--text-subtle);">Granted automatically to newly approved recruiters.</span>
+            <span style="font-size: 0.7rem; color: var(--text-subtle);">Granted automatically to newly created organizations.</span>
           </div>
 
           <button class="btn btn-primary" onclick="savePlatformSettings()">
-            <i class="bi bi-check-lg"></i> Save Governance Settings
+            <i class="bi bi-check-lg"></i> Save Auth &amp; Governance Settings
+          </button>
+        </div>
+      </div>
+
+      <!-- Payments, UPI ID & Bank Payout Control Card -->
+      <div id="settings-panel-payments" class="card" style="max-width: 860px; display: none;">
+        <div class="card-header">
+          <div class="card-title"><i class="bi bi-wallet2"></i> Live Payment Methods, UPI ID &amp; Bank Payout Settings</div>
+          <span id="pay-settings-badge" class="badge badge-info">Syncs Live to User Website</span>
+        </div>
+        <div class="card-body">
+          <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:1.1rem;">
+            Any UPI ID, Bank account, exchange rate, or gateway toggle saved here updates the <strong>User Website checkout immediately</strong> (no restart needed).
+          </p>
+
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:0.65rem; margin-bottom:1.15rem;">
+            <label style="display:flex; align-items:center; gap:0.5rem; padding:0.65rem 0.8rem; background:var(--surface-elevated); border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:0.8rem;">
+              <input type="checkbox" id="pay-enable-upi" checked> <strong>Direct UPI / QR (0% Fee)</strong>
+            </label>
+            <label style="display:flex; align-items:center; gap:0.5rem; padding:0.65rem 0.8rem; background:var(--surface-elevated); border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:0.8rem;">
+              <input type="checkbox" id="pay-enable-bank" checked> <strong>Bank Transfer (0% Fee)</strong>
+            </label>
+            <label style="display:flex; align-items:center; gap:0.5rem; padding:0.65rem 0.8rem; background:var(--surface-elevated); border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:0.8rem;">
+              <input type="checkbox" id="pay-enable-card" checked> <strong>Card / Stripe</strong>
+            </label>
+            <label style="display:flex; align-items:center; gap:0.5rem; padding:0.65rem 0.8rem; background:var(--surface-elevated); border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:0.8rem;">
+              <input type="checkbox" id="pay-enable-razorpay" checked> <strong>Razorpay Popup</strong>
+            </label>
+          </div>
+
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:1rem; margin-bottom:1rem;">
+            <div style="background:var(--surface-elevated); border:1px solid var(--border); border-radius:10px; padding:1rem;">
+              <strong style="display:block; font-size:0.86rem; margin-bottom:0.75rem;"><i class="bi bi-qr-code-scan"></i> Direct 0%-Fee UPI Payout</strong>
+              <div class="form-group" style="margin-bottom:0.65rem;">
+                <label class="form-label">Merchant UPI ID (Changes live QR on user site)</label>
+                <input type="text" id="pay-upi-id" class="form-input" placeholder="e.g. yourname@okaxis">
+              </div>
+              <div style="display:grid; grid-template-columns: 2fr 1fr; gap:0.65rem;">
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label">Payee Display Name</label>
+                  <input type="text" id="pay-upi-name" class="form-input" placeholder="RoundOne AI">
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label">USD &rarr; INR Rate</label>
+                  <input type="number" id="pay-usd-inr" class="form-input" min="1" step="0.5" placeholder="85">
+                </div>
+              </div>
+            </div>
+
+            <div style="background:var(--surface-elevated); border:1px solid var(--border); border-radius:10px; padding:1rem;">
+              <strong style="display:block; font-size:0.86rem; margin-bottom:0.75rem;"><i class="bi bi-bank"></i> Direct Bank Account (NEFT / IMPS)</strong>
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.65rem; margin-bottom:0.65rem;">
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label">Account Holder</label>
+                  <input type="text" id="pay-bank-holder" class="form-input" placeholder="Full Name">
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label">Bank Name</label>
+                  <input type="text" id="pay-bank-name" class="form-input" placeholder="HDFC / SBI / ICICI">
+                </div>
+              </div>
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.65rem;">
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label">Account Number</label>
+                  <input type="text" id="pay-bank-account" class="form-input" placeholder="Account No.">
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label class="form-label">IFSC / SWIFT</label>
+                  <input type="text" id="pay-bank-ifsc" class="form-input" placeholder="HDFC0001234">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:1rem; margin-bottom:1.15rem;">
+            <div style="background:var(--surface-elevated); border:1px solid var(--border); border-radius:10px; padding:1rem;">
+              <strong style="display:block; font-size:0.86rem; margin-bottom:0.65rem;"><i class="bi bi-credit-card"></i> Stripe Card Keys (Optional)</strong>
+              <div class="form-group" style="margin-bottom:0.55rem;">
+                <label class="form-label">Publishable Key</label>
+                <input type="text" id="pay-stripe-pk" class="form-input code-font" placeholder="pk_live_...">
+              </div>
+              <div class="form-group" style="margin-bottom:0.55rem;">
+                <label class="form-label">Secret Key</label>
+                <input type="password" id="pay-stripe-sk" class="form-input code-font" placeholder="sk_live_...">
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">Webhook Signing Secret</label>
+                <input type="password" id="pay-stripe-whsec" class="form-input code-font" placeholder="whsec_...">
+              </div>
+            </div>
+
+            <div style="background:var(--surface-elevated); border:1px solid var(--border); border-radius:10px; padding:1rem;">
+              <strong style="display:block; font-size:0.86rem; margin-bottom:0.65rem;"><i class="bi bi-lightning-charge-fill"></i> Razorpay Keys (Optional)</strong>
+              <div class="form-group" style="margin-bottom:0.55rem;">
+                <label class="form-label">Key ID</label>
+                <input type="text" id="pay-rzp-id" class="form-input code-font" placeholder="rzp_live_...">
+              </div>
+              <div class="form-group" style="margin-bottom:0.55rem;">
+                <label class="form-label">Key Secret</label>
+                <input type="password" id="pay-rzp-secret" class="form-input code-font" placeholder="••••••••">
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label class="form-label">Webhook Secret</label>
+                <input type="password" id="pay-rzp-whsec" class="form-input code-font" placeholder="••••••••">
+              </div>
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-primary" onclick="savePaymentControlSettings()">
+            <i class="bi bi-check-lg"></i> Save Payment &amp; UPI Settings (Push Live)
           </button>
         </div>
       </div>
@@ -2830,10 +3184,34 @@
           <label class="form-label">Subscription Plan</label>
           <select id="manage-user-plan-select" class="form-input">
             <option value="free_trial">Free Trial</option>
+            <option value="monthly_1">1 Month Plan</option>
+            <option value="monthly_2">2 Months Plan</option>
+            <option value="quarterly">3 Months Plan</option>
+            <option value="biannual">6 Months Plan</option>
+            <option value="annual">1 Year Plan</option>
             <option value="starter">Starter Plan</option>
             <option value="growth">Growth Plan</option>
             <option value="enterprise">Enterprise Tier</option>
           </select>
+        </div>
+
+        <div style="padding:0.85rem; background:var(--surface-elevated); border:1px solid var(--border); border-radius:8px; margin-top:0.85rem;">
+          <div style="font-size:0.78rem; font-weight:700; margin-bottom:0.55rem;"><i class="bi bi-lightning-charge"></i> Direct Subscription &amp; Email Controls</div>
+          <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+            <select id="manage-user-sub-plan" class="form-input" style="width:auto; flex:1; min-width:140px;">
+              <option value="monthly_1">1 Month Subscription</option>
+              <option value="monthly_2">2 Months Subscription</option>
+              <option value="quarterly">3 Months Subscription</option>
+              <option value="biannual">6 Months Subscription</option>
+              <option value="annual">1 Year Subscription</option>
+            </select>
+            <button type="button" class="btn btn-primary btn-sm" onclick="adminAssignUserSubscription('assign')">Activate Sub</button>
+            <button type="button" class="btn btn-outline btn-sm" style="color:var(--danger);" onclick="adminAssignUserSubscription('cancel')">Cancel Sub</button>
+          </div>
+          <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.55rem;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="adminVerifyUserEmail('force_verify')"><i class="bi bi-patch-check-fill"></i> Force Verify Email</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="adminVerifyUserEmail('send_otp')"><i class="bi bi-envelope"></i> Send Fresh OTP</button>
+          </div>
         </div>
       </div>
       <div class="modal-footer">

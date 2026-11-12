@@ -16,7 +16,7 @@ import http from 'http';
 import Stripe from 'stripe';
 import { initDatabase, db } from '../backend/src/db/database.js';
 import { createRateLimiter, resetRateLimits } from '../backend/src/middleware/rateLimit.js';
-import { validateJwtSecret } from '../backend/src/auth/auth.js';
+import { validateJwtSecret, signToken } from '../backend/src/auth/auth.js';
 import { validateVaultSecret } from '../backend/src/keys/vault.js';
 import { judgeLeetCodeSolution } from '../backend/src/services/leetcodeJudge.js';
 import { signWebhookPayload, verifyWebhookSignature } from '../backend/src/services/webhookService.js';
@@ -33,6 +33,28 @@ const createdUserEmails = [ownerEmail, memberEmail];
 const createdJobIds = [];
 const createdCandidateIds = [];
 const createdInterviewIds = [];
+const createdPageSlugs = [];
+const settingsSnapshot = new Map();
+
+function snapshotSettingsKeys(keys) {
+  for (const k of keys) {
+    if (settingsSnapshot.has(k)) continue;
+    const row = db.prepare('SELECT value FROM platform_settings WHERE key = ?').get(k);
+    settingsSnapshot.set(k, row ? row.value : null);
+  }
+}
+
+function restoreSettingsSnapshot() {
+  for (const [k, v] of settingsSnapshot.entries()) {
+    try {
+      if (v === null) {
+        db.prepare('DELETE FROM platform_settings WHERE key = ?').run(k);
+      } else {
+        db.prepare('INSERT INTO platform_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(k, v);
+      }
+    } catch (_) {}
+  }
+}
 
 async function cleanup() {
   for (const ivId of createdInterviewIds) {
@@ -67,6 +89,10 @@ async function cleanup() {
     try { db.prepare('DELETE FROM organizations WHERE id = ?').run(orgId); } catch (_) {}
   }
   try { db.prepare("DELETE FROM billing_coupons WHERE code LIKE 'FS20_%' OR code LIKE 'FS100_%'").run(); } catch (_) {}
+  for (const slug of createdPageSlugs) {
+    try { db.prepare('DELETE FROM site_pages WHERE slug = ?').run(slug); } catch (_) {}
+  }
+  restoreSettingsSnapshot();
   resetRateLimits();
 }
 
@@ -592,7 +618,140 @@ async function runTests() {
     assert.strictEqual(balAfterFree.creditsRemaining, balBeforeFree.creditsRemaining + 5);
     console.log('✓ 14. Promo coupons, GET /billing/methods, direct UPI/Bank UTR guard & 100%-off instant credit verified');
 
-    console.log('\n🎉 ALL 14 FULL-STACK VERIFICATION CHECKS PASSED!');
+    // ─── 15. Admin Full Control Panel -> Live User Website Sync ──────────────────
+    const adminOrgId = `fs_admin_org_${RUN_ID}`;
+    const adminId = `fs_admin_${RUN_ID}`;
+    const adminEmail = `fs_admin_${RUN_ID}@test.local`;
+    createdOrgIds.push(adminOrgId);
+    createdUserEmails.push(adminEmail);
+    db.prepare(`INSERT INTO organizations (id, name, plan) VALUES (?, 'FS Admin Org', 'enterprise')`).run(adminOrgId);
+    db.prepare(`
+      INSERT INTO users (id, org_id, full_name, email, password_hash, role, is_verified, approval_status)
+      VALUES (?, ?, 'FS Superadmin', ?, 'x', 'superadmin', 1, 'approved')
+    `).run(adminId, adminOrgId, adminEmail);
+    const adminToken = signToken({ id: adminId, email: adminEmail, role: 'superadmin' });
+
+    snapshotSettingsKeys([
+      'merchant_upi_id',
+      'merchant_upi_name',
+      'usd_to_inr_rate',
+      'subscription_plans_json',
+      'duration_tiers_json',
+    ]);
+
+    const testUpiId = `roundone${RUN_ID}@okaxis`;
+    const putSetRes = await fetch(`${BASE_URL}/api/admin/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+      body: JSON.stringify({
+        settings: {
+          merchant_upi_id: testUpiId,
+          merchant_upi_name: 'RoundOne Test Biz',
+          usd_to_inr_rate: '88',
+        }
+      })
+    });
+    assert.strictEqual(putSetRes.status, 200);
+
+    const liveMethodsRes = await fetch(`${BASE_URL}/billing/methods`);
+    const liveMethods = await liveMethodsRes.json();
+    assert.strictEqual(liveMethodsRes.status, 200);
+    assert.strictEqual(liveMethods.upiDirectConfigured, true);
+    assert.strictEqual(liveMethods.upiId, testUpiId);
+    assert.strictEqual(liveMethods.usdToInrRate, 88);
+
+    const qrOrderRes = await fetch(`${BASE_URL}/billing/order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ownerToken}` },
+      body: JSON.stringify({ type: 'pay_per_use', quantity: 5, minutes: 20, gateway: 'upi_direct' })
+    });
+    const qrOrder = await qrOrderRes.json();
+    assert.strictEqual(qrOrderRes.status, 200, qrOrder.error);
+    assert.ok(qrOrder.qrDataUrl && qrOrder.qrDataUrl.startsWith('data:image/png'));
+    assert.ok(qrOrder.upiDeepLink && qrOrder.upiDeepLink.includes(encodeURIComponent(testUpiId)));
+
+    // Live subscription plans update + reset
+    const putPlansRes = await fetch(`${BASE_URL}/api/admin/plans`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+      body: JSON.stringify({
+        plans: [
+          { id: 'starter_live', label: 'Starter Live', months: 1, priceUsd: 29, includedInterviews: 120, active: true, subtitle: 'Live test plan' }
+        ]
+      })
+    });
+    assert.strictEqual(putPlansRes.status, 200);
+    const livePricingRes = await fetch(`${BASE_URL}/billing/pricing`);
+    const livePricing = await livePricingRes.json();
+    assert.ok(livePricing.subscriptionPlans.some((p) => p.id === 'starter_live' && p.priceUsd === 29));
+
+    const resetPlansRes = await fetch(`${BASE_URL}/api/admin/plans/reset`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${adminToken}` }
+    });
+    assert.strictEqual(resetPlansRes.status, 200);
+
+    // Custom page creation + live /api/site/config + /p/:slug HTML render
+    const testSlug = `fs-guide-${RUN_ID}`;
+    createdPageSlugs.push(testSlug);
+    const createPageRes = await fetch(`${BASE_URL}/api/admin/pages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+      body: JSON.stringify({
+        title: 'FS Pricing FAQ',
+        slug: testSlug,
+        content: '# Welcome\nAdmin created page.',
+        placement: 'header',
+        is_published: true,
+        sort_order: 1
+      })
+    });
+    assert.strictEqual(createPageRes.status, 200);
+
+    const siteCfgRes = await fetch(`${BASE_URL}/api/site/config`);
+    const siteCfg = await siteCfgRes.json();
+    assert.strictEqual(siteCfgRes.status, 200);
+    assert.ok(Array.isArray(siteCfg.pages) && siteCfg.pages.some((p) => p.slug === testSlug));
+
+    const renderedPageRes = await fetch(`${BASE_URL}/p/${testSlug}`);
+    const renderedHtml = await renderedPageRes.text();
+    assert.strictEqual(renderedPageRes.status, 200);
+    assert.ok(renderedHtml.includes('FS Pricing FAQ'));
+
+    // Direct admin subscription assignment
+    const ownerRow = db.prepare('SELECT id FROM users WHERE email = ?').get(ownerEmail);
+    const assignSubRes = await fetch(`${BASE_URL}/api/admin/users/${ownerRow.id}/subscription`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+      body: JSON.stringify({ action: 'assign', planId: 'monthly_1', months: 1, setCredits: 321 })
+    });
+    assert.strictEqual(assignSubRes.status, 200);
+
+    const subBalRes = await fetch(`${BASE_URL}/billing/balance`, {
+      headers: { Authorization: `Bearer ${ownerToken}` }
+    });
+    const subBal = await subBalRes.json();
+    assert.strictEqual(subBalRes.status, 200);
+    assert.strictEqual(subBal.creditsRemaining, 321);
+    assert.strictEqual(subBal.subscriptionPlan?.id, 'monthly_1');
+
+    // Server diagnostics & rate-limit clear
+    const diagRes = await fetch(`${BASE_URL}/api/admin/server/diagnostics`, {
+      headers: { Authorization: `Bearer ${adminToken}` }
+    });
+    const diagData = await diagRes.json();
+    assert.strictEqual(diagRes.status, 200);
+    assert.ok(diagData.runtime && typeof diagData.runtime.uptimeSeconds === 'number');
+    assert.ok(diagData.database && diagData.database.tableCounts && typeof diagData.database.tableCounts.users === 'number');
+
+    const clearRlRes = await fetch(`${BASE_URL}/api/admin/server/clear-rate-limits`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${adminToken}` }
+    });
+    assert.strictEqual(clearRlRes.status, 200);
+    console.log('✓ 15. Admin Panel live UPI/Pricing/Pages/Subscription/Server Control verified end-to-end');
+
+    console.log('\n🎉 ALL 15 FULL-STACK VERIFICATION CHECKS PASSED!');
   } finally {
     await cleanup();
   }

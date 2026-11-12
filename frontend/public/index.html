@@ -1523,12 +1523,25 @@
 </head>
 <body>
 
+  <!-- Admin-controlled Global Announcement Banner -->
+  <div id="site-announcement-bar" style="display:none;padding:9px 18px;text-align:center;font-size:.82rem;font-weight:600;border-bottom:1px solid rgba(255,255,255,0.08);"></div>
+
+  <!-- Admin-controlled Maintenance Overlay -->
+  <div id="site-maintenance-overlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(10,14,23,0.96);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px;">
+    <div style="max-width:480px;width:100%;background:#111827;border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:28px;text-align:center;color:#f8fafc;">
+      <div style="font-size:2.2rem;color:#fbbf24;margin-bottom:10px;"><i class="bi bi-tools"></i></div>
+      <h2 id="site-maintenance-title" style="margin:0 0 10px;font-size:1.3rem;">Scheduled Maintenance</h2>
+      <p id="site-maintenance-message" style="color:#94a3b8;font-size:.9rem;line-height:1.55;margin:0 0 18px;">Platform is currently undergoing scheduled maintenance. Please check back shortly.</p>
+      <a href="/admin.html" style="font-size:.8rem;color:#818cf8;text-decoration:none;">Admin Control Panel &rarr;</a>
+    </div>
+  </div>
+
   <!-- Top Navigation Bar -->
   <header>
     <div class="brand">
       <i class="bi bi-cpu-fill"></i>
-      <span>RoundOne AI</span>
-      <span class="brand-badge">SaaS</span>
+      <span id="site-brand-title">RoundOne AI</span>
+      <span class="brand-badge" id="site-brand-badge">SaaS</span>
     </div>
 
     <nav class="nav-tabs" id="main-nav-tabs">
@@ -1537,6 +1550,7 @@
       <button class="nav-btn" onclick="openQuestionBankModal()"><i class="bi bi-collection"></i> Question Bank</button>
       <button class="nav-btn" onclick="switchTab('keys')"><i class="bi bi-key"></i> API Key (BYOK)</button>
       <button class="nav-btn" onclick="switchTab('metrics')"><i class="bi bi-graph-up"></i> Usage & Pricing</button>
+      <span id="dynamic-header-links" style="display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;"></span>
     </nav>
 
     <div class="header-user">
@@ -3855,6 +3869,15 @@
     </div>
 
   </main>
+
+  <footer id="site-dynamic-footer" style="border-top:1px solid rgba(255,255,255,0.08);padding:16px 24px;margin-top:28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:.8rem;color:#94a3b8;">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <strong id="site-footer-brand" style="color:#e2e8f0;">RoundOne AI</strong>
+      <span id="site-footer-tagline">AI-Powered Technical &amp; Behavioral Interview Platform</span>
+      <a id="site-support-link" href="mailto:support@roundone.ai" style="color:#818cf8;text-decoration:none;display:none;"></a>
+    </div>
+    <div id="dynamic-footer-links" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;"></div>
+  </footer>
 
   <script src="/js/dashboard.js"></script>
 </body>

@@ -1,5 +1,6 @@
 import express from 'express';
 import crypto from 'crypto';
+import os from 'os';
 import { db } from '../db/database.js';
 import {
   hashPassword,
@@ -11,8 +12,21 @@ import {
 } from '../auth/auth.js';
 import { logActivity, getActivities } from '../services/activityService.js';
 import { generateAndSendAdminOtp, verifyAdminOtp } from '../services/adminOtpService.js';
-import { sendTestEmail, getSmtpConfig, sendPlatformEmail } from '../services/emailService.js';
-import { getPlan } from '../billing/pricing.js';
+import { sendTestEmail, getSmtpConfig, sendPlatformEmail, sendRecruiterVerificationEmail } from '../services/emailService.js';
+import {
+  DURATION_TIERS,
+  SUBSCRIPTION_PLANS,
+  getEffectiveDurationTiers,
+  getEffectiveSubscriptionPlans,
+  getPlan,
+} from '../billing/pricing.js';
+import {
+  getEffectivePaymentConfig,
+  getEffectiveAuthConfig,
+  getEffectiveSiteConfig,
+} from '../services/platformConfigService.js';
+import { getServerEvents, clearServerEvents, recordServerEvent } from '../services/serverMonitorService.js';
+import { resetRateLimits, getRateLimitStats } from '../middleware/rateLimit.js';
 import { checkPostgresConnection, getPostgresConfig } from '../db/postgres.js';
 import { runMigration as runPostgresMigration } from '../db/migrateToPostgres.js';
 
@@ -1385,6 +1399,9 @@ adminRouter.get('/users', requireAdmin, (req, res) => {
         o.company_size as org_size, 
         o.country as org_country, 
         o.plan as org_plan, 
+        o.subscription_plan_id as org_subscription_plan_id,
+        o.subscription_expires_at as org_subscription_expires_at,
+        o.stripe_subscription_status as org_stripe_status,
         o.included_interviews as org_credits,
         (SELECT COUNT(*) FROM jobs j WHERE j.org_id = o.id) as total_jobs,
         (SELECT COUNT(*) FROM interviews i JOIN jobs j ON i.job_id = j.id WHERE j.org_id = o.id) as total_interviews,
@@ -2036,15 +2053,19 @@ adminRouter.get('/settings', requireAdmin, async (req, res) => {
     const settingsMap = {};
     settings.forEach(s => { settingsMap[s.key] = s.value; });
 
-    const emailConfig = getEmailConfig();
+    const emailConfig = getSmtpConfig();
+    const paymentConfig = getEffectivePaymentConfig();
+    const authConfig = getEffectiveAuthConfig();
+    const siteConfig = getEffectiveSiteConfig();
     const responseSettings = { ...settingsMap };
-    
-    // Mask password and API keys for security
-    if (responseSettings.smtp_pass) {
-      responseSettings.smtp_pass = '••••••••';
-    }
-    if (responseSettings.resend_api_key && responseSettings.resend_api_key.length > 6) {
-      responseSettings.resend_api_key = responseSettings.resend_api_key.substring(0, 5) + '••••••••';
+
+    // Mask passwords and API secrets for security
+    const maskSecretValue = (val) => (val && String(val).length > 6 ? String(val).slice(0, 5) + '••••••••' : (val ? '••••••••' : ''));
+    if (responseSettings.smtp_pass) responseSettings.smtp_pass = '••••••••';
+    for (const secretKey of ['resend_api_key', 'stripe_secret_key', 'stripe_webhook_secret', 'razorpay_key_secret', 'razorpay_webhook_secret']) {
+      if (responseSettings[secretKey]) {
+        responseSettings[secretKey] = maskSecretValue(responseSettings[secretKey]);
+      }
     }
 
     const pgHealth = await checkPostgresConnection();
@@ -2053,6 +2074,27 @@ adminRouter.get('/settings', requireAdmin, async (req, res) => {
     res.json({ 
       success: true, 
       settings: responseSettings,
+      paymentStatus: {
+        upiId: paymentConfig.upiId,
+        upiName: paymentConfig.upiName,
+        usdToInrRate: paymentConfig.usdToInrRate,
+        bankDetails: paymentConfig.bankDetails,
+        bankTransferConfigured: paymentConfig.bankTransferConfigured,
+        stripeConfigured: paymentConfig.stripeConfigured,
+        stripePublishableKey: paymentConfig.stripePublishableKey,
+        hasStripeSecret: Boolean(paymentConfig.stripeSecretKey),
+        hasStripeWebhookSecret: Boolean(paymentConfig.stripeWebhookSecret),
+        razorpayConfigured: paymentConfig.razorpayConfigured,
+        razorpayKeyId: paymentConfig.razorpayKeyId,
+        hasRazorpaySecret: Boolean(paymentConfig.razorpayKeySecret),
+        hasRazorpayWebhookSecret: Boolean(paymentConfig.razorpayWebhookSecret),
+        enableCard: paymentConfig.enableCard,
+        enableUpiDirect: paymentConfig.enableUpiDirect,
+        enableBankTransfer: paymentConfig.enableBankTransfer,
+        enableRazorpay: paymentConfig.enableRazorpay,
+      },
+      authConfig,
+      siteConfig,
       emailStatus: {
         isConfigured: emailConfig.isConfigured,
         provider: emailConfig.provider,
@@ -2088,19 +2130,22 @@ function upsertPlatformSettings(settings) {
     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
   `);
 
+  const maskedSecretKeys = new Set([
+    'smtp_pass', 'resend_api_key', 'stripe_secret_key', 'stripe_webhook_secret', 'razorpay_key_secret', 'razorpay_webhook_secret'
+  ]);
   const preserveIfEmptyKeys = new Set([
     'email_provider', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_from_name', 'smtp_from_email'
   ]);
   const updatedKeys = [];
   db.transaction(() => {
     for (const [key, val] of Object.entries(settings)) {
-      if ((key === 'smtp_pass' || key === 'resend_api_key') && (String(val).includes('••••') || val === '')) {
+      if (maskedSecretKeys.has(key) && (String(val).includes('••••') || val === '')) {
         continue;
       }
       if (preserveIfEmptyKeys.has(key) && String(val ?? '').trim() === '') {
         continue;
       }
-      upsert.run(key, String(val));
+      upsert.run(key, String(val ?? ''));
       updatedKeys.push(key);
     }
   })();
@@ -2299,6 +2344,475 @@ adminRouter.delete('/coupons/:code', requireAdmin, (req, res) => {
     if (!del.changes) return res.status(404).json({ error: 'Coupon not found' });
     res.json({ success: true });
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Dynamic Subscription Plans & Pricing Control ────────────────────────────
+adminRouter.get('/plans', requireAdmin, (req, res) => {
+  try {
+    res.json({
+      success: true,
+      plans: getEffectiveSubscriptionPlans({ includeInactive: true }),
+      durationTiers: getEffectiveDurationTiers(),
+      defaults: { plans: SUBSCRIPTION_PLANS, durationTiers: DURATION_TIERS },
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+adminRouter.put('/plans', requireAdmin, (req, res) => {
+  try {
+    const { plans, durationTiers } = req.body || {};
+    const updates = {};
+    if (Array.isArray(plans)) {
+      if (plans.length === 0) return res.status(400).json({ error: 'At least one subscription plan is required.' });
+      const normalizedPlans = plans.map((p) => {
+        const id = String(p.id || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+        const label = String(p.label || '').trim();
+        if (!id || !label) throw new Error('Each plan must have a valid id and label.');
+        return {
+          id,
+          label,
+          months: Math.max(1, parseInt(p.months, 10) || 1),
+          priceUsd: Math.max(0, Number(p.priceUsd) || 0),
+          includedInterviews: Math.max(1, parseInt(p.includedInterviews, 10) || 10),
+          savingsLabel: p.savingsLabel ? String(p.savingsLabel).trim() : null,
+          popular: Boolean(p.popular),
+          active: p.active !== false,
+          subtitle: p.subtitle ? String(p.subtitle).trim() : '',
+        };
+      });
+      updates.subscription_plans_json = JSON.stringify(normalizedPlans);
+    }
+
+    if (Array.isArray(durationTiers) && durationTiers.length > 0) {
+      const normalizedTiers = durationTiers.map((t) => ({
+        minutes: Math.max(5, parseInt(t.minutes, 10) || 10),
+        priceUsd: Math.max(0, Number(t.priceUsd) || 0),
+        label: String(t.label || `${t.minutes} min`).trim(),
+        subtitle: t.subtitle ? String(t.subtitle).trim() : '',
+      }));
+      updates.duration_tiers_json = JSON.stringify(normalizedTiers);
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'Provide plans or durationTiers array.' });
+    }
+
+    upsertPlatformSettings(updates);
+    logActivity({
+      action: 'PRICING_PLANS_UPDATED',
+      actorType: 'admin',
+      actorId: req.admin.id,
+      actorEmail: req.admin.email,
+      actorName: req.admin.full_name,
+      details: { updatedKeys: Object.keys(updates) },
+    });
+
+    res.json({
+      success: true,
+      plans: getEffectiveSubscriptionPlans({ includeInactive: true }),
+      durationTiers: getEffectiveDurationTiers(),
+      message: 'Subscription plans updated and pushed live to the user website.',
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+adminRouter.post('/plans/reset', requireAdmin, (req, res) => {
+  try {
+    db.prepare("DELETE FROM platform_settings WHERE key IN ('subscription_plans_json', 'duration_tiers_json')").run();
+    res.json({
+      success: true,
+      plans: getEffectiveSubscriptionPlans({ includeInactive: true }),
+      durationTiers: getEffectiveDurationTiers(),
+      message: 'Reset subscription plans and pricing tiers to built-in defaults.',
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Direct User/Org Subscription Assignment & Email Verification ────────────
+adminRouter.post('/users/:id/subscription', requireAdmin, (req, res) => {
+  try {
+    const { id } = req.params;
+    const { action = 'assign', planId, months, creditsDelta, setCredits } = req.body || {};
+
+    const user = db.prepare('SELECT id, email, org_id FROM users WHERE id = ?').get(id);
+    if (!user || !user.org_id) return res.status(404).json({ error: 'User or organization not found' });
+
+    const org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(user.org_id);
+    if (!org) return res.status(404).json({ error: 'Organization not found' });
+
+    if (action === 'cancel') {
+      db.prepare(`
+        UPDATE organizations
+        SET plan = 'free_trial',
+            subscription_plan_id = NULL,
+            subscription_expires_at = NULL,
+            stripe_subscription_status = 'canceled'
+        WHERE id = ?
+      `).run(org.id);
+
+      logActivity({
+        action: 'ADMIN_SUBSCRIPTION_CANCELED',
+        actorType: 'admin',
+        actorId: req.admin.id,
+        actorEmail: req.admin.email,
+        actorName: req.admin.full_name,
+        orgId: org.id,
+        entityType: 'org',
+        entityId: org.id,
+        details: { targetEmail: user.email },
+      });
+
+      return res.json({ success: true, message: `Subscription canceled for ${user.email}.` });
+    }
+
+    const plan = planId ? getPlan(planId) : null;
+    const addMonths = Math.max(1, parseInt(months || plan?.months || 1, 10) || 1);
+    const expiresAt = new Date();
+    expiresAt.setMonth(expiresAt.getMonth() + addMonths);
+
+    let nextCredits = org.included_interviews || 0;
+    if (setCredits !== undefined && setCredits !== '') {
+      nextCredits = Math.max(0, parseInt(setCredits, 10) || 0);
+    } else if (creditsDelta !== undefined && creditsDelta !== '') {
+      nextCredits = Math.max(0, nextCredits + (parseInt(creditsDelta, 10) || 0));
+    } else if (plan) {
+      nextCredits = nextCredits + plan.includedInterviews;
+    }
+
+    const nextPlanId = plan ? plan.id : (org.subscription_plan_id || 'custom');
+    const nextPlanLabel = plan ? `subscription_${plan.id}` : 'subscription_custom';
+
+    db.prepare(`
+      UPDATE organizations
+      SET plan = ?,
+          subscription_plan_id = ?,
+          subscription_expires_at = ?,
+          included_interviews = ?,
+          stripe_subscription_status = 'active'
+      WHERE id = ?
+    `).run(nextPlanLabel, nextPlanId, expiresAt.toISOString(), nextCredits, org.id);
+
+    logActivity({
+      action: 'ADMIN_SUBSCRIPTION_ASSIGNED',
+      actorType: 'admin',
+      actorId: req.admin.id,
+      actorEmail: req.admin.email,
+      actorName: req.admin.full_name,
+      orgId: org.id,
+      entityType: 'org',
+      entityId: org.id,
+      details: { targetEmail: user.email, planId: nextPlanId, months: addMonths, nextCredits },
+    });
+
+    res.json({
+      success: true,
+      message: `Activated ${plan ? plan.label : 'Custom'} subscription (${nextCredits} credits) for ${user.email}.`,
+      org: { id: org.id, plan: nextPlanLabel, subscription_plan_id: nextPlanId, subscription_expires_at: expiresAt.toISOString(), included_interviews: nextCredits },
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+adminRouter.post('/users/:id/verify-email', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { action = 'force_verify' } = req.body || {};
+    const user = db.prepare('SELECT id, email, full_name, org_id FROM users WHERE id = ?').get(id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    if (action === 'send_otp') {
+      const code = String(crypto.randomInt(100000, 1000000));
+      db.prepare('UPDATE users SET verification_code = ? WHERE id = ?').run(code, user.id);
+      const mailRes = await sendRecruiterVerificationEmail(user.email, code, user.full_name || 'User', 'login');
+      logActivity({
+        action: 'ADMIN_SENT_USER_OTP',
+        actorType: 'admin',
+        actorId: req.admin.id,
+        actorEmail: req.admin.email,
+        actorName: req.admin.full_name,
+        orgId: user.org_id,
+        details: { targetEmail: user.email, emailSent: !!mailRes.sent },
+      });
+      return res.json({
+        success: true,
+        otpCode: code,
+        emailSent: !!mailRes.sent,
+        message: mailRes.sent ? `Fresh OTP emailed to ${user.email}.` : `OTP ${code} generated (email notice: ${mailRes.error || 'SMTP not configured'}).`,
+      });
+    }
+
+    db.prepare("UPDATE users SET is_verified = 1, verification_code = NULL, approval_status = 'approved' WHERE id = ?").run(user.id);
+    logActivity({
+      action: 'ADMIN_VERIFIED_USER_EMAIL',
+      actorType: 'admin',
+      actorId: req.admin.id,
+      actorEmail: req.admin.email,
+      actorName: req.admin.full_name,
+      orgId: user.org_id,
+      details: { targetEmail: user.email },
+    });
+    res.json({ success: true, message: `Marked ${user.email} as email-verified & approved.` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Custom Website Pages & Navigation Links CRUD ────────────────────────────
+function normalizeSlug(raw) {
+  return String(raw || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+}
+
+adminRouter.get('/pages', requireAdmin, (req, res) => {
+  try {
+    const pages = db.prepare('SELECT * FROM site_pages ORDER BY sort_order ASC, created_at DESC').all();
+    res.json({ success: true, pages });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+adminRouter.post('/pages', requireAdmin, (req, res) => {
+  try {
+    const title = String(req.body?.title || '').trim();
+    const slug = normalizeSlug(req.body?.slug || title);
+    const content = String(req.body?.content || '');
+    const linkUrl = String(req.body?.link_url ?? req.body?.linkUrl ?? '').trim();
+    const placement = ['header', 'footer', 'both', 'hidden'].includes(req.body?.placement) ? req.body.placement : 'header';
+    const isPublished = req.body?.is_published === false || req.body?.is_published === 0 || req.body?.isPublished === false ? 0 : 1;
+    const sortOrder = parseInt(req.body?.sort_order ?? req.body?.sortOrder ?? 0, 10) || 0;
+
+    if (!title || !slug) {
+      return res.status(400).json({ error: 'Page title and valid slug are required.' });
+    }
+    if (linkUrl && !/^(\/|https?:\/\/|mailto:)/i.test(linkUrl)) {
+      return res.status(400).json({ error: 'External/custom link must start with /, http://, https://, or mailto:.' });
+    }
+
+    const id = 'pg_' + crypto.randomUUID().slice(0, 12);
+    db.prepare(`
+      INSERT INTO site_pages (id, slug, title, content, link_url, placement, is_published, sort_order, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      ON CONFLICT(slug) DO UPDATE SET
+        title = excluded.title,
+        content = excluded.content,
+        link_url = excluded.link_url,
+        placement = excluded.placement,
+        is_published = excluded.is_published,
+        sort_order = excluded.sort_order,
+        updated_at = CURRENT_TIMESTAMP
+    `).run(id, slug, title, content, linkUrl, placement, isPublished, sortOrder);
+
+    const saved = db.prepare('SELECT * FROM site_pages WHERE slug = ?').get(slug);
+    logActivity({
+      action: 'SITE_PAGE_SAVED',
+      actorType: 'admin',
+      actorId: req.admin.id,
+      actorEmail: req.admin.email,
+      actorName: req.admin.full_name,
+      details: { slug, title, placement, isPublished },
+    });
+    res.json({ success: true, page: saved });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+adminRouter.put('/pages/:id', requireAdmin, (req, res) => {
+  try {
+    const existing = db.prepare('SELECT * FROM site_pages WHERE id = ?').get(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Page not found' });
+
+    const title = req.body?.title !== undefined ? String(req.body.title).trim() : existing.title;
+    const slug = req.body?.slug !== undefined ? normalizeSlug(req.body.slug) : existing.slug;
+    const content = req.body?.content !== undefined ? String(req.body.content) : existing.content;
+    const linkUrl = (req.body?.link_url ?? req.body?.linkUrl) !== undefined
+      ? String(req.body.link_url ?? req.body.linkUrl).trim()
+      : existing.link_url;
+    const placement = ['header', 'footer', 'both', 'hidden'].includes(req.body?.placement) ? req.body.placement : existing.placement;
+    const isPublished = req.body?.is_published !== undefined
+      ? (req.body.is_published ? 1 : 0)
+      : (req.body?.isPublished !== undefined ? (req.body.isPublished ? 1 : 0) : existing.is_published);
+    const sortOrder = (req.body?.sort_order ?? req.body?.sortOrder) !== undefined
+      ? (parseInt(req.body.sort_order ?? req.body.sortOrder, 10) || 0)
+      : existing.sort_order;
+
+    if (!title || !slug) return res.status(400).json({ error: 'Title and slug cannot be empty.' });
+    if (linkUrl && !/^(\/|https?:\/\/|mailto:)/i.test(linkUrl)) {
+      return res.status(400).json({ error: 'Link URL must start with /, http://, https://, or mailto:.' });
+    }
+
+    db.prepare(`
+      UPDATE site_pages
+      SET slug = ?, title = ?, content = ?, link_url = ?, placement = ?, is_published = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(slug, title, content, linkUrl, placement, isPublished, sortOrder, existing.id);
+
+    const updated = db.prepare('SELECT * FROM site_pages WHERE id = ?').get(existing.id);
+    res.json({ success: true, page: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+adminRouter.delete('/pages/:id', requireAdmin, (req, res) => {
+  try {
+    const info = db.prepare('DELETE FROM site_pages WHERE id = ?').run(req.params.id);
+    if (!info.changes) return res.status(404).json({ error: 'Page not found' });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Email OTP / Auth Inspector & Server Operations ──────────────────────────
+adminRouter.get('/auth/otps', requireAdmin, (req, res) => {
+  try {
+    const userOtps = db.prepare(`
+      SELECT id, email, full_name, is_verified, approval_status, verification_code, last_login_at
+      FROM users
+      WHERE verification_code IS NOT NULL AND role != 'superadmin'
+      ORDER BY last_login_at DESC
+      LIMIT 40
+    `).all();
+
+    const adminOtps = db.prepare(`
+      SELECT id, email, purpose, code, used, expires_at, created_at
+      FROM admin_otps
+      ORDER BY created_at DESC
+      LIMIT 30
+    `).all();
+
+    res.json({
+      success: true,
+      authConfig: getEffectiveAuthConfig(),
+      rateLimits: getRateLimitStats(),
+      userOtps,
+      adminOtps,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+adminRouter.get('/server/diagnostics', requireAdmin, async (req, res) => {
+  try {
+    const mem = process.memoryUsage();
+    const pgHealth = await checkPostgresConnection();
+    const emailCfg = getSmtpConfig();
+    const payCfg = getEffectivePaymentConfig();
+
+    const tableNames = ['organizations', 'users', 'jobs', 'candidates', 'interviews', 'billing_orders', 'billing_coupons', 'site_pages', 'platform_activities'];
+    const tableCounts = {};
+    for (const t of tableNames) {
+      try {
+        tableCounts[t] = db.prepare(`SELECT COUNT(*) as c FROM ${t}`).get().c;
+      } catch (_) {
+        tableCounts[t] = 0;
+      }
+    }
+
+    res.json({
+      success: true,
+      runtime: {
+        nodeVersion: process.version,
+        pid: process.pid,
+        nodeEnv: process.env.NODE_ENV || 'development',
+        uptimeSeconds: Math.floor(process.uptime()),
+        memoryRssMb: Math.round(mem.rss / (1024 * 1024)),
+        memoryHeapMb: Math.round(mem.heapUsed / (1024 * 1024)),
+        loadAvg: os.loadavg().map(n => +n.toFixed(2)),
+        platform: `${os.platform()} ${os.arch()}`,
+      },
+      database: {
+        sqliteOk: true,
+        postgresConfigured: Boolean(getPostgresConfig()?.connectionString),
+        postgresConnected: pgHealth.connected,
+        postgresLatencyMs: pgHealth.latencyMs || null,
+        postgresError: pgHealth.error || null,
+        tableCounts,
+      },
+      integrations: {
+        emailConfigured: emailCfg.isConfigured,
+        emailProvider: emailCfg.provider,
+        stripeConfigured: payCfg.stripeConfigured,
+        razorpayConfigured: payCfg.razorpayConfigured,
+        upiDirectConfigured: payCfg.upiDirectConfigured,
+        bankTransferConfigured: payCfg.bankAvailable,
+      },
+      authConfig: getEffectiveAuthConfig(),
+      siteConfig: getEffectiveSiteConfig(),
+      rateLimits: getRateLimitStats(),
+      events: getServerEvents(80),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+adminRouter.post('/server/clear-rate-limits', requireAdmin, (req, res) => {
+  try {
+    resetRateLimits();
+    failedAttempts.clear();
+    logActivity({
+      action: 'ADMIN_CLEARED_RATE_LIMITS',
+      actorType: 'admin',
+      actorId: req.admin.id,
+      actorEmail: req.admin.email,
+      actorName: req.admin.full_name,
+    });
+    res.json({ success: true, message: 'All IP and login rate-limit lockouts have been cleared.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+adminRouter.post('/server/clear-logs', requireAdmin, (req, res) => {
+  clearServerEvents();
+  res.json({ success: true, message: 'Server diagnostic log buffer cleared.' });
+});
+
+adminRouter.post('/server/test-payment', requireAdmin, (req, res) => {
+  try {
+    const pay = getEffectivePaymentConfig();
+    const checks = {
+      directUpi: pay.upiDirectConfigured
+        ? `Ready (${pay.upiId} · ₹${pay.usdToInrRate}/USD)`
+        : (pay.enableUpiDirect ? 'Missing UPI ID' : 'Disabled by admin'),
+      bankTransfer: pay.bankAvailable
+        ? `Ready (${pay.bankDetails.bankName || 'Bank'} · ${pay.bankDetails.ifscOrSwift})`
+        : (pay.enableBankTransfer ? 'Missing Account/IFSC' : 'Disabled by admin'),
+      stripeCard: pay.stripeConfigured
+        ? `Ready (${pay.stripeWebhookSecret ? 'with webhook secret' : 'missing webhook secret'})`
+        : (pay.enableCard ? 'Missing Stripe Secret Key' : 'Disabled by admin'),
+      razorpay: pay.razorpayConfigured
+        ? 'Ready'
+        : (pay.enableRazorpay ? 'Not configured' : 'Disabled by admin'),
+    };
+    const anyReady = pay.upiDirectConfigured || pay.bankAvailable || pay.stripeConfigured || pay.razorpayConfigured;
+    res.json({
+      success: true,
+      anyReady,
+      checks,
+      message: anyReady
+        ? 'At least one live payment method is configured and active for users.'
+        : 'No live payment method is configured yet — set UPI ID, Bank details, Stripe, or Razorpay.',
+    });
+  } catch (err) {
+    recordServerEvent({ level: 'error', source: 'admin.test_payment', message: err.message });
     res.status(500).json({ error: err.message });
   }
 });

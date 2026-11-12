@@ -648,9 +648,19 @@ const TA_PAGE_META = {
     subtitle: 'Real-time immutable log of admin status changes, credit additions, bulk actions & security operations',
     crumb: 'Audit Trail'
   },
+  website: {
+    title: 'Website Control, Branding & Custom Pages',
+    subtitle: 'Manage user-facing brand identity, announcement banner, maintenance mode & custom links/pages',
+    crumb: 'Website & Pages'
+  },
+  server: {
+    title: 'Server Health, OTPs & Operations',
+    subtitle: 'Monitor runtime telemetry, inspect verification codes, unlock rate limits & debug errors',
+    crumb: 'Server & Ops'
+  },
   settings: {
-    title: 'Platform Governance & Integrations',
-    subtitle: 'Configure signup rules, email OTP delivery & PostgreSQL database engine',
+    title: 'Platform Governance, Payments & Integrations',
+    subtitle: 'Configure auth rules, UPI/Bank/Stripe/Razorpay payouts, email OTP & PostgreSQL engine',
     crumb: 'Settings'
   }
 };
@@ -700,7 +710,7 @@ window.closeMobileSidebar = function() {
 
 window.switchDashboardTab = function(tabName) {
   currentTab = tabName;
-  const tabs = ['overview', 'activities', 'users', 'interviews', 'orders', 'feedbacks', 'invites', 'audit', 'settings'];
+  const tabs = ['overview', 'activities', 'users', 'interviews', 'orders', 'feedbacks', 'invites', 'audit', 'website', 'server', 'settings'];
 
   tabs.forEach(t => {
     const content = document.getElementById(`tab-content-${t}`);
@@ -714,10 +724,12 @@ window.switchDashboardTab = function(tabName) {
   if (tabName === 'activities') refreshActiveActivitiesView();
   if (tabName === 'users') loadRecruitersDirectory();
   if (tabName === 'interviews') loadInterviewsList();
-  if (tabName === 'orders') loadOrdersDirectory();
+  if (tabName === 'orders') { loadOrdersDirectory(); loadAdminSubscriptionPlans(); }
   if (tabName === 'feedbacks') loadFeedbacksInbox();
   if (tabName === 'invites') loadAdminInvites();
   if (tabName === 'audit') loadAdminAuditLogs();
+  if (tabName === 'website') { loadPlatformSettings(); loadAdminPages(); }
+  if (tabName === 'server') loadServerDiagnostics();
   if (tabName === 'settings') loadPlatformSettings();
 };
 
@@ -3355,7 +3367,7 @@ window.deleteFeedbackItem = async function(feedbackId) {
 };
 
 window.switchSettingsSubtab = function(subtab) {
-  const panels = ['governance', 'email', 'database'];
+  const panels = ['governance', 'payments', 'email', 'database'];
   panels.forEach(p => {
     const el = document.getElementById(`settings-panel-${p}`);
     if (el) el.style.display = p === subtab ? 'block' : 'none';
@@ -3366,7 +3378,7 @@ window.switchSettingsSubtab = function(subtab) {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TAB 6: GOVERNANCE SETTINGS & SMTP MAIL SETUP
+// TAB 6: GOVERNANCE SETTINGS, PAYMENTS & WEBSITE CONTROLS
 // ─────────────────────────────────────────────────────────────────────────────
 
 window.loadPlatformSettings = async function() {
@@ -3379,16 +3391,51 @@ window.loadPlatformSettings = async function() {
 
     const s = data.settings || {};
     const emailStatus = data.emailStatus || data.smtpStatus || {};
+    const payStatus = data.paymentStatus || {};
+    const authCfg = data.authConfig || {};
+    const siteCfg = data.siteConfig || {};
 
-    const chk = document.getElementById('setting-require-approval');
-    const credits = document.getElementById('setting-trial-credits');
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
+    const setChk = (id, checked) => { const el = document.getElementById(id); if (el) el.checked = Boolean(checked); };
 
-    if (chk) chk.checked = s.require_admin_approval === '1';
-    if (credits && s.default_trial_credits) credits.value = s.default_trial_credits;
+    // Auth & Governance
+    setChk('setting-allow-public-signup', authCfg.allowPublicSignup !== false);
+    setChk('setting-require-approval', s.require_admin_approval === '1');
+    setChk('setting-require-email-otp', authCfg.requireEmailOtp !== false);
+    setChk('setting-allow-dev-otp', authCfg.allowDevOtpFallback);
+    if (s.default_trial_credits) setVal('setting-trial-credits', s.default_trial_credits);
+
+    // Payments, UPI & Bank
+    setChk('pay-enable-upi', payStatus.enableUpiDirect !== false);
+    setChk('pay-enable-bank', payStatus.enableBankTransfer !== false);
+    setChk('pay-enable-card', payStatus.enableCard !== false);
+    setChk('pay-enable-razorpay', payStatus.enableRazorpay !== false);
+    setVal('pay-upi-id', s.merchant_upi_id ?? payStatus.upiId ?? '');
+    setVal('pay-upi-name', s.merchant_upi_name ?? payStatus.upiName ?? 'RoundOne AI');
+    setVal('pay-usd-inr', s.usd_to_inr_rate ?? String(payStatus.usdToInrRate || 85));
+    setVal('pay-bank-holder', s.merchant_bank_holder ?? payStatus.bankDetails?.holder ?? '');
+    setVal('pay-bank-name', s.merchant_bank_name ?? payStatus.bankDetails?.bankName ?? '');
+    setVal('pay-bank-account', s.merchant_bank_account ?? payStatus.bankDetails?.accountNumber ?? '');
+    setVal('pay-bank-ifsc', s.merchant_bank_ifsc ?? payStatus.bankDetails?.ifscOrSwift ?? '');
+    setVal('pay-stripe-pk', s.stripe_publishable_key ?? payStatus.stripePublishableKey ?? '');
+    setVal('pay-stripe-sk', s.stripe_secret_key || (payStatus.hasStripeSecret ? '••••••••' : ''));
+    setVal('pay-stripe-whsec', s.stripe_webhook_secret || (payStatus.hasStripeWebhookSecret ? '••••••••' : ''));
+    setVal('pay-rzp-id', s.razorpay_key_id ?? payStatus.razorpayKeyId ?? '');
+    setVal('pay-rzp-secret', s.razorpay_key_secret || (payStatus.hasRazorpaySecret ? '••••••••' : ''));
+    setVal('pay-rzp-whsec', s.razorpay_webhook_secret || (payStatus.hasRazorpayWebhookSecret ? '••••••••' : ''));
+
+    // Website & Maintenance Controls
+    setVal('site-brand-name', s.site_brand_name ?? siteCfg.brandName ?? 'RoundOne AI');
+    setVal('site-tagline', s.site_tagline ?? siteCfg.tagline ?? 'Technical Screening & Hiring Platform');
+    setVal('site-support-email', s.site_support_email ?? siteCfg.supportEmail ?? '');
+    setChk('site-announcement-enabled', siteCfg.announcement?.enabled);
+    setVal('site-announcement-text', s.site_announcement_text ?? siteCfg.announcement?.text ?? '');
+    setVal('site-announcement-tone', s.site_announcement_tone ?? siteCfg.announcement?.tone ?? 'info');
+    setChk('site-maintenance-enabled', siteCfg.maintenance?.enabled);
+    setVal('site-maintenance-message', s.site_maintenance_message ?? siteCfg.maintenance?.message ?? '');
 
     // Email Settings Inputs (DB -> Server Env emailStatus -> Saved Non-Secret Local Profile -> Defaults)
     const localSmtp = getLocalSmtpProfile();
-    const setVal = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
     setVal('setting-email-provider', s.email_provider || (emailStatus.preferredProvider && emailStatus.preferredProvider !== 'auto' ? emailStatus.preferredProvider : '') || localSmtp.email_provider || (s.resend_api_key ? 'auto' : 'smtp'));
     setVal('setting-resend-api-key', s.resend_api_key || '');
     setVal('setting-smtp-host', s.smtp_host || emailStatus.host || localSmtp.smtp_host || 'smtp.gmail.com');
@@ -3449,8 +3496,11 @@ window.loadPlatformSettings = async function() {
 };
 
 window.savePlatformSettings = async function() {
-  const requireApproval = document.getElementById('setting-require-approval').checked ? '1' : '0';
-  const defaultCredits = document.getElementById('setting-trial-credits').value;
+  const allowPublicSignup = document.getElementById('setting-allow-public-signup')?.checked ? '1' : '0';
+  const requireApproval = document.getElementById('setting-require-approval')?.checked ? '1' : '0';
+  const requireEmailOtp = document.getElementById('setting-require-email-otp')?.checked ? '1' : '0';
+  const allowDevOtp = document.getElementById('setting-allow-dev-otp')?.checked ? '1' : '0';
+  const defaultCredits = document.getElementById('setting-trial-credits')?.value || '10';
 
   try {
     const res = await fetch(`${API_BASE}/settings`, {
@@ -3461,7 +3511,10 @@ window.savePlatformSettings = async function() {
       },
       body: JSON.stringify({
         settings: {
+          allow_public_signup: allowPublicSignup,
           require_admin_approval: requireApproval,
+          require_email_otp: requireEmailOtp,
+          allow_dev_otp_fallback: allowDevOtp,
           default_trial_credits: defaultCredits
         }
       })
@@ -3469,7 +3522,79 @@ window.savePlatformSettings = async function() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to save settings');
 
-    showToast('Platform governance settings updated!', 'success');
+    showToast('Platform auth & governance settings updated!', 'success');
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+};
+
+window.savePaymentControlSettings = async function() {
+  const getV = (id) => (document.getElementById(id)?.value ?? '').trim();
+  const getC = (id) => (document.getElementById(id)?.checked ? '1' : '0');
+  try {
+    const res = await fetch(`${API_BASE}/settings`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${adminToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        settings: {
+          payment_enable_upi_direct: getC('pay-enable-upi'),
+          payment_enable_bank_transfer: getC('pay-enable-bank'),
+          payment_enable_card: getC('pay-enable-card'),
+          payment_enable_razorpay: getC('pay-enable-razorpay'),
+          merchant_upi_id: getV('pay-upi-id'),
+          merchant_upi_name: getV('pay-upi-name') || 'RoundOne AI',
+          usd_to_inr_rate: getV('pay-usd-inr') || '85',
+          merchant_bank_holder: getV('pay-bank-holder'),
+          merchant_bank_name: getV('pay-bank-name'),
+          merchant_bank_account: getV('pay-bank-account'),
+          merchant_bank_ifsc: getV('pay-bank-ifsc'),
+          stripe_publishable_key: getV('pay-stripe-pk'),
+          stripe_secret_key: getV('pay-stripe-sk'),
+          stripe_webhook_secret: getV('pay-stripe-whsec'),
+          razorpay_key_id: getV('pay-rzp-id'),
+          razorpay_key_secret: getV('pay-rzp-secret'),
+          razorpay_webhook_secret: getV('pay-rzp-whsec'),
+        }
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to save payment settings');
+    showToast('Payment, UPI & Bank settings pushed live to user website!', 'success');
+    loadPlatformSettings();
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+};
+
+window.saveWebsiteControlSettings = async function() {
+  const getV = (id) => (document.getElementById(id)?.value ?? '').trim();
+  const getC = (id) => (document.getElementById(id)?.checked ? '1' : '0');
+  try {
+    const res = await fetch(`${API_BASE}/settings`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${adminToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        settings: {
+          site_brand_name: getV('site-brand-name') || 'RoundOne AI',
+          site_tagline: getV('site-tagline') || 'Technical Screening & Hiring Platform',
+          site_support_email: getV('site-support-email'),
+          site_announcement_enabled: getC('site-announcement-enabled'),
+          site_announcement_text: getV('site-announcement-text'),
+          site_announcement_tone: getV('site-announcement-tone') || 'info',
+          maintenance_mode_enabled: getC('site-maintenance-enabled'),
+          maintenance_message: getV('site-maintenance-message'),
+        }
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to save website settings');
+    showToast('Website branding, banner & maintenance settings updated!', 'success');
   } catch (err) {
     showToast(err.message, 'danger');
   }
@@ -3872,4 +3997,422 @@ window.exportAuditLogsCsv = function() {
   link.click();
   document.body.removeChild(link);
   showToast('Audit log CSV exported successfully!', 'success');
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN CONTROL: SUBSCRIPTION PLANS, USER SUBS, CUSTOM PAGES & SERVER OPS
+// ─────────────────────────────────────────────────────────────────────────────
+
+let adminPlansDraft = [];
+let cachedAdminPages = [];
+
+window.loadAdminSubscriptionPlans = async function() {
+  const tbody = document.getElementById('admin-plans-tbody');
+  if (!tbody) return;
+  try {
+    const res = await fetch(`${API_BASE}/plans`, {
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to load plans');
+    adminPlansDraft = (data.plans || []).map(p => ({ ...p }));
+    renderAdminPlansTable();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="9" style="color:var(--danger); text-align:center; padding:1rem;">${escapeHtml(err.message)}</td></tr>`;
+  }
+};
+
+function renderAdminPlansTable() {
+  const tbody = document.getElementById('admin-plans-tbody');
+  if (!tbody) return;
+  if (!adminPlansDraft.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:1rem; color:var(--text-muted);">No plans configured.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = adminPlansDraft.map((p, idx) => `
+    <tr>
+      <td><input class="form-input" style="width:110px; font-size:0.75rem;" value="${escapeHtml(p.id)}" onchange="adminPlansDraft[${idx}].id=this.value.trim()"></td>
+      <td><input class="form-input" style="width:120px; font-size:0.75rem;" value="${escapeHtml(p.label)}" onchange="adminPlansDraft[${idx}].label=this.value.trim()"></td>
+      <td><input type="number" min="1" class="form-input" style="width:70px; font-size:0.75rem;" value="${p.months}" onchange="adminPlansDraft[${idx}].months=Number(this.value)"></td>
+      <td><input type="number" min="0" step="0.5" class="form-input" style="width:85px; font-size:0.75rem;" value="${p.priceUsd}" onchange="adminPlansDraft[${idx}].priceUsd=Number(this.value)"></td>
+      <td><input type="number" min="1" class="form-input" style="width:85px; font-size:0.75rem;" value="${p.includedInterviews}" onchange="adminPlansDraft[${idx}].includedInterviews=Number(this.value)"></td>
+      <td><input class="form-input" style="width:130px; font-size:0.75rem;" value="${escapeHtml(p.savingsLabel || '')}" placeholder="e.g. Best Value" onchange="adminPlansDraft[${idx}].savingsLabel=this.value.trim()||null"></td>
+      <td style="text-align:center;"><input type="checkbox" ${p.popular ? 'checked' : ''} onchange="adminPlansDraft[${idx}].popular=this.checked"></td>
+      <td style="text-align:center;"><input type="checkbox" ${p.active !== false ? 'checked' : ''} onchange="adminPlansDraft[${idx}].active=this.checked"></td>
+      <td><button type="button" class="btn btn-outline btn-sm" style="color:var(--danger);" onclick="removeAdminPlanRow(${idx})"><i class="bi bi-trash"></i></button></td>
+    </tr>
+  `).join('');
+}
+
+window.addAdminPlanRow = function() {
+  const n = adminPlansDraft.length + 1;
+  adminPlansDraft.push({
+    id: `custom_${n}`,
+    label: `Custom Plan ${n}`,
+    months: 1,
+    priceUsd: 29,
+    includedInterviews: 75,
+    savingsLabel: 'New',
+    popular: false,
+    active: true,
+    subtitle: 'Custom tier',
+  });
+  renderAdminPlansTable();
+};
+
+window.removeAdminPlanRow = function(idx) {
+  if (adminPlansDraft.length <= 1) {
+    showToast('At least one subscription plan must remain.', 'warning');
+    return;
+  }
+  adminPlansDraft.splice(idx, 1);
+  renderAdminPlansTable();
+};
+
+window.saveAdminSubscriptionPlans = async function() {
+  try {
+    const res = await fetch(`${API_BASE}/plans`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${adminToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ plans: adminPlansDraft }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to save subscription plans');
+    adminPlansDraft = data.plans || adminPlansDraft;
+    renderAdminPlansTable();
+    showToast(data.message || 'Subscription plans pushed live!', 'success');
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+};
+
+window.resetAdminPlansToDefault = async function() {
+  if (!confirm('Reset all subscription plans back to defaults?')) return;
+  try {
+    const res = await fetch(`${API_BASE}/plans/reset`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${adminToken}` },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Reset failed');
+    adminPlansDraft = data.plans || [];
+    renderAdminPlansTable();
+    showToast(data.message || 'Plans reset to defaults.', 'info');
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+};
+
+window.adminAssignUserSubscription = async function(action) {
+  const userId = document.getElementById('manage-user-id')?.value;
+  const planId = document.getElementById('manage-user-sub-plan')?.value;
+  if (!userId) return;
+  if (action === 'cancel' && !confirm('Cancel this organization’s active subscription and revert to free_trial?')) return;
+  try {
+    const res = await fetch(`${API_BASE}/users/${userId}/subscription`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${adminToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ action, planId }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Subscription action failed');
+    showToast(data.message || 'Subscription updated!', 'success');
+    if (data.org && document.getElementById('manage-user-set-credits')) {
+      document.getElementById('manage-user-set-credits').value = data.org.included_interviews;
+      document.getElementById('manage-user-plan-select').value = data.org.plan;
+    }
+    loadRecruitersDirectory();
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+};
+
+window.adminVerifyUserEmail = async function(action) {
+  const userId = document.getElementById('manage-user-id')?.value;
+  if (!userId) return;
+  try {
+    const res = await fetch(`${API_BASE}/users/${userId}/verify-email`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${adminToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ action }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Verification update failed');
+    showToast(data.message || 'Done!', 'success');
+    loadRecruitersDirectory();
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+};
+
+window.loadAdminPages = async function() {
+  const container = document.getElementById('admin-pages-list');
+  if (!container) return;
+  try {
+    const res = await fetch(`${API_BASE}/pages`, {
+      headers: { 'Authorization': `Bearer ${adminToken}` },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to load pages');
+    cachedAdminPages = data.pages || [];
+    if (!cachedAdminPages.length) {
+      container.innerHTML = '<div style="padding:1rem; text-align:center;">No custom pages or links created yet. Use the form above to add one!</div>';
+      return;
+    }
+    container.innerHTML = cachedAdminPages.map((pg) => `
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:0.75rem; flex-wrap:wrap; padding:0.75rem 0.9rem; border:1px solid var(--border); border-radius:8px; background:var(--surface);">
+        <div>
+          <strong style="color:var(--text);">${escapeHtml(pg.title)}</strong>
+          <span class="badge ${pg.is_published ? 'badge-success' : 'badge-neutral'}" style="margin-left:0.4rem; font-size:0.68rem;">${pg.is_published ? 'Published' : 'Draft'}</span>
+          <span class="badge badge-info" style="margin-left:0.35rem; font-size:0.68rem;">${escapeHtml(pg.placement || 'header')}</span>
+          <div style="font-size:0.73rem; color:var(--text-muted); margin-top:0.2rem;">
+            ${pg.link_url ? `Link: <code>${escapeHtml(pg.link_url)}</code>` : `Page URL: <a href="/p/${encodeURIComponent(pg.slug)}" target="_blank">/p/${escapeHtml(pg.slug)}</a>`}
+          </div>
+        </div>
+        <div style="display:flex; gap:0.45rem;">
+          <a href="${pg.link_url && !pg.content ? escapeHtml(pg.link_url) : `/p/${encodeURIComponent(pg.slug)}`}" target="_blank" class="btn btn-secondary btn-sm"><i class="bi bi-box-arrow-up-right"></i> Open</a>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="editAdminPage('${escapeHtml(pg.id)}')"><i class="bi bi-pencil"></i> Edit</button>
+          <button type="button" class="btn btn-outline btn-sm" style="color:var(--danger);" onclick="deleteAdminPage('${escapeHtml(pg.id)}')"><i class="bi bi-trash"></i></button>
+        </div>
+      </div>
+    `).join('');
+  } catch (err) {
+    container.innerHTML = `<span style="color:var(--danger);">${escapeHtml(err.message)}</span>`;
+  }
+};
+
+window.editAdminPage = function(pageId) {
+  const pg = cachedAdminPages.find(p => p.id === pageId);
+  if (!pg) return;
+  document.getElementById('page-edit-id').value = pg.id;
+  document.getElementById('page-title-input').value = pg.title || '';
+  document.getElementById('page-slug-input').value = pg.slug || '';
+  document.getElementById('page-placement-input').value = pg.placement || 'header';
+  document.getElementById('page-linkurl-input').value = pg.link_url || '';
+  document.getElementById('page-content-input').value = pg.content || '';
+  document.getElementById('page-published-input').checked = Boolean(pg.is_published);
+};
+
+window.resetAdminPageForm = function() {
+  document.getElementById('page-edit-id').value = '';
+  document.getElementById('page-title-input').value = '';
+  document.getElementById('page-slug-input').value = '';
+  document.getElementById('page-placement-input').value = 'header';
+  document.getElementById('page-linkurl-input').value = '';
+  document.getElementById('page-content-input').value = '';
+  document.getElementById('page-published-input').checked = true;
+};
+
+window.saveAdminPage = async function(e) {
+  e.preventDefault();
+  const editId = document.getElementById('page-edit-id')?.value.trim();
+  const payload = {
+    title: document.getElementById('page-title-input')?.value.trim(),
+    slug: document.getElementById('page-slug-input')?.value.trim(),
+    placement: document.getElementById('page-placement-input')?.value || 'header',
+    linkUrl: document.getElementById('page-linkurl-input')?.value.trim(),
+    content: document.getElementById('page-content-input')?.value || '',
+    isPublished: Boolean(document.getElementById('page-published-input')?.checked),
+  };
+  try {
+    const url = editId ? `${API_BASE}/pages/${encodeURIComponent(editId)}` : `${API_BASE}/pages`;
+    const res = await fetch(url, {
+      method: editId ? 'PUT' : 'POST',
+      headers: {
+        'Authorization': `Bearer ${adminToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to save page');
+    showToast(`Page "${data.page.title}" published!`, 'success');
+    resetAdminPageForm();
+    loadAdminPages();
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+};
+
+window.deleteAdminPage = async function(pageId) {
+  if (!confirm('Delete this custom page/link?')) return;
+  try {
+    const res = await fetch(`${API_BASE}/pages/${encodeURIComponent(pageId)}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${adminToken}` },
+    });
+    if (res.ok) {
+      showToast('Page deleted.', 'info');
+      loadAdminPages();
+    }
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+};
+
+window.loadServerDiagnostics = async function() {
+  try {
+    const [diagRes, otpRes] = await Promise.all([
+      fetch(`${API_BASE}/server/diagnostics`, { headers: { 'Authorization': `Bearer ${adminToken}` } }),
+      fetch(`${API_BASE}/auth/otps`, { headers: { 'Authorization': `Bearer ${adminToken}` } }),
+    ]);
+    const diag = await diagRes.json();
+    const otps = await otpRes.json();
+    if (!diagRes.ok) throw new Error(diag.error || 'Failed to fetch server diagnostics');
+
+    const rt = diag.runtime || {};
+    const dbInfo = diag.database || {};
+    const integ = diag.integrations || {};
+
+    const setEl = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+    const mins = Math.floor((rt.uptimeSeconds || 0) / 60);
+    setEl('srv-kpi-uptime', `${Math.floor(mins / 60)}h ${mins % 60}m`);
+    setEl('srv-kpi-env', `${rt.nodeVersion || 'node'} · PID ${rt.pid || '--'} · ${rt.nodeEnv || 'dev'}`);
+    setEl('srv-kpi-memory', `${rt.memoryRssMb || 0} / ${rt.memoryHeapMb || 0} MB`);
+    setEl('srv-kpi-load', `Load: ${(rt.loadAvg || []).join(', ')} (${rt.platform || ''})`);
+
+    const rails = [];
+    if (integ.emailConfigured) rails.push(`Email:${integ.emailProvider}`);
+    if (integ.upiDirectConfigured) rails.push('UPI');
+    if (integ.bankTransferConfigured) rails.push('Bank');
+    if (integ.stripeConfigured) rails.push('Stripe');
+    if (integ.razorpayConfigured) rails.push('Razorpay');
+    setEl('srv-kpi-rails', rails.length ? rails.join(' · ') : 'Demo / Unconfigured');
+    setEl('srv-kpi-db', dbInfo.postgresConnected ? `PostgreSQL (${dbInfo.postgresLatencyMs}ms)` : 'SQLite Active');
+    setEl('srv-kpi-ratelimits', String(diag.rateLimits?.totalBuckets || 0));
+
+    const dbCountsEl = document.getElementById('srv-db-counts');
+    if (dbCountsEl) {
+      dbCountsEl.innerHTML = Object.entries(dbInfo.tableCounts || {}).map(([tbl, cnt]) => `
+        <div style="display:flex; justify-content:space-between; padding:0.4rem 0; border-bottom:1px solid var(--border);">
+          <code>${escapeHtml(tbl)}</code>
+          <strong>${Number(cnt).toLocaleString()}</strong>
+        </div>
+      `).join('');
+    }
+
+    const otpsEl = document.getElementById('srv-otps-container');
+    if (otpsEl) {
+      const userList = otps.userOtps || [];
+      const adminList = otps.adminOtps || [];
+      otpsEl.innerHTML = `
+        <div style="margin-bottom:0.75rem;">
+          <strong style="color:var(--text);">Recruiter Pending Codes (${userList.length})</strong>
+          ${userList.length === 0 ? '<div style="margin-top:0.25rem;">None pending.</div>' : userList.map(u => `
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; padding:0.4rem 0; border-bottom:1px solid var(--border);">
+              <div>
+                <strong>${escapeHtml(u.email)}</strong>
+                <div style="font-size:0.7rem;">Code: <code style="color:var(--primary); font-weight:700;">${escapeHtml(u.verification_code)}</code> · ${escapeHtml(u.approval_status)}</div>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="adminForceVerifyById('${escapeHtml(u.id)}')">Verify</button>
+            </div>
+          `).join('')}
+        </div>
+        <div>
+          <strong style="color:var(--text);">Recent Admin OTP Requests (${adminList.length})</strong>
+          ${adminList.slice(0, 6).map(a => `
+            <div style="display:flex; justify-content:space-between; padding:0.3rem 0; border-bottom:1px solid var(--border); font-size:0.72rem;">
+              <span>${escapeHtml(a.email)} (${escapeHtml(a.purpose)})</span>
+              <span><code>${escapeHtml(a.code)}</code> · ${a.used ? 'used' : 'active'}</span>
+            </div>
+          `).join('') || '<div>None</div>'}
+        </div>
+      `;
+    }
+
+    const logsEl = document.getElementById('srv-logs-container');
+    if (logsEl) {
+      const events = diag.events || [];
+      logsEl.innerHTML = events.length
+        ? events.map(ev => `
+            <div style="padding:0.45rem 0; border-bottom:1px solid var(--border);">
+              <span style="color:${ev.level === 'error' ? 'var(--danger)' : 'var(--warning)'}; font-weight:700;">[${escapeHtml(ev.level.toUpperCase())}]</span>
+              <span style="color:var(--text-subtle);">${escapeHtml(ev.timestamp)}</span>
+              <strong>${escapeHtml(ev.source)}</strong>: ${escapeHtml(ev.message)}
+            </div>
+          `).join('')
+        : '<div style="padding:1rem; text-align:center;">No runtime server errors recorded in buffer.</div>';
+    }
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+};
+
+window.adminForceVerifyById = async function(userId) {
+  try {
+    const res = await fetch(`${API_BASE}/users/${encodeURIComponent(userId)}/verify-email`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'force_verify' }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed');
+    showToast(data.message, 'success');
+    loadServerDiagnostics();
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+};
+
+window.clearAllRateLimitsAdmin = async function() {
+  try {
+    const res = await fetch(`${API_BASE}/server/clear-rate-limits`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${adminToken}` },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed');
+    showToast(data.message, 'success');
+    loadServerDiagnostics();
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+};
+
+window.testPaymentConfigAdmin = async function() {
+  const box = document.getElementById('srv-ops-feedback');
+  try {
+    const res = await fetch(`${API_BASE}/server/test-payment`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${adminToken}` },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed');
+    if (box) {
+      box.style.display = 'block';
+      box.innerHTML = `<strong>${escapeHtml(data.message)}</strong><ul style="margin:0.4rem 0 0 1.2rem;">
+        <li>Direct UPI QR: ${escapeHtml(data.checks.directUpi)}</li>
+        <li>Bank Transfer: ${escapeHtml(data.checks.bankTransfer)}</li>
+        <li>Stripe Card: ${escapeHtml(data.checks.stripeCard)}</li>
+        <li>Razorpay: ${escapeHtml(data.checks.razorpay)}</li>
+      </ul>`;
+    }
+    showToast(data.anyReady ? 'Payment config check passed!' : 'Payment setup incomplete', data.anyReady ? 'success' : 'warning');
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+};
+
+window.clearServerLogsAdmin = async function() {
+  try {
+    const res = await fetch(`${API_BASE}/server/clear-logs`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${adminToken}` },
+    });
+    if (res.ok) {
+      showToast('Server diagnostic log buffer cleared.', 'info');
+      loadServerDiagnostics();
+    }
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
 };

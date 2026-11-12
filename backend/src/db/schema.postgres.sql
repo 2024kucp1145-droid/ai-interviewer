@@ -218,6 +218,20 @@ CREATE TABLE IF NOT EXISTS billing_coupons (
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Admin-Managed Custom Site Pages & Navigation Links
+CREATE TABLE IF NOT EXISTS site_pages (
+  id VARCHAR(64) PRIMARY KEY,
+  slug VARCHAR(128) UNIQUE NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  content TEXT DEFAULT '',
+  link_url TEXT DEFAULT '',
+  placement VARCHAR(32) DEFAULT 'header',
+  is_published INTEGER DEFAULT 1,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
 -- 13. Billing Events (Financial Audit Ledger)
 CREATE TABLE IF NOT EXISTS billing_events (
   id VARCHAR(64) PRIMARY KEY,

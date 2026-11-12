@@ -32,6 +32,8 @@ import { judgeLeetCodeSolution } from './services/leetcodeJudge.js';
 import { generateNeuralAudio, NEURAL_VOICES } from './services/neuralTtsService.js';
 import { adminRouter } from './admin/adminRoutes.js';
 import { logActivity } from './services/activityService.js';
+import { getEffectiveAuthConfig, getEffectiveSiteConfig } from './services/platformConfigService.js';
+import { recordServerEvent } from './services/serverMonitorService.js';
 import {
   getEmailConfig,
   sendRecruiterVerificationEmail,
@@ -84,6 +86,83 @@ const ttsLimiter = createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'tt
 app.use('/public/jobs/:id/start', publicStartLimiter);
 app.use('/api/compiler/judge', judgeLimiter);
 app.use('/api/tts/speak', ttsLimiter);
+
+// Maintenance mode guard (never blocks Admin Panel, health probe, or public site config)
+app.use((req, res, next) => {
+  const pathUrl = req.path || '';
+  if (
+    pathUrl.startsWith('/api/admin') ||
+    pathUrl === '/admin' ||
+    pathUrl === '/admin.html' ||
+    pathUrl === '/health' ||
+    pathUrl === '/api/site/config' ||
+    pathUrl.startsWith('/api/pages/') ||
+    pathUrl.startsWith('/p/') ||
+    pathUrl.startsWith('/css/') ||
+    pathUrl.startsWith('/js/')
+  ) {
+    return next();
+  }
+  const siteCfg = getEffectiveSiteConfig();
+  if (siteCfg.maintenance.enabled && (req.method !== 'GET' || pathUrl.startsWith('/api/') || pathUrl.startsWith('/auth/') || pathUrl.startsWith('/billing/'))) {
+    return res.status(503).json({
+      error: siteCfg.maintenance.message,
+      maintenance: true,
+    });
+  }
+  return next();
+});
+
+// Public Website Control Config (Brand, Banner, Maintenance Mode, Auth Flags, Published Links)
+app.get('/api/site/config', (req, res) => {
+  try {
+    res.json({ success: true, ...getEffectiveSiteConfig() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Public Custom Page API + Branded HTML Viewer (/p/:slug)
+app.get('/api/pages/:slug', (req, res) => {
+  try {
+    const slug = String(req.params.slug || '').trim().toLowerCase();
+    const page = db.prepare('SELECT id, slug, title, content, link_url, placement, updated_at FROM site_pages WHERE slug = ? AND is_published = 1').get(slug);
+    if (!page) return res.status(404).json({ error: 'Page not found' });
+    res.json({ success: true, page });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/p/:slug', (req, res) => {
+  try {
+    const slug = String(req.params.slug || '').trim().toLowerCase();
+    const page = db.prepare('SELECT id, slug, title, content, link_url, updated_at FROM site_pages WHERE slug = ? AND is_published = 1').get(slug);
+    if (!page) {
+      return res.status(404).type('html').send('<h2>Page not found</h2><p><a href="/">Return Home</a></p>');
+    }
+    if (page.link_url && !String(page.content || '').trim()) {
+      return res.redirect(page.link_url);
+    }
+    const siteCfg = getEffectiveSiteConfig();
+    const esc = (str) => String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const paragraphs = String(page.content || '')
+      .split(/\n{2,}/)
+      .map(block => `<p style="margin:0 0 1rem; line-height:1.7; color:#334155;">${esc(block).replace(/\n/g, '<br>')}</p>`)
+      .join('');
+    res.status(200).type('html').send(`<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(page.title)} — ${esc(siteCfg.brandName)}</title>
+<style>body{font-family:Inter,system-ui,-apple-system,sans-serif;background:#f8fafc;color:#0f172a;margin:0;padding:2rem 1rem;}.wrap{max-width:780px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:2rem 2.25rem;box-shadow:0 12px 30px rgba(15,23,42,.05);}.top{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e2e8f0;padding-bottom:1rem;margin-bottom:1.5rem;gap:1rem;}.btn{display:inline-flex;align-items:center;gap:.4rem;padding:.5rem .9rem;border-radius:8px;background:#0f172a;color:#fff;text-decoration:none;font-size:.82rem;font-weight:600;}</style>
+</head><body><div class="wrap">
+<div class="top"><div><div style="font-size:.75rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">${esc(siteCfg.brandName)}</div><h1 style="margin:.2rem 0 0;font-size:1.5rem;">${esc(page.title)}</h1></div><a class="btn" href="/">Back to App</a></div>
+<div>${paragraphs || '<p style="color:#64748b;">No content added yet.</p>'}</div>
+${page.link_url ? `<p style="margin-top:1.5rem;"><a class="btn" href="${esc(page.link_url)}" target="_blank" rel="noopener">Open External Link</a></p>` : ''}
+</div></body></html>`);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
 
 // Billing routes
 app.use('/billing', billingRouter);
@@ -144,7 +223,8 @@ function generate6DigitOtp() {
 }
 
 function canUseRecruiterOtpFallback() {
-  return !getEmailConfig().isConfigured || process.env.ALLOW_DEV_OTP === 'true';
+  const authCfg = getEffectiveAuthConfig();
+  return !getEmailConfig().isConfigured || authCfg.allowDevOtpFallback;
 }
 
 function markRecruiterOtpUsed(otpToken) {
@@ -189,6 +269,7 @@ function verifyRecruiterOtpCode({ dbUser, cleanEmail, code, purposes = ['recruit
 
 app.post('/auth/signup', async (req, res) => {
   try {
+    const authCfg = getEffectiveAuthConfig();
     const {
       email,
       password,
@@ -202,6 +283,10 @@ app.post('/auth/signup', async (req, res) => {
       country,
       inviteToken
     } = req.body;
+
+    if (!authCfg.allowPublicSignup && !inviteToken) {
+      return res.status(403).json({ error: 'New signups are currently disabled by the platform administrator.' });
+    }
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
@@ -273,8 +358,8 @@ app.post('/auth/signup', async (req, res) => {
     const userId = 'usr_' + crypto.randomUUID();
     const passHash = hashPassword(password);
 
-    const settingCredits = db.prepare("SELECT value FROM platform_settings WHERE key = 'default_trial_credits'").get();
-    const trialCredits = parseInt(settingCredits?.value || '10', 10) || 10;
+    const trialCredits = authCfg.defaultTrialCredits;
+    const initialApprovalStatus = (!inviteRecord && authCfg.requireAdminApproval) ? 'pending_approval' : 'approved';
 
     db.transaction(() => {
       if (!inviteRecord) {
@@ -296,7 +381,7 @@ app.post('/auth/signup', async (req, res) => {
 
       db.prepare(`
         INSERT INTO users (id, org_id, full_name, phone, job_title, email, password_hash, role, org_role, is_verified, verification_code, approval_status, last_login_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 'approved', CURRENT_TIMESTAMP)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       `).run(
         userId,
         orgId,
@@ -307,7 +392,9 @@ app.post('/auth/signup', async (req, res) => {
         passHash,
         userRole,
         userRole,
-        otpCode
+        authCfg.requireEmailOtp ? 0 : 1,
+        authCfg.requireEmailOtp ? otpCode : null,
+        initialApprovalStatus
       );
     })();
 
@@ -324,13 +411,31 @@ app.post('/auth/signup', async (req, res) => {
       ipAddress: req.ip
     });
 
-    const token = signToken({ id: userId, org_id: orgId, email: cleanEmail, role: 'owner' });
+    const token = signToken({ id: userId, org_id: orgId, email: cleanEmail, role: userRole });
+    if (!authCfg.requireEmailOtp && initialApprovalStatus === 'approved') {
+      return res.json({
+        token,
+        requiresOtp: false,
+        message: 'Account created and signed in.',
+        user: {
+          id: userId,
+          email: cleanEmail,
+          fullName: fullName || 'Hiring Manager',
+          jobTitle: jobTitle || 'Recruiter',
+          role: userRole,
+          is_verified: 1,
+          approval_status: initialApprovalStatus
+        },
+        org: { id: orgId, name: companyName || 'My Organization', plan: 'free_trial', included_interviews: trialCredits }
+      });
+    }
+
     const otpToken = createStatelessOtpChallenge(cleanEmail, otpCode, 'recruiter_signup', {
       userId,
       orgId,
       fullName: (fullName || 'Hiring Manager').trim(),
       jobTitle: (jobTitle || 'Recruiter').trim(),
-      role: 'owner',
+      role: userRole,
       orgName: (companyName || 'My Organization').trim()
     });
     const mailRes = await sendRecruiterVerificationEmail(cleanEmail, otpCode, fullName || 'Hiring Manager', 'signup');
@@ -351,7 +456,7 @@ app.post('/auth/signup', async (req, res) => {
         fullName: fullName || 'Hiring Manager',
         jobTitle: jobTitle || 'Recruiter',
         is_verified: 0,
-        approval_status: 'approved'
+        approval_status: initialApprovalStatus
       },
       org: { id: orgId, name: companyName || 'My Organization', plan: 'free_trial', included_interviews: trialCredits }
     });
@@ -390,7 +495,14 @@ app.post('/auth/verify', requireAuth, (req, res) => {
       `).run(userId, orgId, dec.fullName || 'Hiring Manager', dec.jobTitle || 'Recruiter', cleanEmail, dec.role || 'owner');
       user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
     } else {
-      db.prepare("UPDATE users SET is_verified = 1, verification_code = NULL, approval_status = 'approved', last_login_at = CURRENT_TIMESTAMP WHERE id = ?").run(user.id);
+      if (user.approval_status === 'suspended' || user.approval_status === 'rejected') {
+        return res.status(403).json({ error: 'Your account has been suspended or rejected by the administrator.' });
+      }
+      if (user.approval_status === 'pending_approval') {
+        db.prepare('UPDATE users SET is_verified = 1, verification_code = NULL WHERE id = ?').run(user.id);
+        return res.status(403).json({ error: 'Your email is verified, and your account is awaiting administrator approval.' });
+      }
+      db.prepare("UPDATE users SET is_verified = 1, verification_code = NULL, last_login_at = CURRENT_TIMESTAMP WHERE id = ?").run(user.id);
     }
 
     markRecruiterOtpUsed(otpToken);
@@ -534,6 +646,13 @@ app.post('/auth/login', async (req, res) => {
       });
     }
 
+    if (user.approval_status === 'suspended' || user.approval_status === 'rejected') {
+      return res.status(403).json({ error: 'Your account is suspended. Please contact support or an administrator.' });
+    }
+    if (user.approval_status === 'pending_approval') {
+      return res.status(403).json({ error: 'Your account is awaiting administrator approval.' });
+    }
+
     // Ensure organization exists
     let org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(user.org_id);
     if (!org) {
@@ -542,6 +661,27 @@ app.post('/auth/login', async (req, res) => {
         VALUES (?, 'My Organization', 'free_trial', 10)
       `).run(user.org_id);
       org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(user.org_id);
+    }
+
+    const authCfg = getEffectiveAuthConfig();
+    if (!authCfg.requireEmailOtp) {
+      db.prepare('UPDATE users SET is_verified = 1, last_login_at = CURRENT_TIMESTAMP WHERE id = ?').run(user.id);
+      const token = signToken({ id: user.id, org_id: user.org_id, email: user.email, role: user.role });
+      return res.json({
+        success: true,
+        requiresOtp: false,
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.full_name || 'Hiring Manager',
+          jobTitle: user.job_title || 'Recruiter',
+          role: user.role,
+          is_verified: 1,
+          approval_status: user.approval_status || 'approved',
+        },
+        org,
+      });
     }
 
     const otpCode = generate6DigitOtp();
@@ -619,7 +759,14 @@ app.post('/auth/login-otp-verify', (req, res) => {
       })();
       user = db.prepare('SELECT * FROM users WHERE email = ?').get(cleanEmail);
     } else {
-      db.prepare("UPDATE users SET is_verified = 1, verification_code = NULL, approval_status = 'approved', last_login_at = CURRENT_TIMESTAMP WHERE id = ?").run(user.id);
+      if (user.approval_status === 'suspended' || user.approval_status === 'rejected') {
+        return res.status(403).json({ error: 'Your account has been suspended or rejected by the administrator.' });
+      }
+      if (user.approval_status === 'pending_approval') {
+        db.prepare('UPDATE users SET is_verified = 1, verification_code = NULL WHERE id = ?').run(user.id);
+        return res.status(403).json({ error: 'Your email is verified, and your account is awaiting administrator approval.' });
+      }
+      db.prepare("UPDATE users SET is_verified = 1, verification_code = NULL, last_login_at = CURRENT_TIMESTAMP WHERE id = ?").run(user.id);
     }
 
     let org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(user.org_id);
@@ -3625,6 +3772,12 @@ app.use((req, res, next) => {
 // JSON 404 handler for missing API endpoints
 app.use((req, res) => {
   res.status(404).json({ error: `Cannot ${req.method} ${req.path}` });
+});
+
+app.use((err, req, res, next) => {
+  recordServerEvent({ level: 'error', source: `http:${req.method} ${req.path}`, message: err?.message || 'Unhandled Express error' });
+  if (res.headersSent) return next(err);
+  res.status(err?.status || 500).json({ error: err?.message || 'Internal Server Error' });
 });
 
 app.listen(PORT, () => {

@@ -90,3 +90,17 @@ export function resetRateLimits(prefix) {
   }
   for (const store of stores.values()) store.clear();
 }
+
+/**
+ * Inspect active rate-limit namespaces and bucket counts for admin diagnostics.
+ * @returns {{ totalNamespaces: number, totalBuckets: number, namespaces: Array<{ prefix: string, activeBuckets: number }> }}
+ */
+export function getRateLimitStats() {
+  const namespaces = [];
+  let totalBuckets = 0;
+  for (const [prefix, store] of stores.entries()) {
+    namespaces.push({ prefix, activeBuckets: store.size });
+    totalBuckets += store.size;
+  }
+  return { totalNamespaces: namespaces.length, totalBuckets, namespaces };
+}
