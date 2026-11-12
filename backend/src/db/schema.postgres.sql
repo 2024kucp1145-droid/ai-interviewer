@@ -199,6 +199,22 @@ CREATE TABLE IF NOT EXISTS billing_orders (
   stripe_invoice_id VARCHAR(128),
   invoice_pdf_url TEXT,
   hosted_invoice_url TEXT,
+  coupon_code VARCHAR(64),
+  discount_usd NUMERIC(10, 2) DEFAULT 0,
+  payment_method VARCHAR(64),
+  utr_number VARCHAR(128),
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Promo / Coupon Codes
+CREATE TABLE IF NOT EXISTS billing_coupons (
+  code VARCHAR(64) PRIMARY KEY,
+  discount_percent INTEGER DEFAULT 0,
+  discount_usd NUMERIC(10, 2) DEFAULT 0,
+  max_uses INTEGER DEFAULT 100,
+  used_count INTEGER DEFAULT 0,
+  active INTEGER DEFAULT 1,
+  expires_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 

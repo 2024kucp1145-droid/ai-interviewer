@@ -6,6 +6,7 @@
 import express from 'express';
 import crypto from 'crypto';
 import Stripe from 'stripe';
+import QRCode from 'qrcode';
 import { db } from '../db/database.js';
 import { requireAuth } from '../auth/auth.js';
 import { logActivity } from '../services/activityService.js';
@@ -22,6 +23,68 @@ export const billingRouter = express.Router();
 function getStripeClient() {
   const key = process.env.STRIPE_SECRET_KEY;
   return key ? new Stripe(key) : null;
+}
+
+function getMerchantPayoutConfig() {
+  const upiId = (process.env.MERCHANT_UPI_ID || '').trim();
+  const upiName = (process.env.MERCHANT_UPI_NAME || 'RoundOne AI').trim();
+  const usdToInrRate = Math.max(1, Number(process.env.USD_TO_INR_RATE) || 85);
+  const bankDetails = {
+    holder: (process.env.MERCHANT_BANK_HOLDER || '').trim(),
+    bankName: (process.env.MERCHANT_BANK_NAME || '').trim(),
+    accountNumber: (process.env.MERCHANT_BANK_ACCOUNT || '').trim(),
+    ifscOrSwift: (process.env.MERCHANT_BANK_IFSC || '').trim(),
+  };
+  const bankTransferConfigured = Boolean(bankDetails.accountNumber && bankDetails.ifscOrSwift);
+  return { upiId, upiName, usdToInrRate, bankDetails, bankTransferConfigured };
+}
+
+function applyCouponDiscount(baseAmountUsd, rawCode, consume = false) {
+  const code = String(rawCode || '').trim().toUpperCase();
+  if (!code) {
+    return {
+      code: null,
+      discountPercent: 0,
+      discountUsd: 0,
+      finalAmountUsd: +Number(baseAmountUsd).toFixed(2),
+      label: null,
+    };
+  }
+  const coupon = db.prepare('SELECT * FROM billing_coupons WHERE code = ?').get(code);
+  if (!coupon || !coupon.active) {
+    throw new Error(`Coupon code "${code}" is invalid or inactive.`);
+  }
+  if (coupon.expires_at && new Date(coupon.expires_at).getTime() <= Date.now()) {
+    throw new Error(`Coupon code "${code}" has expired.`);
+  }
+  if ((coupon.used_count || 0) >= (coupon.max_uses || 0)) {
+    throw new Error(`Coupon code "${code}" has reached its redemption limit.`);
+  }
+
+  let discountUsd = 0;
+  if (Number(coupon.discount_percent) > 0) {
+    discountUsd = +(Number(baseAmountUsd) * (Number(coupon.discount_percent) / 100)).toFixed(2);
+  } else if (Number(coupon.discount_usd) > 0) {
+    discountUsd = +Number(coupon.discount_usd).toFixed(2);
+  }
+  discountUsd = Math.min(Number(baseAmountUsd), Math.max(0, discountUsd));
+  const finalAmountUsd = +Math.max(0, Number(baseAmountUsd) - discountUsd).toFixed(2);
+
+  if (consume) {
+    db.prepare('UPDATE billing_coupons SET used_count = used_count + 1 WHERE code = ?').run(code);
+  }
+
+  const label = Number(coupon.discount_percent) > 0
+    ? `${coupon.discount_percent}% OFF (${code})`
+    : `$${discountUsd.toFixed(2)} OFF (${code})`;
+
+  return {
+    code,
+    discountPercent: Number(coupon.discount_percent) || 0,
+    discountUsd,
+    finalAmountUsd,
+    label,
+  };
 }
 
 async function ensureStripeCustomer(stripe, orgId, actorEmail) {
@@ -269,11 +332,57 @@ billingRouter.post('/quote', (req, res) => {
   }
 });
 
+// ─── GET /billing/methods ─────────────────────────────────────────────────────
+// Returns enabled checkout methods & merchant direct UPI/bank payout config
+billingRouter.get('/methods', (req, res) => {
+  const payout = getMerchantPayoutConfig();
+  res.json({
+    stripeConfigured: Boolean(process.env.STRIPE_SECRET_KEY),
+    stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || null,
+    razorpayConfigured: Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET),
+    razorpayKeyId: process.env.RAZORPAY_KEY_ID || null,
+    upiDirectConfigured: Boolean(payout.upiId),
+    upiId: payout.upiId || null,
+    upiName: payout.upiName,
+    usdToInrRate: payout.usdToInrRate,
+    bankTransferConfigured: payout.bankTransferConfigured,
+    bankDetails: payout.bankTransferConfigured ? payout.bankDetails : null,
+  });
+});
+
+// ─── POST /billing/coupon/validate ────────────────────────────────────────────
+// Validate a promo/coupon code and calculate final discounted total
+billingRouter.post('/coupon/validate', requireAuth, (req, res) => {
+  try {
+    const { code, type, quantity, minutes, planId, amountUsd } = req.body || {};
+    let baseUsd = Number(amountUsd);
+    if (!Number.isFinite(baseUsd) || baseUsd <= 0) {
+      if (type === 'pay_per_use') {
+        baseUsd = buildPayPerUseQuote({ quantity: Number(quantity), minutes: Number(minutes) }).totalUsd;
+      } else if (type === 'subscription') {
+        baseUsd = buildSubscriptionQuote({ planId }).priceUsd;
+      } else {
+        return res.status(400).json({ error: 'Provide order details or valid amountUsd.' });
+      }
+    }
+    const result = applyCouponDiscount(baseUsd, code, false);
+    const payout = getMerchantPayoutConfig();
+    res.json({
+      valid: Boolean(result.code),
+      ...result,
+      baseAmountUsd: +baseUsd.toFixed(2),
+      finalAmountInr: +(result.finalAmountUsd * payout.usdToInrRate).toFixed(2),
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // ─── POST /billing/order ──────────────────────────────────────────────────────
-// Create a pending order (auth required; uses Stripe/Razorpay when configured, else demo checkout)
+// Create an order (Card/Stripe, Razorpay UPI/Card, Direct 0%-fee UPI QR, Bank Transfer, or Coupon)
 billingRouter.post('/order', requireAuth, async (req, res) => {
   try {
-    const { type, quantity, minutes, planId, gateway } = req.body;
+    const { type, quantity, minutes, planId, gateway, couponCode } = req.body;
     const orgId = req.user.org_id;
 
     let quote;
@@ -286,13 +395,16 @@ billingRouter.post('/order', requireAuth, async (req, res) => {
     }
 
     const orderId = 'ord_' + crypto.randomUUID();
-    const amountUsd = quote.totalUsd || quote.priceUsd;
+    const baseAmountUsd = quote.totalUsd || quote.priceUsd;
+    const couponInfo = applyCouponDiscount(baseAmountUsd, couponCode, Boolean(couponCode));
+    const amountUsd = couponInfo.finalAmountUsd;
+    const selectedMethod = String(gateway || 'stripe');
 
     // Store order in DB
     db.prepare(`
       INSERT INTO billing_orders
-        (id, org_id, type, plan_id, quantity, duration_minutes, amount_usd, status, quote_json, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, CURRENT_TIMESTAMP)
+        (id, org_id, type, plan_id, quantity, duration_minutes, amount_usd, status, quote_json, coupon_code, discount_usd, payment_method, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, CURRENT_TIMESTAMP)
     `).run(
       orderId,
       orgId,
@@ -301,14 +413,65 @@ billingRouter.post('/order', requireAuth, async (req, res) => {
       quote.quantity || null,
       quote.durationMinutes || null,
       amountUsd,
-      JSON.stringify(quote)
+      JSON.stringify({ ...quote, baseAmountUsd, coupon: couponInfo }),
+      couponInfo.code,
+      couponInfo.discountUsd,
+      selectedMethod
     );
 
+    // 100% free coupon order -> fulfill immediately
+    if (amountUsd <= 0) {
+      const freeResult = fulfillPaidOrder(orderId, {
+        provider: 'coupon',
+        externalRef: couponInfo.code,
+        actor: req.user,
+        ipAddress: req.ip,
+      });
+      return res.json({
+        orderId,
+        quote,
+        coupon: couponInfo,
+        amountUsd: 0,
+        paidImmediately: true,
+        provider: 'coupon',
+        creditsRemaining: freeResult.org.included_interviews,
+        plan: freeResult.org.plan,
+        message: `Coupon ${couponInfo.code} applied (100% off)! Credits added immediately.`,
+      });
+    }
+
+    const payout = getMerchantPayoutConfig();
+    const amountInr = +(amountUsd * payout.usdToInrRate).toFixed(2);
     const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+    // Direct 0%-fee UPI QR or Bank Transfer payout directly to merchant bank/UPI
+    if (selectedMethod === 'upi_direct' || selectedMethod === 'bank_transfer') {
+      let upiDeepLink = null;
+      let qrDataUrl = null;
+      if (selectedMethod === 'upi_direct' && payout.upiId) {
+        upiDeepLink = `upi://pay?pa=${encodeURIComponent(payout.upiId)}&pn=${encodeURIComponent(payout.upiName)}&am=${amountInr.toFixed(2)}&cu=INR&tn=${encodeURIComponent(orderId.slice(0, 20))}`;
+        qrDataUrl = await QRCode.toDataURL(upiDeepLink, { width: 220, margin: 1 });
+      }
+      return res.json({
+        orderId,
+        quote,
+        coupon: couponInfo,
+        amountUsd,
+        amountInr,
+        provider: selectedMethod,
+        upiId: payout.upiId || null,
+        upiName: payout.upiName,
+        upiDeepLink,
+        qrDataUrl,
+        bankDetails: payout.bankTransferConfigured ? payout.bankDetails : null,
+        message: 'Order created. Transfer directly and submit your UTR/Reference number for instant verification.',
+      });
+    }
+
     let providerSession = null;
-    if (gateway === 'razorpay' && process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+    if (selectedMethod === 'razorpay' && process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
       providerSession = await createRazorpayOrder({ orderId, amountUsd });
-    } else if (process.env.STRIPE_SECRET_KEY && gateway !== 'demo') {
+    } else if (process.env.STRIPE_SECRET_KEY && selectedMethod !== 'demo') {
       providerSession = await createStripeCheckoutSession({
         orderId,
         type,
@@ -323,6 +486,9 @@ billingRouter.post('/order', requireAuth, async (req, res) => {
     res.json({
       orderId,
       quote,
+      coupon: couponInfo,
+      amountUsd,
+      amountInr,
       provider: providerSession?.provider || 'demo',
       providerSession,
       checkoutUrl: providerSession?.checkoutUrl || `/billing/checkout?order=${orderId}`,
@@ -330,6 +496,98 @@ billingRouter.post('/order', requireAuth, async (req, res) => {
     });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// ─── POST /billing/order/:id/submit-utr ───────────────────────────────────────
+// Customer submits their UPI UTR or Bank Reference ID for 0%-fee direct payout verification
+billingRouter.post('/order/:id/submit-utr', requireAuth, (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const cleanUtr = String(req.body?.utrNumber || '').trim().replace(/\s+/g, '');
+    const method = String(req.body?.paymentMethod || 'upi_direct').trim();
+    if (!/^[a-zA-Z0-9_-]{6,40}$/.test(cleanUtr)) {
+      return res.status(400).json({ error: 'Enter a valid 6–40 character UTR / Transaction Reference ID.' });
+    }
+
+    const order = db.prepare('SELECT id, org_id, status, amount_usd FROM billing_orders WHERE id = ? AND org_id = ?')
+      .get(orderId, req.user.org_id);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    if (order.status === 'paid') return res.status(400).json({ error: 'Order is already paid.' });
+
+    const duplicate = db.prepare("SELECT id FROM billing_orders WHERE utr_number = ? AND id != ? AND status IN ('paid', 'pending_verification')")
+      .get(cleanUtr, orderId);
+    if (duplicate) {
+      return res.status(400).json({ error: 'This UTR / Transaction Reference ID has already been submitted for another order.' });
+    }
+
+    db.prepare(`
+      UPDATE billing_orders
+      SET status = 'pending_verification', utr_number = ?, payment_method = ?
+      WHERE id = ?
+    `).run(cleanUtr, method, orderId);
+
+    logActivity({
+      action: 'BILLING_UTR_SUBMITTED',
+      actorType: 'user',
+      actorId: req.user.id,
+      actorEmail: req.user.email,
+      actorName: req.user.full_name || req.user.email,
+      orgId: req.user.org_id,
+      entityType: 'billing_order',
+      entityId: orderId,
+      details: { utrNumber: cleanUtr, paymentMethod: method, amountUsd: order.amount_usd },
+      ipAddress: req.ip,
+    });
+
+    res.json({
+      success: true,
+      orderId,
+      status: 'pending_verification',
+      utrNumber: cleanUtr,
+      message: 'Payment reference submitted! Once verified in our bank/UPI statement, credits are unlocked automatically.',
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── POST /billing/order/:id/verify-razorpay ──────────────────────────────────
+// Verify client-side Razorpay Checkout signature & credit order immediately
+billingRouter.post('/order/:id/verify-razorpay', requireAuth, (req, res) => {
+  try {
+    const secret = process.env.RAZORPAY_KEY_SECRET;
+    if (!secret) return res.status(503).json({ error: 'Razorpay is not configured on this server.' });
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body || {};
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({ error: 'Missing Razorpay payment verification fields.' });
+    }
+    if (!verifyHmacHex(`${razorpay_order_id}|${razorpay_payment_id}`, razorpay_signature, secret)) {
+      return res.status(400).json({ error: 'Invalid Razorpay payment signature.' });
+    }
+
+    const order = db.prepare('SELECT id FROM billing_orders WHERE id = ? AND org_id = ?').get(req.params.id, req.user.org_id);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+
+    db.prepare('UPDATE billing_orders SET payment_method = ?, utr_number = ? WHERE id = ?')
+      .run('razorpay', String(razorpay_payment_id), order.id);
+
+    const result = fulfillPaidOrder(order.id, {
+      provider: 'razorpay',
+      externalRef: String(razorpay_payment_id),
+      actor: req.user,
+      ipAddress: req.ip,
+    });
+    if (!result.ok) return res.status(result.status || 400).json({ error: result.error });
+
+    res.json({
+      success: true,
+      creditsRemaining: result.org.included_interviews,
+      plan: result.org.plan,
+      message: 'Razorpay payment verified and credits added!',
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -380,7 +638,7 @@ billingRouter.get('/balance', requireAuth, (req, res) => {
 
     const recentOrders = db.prepare(`
       SELECT id, type, plan_id, quantity, duration_minutes, amount_usd, status, paid_at,
-             stripe_invoice_id, invoice_pdf_url, hosted_invoice_url, created_at
+             stripe_invoice_id, invoice_pdf_url, hosted_invoice_url, coupon_code, discount_usd, payment_method, utr_number, created_at
       FROM billing_orders WHERE org_id = ? ORDER BY created_at DESC LIMIT 20
     `).all(orgId);
 
@@ -411,7 +669,7 @@ billingRouter.get('/history', requireAuth, (req, res) => {
     const orgId = req.user.org_id;
     const orders = db.prepare(`
       SELECT id, type, plan_id, quantity, duration_minutes, amount_usd, status, paid_at,
-             quote_json, stripe_invoice_id, invoice_pdf_url, hosted_invoice_url, created_at
+             quote_json, stripe_invoice_id, invoice_pdf_url, hosted_invoice_url, coupon_code, discount_usd, payment_method, utr_number, created_at
       FROM billing_orders WHERE org_id = ? ORDER BY created_at DESC
     `).all(orgId);
 

@@ -66,6 +66,7 @@ async function cleanup() {
   for (const orgId of createdOrgIds) {
     try { db.prepare('DELETE FROM organizations WHERE id = ?').run(orgId); } catch (_) {}
   }
+  try { db.prepare("DELETE FROM billing_coupons WHERE code LIKE 'FS20_%' OR code LIKE 'FS100_%'").run(); } catch (_) {}
   resetRateLimits();
 }
 
@@ -503,7 +504,95 @@ async function runTests() {
     assert.strictEqual(invData.invoicePdfUrl, 'https://pay.stripe.com/invoice/in_test_123/pdf');
     console.log('✓ 13. Stripe SDK webhook verification, balance metadata & downloadable invoice API verified');
 
-    console.log('\n🎉 ALL 13 FULL-STACK VERIFICATION CHECKS PASSED!');
+    // 14. Promo coupons, GET /billing/methods, direct UPI/Bank UTR submission & duplicate guard, 100%-off instant credit
+    const couponSuffix = Date.now().toString(36).toUpperCase();
+    const coupon20 = `FS20_${couponSuffix}`;
+    const coupon100 = `FS100_${couponSuffix}`;
+    db.prepare(`
+      INSERT INTO billing_coupons (code, discount_percent, max_uses, active)
+      VALUES (?, 20, 5, 1)
+    `).run(coupon20);
+    db.prepare(`
+      INSERT INTO billing_coupons (code, discount_percent, max_uses, active)
+      VALUES (?, 100, 2, 1)
+    `).run(coupon100);
+
+    const methodsRes = await fetch(`${BASE_URL}/billing/methods`);
+    const methodsData = await methodsRes.json();
+    assert.strictEqual(methodsRes.status, 200);
+    assert.strictEqual(typeof methodsData.usdToInrRate, 'number');
+    assert.ok(methodsData.usdToInrRate > 0);
+
+    const valRes = await fetch(`${BASE_URL}/billing/coupon/validate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ownerToken}` },
+      body: JSON.stringify({ code: coupon20, type: 'pay_per_use', quantity: 5, minutes: 20 })
+    });
+    const valData = await valRes.json();
+    assert.strictEqual(valRes.status, 200, valData.error);
+    assert.strictEqual(valData.valid, true);
+    assert.strictEqual(valData.discountPercent, 20);
+    assert.ok(valData.discountUsd > 0 && valData.finalAmountUsd < valData.baseAmountUsd);
+
+    const upiOrderRes = await fetch(`${BASE_URL}/billing/order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ownerToken}` },
+      body: JSON.stringify({ type: 'pay_per_use', quantity: 5, minutes: 20, gateway: 'upi_direct', couponCode: coupon20 })
+    });
+    const upiOrderData = await upiOrderRes.json();
+    assert.strictEqual(upiOrderRes.status, 200, upiOrderData.error);
+    assert.ok(upiOrderData.orderId);
+    assert.strictEqual(upiOrderData.amountUsd, valData.finalAmountUsd);
+
+    const testUtr = `UTR${couponSuffix}998877`;
+    const utrRes = await fetch(`${BASE_URL}/billing/order/${upiOrderData.orderId}/submit-utr`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ownerToken}` },
+      body: JSON.stringify({ utrNumber: testUtr, paymentMethod: 'upi_direct' })
+    });
+    const utrData = await utrRes.json();
+    assert.strictEqual(utrRes.status, 200, utrData.error);
+    assert.strictEqual(utrData.status, 'pending_verification');
+    assert.strictEqual(utrData.utrNumber, testUtr);
+
+    const secondOrderRes = await fetch(`${BASE_URL}/billing/order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ownerToken}` },
+      body: JSON.stringify({ type: 'pay_per_use', quantity: 5, minutes: 20, gateway: 'bank_transfer' })
+    });
+    const secondOrderData = await secondOrderRes.json();
+    assert.strictEqual(secondOrderRes.status, 200, secondOrderData.error);
+
+    const dupUtrRes = await fetch(`${BASE_URL}/billing/order/${secondOrderData.orderId}/submit-utr`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ownerToken}` },
+      body: JSON.stringify({ utrNumber: testUtr, paymentMethod: 'bank_transfer' })
+    });
+    assert.strictEqual(dupUtrRes.status, 400);
+
+    const balBeforeFreeRes = await fetch(`${BASE_URL}/billing/balance`, {
+      headers: { Authorization: `Bearer ${ownerToken}` }
+    });
+    const balBeforeFree = await balBeforeFreeRes.json();
+
+    const freeOrderRes = await fetch(`${BASE_URL}/billing/order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ownerToken}` },
+      body: JSON.stringify({ type: 'pay_per_use', quantity: 5, minutes: 20, gateway: 'upi_direct', couponCode: coupon100 })
+    });
+    const freeOrderData = await freeOrderRes.json();
+    assert.strictEqual(freeOrderRes.status, 200, freeOrderData.error);
+    assert.strictEqual(freeOrderData.paidImmediately, true);
+    assert.strictEqual(freeOrderData.amountUsd, 0);
+
+    const balAfterFreeRes = await fetch(`${BASE_URL}/billing/balance`, {
+      headers: { Authorization: `Bearer ${ownerToken}` }
+    });
+    const balAfterFree = await balAfterFreeRes.json();
+    assert.strictEqual(balAfterFree.creditsRemaining, balBeforeFree.creditsRemaining + 5);
+    console.log('✓ 14. Promo coupons, GET /billing/methods, direct UPI/Bank UTR guard & 100%-off instant credit verified');
+
+    console.log('\n🎉 ALL 14 FULL-STACK VERIFICATION CHECKS PASSED!');
   } finally {
     await cleanup();
   }

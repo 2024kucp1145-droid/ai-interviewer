@@ -3087,7 +3087,7 @@
 
       <!-- CHECKOUT MODAL -->
       <div id="billing-checkout-modal" class="modal-overlay" style="display:none;">
-        <div class="modal-content" style="max-width:440px;">
+        <div class="modal-content" style="max-width:490px; max-height:92vh; overflow-y:auto;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
             <div style="display:flex; align-items:center; gap:0.4rem;">
               <i class="bi bi-lock-fill" style="font-size:0.95rem;"></i>
@@ -3096,25 +3096,89 @@
             <button class="btn btn-ghost btn-sm" onclick="closeBillingModal()"><i class="bi bi-x-lg"></i></button>
           </div>
 
-          <div style="background:var(--surface-subtle); border:1px solid var(--border); border-radius:6px; padding:0.85rem 1rem; margin-bottom:1rem; font-size:0.8rem;" id="checkout-summary"></div>
+          <div style="background:var(--surface-subtle); border:1px solid var(--border); border-radius:6px; padding:0.85rem 1rem; margin-bottom:0.85rem; font-size:0.8rem;" id="checkout-summary"></div>
 
-          <div style="background:#fefce8; border:1px solid #fef08a; border-radius:6px; padding:0.6rem 0.85rem; font-size:0.775rem; color:#854d0e; margin-bottom:1rem; text-align:center;">
-            &#9889; Demo Mode — No real charge. Connect Stripe for production.
+          <!-- Promo / Coupon Code -->
+          <div style="display:flex; gap:0.45rem; margin-bottom:0.4rem;">
+            <input type="text" id="checkout-coupon-input" class="form-input" placeholder="Have a coupon or promo code? (e.g. LAUNCH20)" style="flex:1; text-transform:uppercase; font-size:0.78rem;">
+            <button type="button" class="btn btn-outline btn-sm" id="btn-apply-coupon" onclick="applyCheckoutCoupon()">Apply</button>
           </div>
+          <div id="checkout-coupon-status" style="font-size:0.74rem; margin-bottom:0.85rem; min-height:1rem;"></div>
 
-          <div style="margin-bottom:0.85rem;">
-            <label>Card Number</label>
-            <input type="text" id="pay-card" placeholder="4242 4242 4242 4242" maxlength="19" oninput="fmtCard(this)">
-          </div>
-          <div class="grid-2" style="margin-bottom:1rem;">
-            <div><label>Expiry</label><input type="text" id="pay-exp" placeholder="MM / YY" maxlength="7" oninput="fmtExp(this)"></div>
-            <div><label>CVC</label><input type="text" id="pay-cvc" placeholder="123" maxlength="4"></div>
-          </div>
-          <div style="display:flex; gap:0.5rem;">
-            <button class="btn btn-outline" style="flex:1;" onclick="closeBillingModal()">Cancel</button>
-            <button class="btn" style="flex:2;" id="pay-btn" onclick="confirmBillingPayment()">
-              <i class="bi bi-check-circle"></i> Pay Now
+          <!-- Payment Method Tabs -->
+          <div style="display:flex; gap:0.35rem; margin-bottom:0.9rem; background:var(--surface-subtle); padding:0.28rem; border-radius:8px; border:1px solid var(--border);">
+            <button type="button" id="pay-tab-card" class="btn btn-sm" style="flex:1; font-size:0.74rem; background:#000; color:#fff;" onclick="selectPaymentMethodTab('card')">
+              <i class="bi bi-credit-card"></i> Card
             </button>
+            <button type="button" id="pay-tab-upi" class="btn btn-ghost btn-sm" style="flex:1; font-size:0.74rem;" onclick="selectPaymentMethodTab('upi')">
+              <i class="bi bi-qr-code-scan"></i> UPI / QR
+            </button>
+            <button type="button" id="pay-tab-bank" class="btn btn-ghost btn-sm" style="flex:1; font-size:0.74rem;" onclick="selectPaymentMethodTab('bank')">
+              <i class="bi bi-bank"></i> Bank Transfer
+            </button>
+          </div>
+
+          <!-- TAB 1: Credit / Debit Card (Stripe / Razorpay) -->
+          <div id="pay-panel-card">
+            <div id="pay-card-mode-banner" style="background:#fefce8; border:1px solid #fef08a; border-radius:6px; padding:0.55rem 0.85rem; font-size:0.75rem; color:#854d0e; margin-bottom:0.85rem; text-align:center;">
+              &#9889; Demo Mode — Connect Stripe or Razorpay keys in .env for live card charges.
+            </div>
+            <div id="pay-demo-card-fields">
+              <div style="margin-bottom:0.85rem;">
+                <label>Card Number</label>
+                <input type="text" id="pay-card" placeholder="4242 4242 4242 4242" maxlength="19" oninput="fmtCard(this)">
+              </div>
+              <div class="grid-2" style="margin-bottom:1rem;">
+                <div><label>Expiry</label><input type="text" id="pay-exp" placeholder="MM / YY" maxlength="7" oninput="fmtExp(this)"></div>
+                <div><label>CVC</label><input type="text" id="pay-cvc" placeholder="123" maxlength="4"></div>
+              </div>
+            </div>
+            <div style="display:flex; gap:0.5rem;">
+              <button class="btn btn-outline" style="flex:1;" onclick="closeBillingModal()">Cancel</button>
+              <button class="btn" style="flex:2;" id="pay-btn" onclick="confirmBillingPayment()">
+                <i class="bi bi-check-circle"></i> Pay Now
+              </button>
+            </div>
+          </div>
+
+          <!-- TAB 2: UPI / QR (Razorpay UPI or 0%-Fee Direct Merchant UPI) -->
+          <div id="pay-panel-upi" style="display:none;">
+            <div id="pay-upi-body" style="background:var(--surface-subtle); border:1px solid var(--border); border-radius:8px; padding:0.9rem; text-align:center; margin-bottom:0.85rem;">
+              <div style="font-size:0.78rem; color:var(--text-muted);">Click below to generate your UPI QR code &amp; exact INR total.</div>
+            </div>
+            <div id="pay-upi-utr-box" style="display:none; margin-bottom:0.85rem;">
+              <label style="font-size:0.74rem; font-weight:700;">12-Digit UPI UTR / Transaction Reference ID</label>
+              <div style="display:flex; gap:0.4rem; margin-top:0.25rem;">
+                <input type="text" id="pay-upi-utr" class="form-input" placeholder="e.g. 431298765432" maxlength="40" style="flex:1;">
+                <button type="button" class="btn btn-primary btn-sm" onclick="submitDirectUtrPayment('upi_direct')">Submit UTR</button>
+              </div>
+            </div>
+            <div style="display:flex; gap:0.5rem;">
+              <button class="btn btn-outline" style="flex:1;" onclick="closeBillingModal()">Cancel</button>
+              <button class="btn" style="flex:2;" id="pay-upi-btn" onclick="startUpiCheckout()">
+                <i class="bi bi-qr-code"></i> Generate UPI QR / Pay
+              </button>
+            </div>
+          </div>
+
+          <!-- TAB 3: Direct Bank Transfer (0% Gateway Fee) -->
+          <div id="pay-panel-bank" style="display:none;">
+            <div id="pay-bank-body" style="background:var(--surface-subtle); border:1px solid var(--border); border-radius:8px; padding:0.9rem; font-size:0.78rem; margin-bottom:0.85rem;">
+              Click below to lock your order total and display bank transfer details.
+            </div>
+            <div id="pay-bank-utr-box" style="display:none; margin-bottom:0.85rem;">
+              <label style="font-size:0.74rem; font-weight:700;">Bank Transfer Reference / UTR Number</label>
+              <div style="display:flex; gap:0.4rem; margin-top:0.25rem;">
+                <input type="text" id="pay-bank-utr" class="form-input" placeholder="IMPS / NEFT / Wire Ref ID" maxlength="40" style="flex:1;">
+                <button type="button" class="btn btn-primary btn-sm" onclick="submitDirectUtrPayment('bank_transfer')">Submit Reference</button>
+              </div>
+            </div>
+            <div style="display:flex; gap:0.5rem;">
+              <button class="btn btn-outline" style="flex:1;" onclick="closeBillingModal()">Cancel</button>
+              <button class="btn" style="flex:2;" id="pay-bank-btn" onclick="startBankCheckout()">
+                <i class="bi bi-bank2"></i> Get Bank Transfer Instructions
+              </button>
+            </div>
           </div>
         </div>
       </div>

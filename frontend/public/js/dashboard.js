@@ -5946,11 +5946,12 @@ window.loadBillingHistory = async function() {
             }
             return `
             <tr style="border-bottom:1px solid var(--border);">
-              <td style="padding:0.5rem; color:var(--text-muted); font-size:0.72rem;">${safeOrderId.substring(0, 14)}…</td>
-              <td style="padding:0.5rem;">${o.type === 'pay_per_use' ? `${o.quantity} interviews (${o.duration_minutes}min)` : (o.plan_id ? escapeHtml(o.plan_id.replace(/_/g,' ')) : 'Subscription')}</td>
+              <td style="padding:0.5rem; color:var(--text-muted); font-size:0.72rem;">${safeOrderId.substring(0, 14)}…${o.payment_method ? `<div style="font-size:0.66rem;text-transform:uppercase;">${escapeHtml(o.payment_method)}</div>` : ''}</td>
+              <td style="padding:0.5rem;">${o.type === 'pay_per_use' ? `${o.quantity} interviews (${o.duration_minutes}min)` : (o.plan_id ? escapeHtml(o.plan_id.replace(/_/g,' ')) : 'Subscription')}${o.coupon_code ? ` <span class="badge badge-outline" style="font-size:0.62rem;">${escapeHtml(o.coupon_code)}</span>` : ''}</td>
               <td style="text-align:right; padding:0.5rem; font-weight:700;">$${parseFloat(o.amount_usd).toFixed(2)}</td>
               <td style="text-align:right; padding:0.5rem;">
                 <span class="badge ${o.status === 'paid' ? 'badge-dark' : 'badge-outline'}" style="font-size:0.65rem;">${escapeHtml(o.status)}</span>
+                ${o.utr_number ? `<div style="font-size:0.65rem;color:var(--text-muted);margin-top:0.15rem;">UTR: ${escapeHtml(o.utr_number)}</div>` : ''}
               </td>
               <td style="text-align:right; padding:0.5rem;">${invoiceHtml}</td>
               <td style="text-align:right; padding:0.5rem; color:var(--text-muted);">${new Date(o.created_at).toLocaleDateString('en-IN')}</td>
@@ -5964,36 +5965,174 @@ window.loadBillingHistory = async function() {
 };
 
 // ── Checkout modal ────────────────────────────────────────────────────────
-window.openBillingCheckout = function(type) {
-  billingCheckoutType = type;
-  const modal = document.getElementById('billing-checkout-modal');
-  const summary = document.getElementById('checkout-summary');
-  if (!modal || !summary) return;
+let checkoutMethodsCache = null;
+let appliedCheckoutCoupon = null;
+let activeDirectOrderId = null;
 
-  if (type === 'ppu') {
+function renderCheckoutSummaryBox() {
+  const summary = document.getElementById('checkout-summary');
+  if (!summary) return;
+  let baseUsd = 0;
+  let rowsHtml = '';
+
+  if (billingCheckoutType === 'ppu') {
     const qty = Math.max(1, parseInt(document.getElementById('ppu-qty')?.value) || 1);
     const tier = DURATION_TIERS.find(t => t.minutes === billingSelectedDuration);
     const freeInterviews = Math.floor(qty / 10);
     const billedFor = qty - freeInterviews;
-    const total = (billedFor * tier.priceUsd).toFixed(2);
-
-    summary.innerHTML = `
+    baseUsd = +(billedFor * tier.priceUsd).toFixed(2);
+    rowsHtml = `
       <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;"><span style="color:var(--text-muted);">Duration</span><span>${tier.label}</span></div>
       <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;"><span style="color:var(--text-muted);">Quantity</span><span>${qty} interviews</span></div>
-      ${freeInterviews > 0 ? `<div style="display:flex; justify-content:space-between; margin-bottom:0.4rem; color:#16a34a;"><span>Free Bonus 🎁</span><span>+${freeInterviews}</span></div>` : ''}
-      <div style="display:flex; justify-content:space-between; border-top:1px solid var(--border); padding-top:0.55rem; margin-top:0.55rem; font-weight:800; font-size:0.9rem;"><span>Total</span><span>$${total}</span></div>`;
-  } else {
-    if (!billingCheckoutPlan) { alert('Please select a plan first'); return; }
+      ${freeInterviews > 0 ? `<div style="display:flex; justify-content:space-between; margin-bottom:0.4rem; color:#16a34a;"><span>Free Bonus 🎁</span><span>+${freeInterviews}</span></div>` : ''}`;
+  } else if (billingCheckoutPlan) {
     const p = billingCheckoutPlan;
     const cpi = (p.priceUsd / p.includedInterviews).toFixed(2);
-    summary.innerHTML = `
+    baseUsd = Number(p.priceUsd);
+    rowsHtml = `
       <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;"><span style="color:var(--text-muted);">Plan</span><span>${p.label}</span></div>
       <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;"><span style="color:var(--text-muted);">Interviews Included</span><span>${p.includedInterviews.toLocaleString()}</span></div>
       <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;"><span style="color:var(--text-muted);">Per Interview</span><span>~$${cpi}</span></div>
-      ${p.savingsLabel ? `<div style="display:flex; justify-content:space-between; margin-bottom:0.4rem; color:#16a34a;"><span>You Save</span><span>${p.savingsLabel}</span></div>` : ''}
-      <div style="display:flex; justify-content:space-between; border-top:1px solid var(--border); padding-top:0.55rem; margin-top:0.55rem; font-weight:800; font-size:0.9rem;"><span>Total</span><span>$${p.priceUsd}</span></div>`;
+      ${p.savingsLabel ? `<div style="display:flex; justify-content:space-between; margin-bottom:0.4rem; color:#16a34a;"><span>You Save</span><span>${p.savingsLabel}</span></div>` : ''}`;
   }
+
+  let finalUsd = baseUsd;
+  let couponRow = '';
+  if (appliedCheckoutCoupon && appliedCheckoutCoupon.valid) {
+    const disc = appliedCheckoutCoupon.discountPercent > 0
+      ? +(baseUsd * (appliedCheckoutCoupon.discountPercent / 100)).toFixed(2)
+      : Math.min(baseUsd, Number(appliedCheckoutCoupon.discountUsd || 0));
+    finalUsd = +Math.max(0, baseUsd - disc).toFixed(2);
+    couponRow = `<div style="display:flex; justify-content:space-between; margin-bottom:0.4rem; color:#16a34a;"><span>Coupon (${escapeHtml(appliedCheckoutCoupon.code)})</span><span>-$${disc.toFixed(2)}</span></div>`;
+  }
+
+  const rate = checkoutMethodsCache?.usdToInrRate || 85;
+  const inrTotal = (finalUsd * rate).toFixed(2);
+  summary.innerHTML = `${rowsHtml}${couponRow}<div style="display:flex; justify-content:space-between; border-top:1px solid var(--border); padding-top:0.55rem; margin-top:0.55rem; font-weight:800; font-size:0.9rem;"><span>Total</span><span>$${finalUsd.toFixed(2)} <small style="font-weight:500;color:var(--text-muted);">(~₹${inrTotal})</small></span></div>`;
+}
+
+function buildActiveOrderPayload(gateway) {
+  const couponCode = appliedCheckoutCoupon?.valid ? appliedCheckoutCoupon.code : '';
+  if (billingCheckoutType === 'ppu') {
+    const qty = Math.max(1, parseInt(document.getElementById('ppu-qty')?.value) || 1);
+    return {
+      type: 'pay_per_use',
+      quantity: qty,
+      minutes: billingSelectedDuration || 30,
+      gateway,
+      couponCode,
+    };
+  }
+  if (!billingCheckoutPlan) throw new Error('Please select a subscription plan first');
+  return {
+    type: 'subscription',
+    planId: billingCheckoutPlan.id,
+    gateway,
+    couponCode,
+  };
+}
+
+function finishImmediateBillingSuccess(data, fallbackMsg) {
+  if (currentOrg) {
+    if (data.creditsRemaining !== undefined) currentOrg.included_interviews = data.creditsRemaining;
+    if (data.plan) currentOrg.plan = data.plan;
+  }
+  if (typeof updateUserBadge === 'function') updateUserBadge();
+  loadBillingBalance();
+  if (typeof loadBillingHistory === 'function') loadBillingHistory();
+  closeBillingModal();
+  alert(`🎉 Success! ${data.message || fallbackMsg}\nTotal Available Credits: ${data.creditsRemaining}`);
+}
+
+window.selectPaymentMethodTab = function(tab) {
+  ['card', 'upi', 'bank'].forEach((t) => {
+    const panel = document.getElementById(`pay-panel-${t}`);
+    const btn = document.getElementById(`pay-tab-${t}`);
+    const active = t === tab;
+    if (panel) panel.style.display = active ? 'block' : 'none';
+    if (btn) {
+      btn.style.background = active ? '#000' : 'transparent';
+      btn.style.color = active ? '#fff' : 'var(--text)';
+    }
+  });
+};
+
+window.openBillingCheckout = async function(type) {
+  billingCheckoutType = type;
+  appliedCheckoutCoupon = null;
+  activeDirectOrderId = null;
+
+  const modal = document.getElementById('billing-checkout-modal');
+  if (!modal) return;
+  if (type !== 'ppu' && !billingCheckoutPlan) { alert('Please select a plan first'); return; }
+
+  const couponInput = document.getElementById('checkout-coupon-input');
+  const couponStatus = document.getElementById('checkout-coupon-status');
+  if (couponInput) couponInput.value = '';
+  if (couponStatus) couponStatus.innerHTML = '';
+
+  const upiUtrBox = document.getElementById('pay-upi-utr-box');
+  const bankUtrBox = document.getElementById('pay-bank-utr-box');
+  const upiBody = document.getElementById('pay-upi-body');
+  const bankBody = document.getElementById('pay-bank-body');
+  if (upiUtrBox) upiUtrBox.style.display = 'none';
+  if (bankUtrBox) bankUtrBox.style.display = 'none';
+  if (upiBody) upiBody.innerHTML = '<div style="font-size:0.78rem; color:var(--text-muted);">Click below to generate your UPI QR code &amp; exact INR total.</div>';
+  if (bankBody) bankBody.innerHTML = '<div style="font-size:0.78rem; color:var(--text-muted);">Click below to lock your order total and display bank transfer details.</div>';
+
+  selectPaymentMethodTab('card');
   modal.style.display = 'flex';
+  renderCheckoutSummaryBox();
+
+  try {
+    const res = await fetch('/billing/methods');
+    if (res.ok) {
+      checkoutMethodsCache = await res.json();
+      renderCheckoutSummaryBox();
+      const banner = document.getElementById('pay-card-mode-banner');
+      const demoFields = document.getElementById('pay-demo-card-fields');
+      if (checkoutMethodsCache.stripeConfigured) {
+        if (banner) {
+          banner.style.background = '#eff6ff';
+          banner.style.borderColor = '#bfdbfe';
+          banner.style.color = '#1e40af';
+          banner.innerHTML = '<i class="bi bi-shield-lock-fill"></i> Secured by <strong>Stripe</strong> — Pay with Credit/Debit Card, Apple Pay, or Google Pay.';
+        }
+        if (demoFields) demoFields.style.display = 'none';
+      } else {
+        if (demoFields) demoFields.style.display = 'block';
+      }
+    }
+  } catch { /* ignore */ }
+};
+
+window.applyCheckoutCoupon = async function() {
+  if (!authToken) { alert('Please sign in first to validate a coupon.'); return; }
+  const code = (document.getElementById('checkout-coupon-input')?.value || '').trim().toUpperCase();
+  const statusEl = document.getElementById('checkout-coupon-status');
+  if (!code) {
+    appliedCheckoutCoupon = null;
+    if (statusEl) statusEl.innerHTML = '';
+    renderCheckoutSummaryBox();
+    return;
+  }
+  try {
+    const payload = buildActiveOrderPayload('stripe');
+    const res = await fetch('/billing/coupon/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+      body: JSON.stringify({ ...payload, code })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Invalid coupon code');
+    appliedCheckoutCoupon = data;
+    if (statusEl) statusEl.innerHTML = `<span style="color:#16a34a; font-weight:600;"><i class="bi bi-check-circle-fill"></i> ${escapeHtml(data.label)} applied!</span>`;
+    renderCheckoutSummaryBox();
+  } catch (err) {
+    appliedCheckoutCoupon = null;
+    if (statusEl) statusEl.innerHTML = `<span style="color:#dc2626;"><i class="bi bi-exclamation-circle"></i> ${escapeHtml(err.message)}</span>`;
+    renderCheckoutSummaryBox();
+  }
 };
 
 window.closeBillingModal = function() {
@@ -6012,23 +6151,7 @@ window.confirmBillingPayment = async function() {
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing Payment…'; }
 
   try {
-    let orderPayload;
-    if (billingCheckoutType === 'ppu') {
-      const qty = Math.max(1, parseInt(document.getElementById('ppu-qty')?.value) || 1);
-      orderPayload = {
-        type: 'pay_per_use',
-        quantity: qty,
-        minutes: billingSelectedDuration || 30
-      };
-    } else {
-      if (!billingCheckoutPlan) {
-        throw new Error('Please select a subscription plan first');
-      }
-      orderPayload = {
-        type: 'subscription',
-        planId: billingCheckoutPlan.id
-      };
-    }
+    const orderPayload = buildActiveOrderPayload('stripe');
 
     // 1. Create order
     const orderRes = await fetch('/billing/order', {
@@ -6043,6 +6166,11 @@ window.confirmBillingPayment = async function() {
     const orderData = await orderRes.json();
     if (!orderRes.ok) {
       throw new Error(orderData.error || 'Failed to initialize order');
+    }
+
+    if (orderData.paidImmediately) {
+      finishImmediateBillingSuccess(orderData, 'Coupon applied! Credits added.');
+      return;
     }
 
     // Redirect to Stripe Hosted Checkout when configured in production
@@ -6065,23 +6193,162 @@ window.confirmBillingPayment = async function() {
       throw new Error(confirmData.error || 'Payment confirmation failed');
     }
 
-    // 3. Update local state & badges
-    if (currentOrg) {
-      currentOrg.included_interviews = confirmData.creditsRemaining;
-      currentOrg.plan = confirmData.plan;
-    }
-    if (typeof updateUserBadge === 'function') updateUserBadge();
-    await loadBillingBalance();
-    if (typeof loadBillingHistory === 'function') {
-      loadBillingHistory();
-    }
-
-    closeBillingModal();
-    alert(`🎉 Success! ${confirmData.message || 'Payment confirmed and interview credits updated.'}\nTotal Available Credits: ${confirmData.creditsRemaining}`);
+    finishImmediateBillingSuccess(confirmData, 'Payment confirmed and interview credits updated.');
   } catch (err) {
     alert(`❌ Purchase failed: ${err.message}`);
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-circle"></i> Pay Now'; }
+  }
+};
+
+window.startUpiCheckout = async function() {
+  if (!authToken) { alert('Please sign in first.'); if (typeof openAuthModal === 'function') openAuthModal(); return; }
+  const btn = document.getElementById('pay-upi-btn');
+  const body = document.getElementById('pay-upi-body');
+  const utrBox = document.getElementById('pay-upi-utr-box');
+  if (btn) { btn.disabled = true; btn.textContent = 'Generating QR...'; }
+
+  try {
+    const useRazorpay = Boolean(checkoutMethodsCache?.razorpayConfigured && !checkoutMethodsCache?.upiDirectConfigured);
+    const payload = buildActiveOrderPayload(useRazorpay ? 'razorpay' : 'upi_direct');
+    const res = await fetch('/billing/order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not start UPI order');
+
+    if (data.paidImmediately) {
+      finishImmediateBillingSuccess(data, 'Coupon applied! Credits added.');
+      return;
+    }
+
+    if (data.provider === 'razorpay' && data.providerSession?.razorpayOrderId) {
+      if (!window.Razorpay) {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+          s.onload = resolve;
+          s.onerror = () => reject(new Error('Failed to load Razorpay Checkout script.'));
+          document.head.appendChild(s);
+        });
+      }
+      const rzp = new window.Razorpay({
+        key: data.providerSession.keyId,
+        order_id: data.providerSession.razorpayOrderId,
+        name: 'RoundOne AI',
+        description: `Order ${data.orderId}`,
+        handler: async (rzpResp) => {
+          const vRes = await fetch(`/billing/order/${data.orderId}/verify-razorpay`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+            body: JSON.stringify(rzpResp)
+          });
+          const vData = await vRes.json();
+          if (!vRes.ok) return alert(vData.error || 'Razorpay verification failed');
+          finishImmediateBillingSuccess(vData, 'UPI / Razorpay payment verified!');
+        }
+      });
+      rzp.open();
+      return;
+    }
+
+    activeDirectOrderId = data.orderId;
+    if (body) {
+      if (data.qrDataUrl) {
+        body.innerHTML = `
+          <div style="font-size:0.78rem; font-weight:700; margin-bottom:0.45rem;">Scan &amp; Pay <strong>₹${Number(data.amountInr).toFixed(2)}</strong> ($${Number(data.amountUsd).toFixed(2)}) — 0% Fee</div>
+          <img src="${data.qrDataUrl}" alt="UPI QR Code" style="width:180px;height:180px;border-radius:8px;border:1px solid var(--border);background:#fff;padding:6px;">
+          <div style="font-size:0.76rem; margin-top:0.5rem;">UPI ID: <code style="font-weight:700;">${escapeHtml(data.upiId)}</code></div>
+          <div style="margin-top:0.45rem;">
+            <a href="${escapeHtml(data.upiDeepLink)}" class="btn btn-outline btn-sm"><i class="bi bi-phone"></i> Open UPI App</a>
+          </div>
+          <div style="font-size:0.7rem; color:var(--text-muted); margin-top:0.45rem;">Order Ref: ${escapeHtml(data.orderId)}</div>
+        `;
+      } else {
+        body.innerHTML = `
+          <div style="font-size:0.78rem; color:#9a3412;">
+            <strong>MERCHANT_UPI_ID</strong> is not set in server <code>.env</code> yet.<br>
+            Set <code>MERCHANT_UPI_ID=yourupi@bank</code> in <code>.env</code> to display your live scannable UPI QR code.<br>
+            Order locked: <code>${escapeHtml(data.orderId)}</code> (₹${Number(data.amountInr).toFixed(2)})
+          </div>`;
+      }
+    }
+    if (utrBox) utrBox.style.display = 'block';
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-qr-code"></i> Regenerate UPI QR'; }
+  }
+};
+
+window.startBankCheckout = async function() {
+  if (!authToken) { alert('Please sign in first.'); if (typeof openAuthModal === 'function') openAuthModal(); return; }
+  const btn = document.getElementById('pay-bank-btn');
+  const body = document.getElementById('pay-bank-body');
+  const utrBox = document.getElementById('pay-bank-utr-box');
+  if (btn) { btn.disabled = true; btn.textContent = 'Loading Details...'; }
+
+  try {
+    const payload = buildActiveOrderPayload('bank_transfer');
+    const res = await fetch('/billing/order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not create bank transfer order');
+
+    if (data.paidImmediately) {
+      finishImmediateBillingSuccess(data, 'Coupon applied! Credits added.');
+      return;
+    }
+
+    activeDirectOrderId = data.orderId;
+    const b = data.bankDetails;
+    if (body) {
+      if (b) {
+        body.innerHTML = `
+          <div style="font-weight:700; margin-bottom:0.45rem;">Direct Bank Transfer (0% Gateway Fee) — $${Number(data.amountUsd).toFixed(2)} (₹${Number(data.amountInr).toFixed(2)})</div>
+          <div><strong>Account Name:</strong> ${escapeHtml(b.holder || 'Merchant')}</div>
+          <div><strong>Bank:</strong> ${escapeHtml(b.bankName || 'N/A')}</div>
+          <div><strong>Account No:</strong> <code>${escapeHtml(b.accountNumber)}</code></div>
+          <div><strong>IFSC / SWIFT:</strong> <code>${escapeHtml(b.ifscOrSwift)}</code></div>
+          <div style="margin-top:0.35rem; font-size:0.72rem; color:var(--text-muted);">Order Reference: <code>${escapeHtml(data.orderId)}</code></div>
+        `;
+      } else {
+        body.innerHTML = `<div style="color:#9a3412;">Set <code>MERCHANT_BANK_ACCOUNT</code> and <code>MERCHANT_BANK_IFSC</code> in <code>.env</code> to show your bank account details.<br>Order ID: <code>${escapeHtml(data.orderId)}</code></div>`;
+      }
+    }
+    if (utrBox) utrBox.style.display = 'block';
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-bank2"></i> Refresh Bank Details'; }
+  }
+};
+
+window.submitDirectUtrPayment = async function(method) {
+  if (!activeDirectOrderId) return alert('Generate an order first.');
+  const inputId = method === 'bank_transfer' ? 'pay-bank-utr' : 'pay-upi-utr';
+  const utrNumber = (document.getElementById(inputId)?.value || '').trim();
+  if (!utrNumber) return alert('Please enter your UTR / Bank Reference ID.');
+
+  try {
+    const res = await fetch(`/billing/order/${encodeURIComponent(activeDirectOrderId)}/submit-utr`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+      body: JSON.stringify({ utrNumber, paymentMethod: method })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'UTR submission failed');
+
+    if (typeof loadBillingHistory === 'function') loadBillingHistory();
+    closeBillingModal();
+    alert(`✅ ${data.message}\nReference: ${data.utrNumber}`);
+  } catch (err) {
+    alert(err.message);
   }
 };
 

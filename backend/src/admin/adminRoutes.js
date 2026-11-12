@@ -1923,6 +1923,10 @@ adminRouter.get('/orders', requireAdmin, (req, res) => {
         bo.duration_minutes,
         bo.amount_usd,
         bo.status,
+        bo.coupon_code,
+        bo.discount_usd,
+        bo.payment_method,
+        bo.utr_number,
         bo.paid_at,
         bo.created_at,
         u.email as recruiter_email,
@@ -1937,7 +1941,7 @@ adminRouter.get('/orders', requireAdmin, (req, res) => {
 
     const totalRevenueRow = db.prepare("SELECT COALESCE(SUM(amount_usd), 0) as total FROM billing_orders WHERE status = 'paid'").get();
     const paidCountRow = db.prepare("SELECT COUNT(*) as c FROM billing_orders WHERE status = 'paid'").get();
-    const pendingCountRow = db.prepare("SELECT COUNT(*) as c FROM billing_orders WHERE status = 'pending'").get();
+    const pendingCountRow = db.prepare("SELECT COUNT(*) as c FROM billing_orders WHERE status IN ('pending', 'pending_verification')").get();
 
     res.json({
       success: true,
@@ -2241,6 +2245,59 @@ adminRouter.delete('/feedbacks/:id', requireAdmin, (req, res) => {
     const info = db.prepare('DELETE FROM feedbacks WHERE id = ?').run(id);
     if (!info.changes) return res.status(404).json({ error: 'Feedback not found' });
     res.json({ success: true, message: 'Feedback removed.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Promo / Coupon Code Management ──────────────────────────────────────────
+adminRouter.get('/coupons', requireAdmin, (req, res) => {
+  try {
+    const coupons = db.prepare('SELECT * FROM billing_coupons ORDER BY created_at DESC').all();
+    res.json({ success: true, coupons });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+adminRouter.post('/coupons', requireAdmin, (req, res) => {
+  try {
+    const code = String(req.body?.code || '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+    const discountPercent = Math.min(100, Math.max(0, parseInt(req.body?.discountPercent || 0, 10) || 0));
+    const discountUsd = Math.max(0, Number(req.body?.discountUsd || 0) || 0);
+    const maxUses = Math.max(1, parseInt(req.body?.maxUses || 100, 10) || 100);
+    const expiresAt = req.body?.expiresAt ? new Date(req.body.expiresAt).toISOString() : null;
+
+    if (!code || code.length < 3) {
+      return res.status(400).json({ error: 'Coupon code must be at least 3 alphanumeric characters.' });
+    }
+    if (discountPercent <= 0 && discountUsd <= 0) {
+      return res.status(400).json({ error: 'Specify either a discount percentage (1–100) or USD flat discount.' });
+    }
+
+    db.prepare(`
+      INSERT INTO billing_coupons (code, discount_percent, discount_usd, max_uses, used_count, active, expires_at)
+      VALUES (?, ?, ?, ?, 0, 1, ?)
+      ON CONFLICT(code) DO UPDATE SET
+        discount_percent = excluded.discount_percent,
+        discount_usd = excluded.discount_usd,
+        max_uses = excluded.max_uses,
+        active = 1,
+        expires_at = excluded.expires_at
+    `).run(code, discountPercent, discountUsd, maxUses, expiresAt);
+
+    res.json({ success: true, coupon: { code, discountPercent, discountUsd, maxUses, expiresAt } });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+adminRouter.delete('/coupons/:code', requireAdmin, (req, res) => {
+  try {
+    const code = String(req.params.code || '').trim().toUpperCase();
+    const del = db.prepare('DELETE FROM billing_coupons WHERE code = ?').run(code);
+    if (!del.changes) return res.status(404).json({ error: 'Coupon not found' });
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

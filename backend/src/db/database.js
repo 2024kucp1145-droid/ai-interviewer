@@ -175,6 +175,17 @@ export function initDatabase() {
       FOREIGN KEY (org_id) REFERENCES organizations(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS billing_coupons (
+      code TEXT PRIMARY KEY,
+      discount_percent INTEGER DEFAULT 0,
+      discount_usd REAL DEFAULT 0,
+      max_uses INTEGER DEFAULT 100,
+      used_count INTEGER DEFAULT 0,
+      active INTEGER DEFAULT 1,
+      expires_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS org_question_bank (
       id TEXT PRIMARY KEY,
       org_id TEXT NOT NULL,
@@ -373,6 +384,10 @@ export function initDatabase() {
   addColumn('billing_orders', 'stripe_invoice_id', 'TEXT');
   addColumn('billing_orders', 'invoice_pdf_url', 'TEXT');
   addColumn('billing_orders', 'hosted_invoice_url', 'TEXT');
+  addColumn('billing_orders', 'coupon_code', 'TEXT');
+  addColumn('billing_orders', 'discount_usd', 'REAL DEFAULT 0');
+  addColumn('billing_orders', 'payment_method', 'TEXT');
+  addColumn('billing_orders', 'utr_number', 'TEXT');
 
   // Multi-type interview options & custom questions
   addColumn('jobs', 'qualifications', 'TEXT');

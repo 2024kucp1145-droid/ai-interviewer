@@ -188,17 +188,33 @@ export async function runMigration(explicitUrl) {
       name: 'billing_orders',
       sqliteSql: 'SELECT * FROM billing_orders',
       insertSql: `
-        INSERT INTO billing_orders (id, org_id, type, plan_id, quantity, duration_minutes, amount_usd, status, paid_at, quote_json, stripe_session_id, stripe_invoice_id, invoice_pdf_url, hosted_invoice_url, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        INSERT INTO billing_orders (id, org_id, type, plan_id, quantity, duration_minutes, amount_usd, status, paid_at, quote_json, stripe_session_id, stripe_invoice_id, invoice_pdf_url, hosted_invoice_url, coupon_code, discount_usd, payment_method, utr_number, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
         ON CONFLICT (id) DO UPDATE SET
           status = EXCLUDED.status,
           paid_at = EXCLUDED.paid_at,
           stripe_session_id = EXCLUDED.stripe_session_id,
           stripe_invoice_id = EXCLUDED.stripe_invoice_id,
           invoice_pdf_url = EXCLUDED.invoice_pdf_url,
-          hosted_invoice_url = EXCLUDED.hosted_invoice_url
+          hosted_invoice_url = EXCLUDED.hosted_invoice_url,
+          coupon_code = EXCLUDED.coupon_code,
+          discount_usd = EXCLUDED.discount_usd,
+          payment_method = EXCLUDED.payment_method,
+          utr_number = EXCLUDED.utr_number
       `,
-      mapRow: (r) => [r.id, r.org_id, r.type, r.plan_id, r.quantity, r.duration_minutes, r.amount_usd, r.status, r.paid_at, safeJson(r.quote_json), r.stripe_session_id || null, r.stripe_invoice_id || null, r.invoice_pdf_url || null, r.hosted_invoice_url || null, r.created_at]
+      mapRow: (r) => [r.id, r.org_id, r.type, r.plan_id, r.quantity, r.duration_minutes, r.amount_usd, r.status, r.paid_at, safeJson(r.quote_json), r.stripe_session_id || null, r.stripe_invoice_id || null, r.invoice_pdf_url || null, r.hosted_invoice_url || null, r.coupon_code || null, r.discount_usd || 0, r.payment_method || null, r.utr_number || null, r.created_at]
+    },
+    {
+      name: 'billing_coupons',
+      sqliteSql: 'SELECT * FROM billing_coupons',
+      insertSql: `
+        INSERT INTO billing_coupons (code, discount_percent, discount_usd, max_uses, used_count, active, expires_at, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ON CONFLICT (code) DO UPDATE SET
+          used_count = EXCLUDED.used_count,
+          active = EXCLUDED.active
+      `,
+      mapRow: (r) => [r.code, r.discount_percent || 0, r.discount_usd || 0, r.max_uses || 100, r.used_count || 0, r.active ?? 1, r.expires_at || null, r.created_at]
     },
     {
       name: 'billing_events',

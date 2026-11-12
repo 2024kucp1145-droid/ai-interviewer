@@ -3098,6 +3098,7 @@ window.loadOrdersDirectory = async function() {
     if (elTotal) elTotal.textContent = stats.totalOrders || 0;
 
     renderOrdersTable();
+    if (typeof loadAdminCoupons === 'function') loadAdminCoupons();
   } catch (err) {
     if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="color:var(--danger); text-align:center; padding:1.5rem;">${escapeHtml(err.message)}</td></tr>`;
   }
@@ -3162,6 +3163,9 @@ window.renderOrdersTable = function() {
           <span class="badge ${isPaid ? 'badge-success' : 'badge-warning'}">
             <i class="bi ${isPaid ? 'bi-check-circle-fill' : 'bi-clock-history'}"></i> ${escapeHtml(o.status.toUpperCase())}
           </span>
+          ${o.payment_method ? `<div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.2rem;text-transform:uppercase;">${escapeHtml(o.payment_method)}</div>` : ''}
+          ${o.utr_number ? `<div style="font-size:0.7rem;font-weight:700;color:var(--primary);margin-top:0.15rem;">UTR: ${escapeHtml(o.utr_number)}</div>` : ''}
+          ${o.coupon_code ? `<div style="font-size:0.68rem;color:var(--success);margin-top:0.1rem;">Coupon: ${escapeHtml(o.coupon_code)} (-$${Number(o.discount_usd || 0).toFixed(2)})</div>` : ''}
         </td>
         <td style="font-size:0.75rem; color:var(--text-muted);">${new Date(o.created_at).toLocaleDateString()}</td>
         <td style="text-align:right;">
@@ -3191,6 +3195,66 @@ window.markOrderPaid = async function(orderId) {
     showToast(data.message, 'success');
     loadOrdersDirectory();
     loadDashboardStats(true);
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+};
+
+window.loadAdminCoupons = async function() {
+  const el = document.getElementById('admin-coupons-list');
+  if (!el) return;
+  try {
+    const res = await fetch(`${API_BASE}/coupons`, {
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to load coupons');
+    const coupons = data.coupons || [];
+    el.innerHTML = coupons.map((c) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0.75rem;border:1px solid var(--border);border-radius:8px;background:var(--surface);">
+        <div>
+          <strong style="color:var(--text);">${escapeHtml(c.code)}</strong>
+          <span style="margin-left:0.5rem;color:var(--success);font-weight:600;">${c.discount_percent > 0 ? `${c.discount_percent}% OFF` : `$${Number(c.discount_usd || 0).toFixed(2)} OFF`}</span>
+          <span style="margin-left:0.5rem;font-size:0.72rem;color:var(--text-muted);">Used: ${c.used_count || 0}/${c.max_uses || 100}</span>
+        </div>
+        <button class="btn btn-outline btn-sm" style="color:var(--danger);" onclick="deleteAdminCoupon('${escapeHtml(c.code)}')"><i class="bi bi-trash"></i> Delete</button>
+      </div>
+    `).join('') || 'No coupons created yet.';
+  } catch (err) {
+    el.textContent = err.message;
+  }
+};
+
+window.createAdminCoupon = async function(e) {
+  e.preventDefault();
+  const code = document.getElementById('coupon-code-input')?.value.trim();
+  const discountPercent = Number(document.getElementById('coupon-pct-input')?.value || 0);
+  const discountUsd = Number(document.getElementById('coupon-usd-input')?.value || 0);
+  const maxUses = Number(document.getElementById('coupon-uses-input')?.value || 100);
+  try {
+    const res = await fetch(`${API_BASE}/coupons`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
+      body: JSON.stringify({ code, discountPercent, discountUsd, maxUses })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Coupon creation failed');
+    showToast(`Coupon ${data.coupon.code} saved!`, 'success');
+    e.target.reset();
+    loadAdminCoupons();
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+};
+
+window.deleteAdminCoupon = async function(code) {
+  if (!confirm(`Delete coupon ${code}?`)) return;
+  try {
+    const res = await fetch(`${API_BASE}/coupons/${encodeURIComponent(code)}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    if (res.ok) loadAdminCoupons();
   } catch (err) {
     showToast(err.message, 'danger');
   }
