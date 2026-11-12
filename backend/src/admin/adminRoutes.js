@@ -795,6 +795,49 @@ adminRouter.get('/stats', requireAdmin, (req, res) => {
 
     const settingApproval = db.prepare("SELECT value FROM platform_settings WHERE key = 'require_admin_approval'").get();
 
+    // 7-day trend series for Analytics Charts & Graphs
+    const last7Days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      last7Days.push(d.toISOString().slice(0, 10));
+    }
+
+    const dailyInterviewsRows = db.prepare(`
+      SELECT date(started_at) as day, COUNT(*) as count 
+      FROM interviews 
+      WHERE started_at IS NOT NULL AND date(started_at) >= date('now', '-6 days')
+      GROUP BY date(started_at)
+    `).all();
+    const dailyInterviewsMap = new Map(dailyInterviewsRows.map(r => [r.day, r.count]));
+
+    const dailyUsersRows = db.prepare(`
+      SELECT date(created_at) as day, COUNT(*) as count 
+      FROM users 
+      WHERE role != 'superadmin' AND date(created_at) >= date('now', '-6 days')
+      GROUP BY date(created_at)
+    `).all();
+    const dailyUsersMap = new Map(dailyUsersRows.map(r => [r.day, r.count]));
+
+    const dailyActivitiesRows = db.prepare(`
+      SELECT date(created_at) as day, COUNT(*) as count 
+      FROM platform_activities 
+      WHERE date(created_at) >= date('now', '-6 days')
+      GROUP BY date(created_at)
+    `).all();
+    const dailyActivitiesMap = new Map(dailyActivitiesRows.map(r => [r.day, r.count]));
+
+    const chartSeries = {
+      labels: last7Days.map(d => {
+        const parts = d.split('-');
+        return `${parts[1]}/${parts[2]}`;
+      }),
+      days: last7Days,
+      interviews: last7Days.map(d => dailyInterviewsMap.get(d) || 0),
+      users: last7Days.map(d => dailyUsersMap.get(d) || 0),
+      activities: last7Days.map(d => dailyActivitiesMap.get(d) || 0)
+    };
+
     res.json({
       success: true,
       stats: {
@@ -834,7 +877,8 @@ adminRouter.get('/stats', requireAdmin, (req, res) => {
         avgScore,
         completionRate,
         activitiesToday: countsAgg.today_activities || 0,
-        requireAdminApproval: settingApproval?.value === '1'
+        requireAdminApproval: settingApproval?.value === '1',
+        charts: chartSeries
       }
     });
   } catch (err) {
@@ -1495,6 +1539,100 @@ adminRouter.delete('/users/:id', requireAdmin, (req, res) => {
     });
 
     res.json({ success: true, message: `User ${user.email} deleted.` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Bulk Action on Users: approve, suspend, or delete
+ */
+adminRouter.post('/users/bulk', requireAdmin, (req, res) => {
+  try {
+    const { action, userIds } = req.body || {};
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ error: 'userIds must be a non-empty array' });
+    }
+    if (!['approve', 'suspend', 'delete'].includes(action)) {
+      return res.status(400).json({ error: 'Action must be approve, suspend, or delete' });
+    }
+
+    let affectedCount = 0;
+    const targetStatus = action === 'approve' ? 'approved' : (action === 'suspend' ? 'suspended' : null);
+
+    db.transaction(() => {
+      for (const id of userIds) {
+        const user = db.prepare('SELECT id, email, role FROM users WHERE id = ?').get(id);
+        if (!user || user.role === 'superadmin') continue;
+
+        if (action === 'delete') {
+          db.prepare('DELETE FROM users WHERE id = ?').run(id);
+          affectedCount++;
+        } else {
+          db.prepare('UPDATE users SET approval_status = ? WHERE id = ?').run(targetStatus, id);
+          affectedCount++;
+        }
+      }
+    })();
+
+    logActivity({
+      action: `ADMIN_BULK_${action.toUpperCase()}`,
+      actorType: 'admin',
+      actorId: req.admin.id,
+      actorEmail: req.admin.email,
+      actorName: req.admin.full_name,
+      entityType: 'users',
+      details: { action, count: affectedCount, userIds }
+    });
+
+    res.json({
+      success: true,
+      affectedCount,
+      message: `Successfully processed bulk ${action} on ${affectedCount} recruiter(s).`
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Dedicated Admin Audit Log endpoint
+ * Provides administrative audit trail with actor filtering & export readiness
+ */
+adminRouter.get('/audit-logs', requireAdmin, (req, res) => {
+  try {
+    const { limit = 100, offset = 0, adminId } = req.query;
+    let sql = `
+      SELECT 
+        a.*,
+        u.email as admin_email,
+        u.full_name as admin_full_name
+      FROM platform_activities a
+      LEFT JOIN users u ON a.actor_id = u.id
+      WHERE a.actor_type = 'admin' OR a.action LIKE 'ADMIN_%' OR a.action LIKE 'USER_STATUS_%' OR a.action LIKE 'CREDITS_%' OR a.action = 'USER_DELETED'
+    `;
+    const params = [];
+    if (adminId) {
+      sql += ' AND a.actor_id = ?';
+      params.push(adminId);
+    }
+    sql += ' ORDER BY a.created_at DESC LIMIT ? OFFSET ?';
+    params.push(parseInt(limit, 10), parseInt(offset, 10));
+
+    const logs = db.prepare(sql).all(...params);
+    const countRow = db.prepare(`
+      SELECT COUNT(*) as total 
+      FROM platform_activities 
+      WHERE actor_type = 'admin' OR action LIKE 'ADMIN_%' OR action LIKE 'USER_STATUS_%' OR action LIKE 'CREDITS_%' OR action = 'USER_DELETED'
+    `).get();
+
+    res.json({
+      success: true,
+      logs,
+      total: countRow.total,
+      limit: parseInt(limit, 10),
+      offset: parseInt(offset, 10)
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

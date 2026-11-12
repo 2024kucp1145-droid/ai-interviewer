@@ -643,6 +643,11 @@ const TA_PAGE_META = {
     subtitle: 'Active superadmin directory & Unique Admin IDs',
     crumb: 'Admin Team'
   },
+  audit: {
+    title: 'Administrative Security Audit Trail',
+    subtitle: 'Real-time immutable log of admin status changes, credit additions, bulk actions & security operations',
+    crumb: 'Audit Trail'
+  },
   settings: {
     title: 'Platform Governance & Integrations',
     subtitle: 'Configure signup rules, email OTP delivery & PostgreSQL database engine',
@@ -695,7 +700,7 @@ window.closeMobileSidebar = function() {
 
 window.switchDashboardTab = function(tabName) {
   currentTab = tabName;
-  const tabs = ['overview', 'activities', 'users', 'interviews', 'orders', 'feedbacks', 'invites', 'settings'];
+  const tabs = ['overview', 'activities', 'users', 'interviews', 'orders', 'feedbacks', 'invites', 'audit', 'settings'];
 
   tabs.forEach(t => {
     const content = document.getElementById(`tab-content-${t}`);
@@ -712,6 +717,7 @@ window.switchDashboardTab = function(tabName) {
   if (tabName === 'orders') loadOrdersDirectory();
   if (tabName === 'feedbacks') loadFeedbacksInbox();
   if (tabName === 'invites') loadAdminInvites();
+  if (tabName === 'audit') loadAdminAuditLogs();
   if (tabName === 'settings') loadPlatformSettings();
 };
 
@@ -1133,9 +1139,140 @@ async function loadDashboardStats(isSilent = false) {
     if (seatsTextEl) {
       seatsTextEl.textContent = `Active Admins: ${s.admins.occupied}`;
     }
+
+    // Render interactive Chart.js line and bar trends
+    if (s.charts && typeof Chart !== 'undefined') {
+      renderOverviewCharts(s.charts);
+    }
+
     updateLastSyncBadge();
   } catch (err) {
     if (!isSilent) console.error('Failed to load stats:', err);
+  }
+}
+
+let interviewsChartInstance = null;
+let activityChartInstance = null;
+
+function renderOverviewCharts(charts) {
+  try {
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+    const textColor = isDark ? '#94a3b8' : '#475467';
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
+
+    // Chart 1: Interview Volume
+    const canvas1 = document.getElementById('chart-interviews-trend');
+    if (canvas1) {
+      if (interviewsChartInstance) interviewsChartInstance.destroy();
+      interviewsChartInstance = new Chart(canvas1, {
+        type: 'line',
+        data: {
+          labels: charts.labels,
+          datasets: [{
+            label: 'Interviews Started',
+            data: charts.interviews,
+            borderColor: '#0ea5e9',
+            backgroundColor: 'rgba(14, 165, 233, 0.15)',
+            borderWidth: 2.5,
+            fill: true,
+            tension: 0.35,
+            pointBackgroundColor: '#0ea5e9',
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: isDark ? '#1a253b' : '#ffffff',
+              titleColor: isDark ? '#ffffff' : '#101828',
+              bodyColor: isDark ? '#94a3b8' : '#475467',
+              borderColor: isDark ? '#243047' : '#cbd5e1',
+              borderWidth: 1,
+              padding: 10,
+              boxPadding: 4
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: gridColor },
+              ticks: { color: textColor, font: { size: 11, family: 'Inter' } }
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: gridColor },
+              ticks: { color: textColor, precision: 0, font: { size: 11, family: 'Inter' } }
+            }
+          }
+        }
+      });
+    }
+
+    // Chart 2: Recruiter Signups & Platform Activity
+    const canvas2 = document.getElementById('chart-activity-trend');
+    if (canvas2) {
+      if (activityChartInstance) activityChartInstance.destroy();
+      activityChartInstance = new Chart(canvas2, {
+        type: 'bar',
+        data: {
+          labels: charts.labels,
+          datasets: [
+            {
+              label: 'Recruiter Signups',
+              data: charts.users,
+              backgroundColor: '#8b5cf6',
+              borderRadius: 6,
+              barPercentage: 0.55
+            },
+            {
+              label: 'Platform Audit Events',
+              data: charts.activities,
+              backgroundColor: '#10b981',
+              borderRadius: 6,
+              barPercentage: 0.55
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                color: textColor,
+                boxWidth: 12,
+                font: { size: 11, family: 'Inter', weight: 600 }
+              }
+            },
+            tooltip: {
+              backgroundColor: isDark ? '#1a253b' : '#ffffff',
+              titleColor: isDark ? '#ffffff' : '#101828',
+              bodyColor: isDark ? '#94a3b8' : '#475467',
+              borderColor: isDark ? '#243047' : '#cbd5e1',
+              borderWidth: 1,
+              padding: 10
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: gridColor },
+              ticks: { color: textColor, font: { size: 11, family: 'Inter' } }
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: gridColor },
+              ticks: { color: textColor, precision: 0, font: { size: 11, family: 'Inter' } }
+            }
+          }
+        }
+      });
+    }
+  } catch (err) {
+    console.warn('Error rendering charts:', err);
   }
 }
 
@@ -2023,6 +2160,161 @@ window.loadRecruitersDirectory = async function() {
   }
 };
 
+let selectedUserIds = new Set();
+let pendingConfirmedAction = null;
+
+window.toggleSelectAllUsers = function(checked) {
+  const visibleCheckboxes = document.querySelectorAll('.user-select-chk');
+  visibleCheckboxes.forEach(chk => {
+    chk.checked = checked;
+    if (checked) {
+      selectedUserIds.add(chk.value);
+    } else {
+      selectedUserIds.delete(chk.value);
+    }
+  });
+  updateBulkBarUi();
+};
+
+window.toggleUserSelect = function(userId, checked) {
+  if (checked) {
+    selectedUserIds.add(userId);
+  } else {
+    selectedUserIds.delete(userId);
+  }
+  const allCount = document.querySelectorAll('.user-select-chk').length;
+  const selectAllChk = document.getElementById('users-select-all');
+  if (selectAllChk) {
+    selectAllChk.checked = (selectedUserIds.size > 0 && selectedUserIds.size === allCount);
+  }
+  updateBulkBarUi();
+};
+
+window.deselectAllUsers = function() {
+  selectedUserIds.clear();
+  const selectAllChk = document.getElementById('users-select-all');
+  if (selectAllChk) selectAllChk.checked = false;
+  document.querySelectorAll('.user-select-chk').forEach(chk => chk.checked = false);
+  updateBulkBarUi();
+};
+
+function updateBulkBarUi() {
+  const bar = document.getElementById('users-bulk-bar');
+  const countBadge = document.getElementById('bulk-selected-count');
+  if (!bar || !countBadge) return;
+
+  if (selectedUserIds.size > 0) {
+    bar.style.display = 'flex';
+    countBadge.textContent = `${selectedUserIds.size} Selected`;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+// Danger Zone Confirmation Dialog
+window.showConfirmDialog = function({ title, message, subtext = '', btnText = 'Proceed & Confirm', onConfirm }) {
+  document.getElementById('confirm-modal-title').innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> ${escapeHtml(title)}`;
+  document.getElementById('confirm-modal-message').innerHTML = message;
+  document.getElementById('confirm-modal-subtext').innerHTML = subtext;
+  const btn = document.getElementById('confirm-modal-btn-execute');
+  if (btn) btn.innerHTML = `<i class="bi bi-trash3-fill"></i> ${escapeHtml(btnText)}`;
+
+  pendingConfirmedAction = onConfirm;
+  document.getElementById('modal-confirm-action').classList.add('show');
+};
+
+window.closeConfirmModal = function() {
+  pendingConfirmedAction = null;
+  document.getElementById('modal-confirm-action').classList.remove('show');
+};
+
+window.executeConfirmedAction = async function() {
+  if (typeof pendingConfirmedAction === 'function') {
+    const fn = pendingConfirmedAction;
+    closeConfirmModal();
+    await fn();
+  } else {
+    closeConfirmModal();
+  }
+};
+
+window.confirmDeleteUser = function(userId, userEmail) {
+  showConfirmDialog({
+    title: 'Delete Recruiter Account',
+    message: `Are you sure you want to permanently delete recruiter <strong style="color:var(--danger);">${escapeHtml(userEmail)}</strong>?`,
+    subtext: 'This action is irreversible. The account, associated organization access, and active sessions will be deleted.',
+    btnText: 'Delete Recruiter Permanently',
+    onConfirm: async () => {
+      try {
+        const res = await fetch(`${API_BASE}/users/${userId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${adminToken}` }
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to delete user');
+
+        showToast(data.message || 'User deleted successfully', 'success');
+        selectedUserIds.delete(userId);
+        loadRecruitersDirectory();
+        loadDashboardStats(true);
+        loadActivityStream(true);
+      } catch (err) {
+        showToast(err.message, 'danger');
+      }
+    }
+  });
+};
+
+window.executeBulkUserAction = function(action) {
+  if (selectedUserIds.size === 0) {
+    showToast('No recruiters selected.', 'warning');
+    return;
+  }
+  const count = selectedUserIds.size;
+  const ids = Array.from(selectedUserIds);
+
+  let title = 'Bulk Operation';
+  let message = `Are you sure you want to <strong>${action.toUpperCase()}</strong> ${count} selected recruiter accounts?`;
+  let subtext = `Target: ${count} recruiter profile(s).`;
+  let btnText = `Bulk ${action.toUpperCase()}`;
+
+  if (action === 'delete') {
+    title = 'Confirm Bulk Recruiter Deletion';
+    message = `Are you sure you want to permanently <strong>DELETE ${count} recruiter accounts</strong>?`;
+    subtext = 'WARNING: All selected recruiter profiles will be deleted from the database. This action cannot be undone.';
+    btnText = `Delete ${count} Recruiters`;
+  }
+
+  showConfirmDialog({
+    title,
+    message,
+    subtext,
+    btnText,
+    onConfirm: async () => {
+      try {
+        const res = await fetch(`${API_BASE}/users/bulk`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${adminToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ action, userIds: ids })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Bulk operation failed');
+
+        showToast(data.message, 'success');
+        deselectAllUsers();
+        loadRecruitersDirectory();
+        loadDashboardStats(true);
+        loadActivityStream(true);
+      } catch (err) {
+        showToast(err.message, 'danger');
+      }
+    }
+  });
+};
+
 let usersStatusFilter = '';
 
 window.setUsersStatusFilter = function(status) {
@@ -2067,7 +2359,8 @@ window.renderUsersTable = function() {
   }
 
   if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 2rem; color: var(--text-muted);">No recruiters match the search filter.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 2rem; color: var(--text-muted);">No recruiters match the search filter.</td></tr>`;
+    updateBulkBarUi();
     return;
   }
 
@@ -2082,9 +2375,13 @@ window.renderUsersTable = function() {
     }
 
     const lastLogin = u.last_login_at ? formatTimeAgo(u.last_login_at) : 'Never';
+    const isChecked = selectedUserIds.has(u.id);
 
     return `
       <tr>
+        <td style="text-align: center;">
+          <input type="checkbox" class="user-select-chk" value="${u.id}" ${isChecked ? 'checked' : ''} onchange="toggleUserSelect('${u.id}', this.checked)" style="cursor: pointer; width: 16px; height: 16px;">
+        </td>
         <td>
           <strong style="color:var(--text); display:block;">${escapeHtml(u.full_name || 'Hiring Manager')}</strong>
           <span style="font-size:0.75rem; color:var(--text-muted); font-family:var(--mono);">${escapeHtml(u.email)}</span>
@@ -2105,24 +2402,29 @@ window.renderUsersTable = function() {
         </td>
         <td style="font-size:0.75rem; color:var(--text-muted); font-family:var(--mono);">${lastLogin}</td>
         <td style="text-align: right;">
-          <div style="display:inline-flex; gap:0.4rem;">
+          <div style="display:inline-flex; gap:0.35rem; align-items:center;">
             ${u.approval_status !== 'approved' ? `
               <button class="btn btn-success btn-sm" title="Approve Recruiter" onclick="quickUpdateUserStatus('${u.id}', 'approved')">
                 <i class="bi bi-check2"></i> Approve
               </button>
             ` : `
-              <button class="btn btn-secondary btn-sm" title="Suspend Recruiter" onclick="quickUpdateUserStatus('${u.id}', 'suspended')" style="color:var(--danger);">
+              <button class="btn btn-secondary btn-sm" title="Suspend Recruiter" onclick="quickUpdateUserStatus('${u.id}', 'suspended')" style="color:var(--warning);">
                 <i class="bi bi-slash-circle"></i> Suspend
               </button>
             `}
-            <button class="btn btn-secondary btn-sm" onclick="openManageUserModal('${u.id}')">
-              <i class="bi bi-sliders2"></i> Edit &amp; Credits
+            <button class="btn btn-secondary btn-sm" title="Edit Profile & Adjust Credits" onclick="openManageUserModal('${u.id}')">
+              <i class="bi bi-sliders2"></i> Edit
+            </button>
+            <button class="btn btn-secondary btn-sm" title="Delete Recruiter Permanently" onclick="confirmDeleteUser('${u.id}', '${escapeHtml(u.email)}')" style="color:var(--danger); border-color: rgba(239, 68, 68, 0.3);">
+              <i class="bi bi-trash3"></i>
             </button>
           </div>
         </td>
       </tr>
     `;
   }).join('');
+
+  updateBulkBarUi();
 };
 
 window.quickUpdateUserStatus = async function(userId, status) {
@@ -3374,3 +3676,136 @@ function formatTimeAgo(isoString) {
   const diffDays = Math.floor(diffHr / 24);
   return `${diffDays}d ago`;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TAB 9: ADMINISTRATIVE AUDIT LOG TRAIL
+// ─────────────────────────────────────────────────────────────────────────────
+
+let cachedAuditLogs = [];
+
+window.loadAdminAuditLogs = async function() {
+  const tbody = document.getElementById('audit-logs-table-body');
+  if (!tbody) return;
+
+  try {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 2rem; color: var(--text-muted);"><i class="bi bi-arrow-repeat spin"></i> Fetching audit records...</td></tr>`;
+
+    const res = await fetch(`${API_BASE}/audit-logs?limit=100`, {
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Failed to load audit logs');
+
+    cachedAuditLogs = data.logs || [];
+    renderAuditLogsTable();
+  } catch (err) {
+    console.error('Failed to load audit logs:', err);
+    tbody.innerHTML = `<tr><td colspan="6" style="color:var(--danger); padding:2rem; text-align:center;">Failed to load audit records: ${err.message}</td></tr>`;
+  }
+};
+
+function renderAuditLogsTable() {
+  const tbody = document.getElementById('audit-logs-table-body');
+  if (!tbody) return;
+
+  if (cachedAuditLogs.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 2.5rem; color: var(--text-muted);">No administrative audit records logged yet.</td></tr>`;
+    return;
+  }
+
+  const actionPills = {
+    ADMIN_LOGIN: { label: 'Admin Login', badge: 'badge-primary', icon: 'bi-box-arrow-in-right' },
+    ADMIN_REGISTERED: { label: 'Admin Signup', badge: 'badge-success', icon: 'bi-person-check-fill' },
+    ADMIN_PASSWORD_RESET: { label: 'Password Reset', badge: 'badge-warning', icon: 'bi-key-fill' },
+    USER_STATUS_UPDATED: { label: 'Status Update', badge: 'badge-warning', icon: 'bi-shield-check' },
+    CREDITS_ADJUSTED: { label: 'Credits Adjusted', badge: 'badge-primary', icon: 'bi-coin' },
+    USER_DELETED: { label: 'User Deleted', badge: 'badge-danger', icon: 'bi-trash3-fill' },
+    ADMIN_BULK_APPROVE: { label: 'Bulk Approve', badge: 'badge-success', icon: 'bi-check-all' },
+    ADMIN_BULK_SUSPEND: { label: 'Bulk Suspend', badge: 'badge-warning', icon: 'bi-slash-circle' },
+    ADMIN_BULK_DELETE: { label: 'Bulk Delete', badge: 'badge-danger', icon: 'bi-trash3-fill' },
+    ADMIN_ORDER_APPROVED: { label: 'Order Approved', badge: 'badge-success', icon: 'bi-credit-card-2-front-fill' },
+    PLATFORM_SETTINGS_UPDATED: { label: 'Settings Changed', badge: 'badge-neutral', icon: 'bi-sliders' },
+    SMTP_TEST_SENT: { label: 'SMTP Ping', badge: 'badge-neutral', icon: 'bi-envelope-check' },
+    DB_CONNECTION_TEST: { label: 'DB Ping', badge: 'badge-neutral', icon: 'bi-database' },
+    DB_MIGRATION_EXECUTED: { label: 'DB Migration', badge: 'badge-warning', icon: 'bi-database-fill-gear' }
+  };
+
+  tbody.innerHTML = cachedAuditLogs.map(log => {
+    const meta = actionPills[log.action] || { label: log.action, badge: 'badge-neutral', icon: 'bi-info-circle' };
+    const dateFormatted = log.created_at ? new Date(log.created_at).toLocaleString() : 'Just now';
+    
+    let detailsHtml = '<span style="color:var(--text-subtle);">None</span>';
+    if (log.details) {
+      try {
+        const parsed = typeof log.details === 'string' ? JSON.parse(log.details) : log.details;
+        const keys = Object.keys(parsed);
+        if (keys.length > 0) {
+          detailsHtml = `<div style="font-family:var(--mono); font-size:0.7rem; color:var(--text); background:var(--surface-elevated); padding:0.25rem 0.5rem; border-radius:4px; max-width:340px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(JSON.stringify(parsed, null, 2))}">
+            ${escapeHtml(JSON.stringify(parsed))}
+          </div>`;
+        }
+      } catch {
+        detailsHtml = `<span style="font-size:0.72rem; color:var(--text-muted);">${escapeHtml(String(log.details))}</span>`;
+      }
+    }
+
+    const adminDisplay = log.admin_full_name || log.actor_name || 'System / Platform';
+    const adminEmail = log.admin_email || log.actor_email || '';
+
+    return `
+      <tr>
+        <td style="font-size: 0.74rem; font-family: var(--mono); color: var(--text-muted); white-space: nowrap;">
+          ${dateFormatted}
+        </td>
+        <td>
+          <span class="badge ${meta.badge}" style="display:inline-flex; align-items:center; gap:0.35rem;">
+            <i class="bi ${meta.icon}"></i> ${meta.label}
+          </span>
+        </td>
+        <td>
+          <strong style="color:var(--text); display:block; font-size:0.79rem;">${escapeHtml(adminDisplay)}</strong>
+          ${adminEmail ? `<span style="font-size:0.7rem; color:var(--text-muted); font-family:var(--mono);">${escapeHtml(adminEmail)}</span>` : ''}
+        </td>
+        <td>
+          <span style="font-size: 0.76rem; color: var(--text-muted); text-transform: capitalize;">
+            ${escapeHtml(log.entity_type || 'Platform')}
+          </span>
+          ${log.entity_id ? `<span style="display:block; font-family:var(--mono); font-size:0.68rem; color:var(--text-subtle);">${escapeHtml(log.entity_id)}</span>` : ''}
+        </td>
+        <td>${detailsHtml}</td>
+        <td style="font-size: 0.72rem; font-family: var(--mono); color: var(--text-muted);">
+          ${escapeHtml(log.ip_address || 'Internal')}
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+window.exportAuditLogsCsv = function() {
+  if (cachedAuditLogs.length === 0) {
+    showToast('No audit logs available to export.', 'warning');
+    return;
+  }
+
+  const headers = ['Timestamp', 'Action', 'Admin Name', 'Admin Email', 'Entity Type', 'Entity ID', 'IP Address', 'Details'];
+  const rows = cachedAuditLogs.map(l => [
+    `"${l.created_at || ''}"`,
+    `"${l.action || ''}"`,
+    `"${(l.admin_full_name || l.actor_name || '').replace(/"/g, '""')}"`,
+    `"${(l.admin_email || l.actor_email || '').replace(/"/g, '""')}"`,
+    `"${l.entity_type || ''}"`,
+    `"${l.entity_id || ''}"`,
+    `"${l.ip_address || ''}"`,
+    `"${(typeof l.details === 'string' ? l.details : JSON.stringify(l.details || {})).replace(/"/g, '""')}"`
+  ]);
+
+  const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement('a');
+  link.setAttribute('href', encodedUri);
+  link.setAttribute('download', `admin_audit_log_${new Date().toISOString().split('T')[0]}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  showToast('Audit log CSV exported successfully!', 'success');
+};
