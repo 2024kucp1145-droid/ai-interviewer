@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(255) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   role VARCHAR(64) DEFAULT 'recruiter',
+  org_role VARCHAR(64) DEFAULT 'owner',
   is_verified INTEGER DEFAULT 0,
   verification_code VARCHAR(32),
   approval_status VARCHAR(64) DEFAULT 'approved',
@@ -116,7 +117,9 @@ CREATE TABLE IF NOT EXISTS interviews (
   dispatch_status VARCHAR(64) DEFAULT 'created',
   dispatch_channel VARCHAR(64) DEFAULT 'link',
   source VARCHAR(64) DEFAULT 'direct',
-  dsa_result JSONB
+  dsa_result JSONB,
+  code_draft TEXT,
+  code_lang VARCHAR(64) DEFAULT 'javascript'
 );
 
 -- 7. Turns (Conversational AI & Candidate Dialogue Exchanges)
@@ -272,6 +275,56 @@ CREATE TABLE IF NOT EXISTS feedbacks (
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 20. Organization Team Invites (Multi-user Org RBAC)
+CREATE TABLE IF NOT EXISTS org_team_invites (
+  id VARCHAR(64) PRIMARY KEY,
+  org_id VARCHAR(64) NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  email VARCHAR(255) NOT NULL,
+  org_role VARCHAR(64) DEFAULT 'recruiter',
+  token_hash VARCHAR(255) UNIQUE NOT NULL,
+  invited_by VARCHAR(64),
+  status VARCHAR(64) DEFAULT 'pending',
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 21. Outbound Signed Webhooks (HRIS / ATS Integrations)
+CREATE TABLE IF NOT EXISTS org_webhooks (
+  id VARCHAR(64) PRIMARY KEY,
+  org_id VARCHAR(64) NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  url TEXT NOT NULL,
+  secret VARCHAR(255) NOT NULL,
+  events TEXT NOT NULL,
+  is_active INTEGER DEFAULT 1,
+  last_triggered_at TIMESTAMPTZ,
+  last_status INTEGER,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 22. Outbound Webhook Delivery Audit Log
+CREATE TABLE IF NOT EXISTS webhook_deliveries (
+  id VARCHAR(64) PRIMARY KEY,
+  webhook_id VARCHAR(64) NOT NULL REFERENCES org_webhooks(id) ON DELETE CASCADE,
+  org_id VARCHAR(64) NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  event VARCHAR(128) NOT NULL,
+  payload JSONB NOT NULL,
+  status_code INTEGER,
+  response_body TEXT,
+  success INTEGER DEFAULT 0,
+  duration_ms INTEGER,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 23. Proctoring Webcam Snapshots
+CREATE TABLE IF NOT EXISTS proctor_snapshots (
+  id VARCHAR(64) PRIMARY KEY,
+  interview_id VARCHAR(64) NOT NULL REFERENCES interviews(id) ON DELETE CASCADE,
+  reason VARCHAR(255) NOT NULL,
+  image_data TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ==============================================================================
 -- Optimized B-Tree Indexes for High Performance Queries
 -- ==============================================================================
@@ -286,3 +339,7 @@ CREATE INDEX IF NOT EXISTS idx_pg_admin_invites_code ON admin_invites(code_hash)
 CREATE INDEX IF NOT EXISTS idx_pg_admin_otps_email ON admin_otps(email);
 CREATE INDEX IF NOT EXISTS idx_pg_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_pg_jobs_org ON jobs(org_id);
+CREATE INDEX IF NOT EXISTS idx_pg_org_team_invites_org ON org_team_invites(org_id);
+CREATE INDEX IF NOT EXISTS idx_pg_org_webhooks_org ON org_webhooks(org_id);
+CREATE INDEX IF NOT EXISTS idx_pg_webhook_deliveries_org ON webhook_deliveries(org_id);
+CREATE INDEX IF NOT EXISTS idx_pg_proctor_snapshots_iv ON proctor_snapshots(interview_id);

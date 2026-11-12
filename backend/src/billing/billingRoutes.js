@@ -18,6 +18,151 @@ import {
 
 export const billingRouter = express.Router();
 
+/**
+ * Idempotently fulfill a paid billing order and credit the organization.
+ * @param {string} orderId
+ * @param {object} [opts]
+ */
+export function fulfillPaidOrder(orderId, { provider = 'demo', externalRef = null, actor = null, ipAddress = null } = {}) {
+  return db.transaction(() => {
+    const order = db.prepare('SELECT * FROM billing_orders WHERE id = ?').get(orderId);
+    if (!order) return { ok: false, status: 404, error: 'Order not found' };
+    if (order.status === 'paid') {
+      const orgAlready = db.prepare('SELECT plan, included_interviews, subscription_expires_at FROM organizations WHERE id = ?').get(order.org_id);
+      return { ok: true, alreadyPaid: true, order, org: orgAlready };
+    }
+
+    const quote = JSON.parse(order.quote_json);
+    const updated = db.prepare("UPDATE billing_orders SET status = 'paid', paid_at = CURRENT_TIMESTAMP WHERE id = ? AND status != 'paid'").run(orderId);
+    if (updated.changes === 0) {
+      const orgAlready = db.prepare('SELECT plan, included_interviews, subscription_expires_at FROM organizations WHERE id = ?').get(order.org_id);
+      return { ok: true, alreadyPaid: true, order, org: orgAlready };
+    }
+
+    if (order.type === 'pay_per_use') {
+      db.prepare('UPDATE organizations SET included_interviews = included_interviews + ? WHERE id = ?')
+        .run(quote.quantity, order.org_id);
+    } else if (order.type === 'subscription') {
+      const plan = getPlan(order.plan_id);
+      const expiresAt = new Date();
+      expiresAt.setMonth(expiresAt.getMonth() + plan.months);
+
+      db.prepare(`
+        UPDATE organizations
+        SET plan = ?, included_interviews = included_interviews + ?,
+            subscription_expires_at = ?, subscription_plan_id = ?
+        WHERE id = ?
+      `).run(plan.id, plan.includedInterviews, expiresAt.toISOString(), plan.id, order.org_id);
+    }
+
+    db.prepare(`
+      INSERT INTO billing_events (id, org_id, order_id, event, amount_usd, created_at)
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `).run('be_' + crypto.randomUUID(), order.org_id, orderId, `payment_confirmed:${provider}`, order.amount_usd);
+
+    const creditsAdded = order.type === 'pay_per_use' ? quote.quantity : (getPlan(order.plan_id)?.includedInterviews || 0);
+    logActivity({
+      action: 'BILLING_PURCHASE',
+      actorType: actor ? 'user' : 'webhook',
+      actorId: actor?.id || null,
+      actorEmail: actor?.email || null,
+      actorName: actor?.full_name || actor?.email || `${provider}_webhook`,
+      orgId: order.org_id,
+      entityType: 'billing_order',
+      entityId: orderId,
+      details: {
+        type: order.type,
+        amountUsd: order.amount_usd,
+        creditsAdded,
+        plan: order.type === 'subscription' ? order.plan_id : null,
+        provider,
+        externalRef,
+      },
+      ipAddress,
+    });
+
+    const org = db.prepare('SELECT plan, included_interviews, subscription_expires_at FROM organizations WHERE id = ?').get(order.org_id);
+    return { ok: true, alreadyPaid: false, order, org, creditsAdded };
+  })();
+}
+
+/**
+ * Verify Stripe-style `t=<ts>,v1=<hex>` webhook signature.
+ */
+function verifyStripeSignature(rawBody, sigHeader, secret) {
+  if (!sigHeader || !secret || typeof sigHeader !== 'string') return false;
+  const pairs = Object.fromEntries(
+    sigHeader.split(',').map((part) => {
+      const i = part.indexOf('=');
+      return i > 0 ? [part.slice(0, i).trim(), part.slice(i + 1).trim()] : ['', ''];
+    })
+  );
+  if (!pairs.t || !pairs.v1) return false;
+  const expected = crypto.createHmac('sha256', secret).update(`${pairs.t}.${rawBody}`).digest('hex');
+  if (expected.length !== pairs.v1.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(expected, 'utf8'), Buffer.from(pairs.v1, 'utf8'));
+}
+
+/**
+ * Verify hex HMAC-SHA256 signature (used by Razorpay webhooks).
+ */
+function verifyHmacHex(rawBody, sigHex, secret) {
+  if (!sigHex || !secret || typeof sigHex !== 'string') return false;
+  const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+  if (expected.length !== sigHex.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(expected, 'utf8'), Buffer.from(sigHex, 'utf8'));
+}
+
+async function createStripeCheckoutSession({ orderId, quote, amountUsd, baseUrl }) {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) return null;
+  const params = new URLSearchParams();
+  params.set('mode', 'payment');
+  params.set('success_url', `${baseUrl}/billing/checkout?order=${orderId}&status=success`);
+  params.set('cancel_url', `${baseUrl}/billing/checkout?order=${orderId}&status=cancelled`);
+  params.set('client_reference_id', orderId);
+  params.set('metadata[orderId]', orderId);
+  params.set('line_items[0][quantity]', '1');
+  params.set('line_items[0][price_data][currency]', 'usd');
+  params.set('line_items[0][price_data][unit_amount]', String(Math.round(Number(amountUsd) * 100)));
+  params.set('line_items[0][price_data][product_data][name]', quote.label || `RoundOne AI Credits (${orderId})`);
+
+  const resp = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: params.toString(),
+  });
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(data.error?.message || 'Stripe session creation failed');
+  return { provider: 'stripe', sessionId: data.id, checkoutUrl: data.url };
+}
+
+async function createRazorpayOrder({ orderId, amountUsd }) {
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  if (!keyId || !keySecret) return null;
+  const auth = Buffer.from(`${keyId}:${keySecret}`).toString('base64');
+  const resp = await fetch('https://api.razorpay.com/v1/orders', {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${auth}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      amount: Math.round(Number(amountUsd) * 100),
+      currency: 'USD',
+      receipt: orderId,
+      notes: { orderId },
+    }),
+  });
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(data.error?.description || 'Razorpay order creation failed');
+  return { provider: 'razorpay', razorpayOrderId: data.id, keyId };
+}
+
 // ─── GET /billing/pricing ─────────────────────────────────────────────────────
 // Returns all pricing data for the frontend pricing page (no auth required)
 billingRouter.get('/pricing', (req, res) => {
@@ -63,10 +208,10 @@ billingRouter.post('/quote', (req, res) => {
 });
 
 // ─── POST /billing/order ──────────────────────────────────────────────────────
-// Create a pending order (auth required)
-billingRouter.post('/order', requireAuth, (req, res) => {
+// Create a pending order (auth required; uses Stripe/Razorpay when configured, else demo checkout)
+billingRouter.post('/order', requireAuth, async (req, res) => {
   try {
-    const { type, quantity, minutes, planId } = req.body;
+    const { type, quantity, minutes, planId, gateway } = req.body;
     const orgId = req.user.org_id;
 
     let quote;
@@ -79,6 +224,7 @@ billingRouter.post('/order', requireAuth, (req, res) => {
     }
 
     const orderId = 'ord_' + crypto.randomUUID();
+    const amountUsd = quote.totalUsd || quote.priceUsd;
 
     // Store order in DB
     db.prepare(`
@@ -92,16 +238,24 @@ billingRouter.post('/order', requireAuth, (req, res) => {
       planId || null,
       quote.quantity || null,
       quote.durationMinutes || null,
-      quote.totalUsd || quote.priceUsd,
+      amountUsd,
       JSON.stringify(quote)
     );
+
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    let providerSession = null;
+    if (gateway === 'razorpay' && process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+      providerSession = await createRazorpayOrder({ orderId, amountUsd });
+    } else if (process.env.STRIPE_SECRET_KEY && gateway !== 'demo') {
+      providerSession = await createStripeCheckoutSession({ orderId, quote, amountUsd, baseUrl });
+    }
 
     res.json({
       orderId,
       quote,
-      // In production this would return a Stripe PaymentIntent / checkout URL
-      // For now, return a mock payment URL
-      checkoutUrl: `/billing/checkout?order=${orderId}`,
+      provider: providerSession?.provider || 'demo',
+      providerSession,
+      checkoutUrl: providerSession?.checkoutUrl || `/billing/checkout?order=${orderId}`,
       message: 'Order created. Proceed to checkout to complete payment.',
     });
   } catch (err) {
@@ -110,75 +264,28 @@ billingRouter.post('/order', requireAuth, (req, res) => {
 });
 
 // ─── POST /billing/order/:id/confirm ─────────────────────────────────────────
-// Confirm/complete an order (mock payment — in prod this is a Stripe webhook)
+// Confirm/complete an order (demo checkout confirmation when webhooks are not active)
 billingRouter.post('/order/:id/confirm', requireAuth, (req, res) => {
   try {
     const orderId = req.params.id;
     const orgId = req.user.org_id;
 
-    const order = db.prepare('SELECT * FROM billing_orders WHERE id = ? AND org_id = ?').get(orderId, orgId);
-    if (!order) return res.status(404).json({ error: 'Order not found' });
-    if (order.status === 'paid') return res.status(400).json({ error: 'Order already paid' });
+    const existing = db.prepare('SELECT id, status FROM billing_orders WHERE id = ? AND org_id = ?').get(orderId, orgId);
+    if (!existing) return res.status(404).json({ error: 'Order not found' });
+    if (existing.status === 'paid') return res.status(400).json({ error: 'Order already paid' });
 
-    const quote = JSON.parse(order.quote_json);
-
-    // Update order to paid
-    db.prepare('UPDATE billing_orders SET status = ?, paid_at = CURRENT_TIMESTAMP WHERE id = ?')
-      .run('paid', orderId);
-
-    // Credit the organization
-    if (order.type === 'pay_per_use') {
-      db.prepare('UPDATE organizations SET included_interviews = included_interviews + ? WHERE id = ?')
-        .run(quote.quantity, orgId);
-
-    } else if (order.type === 'subscription') {
-      const plan = getPlan(order.plan_id);
-      const expiresAt = new Date();
-      expiresAt.setMonth(expiresAt.getMonth() + plan.months);
-
-      db.prepare(`
-        UPDATE organizations
-        SET plan = ?, included_interviews = included_interviews + ?,
-            subscription_expires_at = ?, subscription_plan_id = ?
-        WHERE id = ?
-      `).run(plan.id, plan.includedInterviews, expiresAt.toISOString(), plan.id, orgId);
-    }
-
-    // Log billing event
-    db.prepare(`
-      INSERT INTO billing_events (id, org_id, order_id, event, amount_usd, created_at)
-      VALUES (?, ?, ?, 'payment_confirmed', ?, CURRENT_TIMESTAMP)
-    `).run('be_' + crypto.randomUUID(), orgId, orderId, order.amount_usd);
-
-    // Record platform audit activity for Superadmin visibility
-    const creditsAdded = order.type === 'pay_per_use' ? quote.quantity : (getPlan(order.plan_id)?.includedInterviews || 0);
-    logActivity({
-      action: 'BILLING_PURCHASE',
-      actorType: 'user',
-      actorId: req.user.id,
-      actorEmail: req.user.email,
-      actorName: req.user.full_name || req.user.email,
-      orgId,
-      entityType: 'billing_order',
-      entityId: orderId,
-      details: {
-        type: order.type,
-        amountUsd: order.amount_usd,
-        creditsAdded,
-        plan: order.type === 'subscription' ? order.plan_id : null,
-      },
-      ipAddress: req.ip
+    const result = fulfillPaidOrder(orderId, {
+      provider: 'demo',
+      actor: req.user,
+      ipAddress: req.ip,
     });
-
-    // Fetch updated org
-    const org = db.prepare('SELECT plan, included_interviews, subscription_expires_at FROM organizations WHERE id = ?').get(orgId);
 
     res.json({
       success: true,
       message: 'Payment confirmed! Interviews credited to your account.',
-      creditsRemaining: org.included_interviews,
-      plan: org.plan,
-      subscriptionExpiresAt: org.subscription_expires_at || null,
+      creditsRemaining: result.org.included_interviews,
+      plan: result.org.plan,
+      subscriptionExpiresAt: result.org.subscription_expires_at || null,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -233,6 +340,77 @@ billingRouter.get('/history', requireAuth, (req, res) => {
     `).all(orgId);
 
     res.json({ orders, events });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── POST /billing/webhook/stripe ─────────────────────────────────────────────
+// Signed Stripe webhook handler (checkout.session.completed)
+billingRouter.post('/webhook/stripe', (req, res) => {
+  try {
+    const secret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!secret) {
+      return res.status(503).json({ error: 'STRIPE_WEBHOOK_SECRET is not configured on this server.' });
+    }
+    const rawBody = req.rawBody ? req.rawBody.toString('utf8') : JSON.stringify(req.body || {});
+    const sig = req.headers['stripe-signature'];
+    if (!verifyStripeSignature(rawBody, sig, secret)) {
+      return res.status(400).json({ error: 'Invalid Stripe webhook signature.' });
+    }
+
+    const event = req.body || {};
+    if (event.type === 'checkout.session.completed' || event.type === 'payment_intent.succeeded') {
+      const obj = event.data?.object || {};
+      const orderId = obj.metadata?.orderId || obj.client_reference_id;
+      if (!orderId) return res.status(400).json({ error: 'Missing orderId metadata in Stripe event.' });
+
+      const result = fulfillPaidOrder(orderId, {
+        provider: 'stripe',
+        externalRef: obj.id || event.id,
+        ipAddress: req.ip,
+      });
+      if (!result.ok) return res.status(result.status || 404).json({ error: result.error });
+      return res.json({ received: true, fulfilled: !result.alreadyPaid, orderId });
+    }
+
+    res.json({ received: true, ignored: true, type: event.type || 'unknown' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── POST /billing/webhook/razorpay ───────────────────────────────────────────
+// Signed Razorpay webhook handler (payment.captured / order.paid)
+billingRouter.post('/webhook/razorpay', (req, res) => {
+  try {
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    if (!secret) {
+      return res.status(503).json({ error: 'RAZORPAY_WEBHOOK_SECRET is not configured on this server.' });
+    }
+    const rawBody = req.rawBody ? req.rawBody.toString('utf8') : JSON.stringify(req.body || {});
+    const sig = req.headers['x-razorpay-signature'];
+    if (!verifyHmacHex(rawBody, sig, secret)) {
+      return res.status(400).json({ error: 'Invalid Razorpay webhook signature.' });
+    }
+
+    const event = req.body || {};
+    if (event.event === 'payment.captured' || event.event === 'order.paid') {
+      const paymentEntity = event.payload?.payment?.entity || {};
+      const orderEntity = event.payload?.order?.entity || {};
+      const orderId = orderEntity.receipt || paymentEntity.notes?.orderId || orderEntity.notes?.orderId;
+      if (!orderId) return res.status(400).json({ error: 'Missing orderId in Razorpay payload.' });
+
+      const result = fulfillPaidOrder(orderId, {
+        provider: 'razorpay',
+        externalRef: paymentEntity.id || orderEntity.id,
+        ipAddress: req.ip,
+      });
+      if (!result.ok) return res.status(result.status || 404).json({ error: result.error });
+      return res.json({ received: true, fulfilled: !result.alreadyPaid, orderId });
+    }
+
+    res.json({ received: true, ignored: true, event: event.event || 'unknown' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

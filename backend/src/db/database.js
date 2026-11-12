@@ -241,6 +241,61 @@ export function initDatabase() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
+    -- Organization Team Invites (Multi-user Org RBAC)
+    CREATE TABLE IF NOT EXISTS org_team_invites (
+      id TEXT PRIMARY KEY,
+      org_id TEXT NOT NULL,
+      email TEXT NOT NULL,
+      org_role TEXT DEFAULT 'recruiter',
+      token_hash TEXT UNIQUE NOT NULL,
+      invited_by TEXT,
+      status TEXT DEFAULT 'pending',
+      expires_at DATETIME NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (org_id) REFERENCES organizations(id)
+    );
+
+    -- Outbound Signed Webhooks (HRIS / ATS Integrations)
+    CREATE TABLE IF NOT EXISTS org_webhooks (
+      id TEXT PRIMARY KEY,
+      org_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      url TEXT NOT NULL,
+      secret TEXT NOT NULL,
+      events TEXT NOT NULL,
+      is_active INTEGER DEFAULT 1,
+      last_triggered_at DATETIME,
+      last_status INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (org_id) REFERENCES organizations(id)
+    );
+
+    -- Outbound Webhook Delivery Audit Log
+    CREATE TABLE IF NOT EXISTS webhook_deliveries (
+      id TEXT PRIMARY KEY,
+      webhook_id TEXT NOT NULL,
+      org_id TEXT NOT NULL,
+      event TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      status_code INTEGER,
+      response_body TEXT,
+      success INTEGER DEFAULT 0,
+      duration_ms INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (webhook_id) REFERENCES org_webhooks(id),
+      FOREIGN KEY (org_id) REFERENCES organizations(id)
+    );
+
+    -- Proctoring Webcam Snapshots (Captured on anti-cheat violations)
+    CREATE TABLE IF NOT EXISTS proctor_snapshots (
+      id TEXT PRIMARY KEY,
+      interview_id TEXT NOT NULL,
+      reason TEXT NOT NULL,
+      image_data TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (interview_id) REFERENCES interviews(id)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_interviews_token ON interviews(token_hash);
     CREATE INDEX IF NOT EXISTS idx_turns_interview ON turns(interview_id);
     CREATE INDEX IF NOT EXISTS idx_candidates_org ON candidates(org_id);
@@ -250,6 +305,10 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_activities_action ON platform_activities(action);
     CREATE INDEX IF NOT EXISTS idx_admin_invites_code ON admin_invites(code_hash);
     CREATE INDEX IF NOT EXISTS idx_admin_otps_email ON admin_otps(email);
+    CREATE INDEX IF NOT EXISTS idx_org_team_invites_org ON org_team_invites(org_id);
+    CREATE INDEX IF NOT EXISTS idx_org_webhooks_org ON org_webhooks(org_id);
+    CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_org ON webhook_deliveries(org_id);
+    CREATE INDEX IF NOT EXISTS idx_proctor_snapshots_iv ON proctor_snapshots(interview_id);
   `);
 
   // Auto-migration for existing tables
@@ -321,6 +380,11 @@ export function initDatabase() {
   addColumn('users', 'last_login_at', 'DATETIME');
   addColumn('users', 'admin_notes', 'TEXT');
   addColumn('users', 'admin_uid', 'TEXT');
+  addColumn('users', 'org_role', "TEXT DEFAULT 'owner'");
+
+  // Candidate session recovery (code draft autosave)
+  addColumn('interviews', 'code_draft', 'TEXT');
+  addColumn('interviews', 'code_lang', "TEXT DEFAULT 'javascript'");
 
   try {
     db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_admin_uid ON users(admin_uid) WHERE admin_uid IS NOT NULL');
@@ -420,6 +484,13 @@ export function initDatabase() {
   }
 
   console.log('✓ SQLite database initialized and migrated with interview customization options');
+}
+
+export function isPostgresConfigured() {
+  return Boolean(
+    (process.env.DATABASE_URL && process.env.DATABASE_URL.trim()) ||
+    (process.env.PGPASSWORD && process.env.PGPASSWORD.trim())
+  );
 }
 
 // Export PostgreSQL connection pool and query helpers

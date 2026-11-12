@@ -1,0 +1,44 @@
+name: RoundOne AI CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Syntax check backend and frontend JS modules
+        run: |
+          node --check backend/src/server.js
+          node --check backend/src/billing/billingRoutes.js
+          node --check backend/src/admin/adminRoutes.js
+          node --check backend/src/services/leetcodeJudge.js
+          node --check backend/src/services/webhookService.js
+          node --check backend/src/middleware/rateLimit.js
+          node --check frontend/public/js/dashboard.js
+          node --check frontend/public/js/admin.js
+          node --check frontend/public/js/candidate.js
+          node --check frontend/public/js/proctor.js
+
+      - name: Run unit, admin & full-stack integration tests
+        run: |
+          npm test
+          node tests/test_admin_system.js
+          node tests/test_problems_1_2_3.js
+          node tests/test_fullstack_features.js

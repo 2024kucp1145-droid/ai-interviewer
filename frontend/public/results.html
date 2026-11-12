@@ -1745,9 +1745,26 @@
         });
         const data = await res.json();
         activeModalReportData = data;
-        const { interview, report, turns } = data;
+        const { interview, report, turns, snapshots } = data;
 
         document.getElementById('modal-candidate-name').textContent = `${interview.candidate_name} — AI Audit`;
+
+        const snapshotsHtml = (snapshots && snapshots.length > 0) ? `
+          <div style="margin-bottom:1rem;">
+            <strong style="font-size:0.85rem; display:block; margin-bottom:0.45rem;"><i class="bi bi-camera-video"></i> Proctoring Violation Snapshots (${snapshots.length}):</strong>
+            <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(135px, 1fr)); gap:0.5rem;">
+              ${snapshots.map(s => `
+                <div style="border:1px solid var(--border); border-radius:6px; overflow:hidden; background:var(--surface);">
+                  <img src="${s.image_data}" alt="${escapeHtml(s.reason)}" style="width:100%; height:90px; object-fit:cover; display:block;">
+                  <div style="padding:0.3rem 0.45rem; font-size:0.65rem; color:var(--text-muted);">
+                    <div style="font-weight:700; color:#dc2626;">${escapeHtml(s.reason)}</div>
+                    <div>${new Date(s.created_at).toLocaleTimeString()}</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : '';
 
         const skillsHtml = ((report && report.skills) || []).map(s => `
           <div style="background:var(--surface-subtle); border:1px solid var(--border); border-radius:6px; padding:0.65rem 0.85rem; margin-bottom:0.5rem;">
@@ -1782,6 +1799,8 @@
             <strong style="font-size:0.85rem; display:block; margin-bottom:0.45rem;">Evaluated Technical Skills &amp; Quotes:</strong>
             ${skillsHtml || '<p style="color:var(--text-muted); font-size:0.75rem;">No skills breakdown recorded.</p>'}
           </div>
+
+          ${snapshotsHtml}
 
           <div>
             <strong style="font-size:0.85rem; display:block; margin-bottom:0.45rem;">Interview Transcript (${(turns || []).length} turns):</strong>

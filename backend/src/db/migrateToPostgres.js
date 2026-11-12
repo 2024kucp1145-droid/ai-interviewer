@@ -256,6 +256,56 @@ export async function runMigration(explicitUrl) {
           updated_at = EXCLUDED.updated_at
       `,
       mapRow: (r) => [r.key, r.value, r.updated_at]
+    },
+    {
+      name: 'feedbacks',
+      sqliteSql: 'SELECT * FROM feedbacks',
+      insertSql: `
+        INSERT INTO feedbacks (id, user_name, user_email, rating, category, message, source_page, email_sent, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        ON CONFLICT (id) DO NOTHING
+      `,
+      mapRow: (r) => [r.id, r.user_name, r.user_email, r.rating, r.category, r.message, r.source_page, r.email_sent, r.created_at]
+    },
+    {
+      name: 'org_team_invites',
+      sqliteSql: 'SELECT * FROM org_team_invites',
+      insertSql: `
+        INSERT INTO org_team_invites (id, org_id, email, org_role, token_hash, invited_by, status, expires_at, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status
+      `,
+      mapRow: (r) => [r.id, r.org_id, r.email, r.org_role, r.token_hash, r.invited_by, r.status, r.expires_at, r.created_at]
+    },
+    {
+      name: 'org_webhooks',
+      sqliteSql: 'SELECT * FROM org_webhooks',
+      insertSql: `
+        INSERT INTO org_webhooks (id, org_id, name, url, secret, events, is_active, last_triggered_at, last_status, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        ON CONFLICT (id) DO UPDATE SET is_active = EXCLUDED.is_active, last_triggered_at = EXCLUDED.last_triggered_at, last_status = EXCLUDED.last_status
+      `,
+      mapRow: (r) => [r.id, r.org_id, r.name, r.url, r.secret, r.events, r.is_active, r.last_triggered_at, r.last_status, r.created_at]
+    },
+    {
+      name: 'webhook_deliveries',
+      sqliteSql: 'SELECT * FROM webhook_deliveries',
+      insertSql: `
+        INSERT INTO webhook_deliveries (id, webhook_id, org_id, event, payload, status_code, response_body, success, duration_ms, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        ON CONFLICT (id) DO NOTHING
+      `,
+      mapRow: (r) => [r.id, r.webhook_id, r.org_id, r.event, safeJson(r.payload), r.status_code, r.response_body, r.success, r.duration_ms, r.created_at]
+    },
+    {
+      name: 'proctor_snapshots',
+      sqliteSql: 'SELECT * FROM proctor_snapshots',
+      insertSql: `
+        INSERT INTO proctor_snapshots (id, interview_id, reason, image_data, created_at)
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (id) DO NOTHING
+      `,
+      mapRow: (r) => [r.id, r.interview_id, r.reason, r.image_data, r.created_at]
     }
   ];
 

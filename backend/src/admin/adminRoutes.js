@@ -1581,11 +1581,13 @@ adminRouter.get('/interviews/:id', requireAdmin, (req, res) => {
 
     const turns = db.prepare('SELECT idx, role, text, skill, level, created_at FROM turns WHERE interview_id = ? ORDER BY idx ASC').all(id);
     const reportRow = db.prepare('SELECT * FROM reports WHERE interview_id = ?').get(id);
+    const snapshots = db.prepare('SELECT id, reason, image_data, created_at FROM proctor_snapshots WHERE interview_id = ? ORDER BY created_at DESC LIMIT 24').all(id);
 
     res.json({
       success: true,
       interview,
       turns,
+      snapshots,
       report: reportRow ? JSON.parse(reportRow.json) : null,
       reportMeta: reportRow ? {
         manual_decision: reportRow.manual_decision || null,

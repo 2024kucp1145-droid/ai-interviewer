@@ -203,7 +203,11 @@ function startInterviewDurationTimer(minutes, showTimer = true, autoSubmit = tru
   hasWarnedOneMinute = false;
 
   const totalMinutes = Math.max(1, parseInt(minutes, 10) || 15);
-  activeTimerSecondsRemaining = totalMinutes * 60;
+  const maxSecs = totalMinutes * 60;
+  const serverRemaining = Number(interviewData?.remainingSeconds);
+  activeTimerSecondsRemaining = (Number.isFinite(serverRemaining) && serverRemaining > 0 && serverRemaining < maxSecs)
+    ? Math.floor(serverRemaining)
+    : maxSecs;
 
   const roomBadge = document.getElementById('session-timer-badge');
   if (!showTimer) {
@@ -569,7 +573,27 @@ window.handleLangChange = function() {
   terminalConsoleOutput.textContent = `>>> Switched compiler environment to ${lang.toUpperCase()}.
 Click "Run Code" to execute.`;
   updateStarterCodeForLanguage(lang, false);
+  scheduleDraftAutosave();
 };
+
+let draftSaveTimer = null;
+function scheduleDraftAutosave() {
+  if (!token || !terminalCodeInput) return;
+  clearTimeout(draftSaveTimer);
+  draftSaveTimer = setTimeout(() => {
+    const code = terminalCodeInput.value || '';
+    const lang = terminalLangSelect ? terminalLangSelect.value : 'javascript';
+    fetch(`/i/${token}/draft`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, lang })
+    }).catch(() => {});
+  }, 1200);
+}
+
+if (terminalCodeInput) {
+  terminalCodeInput.addEventListener('input', scheduleDraftAutosave);
+}
 // Interactive Terminal Functions
 window.lastJudgeResult = null;
 
@@ -1012,6 +1036,15 @@ async function loadInterviewData() {
         const firstAllowed = Array.from(terminalLangSelect.options).find(opt => !opt.disabled);
         if (firstAllowed) terminalLangSelect.value = firstAllowed.value;
       }
+    }
+
+    // Restore autosaved code draft & language after page refresh/reconnect
+    if (interviewData.code_lang && terminalLangSelect) {
+      const opt = Array.from(terminalLangSelect.options).find(o => o.value === interviewData.code_lang && !o.disabled);
+      if (opt) terminalLangSelect.value = opt.value;
+    }
+    if (interviewData.code_draft && terminalCodeInput) {
+      terminalCodeInput.value = interviewData.code_draft;
     }
 
     // If already disqualified

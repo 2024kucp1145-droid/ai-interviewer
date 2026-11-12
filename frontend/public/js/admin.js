@@ -2576,6 +2576,23 @@ window.inspectInterview = async function(interviewId) {
 
       ${integrityHtml}
 
+      ${(data.snapshots && data.snapshots.length > 0) ? `
+        <div style="margin-bottom:1.15rem; padding:0.85rem 1rem; border-radius:10px; border:1px solid var(--border); background-color:var(--surface-elevated);">
+          <strong style="font-size:0.82rem; display:block; margin-bottom:0.55rem;"><i class="bi bi-camera-video"></i> Captured Proctoring Snapshots (${data.snapshots.length})</strong>
+          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); gap:0.5rem;">
+            ${data.snapshots.map(s => `
+              <div style="border:1px solid var(--border); border-radius:8px; overflow:hidden; background:var(--surface);">
+                <img src="${s.image_data}" alt="${escapeHtml(s.reason)}" style="width:100%; height:85px; object-fit:cover; display:block;">
+                <div style="padding:0.35rem 0.45rem; font-size:0.68rem;">
+                  <div style="font-weight:700; color:var(--danger);">${escapeHtml(s.reason)}</div>
+                  <div style="color:var(--text-muted);">${formatExactClock(s.created_at)}</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+
       <!-- Admin Decision Override & Session Controls -->
       <div style="margin-bottom: 1.15rem; padding: 0.9rem 1rem; border-radius: 10px; border: 1px solid var(--border); background-color: var(--surface-elevated);">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.65rem;">

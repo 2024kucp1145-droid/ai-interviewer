@@ -4385,6 +4385,8 @@ document.getElementById('btn-erase-candidate').addEventListener('click', async (
 
 // --- BYOK / Provider Key Vault ---
 async function loadKeyStatus() {
+  if (typeof loadOrgTeam === 'function') loadOrgTeam();
+  if (typeof loadOrgWebhooks === 'function') loadOrgWebhooks();
   const statusEl = document.getElementById('key-current-status');
   try {
     const res = await apiRequest('/org/provider-key');
@@ -4443,6 +4445,163 @@ window.deleteProviderKey = async function() {
     }
   } catch (e) {
     alert(e.message);
+  }
+};
+
+// --- Organization Team (RBAC) & Outbound Webhooks ---
+async function loadOrgTeam() {
+  const listEl = document.getElementById('org-team-list');
+  const badgeEl = document.getElementById('org-current-role-badge');
+  if (!listEl) return;
+  try {
+    const res = await apiRequest('/org/team');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (badgeEl) badgeEl.textContent = `Role: ${data.currentUserRole || 'owner'}`;
+
+    const rows = [];
+    (data.members || []).forEach((m) => {
+      rows.push(`
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; padding:0.5rem 0.7rem; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface);">
+          <div>
+            <div style="font-size:0.8rem; font-weight:700;">${escapeHtml(m.full_name || m.email)}</div>
+            <div style="font-size:0.72rem; color:var(--text-muted);">${escapeHtml(m.email)}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:0.45rem;">
+            <span class="badge badge-outline">${escapeHtml(m.org_role || 'owner')}</span>
+            ${m.org_role !== 'owner' ? `<button type="button" class="btn btn-outline btn-sm" style="color:#dc2626;" onclick="removeOrgTeamItem('${m.id}')"><i class="bi bi-trash"></i></button>` : ''}
+          </div>
+        </div>
+      `);
+    });
+    (data.invites || []).forEach((inv) => {
+      rows.push(`
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; padding:0.5rem 0.7rem; border:1px dashed var(--border-dark); border-radius:var(--radius-sm); background:#fffbeb;">
+          <div>
+            <div style="font-size:0.8rem; font-weight:600;">${escapeHtml(inv.email)} <span style="font-size:0.7rem; color:#b45309;">(Pending Invite)</span></div>
+            <div style="font-size:0.7rem; color:var(--text-muted);">Role: ${escapeHtml(inv.org_role)}</div>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm" style="color:#dc2626;" onclick="removeOrgTeamItem('${inv.id}')">Revoke</button>
+        </div>
+      `);
+    });
+    listEl.innerHTML = rows.join('') || '<div style="font-size:0.78rem; color:var(--text-muted);">No team members yet.</div>';
+  } catch (err) {
+    listEl.innerHTML = `<div style="font-size:0.75rem; color:var(--text-muted);">Could not load team: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+document.getElementById('form-team-invite')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('input-team-email')?.value.trim();
+  const orgRole = document.getElementById('select-team-role')?.value || 'recruiter';
+  const banner = document.getElementById('team-invite-banner');
+  try {
+    const res = await apiRequest('/org/team/invite', {
+      method: 'POST',
+      body: JSON.stringify({ email, org_role: orgRole })
+    });
+    const data = await res.json();
+    if (!res.ok) return alert(data.error || 'Invite failed');
+    document.getElementById('input-team-email').value = '';
+    if (banner) {
+      banner.style.display = 'block';
+      banner.innerHTML = `<strong>Invite created for ${escapeHtml(data.email)}:</strong> Share link <code style="user-select:all;">${escapeHtml(window.location.origin + data.signupUrl)}</code>`;
+    }
+    loadOrgTeam();
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
+window.removeOrgTeamItem = async function(id) {
+  if (!confirm('Remove this member or revoke invite?')) return;
+  try {
+    const res = await apiRequest(`/org/team/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) return alert(data.error || 'Delete failed');
+    loadOrgTeam();
+  } catch (err) {
+    alert(err.message);
+  }
+};
+
+async function loadOrgWebhooks() {
+  const listEl = document.getElementById('org-webhooks-list');
+  const delivEl = document.getElementById('org-webhook-deliveries');
+  if (!listEl) return;
+  try {
+    const [hooksRes, delivRes] = await Promise.all([
+      apiRequest('/org/webhooks'),
+      apiRequest('/org/webhooks/deliveries')
+    ]);
+    if (hooksRes.ok) {
+      const { webhooks } = await hooksRes.json();
+      listEl.innerHTML = (webhooks || []).map((w) => `
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; padding:0.5rem 0.7rem; border:1px solid var(--border); border-radius:var(--radius-sm);">
+          <div style="min-width:0; flex:1;">
+            <div style="font-size:0.8rem; font-weight:700;">${escapeHtml(w.name)}</div>
+            <div style="font-size:0.71rem; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(w.url)}</div>
+          </div>
+          <div style="display:flex; gap:0.35rem; flex-shrink:0;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="testOrgWebhook('${w.id}')">Test</button>
+            <button type="button" class="btn btn-outline btn-sm" style="color:#dc2626;" onclick="deleteOrgWebhook('${w.id}')"><i class="bi bi-trash"></i></button>
+          </div>
+        </div>
+      `).join('') || '<div style="font-size:0.78rem; color:var(--text-muted);">No outbound webhooks configured.</div>';
+    }
+    if (delivRes.ok && delivEl) {
+      const { deliveries } = await delivRes.json();
+      delivEl.innerHTML = (deliveries || []).slice(0, 8).map((d) => `
+        <div style="display:flex; justify-content:space-between; padding:0.28rem 0; border-bottom:1px dashed var(--border);">
+          <span><strong>${escapeHtml(d.event)}</strong> &middot; HTTP ${d.status_code || 0}</span>
+          <span style="color:${d.success ? '#16a34a' : '#dc2626'}; font-weight:600;">${d.success ? 'OK' : 'FAIL'} (${d.duration_ms || 0}ms)</span>
+        </div>
+      `).join('') || 'No deliveries yet.';
+    }
+  } catch (err) {
+    listEl.innerHTML = `<div style="font-size:0.75rem; color:var(--text-muted);">Error loading webhooks: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+document.getElementById('form-org-webhook')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('input-webhook-name')?.value.trim();
+  const url = document.getElementById('input-webhook-url')?.value.trim();
+  try {
+    const res = await apiRequest('/org/webhooks', {
+      method: 'POST',
+      body: JSON.stringify({ name, url })
+    });
+    const data = await res.json();
+    if (!res.ok) return alert(data.error || 'Webhook creation failed');
+    document.getElementById('input-webhook-name').value = '';
+    document.getElementById('input-webhook-url').value = '';
+    alert(`Webhook created!\n\nSigning Secret (save this now): ${data.webhook.secret}`);
+    loadOrgWebhooks();
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
+window.testOrgWebhook = async function(id) {
+  try {
+    const res = await apiRequest(`/org/webhooks/${encodeURIComponent(id)}/test`, { method: 'POST' });
+    const data = await res.json();
+    alert(data.success ? `Test ping delivered (HTTP ${data.delivery.statusCode}, ${data.delivery.durationMs}ms)` : `Delivery failed (HTTP ${data.delivery?.statusCode || 0}): ${data.delivery?.responseBody || data.error || 'Unknown error'}`);
+    loadOrgWebhooks();
+  } catch (err) {
+    alert(err.message);
+  }
+};
+
+window.deleteOrgWebhook = async function(id) {
+  if (!confirm('Delete this outbound webhook?')) return;
+  try {
+    const res = await apiRequest(`/org/webhooks/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (res.ok) loadOrgWebhooks();
+  } catch (err) {
+    alert(err.message);
   }
 };
 

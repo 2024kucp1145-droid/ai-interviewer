@@ -3,8 +3,19 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const ALGORITHM = 'aes-256-gcm';
-const MASTER_KEY_HEX = process.env.ENCRYPTION_MASTER_KEY || 'e83a9f1b4c7d0e2f5a6b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f';
+const DEV_MASTER_KEY_HEX = 'e83a9f1b4c7d0e2f5a6b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f';
+const MASTER_KEY_HEX = process.env.ENCRYPTION_MASTER_KEY || DEV_MASTER_KEY_HEX;
 const MASTER_KEY = Buffer.from(MASTER_KEY_HEX, 'hex');
+
+/**
+ * Verify ENCRYPTION_MASTER_KEY is explicitly configured in production (fail-closed).
+ */
+export function validateVaultSecret() {
+  const key = process.env.ENCRYPTION_MASTER_KEY;
+  if (process.env.NODE_ENV === 'production' && (!key || key === DEV_MASTER_KEY_HEX || !/^[0-9a-fA-F]{64}$/.test(key))) {
+    throw new Error('SECURITY: ENCRYPTION_MASTER_KEY must be a non-default 64-char hex string in production.');
+  }
+}
 
 /**
  * Encrypt API key using AES-256-GCM

@@ -2674,6 +2674,52 @@
           </ul>
         </div>
       </div>
+
+      <!-- Full-Stack Organization Team (RBAC) & Outbound Webhooks -->
+      <div class="grid-2" style="margin-top: 1.5rem;">
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.35rem;">
+            <div class="card-title" style="margin:0;"><i class="bi bi-people"></i> Organization Team (RBAC)</div>
+            <span id="org-current-role-badge" class="badge badge-outline">Role: owner</span>
+          </div>
+          <p class="card-desc">Invite hiring managers or reviewers to share jobs, candidate pipelines &amp; interview reports.</p>
+
+          <form id="form-team-invite" style="display:flex; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap;">
+            <input type="email" id="input-team-email" class="form-input" placeholder="colleague@company.com" required style="flex:1; min-width:180px;">
+            <select id="select-team-role" class="form-select" style="width:130px;">
+              <option value="recruiter">Recruiter</option>
+              <option value="reviewer">Reviewer</option>
+              <option value="owner">Owner</option>
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm">Invite</button>
+          </form>
+
+          <div id="team-invite-banner" style="display:none; margin-bottom:0.85rem; padding:0.65rem 0.85rem; border-radius:var(--radius-sm); border:1px solid #bfdbfe; background:#eff6ff; font-size:0.78rem;"></div>
+          <div id="org-team-list" style="display:flex; flex-direction:column; gap:0.5rem;">
+            <div style="font-size:0.78rem; color:var(--text-muted);">Loading organization team...</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><i class="bi bi-broadcast-pin"></i> Outbound Signed Webhooks</div>
+          <p class="card-desc">Push HMAC-SHA256 signed events (<code>interview.completed</code>, <code>interview.disqualified</code>, <code>candidate.decision_updated</code>) to your ATS or Slack.</p>
+
+          <form id="form-org-webhook" style="display:flex; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap;">
+            <input type="text" id="input-webhook-name" class="form-input" placeholder="ATS / Slack Integration" required style="width:165px;">
+            <input type="url" id="input-webhook-url" class="form-input" placeholder="https://example.com/webhooks/roundone" required style="flex:1; min-width:200px;">
+            <button type="submit" class="btn btn-primary btn-sm">Add Webhook</button>
+          </form>
+
+          <div id="org-webhooks-list" style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.85rem;">
+            <div style="font-size:0.78rem; color:var(--text-muted);">Loading configured webhooks...</div>
+          </div>
+
+          <div style="border-top:1px solid var(--border); padding-top:0.75rem;">
+            <div style="font-size:0.74rem; font-weight:700; color:var(--text-muted); margin-bottom:0.4rem;">Recent Webhook Deliveries</div>
+            <div id="org-webhook-deliveries" style="max-height:140px; overflow-y:auto; font-size:0.74rem; color:var(--text-muted);">No deliveries yet.</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- TAB 4: Usage & Pricing -->

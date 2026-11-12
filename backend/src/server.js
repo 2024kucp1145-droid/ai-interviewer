@@ -5,7 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
-import { db, initDatabase } from './db/database.js';
+import { db, initDatabase, isPostgresConfigured, checkPostgresConnection } from './db/database.js';
 import {
   hashPassword,
   comparePassword,
@@ -13,9 +13,12 @@ import {
   verifyToken,
   requireAuth,
   createStatelessOtpChallenge,
-  verifyStatelessOtpChallenge
+  verifyStatelessOtpChallenge,
+  validateJwtSecret
 } from './auth/auth.js';
-import { encryptApiKey, maskKey } from './keys/vault.js';
+import { encryptApiKey, maskKey, validateVaultSecret } from './keys/vault.js';
+import { createRateLimiter } from './middleware/rateLimit.js';
+import { triggerOrgWebhooks, deliverWebhook } from './services/webhookService.js';
 import { GeminiProvider } from './ai/gemini.js';
 import { processInterviewTurn } from './interview/engine.js';
 import { generateReport } from './reports/generator.js';
@@ -38,6 +41,8 @@ import {
 } from './services/emailService.js';
 
 dotenv.config();
+validateJwtSecret();
+validateVaultSecret();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -54,8 +59,31 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }
 });
 
+app.use((req, res, next) => {
+  const reqId = req.headers['x-request-id'] || crypto.randomUUID();
+  req.requestId = String(reqId);
+  res.setHeader('X-Request-Id', req.requestId);
+  next();
+});
+
 app.use(cors());
-app.use(express.json());
+app.use(express.json({
+  limit: '5mb',
+  verify: (req, _res, buf) => {
+    req.rawBody = buf;
+  }
+}));
+
+// Sliding-window rate limiters on sensitive auth, public, compiler & TTS routes
+const authLimiter = createRateLimiter({ windowMs: 15 * 60_000, max: 30, keyPrefix: 'auth', message: 'Too many authentication attempts. Please wait a few minutes.' });
+const publicStartLimiter = createRateLimiter({ windowMs: 10 * 60_000, max: 25, keyPrefix: 'pub_start', message: 'Too many interview session launches from this IP.' });
+const judgeLimiter = createRateLimiter({ windowMs: 60_000, max: 30, keyPrefix: 'judge', message: 'Too many code executions. Slow down for a moment.' });
+const ttsLimiter = createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'tts', message: 'Voice synthesis rate limit reached.' });
+
+['/auth/signup', '/auth/login', '/auth/login-otp-verify', '/auth/reset-password', '/auth/reset-password-verify'].forEach((p) => app.use(p, authLimiter));
+app.use('/public/jobs/:id/start', publicStartLimiter);
+app.use('/api/compiler/judge', judgeLimiter);
+app.use('/api/tts/speak', ttsLimiter);
 
 // Billing routes
 app.use('/billing', billingRouter);
@@ -73,12 +101,37 @@ app.get('/admin', (req, res) => {
 
 app.use(express.static(frontendPath));
 
-// --- Health Check ---
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'ok',
+// --- Health & Readiness Check ---
+app.get('/health', async (req, res) => {
+  let sqliteOk = false;
+  let sqliteError = null;
+  try {
+    const probe = db.prepare('SELECT 1 as ok').get();
+    sqliteOk = probe?.ok === 1;
+  } catch (err) {
+    sqliteError = err.message;
+  }
+
+  let postgresStatus = { configured: false, connected: null };
+  if (isPostgresConfigured()) {
+    const pgCheck = await checkPostgresConnection();
+    postgresStatus = { configured: true, connected: pgCheck.connected, latencyMs: pgCheck.latencyMs, error: pgCheck.error || null };
+  }
+
+  const emailCfg = getEmailConfig();
+  const degraded = !sqliteOk || (postgresStatus.configured && !postgresStatus.connected);
+
+  res.status(degraded ? 503 : 200).json({
+    status: degraded ? 'degraded' : 'ok',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    requestId: req.requestId,
+    checks: {
+      sqlite: { connected: sqliteOk, error: sqliteError },
+      postgres: postgresStatus,
+      email: { configured: !!emailCfg.isConfigured, provider: emailCfg.provider || null },
+      memoryRssMb: Math.round(process.memoryUsage().rss / (1024 * 1024)),
+    }
   });
 });
 
@@ -146,7 +199,8 @@ app.post('/auth/signup', async (req, res) => {
       website,
       industry,
       companySize,
-      country
+      country,
+      inviteToken
     } = req.body;
 
     if (!email || !password) {
@@ -199,7 +253,23 @@ app.post('/auth/signup', async (req, res) => {
       });
     }
 
-    const orgId = 'org_' + crypto.randomUUID();
+    let inviteRecord = null;
+    if (inviteToken) {
+      const inviteHash = crypto.createHash('sha256').update(String(inviteToken)).digest('hex');
+      inviteRecord = db.prepare(`
+        SELECT * FROM org_team_invites
+        WHERE token_hash = ? AND status = 'pending' AND datetime(expires_at) > datetime('now')
+      `).get(inviteHash);
+      if (!inviteRecord) {
+        return res.status(400).json({ error: 'Invalid or expired team invite token.' });
+      }
+      if (inviteRecord.email.toLowerCase() !== cleanEmail) {
+        return res.status(400).json({ error: 'Invite token belongs to a different email address.' });
+      }
+    }
+
+    const orgId = inviteRecord ? inviteRecord.org_id : ('org_' + crypto.randomUUID());
+    const userRole = inviteRecord ? (inviteRecord.org_role || 'recruiter') : 'owner';
     const userId = 'usr_' + crypto.randomUUID();
     const passHash = hashPassword(password);
 
@@ -207,22 +277,26 @@ app.post('/auth/signup', async (req, res) => {
     const trialCredits = parseInt(settingCredits?.value || '10', 10) || 10;
 
     db.transaction(() => {
-      db.prepare(`
-        INSERT INTO organizations (id, name, website, industry, company_size, country, plan, included_interviews)
-        VALUES (?, ?, ?, ?, ?, ?, 'free_trial', ?)
-      `).run(
-        orgId,
-        (companyName || 'My Organization').trim(),
-        (website || '').trim(),
-        (industry || 'Technology').trim(),
-        (companySize || '1-20').trim(),
-        (country || 'India').trim(),
-        trialCredits
-      );
+      if (!inviteRecord) {
+        db.prepare(`
+          INSERT INTO organizations (id, name, website, industry, company_size, country, plan, included_interviews)
+          VALUES (?, ?, ?, ?, ?, ?, 'free_trial', ?)
+        `).run(
+          orgId,
+          (companyName || 'My Organization').trim(),
+          (website || '').trim(),
+          (industry || 'Technology').trim(),
+          (companySize || '1-20').trim(),
+          (country || 'India').trim(),
+          trialCredits
+        );
+      } else {
+        db.prepare("UPDATE org_team_invites SET status = 'accepted' WHERE id = ?").run(inviteRecord.id);
+      }
 
       db.prepare(`
-        INSERT INTO users (id, org_id, full_name, phone, job_title, email, password_hash, role, is_verified, verification_code, approval_status, last_login_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'owner', 0, ?, 'approved', CURRENT_TIMESTAMP)
+        INSERT INTO users (id, org_id, full_name, phone, job_title, email, password_hash, role, org_role, is_verified, verification_code, approval_status, last_login_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 'approved', CURRENT_TIMESTAMP)
       `).run(
         userId,
         orgId,
@@ -231,6 +305,8 @@ app.post('/auth/signup', async (req, res) => {
         (jobTitle || 'Recruiter').trim(),
         cleanEmail,
         passHash,
+        userRole,
+        userRole,
         otpCode
       );
     })();
@@ -1360,7 +1436,8 @@ function getOrHydrateInterview(rawToken) {
 
   let interview = db.prepare(`
     SELECT 
-      i.id, i.state, i.expires_at, i.link_timer_minutes,
+      i.id, i.state, i.started_at, i.expires_at, i.link_timer_minutes,
+      i.disqualified_reason, i.proctor_warnings, i.code_draft, i.code_lang,
       j.id as job_id, j.title as job_title, j.skills, j.qualifications, j.level, j.max_minutes, j.max_questions,
       j.show_timer, j.auto_submit_timer,
       j.interview_type, j.question_mode, j.terminal_required, j.word_editor_required, j.resume_required,
@@ -1736,6 +1813,13 @@ app.patch('/interviews/:id/decision', requireAuth, (req, res) => {
       details: { manualDecision: manualDecision || 'auto', reviewerNote },
       ipAddress: req.ip
     });
+
+    triggerOrgWebhooks(interview.job_org_id || req.user.org_id, 'candidate.decision_updated', {
+      interviewId: interview.id,
+      manualDecision: manualDecision || 'auto',
+      reviewerNote,
+      reviewedBy: reviewerName,
+    }).catch((err) => console.warn('[Webhook] decision trigger failed:', err.message));
 
     res.json({ success: true, interviewId: interview.id, manual_decision: manualDecision, reviewer_note: reviewerNote, reviewed_by: reviewerName });
   } catch (err) {
@@ -2189,8 +2273,22 @@ app.get('/i/:token', (req, res) => {
 
     const turns = db.prepare('SELECT idx, role, text, skill, level FROM turns WHERE interview_id = ? ORDER BY idx ASC').all(interview.id);
 
+    // Compute exact remaining seconds when candidate reloads an active session
+    const totalMinutes = Number(interview.link_timer_minutes || interview.max_minutes || 60);
+    let remainingSeconds = totalMinutes * 60;
+    if (interview.started_at) {
+      const startedMs = new Date(interview.started_at.endsWith('Z') ? interview.started_at : `${interview.started_at}Z`).getTime();
+      if (Number.isFinite(startedMs)) {
+        const elapsedSec = Math.max(0, Math.floor((Date.now() - startedMs) / 1000));
+        remainingSeconds = Math.max(0, (totalMinutes * 60) - elapsedSec);
+      }
+    }
+
     res.json({
       ...interview,
+      remainingSeconds,
+      code_draft: interview.code_draft || null,
+      code_lang: interview.code_lang || 'javascript',
       turns
     });
   } catch (err) {
@@ -2359,6 +2457,20 @@ app.post('/i/:token/finish', async (req, res) => {
       ipAddress: req.ip
     });
 
+    const jobOrg = db.prepare('SELECT org_id FROM jobs WHERE id = ?').get(interview.job_id);
+    if (jobOrg?.org_id) {
+      triggerOrgWebhooks(jobOrg.org_id, 'interview.completed', {
+        interviewId: interview.id,
+        jobId: interview.job_id,
+        jobTitle: interview.job_title,
+        candidateName: interview.candidate_name,
+        candidateEmail: interview.candidate_email,
+        score: report?.overall_score ?? null,
+        verdict: report?.candidate_verdict ?? null,
+        recommendation: report?.recommendation ?? null,
+      }).catch((err) => console.warn('[Webhook] interview.completed failed:', err.message));
+    }
+
     let emailSent = false;
     if (interview.candidate_email && interview.candidate_email.includes('@')) {
       try {
@@ -2447,6 +2559,18 @@ app.post('/i/:token/disqualify', async (req, res) => {
       ipAddress: req.ip
     });
 
+    const disqJobOrg = db.prepare('SELECT org_id FROM jobs WHERE id = ?').get(interview.job_id);
+    if (disqJobOrg?.org_id) {
+      triggerOrgWebhooks(disqJobOrg.org_id, 'interview.disqualified', {
+        interviewId: interview.id,
+        jobId: interview.job_id,
+        candidateName: interview.candidate_name,
+        candidateEmail: interview.candidate_email,
+        reason: disqualificationReason,
+        warnings: warnings || 3,
+      }).catch((err) => console.warn('[Webhook] interview.disqualified failed:', err.message));
+    }
+
     res.json({ success: true, message: 'Candidate disqualified', reason: disqualificationReason });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -2485,6 +2609,77 @@ app.post('/i/:token/proctor-event', (req, res) => {
   }
 });
 
+// Capture compressed webcam snapshot during proctoring violations
+app.post('/i/:token/snapshot', (req, res) => {
+  try {
+    const interview = getOrHydrateInterview(req.params.token);
+    if (!interview) return res.status(404).json({ error: 'Invalid token' });
+
+    const { reason, imageData } = req.body || {};
+    if (!imageData || typeof imageData !== 'string' || !imageData.startsWith('data:image/')) {
+      return res.status(400).json({ error: 'Valid base64 imageData URI is required' });
+    }
+    if (imageData.length > 450_000) {
+      return res.status(413).json({ error: 'Snapshot image exceeds 450KB limit' });
+    }
+
+    // Cap snapshots per interview to prevent storage abuse (keep newest 20)
+    const countRow = db.prepare('SELECT COUNT(*) as c FROM proctor_snapshots WHERE interview_id = ?').get(interview.id);
+    if ((countRow?.c || 0) >= 20) {
+      db.prepare(`
+        DELETE FROM proctor_snapshots WHERE id IN (
+          SELECT id FROM proctor_snapshots WHERE interview_id = ? ORDER BY created_at ASC LIMIT 1
+        )
+      `).run(interview.id);
+    }
+
+    const snapId = 'snap_' + crypto.randomUUID();
+    db.prepare(`
+      INSERT INTO proctor_snapshots (id, interview_id, reason, image_data)
+      VALUES (?, ?, ?, ?)
+    `).run(snapId, interview.id, String(reason || 'proctor_alert').slice(0, 200), imageData);
+
+    res.json({ success: true, snapshotId: snapId });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Autosave candidate code editor draft for mid-interview crash/reload recovery
+app.post('/i/:token/draft', (req, res) => {
+  try {
+    const interview = getOrHydrateInterview(req.params.token);
+    if (!interview) return res.status(404).json({ error: 'Invalid token' });
+
+    const codeDraft = typeof req.body?.code === 'string' ? req.body.code.slice(0, 100_000) : '';
+    const codeLang = String(req.body?.lang || 'javascript').slice(0, 32);
+
+    db.prepare('UPDATE interviews SET code_draft = ?, code_lang = ? WHERE id = ?')
+      .run(codeDraft, codeLang, interview.id);
+
+    res.json({ success: true, savedBytes: codeDraft.length, lang: codeLang });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Recruiter view of proctoring snapshots for an interview
+app.get('/interviews/:id/snapshots', requireAuth, (req, res) => {
+  try {
+    const interview = db.prepare(`
+      SELECT i.id FROM interviews i
+      JOIN jobs j ON i.job_id = j.id
+      WHERE i.id = ? AND (j.org_id = ? OR j.org_id = 'org_default' OR j.org_id IS NULL)
+    `).get(req.params.id, req.user.org_id);
+    if (!interview) return res.status(404).json({ error: 'Interview not found' });
+
+    const snapshots = db.prepare('SELECT id, reason, image_data, created_at FROM proctor_snapshots WHERE interview_id = ? ORDER BY created_at DESC LIMIT 20').all(interview.id);
+    res.json({ snapshots });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- Recruiter Report View ---
 app.get('/interviews/:id/report', requireAuth, (req, res) => {
   try {
@@ -2500,11 +2695,13 @@ app.get('/interviews/:id/report', requireAuth, (req, res) => {
 
     const reportRow = db.prepare('SELECT * FROM reports WHERE interview_id = ?').get(interview.id);
     const turns = db.prepare('SELECT idx, role, text, skill, level, created_at FROM turns WHERE interview_id = ? ORDER BY idx ASC').all(interview.id);
+    const snapshots = db.prepare('SELECT id, reason, image_data, created_at FROM proctor_snapshots WHERE interview_id = ? ORDER BY created_at DESC LIMIT 20').all(interview.id);
 
     res.json({
       interview,
       report: reportRow ? JSON.parse(reportRow.json) : null,
-      turns
+      turns,
+      snapshots
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -2947,6 +3144,228 @@ app.get('/jobs/:id/export.json', requireAuth, (req, res) => {
         ended_at: c.ended_at
       }))
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Organization Team & RBAC Management ---
+function getUserOrgRole(userId) {
+  const row = db.prepare('SELECT org_role, role FROM users WHERE id = ?').get(userId);
+  return row?.org_role || row?.role || 'recruiter';
+}
+
+app.get('/org/team', requireAuth, (req, res) => {
+  try {
+    const members = db.prepare(`
+      SELECT id, email, full_name, job_title, COALESCE(org_role, role, 'owner') as org_role, is_verified, last_login_at, created_at
+      FROM users WHERE org_id = ? ORDER BY created_at ASC
+    `).all(req.user.org_id);
+
+    const invites = db.prepare(`
+      SELECT id, email, org_role, status, expires_at, created_at
+      FROM org_team_invites WHERE org_id = ? AND status = 'pending' ORDER BY created_at DESC
+    `).all(req.user.org_id);
+
+    res.json({
+      currentUserRole: getUserOrgRole(req.user.id),
+      members,
+      invites
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/org/team/invite', requireAuth, (req, res) => {
+  try {
+    const callerRole = getUserOrgRole(req.user.id);
+    if (callerRole !== 'owner' && callerRole !== 'admin') {
+      return res.status(403).json({ error: 'Only organization owners can invite team members.' });
+    }
+
+    const email = String(req.body?.email || '').toLowerCase().trim();
+    const orgRole = ['owner', 'recruiter', 'reviewer'].includes(req.body?.org_role) ? req.body.org_role : 'recruiter';
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Valid work email is required.' });
+    }
+
+    const existingMember = db.prepare('SELECT id FROM users WHERE email = ? AND org_id = ?').get(email, req.user.org_id);
+    if (existingMember) {
+      return res.status(400).json({ error: 'This user is already a member of your organization.' });
+    }
+
+    const rawToken = 'inv_' + crypto.randomBytes(24).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const inviteId = 'tinv_' + crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    db.prepare(`
+      INSERT INTO org_team_invites (id, org_id, email, org_role, token_hash, invited_by, status, expires_at)
+      VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
+    `).run(inviteId, req.user.org_id, email, orgRole, tokenHash, req.user.id, expiresAt);
+
+    logActivity({
+      action: 'ORG_TEAM_INVITED',
+      actorType: 'user',
+      actorId: req.user.id,
+      actorEmail: req.user.email,
+      orgId: req.user.org_id,
+      entityType: 'org_team_invite',
+      entityId: inviteId,
+      details: { invitedEmail: email, orgRole },
+      ipAddress: req.ip
+    });
+
+    res.json({
+      success: true,
+      inviteId,
+      inviteToken: rawToken,
+      email,
+      orgRole,
+      expiresAt,
+      signupUrl: `/?inviteToken=${rawToken}&email=${encodeURIComponent(email)}`
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/org/team/accept', requireAuth, (req, res) => {
+  try {
+    const rawToken = String(req.body?.inviteToken || '').trim();
+    if (!rawToken) return res.status(400).json({ error: 'inviteToken is required' });
+
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const invite = db.prepare(`
+      SELECT * FROM org_team_invites
+      WHERE token_hash = ? AND status = 'pending' AND datetime(expires_at) > datetime('now')
+    `).get(tokenHash);
+
+    if (!invite) return res.status(400).json({ error: 'Invalid or expired team invite token.' });
+    if (invite.email.toLowerCase() !== req.user.email.toLowerCase()) {
+      return res.status(403).json({ error: 'This invite was issued for a different email address.' });
+    }
+
+    db.transaction(() => {
+      db.prepare('UPDATE users SET org_id = ?, org_role = ?, role = ? WHERE id = ?')
+        .run(invite.org_id, invite.org_role, invite.org_role, req.user.id);
+      db.prepare("UPDATE org_team_invites SET status = 'accepted' WHERE id = ?").run(invite.id);
+    })();
+
+    const newToken = signToken({ id: req.user.id, org_id: invite.org_id, email: req.user.email, role: invite.org_role });
+    res.json({ success: true, orgId: invite.org_id, orgRole: invite.org_role, token: newToken });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/org/team/:id', requireAuth, (req, res) => {
+  try {
+    const callerRole = getUserOrgRole(req.user.id);
+    if (callerRole !== 'owner' && callerRole !== 'admin') {
+      return res.status(403).json({ error: 'Only organization owners can remove team members or invites.' });
+    }
+    const targetId = req.params.id;
+    if (targetId === req.user.id) {
+      return res.status(400).json({ error: 'You cannot remove yourself from the organization.' });
+    }
+
+    const delInvite = db.prepare('DELETE FROM org_team_invites WHERE id = ? AND org_id = ?').run(targetId, req.user.org_id);
+    if (delInvite.changes > 0) return res.json({ success: true, removedType: 'invite' });
+
+    const delUser = db.prepare('DELETE FROM users WHERE id = ? AND org_id = ?').run(targetId, req.user.org_id);
+    if (delUser.changes === 0) return res.status(404).json({ error: 'Member or invite not found' });
+
+    res.json({ success: true, removedType: 'member' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Outbound Webhooks Management (HRIS / ATS Integrations) ---
+app.get('/org/webhooks', requireAuth, (req, res) => {
+  try {
+    const webhooks = db.prepare(`
+      SELECT id, name, url, events, is_active, last_triggered_at, last_status, created_at
+      FROM org_webhooks WHERE org_id = ? ORDER BY created_at DESC
+    `).all(req.user.org_id);
+    res.json({ webhooks });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/org/webhooks', requireAuth, (req, res) => {
+  try {
+    const callerRole = getUserOrgRole(req.user.id);
+    if (callerRole === 'reviewer') {
+      return res.status(403).json({ error: 'Reviewers do not have permission to configure webhooks.' });
+    }
+
+    const name = String(req.body?.name || 'ATS Webhook').trim().slice(0, 120);
+    const url = String(req.body?.url || '').trim();
+    const eventsInput = Array.isArray(req.body?.events) ? req.body.events.join(',') : String(req.body?.events || 'interview.completed,interview.disqualified,candidate.decision_updated');
+
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      return res.status(400).json({ error: 'Valid webhook URL (http:// or https://) is required.' });
+    }
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      return res.status(400).json({ error: 'Webhook URL must use http or https protocol.' });
+    }
+
+    const webhookId = 'wh_' + crypto.randomUUID();
+    const secret = 'whsec_' + crypto.randomBytes(24).toString('hex');
+
+    db.prepare(`
+      INSERT INTO org_webhooks (id, org_id, name, url, secret, events, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, 1)
+    `).run(webhookId, req.user.org_id, name, url, secret, eventsInput);
+
+    res.json({
+      success: true,
+      webhook: { id: webhookId, name, url, secret, events: eventsInput, is_active: 1 }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/org/webhooks/:id/test', requireAuth, async (req, res) => {
+  try {
+    const webhook = db.prepare('SELECT * FROM org_webhooks WHERE id = ? AND org_id = ?').get(req.params.id, req.user.org_id);
+    if (!webhook) return res.status(404).json({ error: 'Webhook not found' });
+
+    const delivery = await deliverWebhook(webhook, 'webhook.test', {
+      message: 'RoundOne AI test webhook delivery',
+      triggeredBy: req.user.email,
+    });
+    res.json({ success: delivery.success, delivery });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/org/webhooks/deliveries', requireAuth, (req, res) => {
+  try {
+    const deliveries = db.prepare(`
+      SELECT id, webhook_id, event, status_code, success, duration_ms, created_at
+      FROM webhook_deliveries WHERE org_id = ? ORDER BY created_at DESC LIMIT 30
+    `).all(req.user.org_id);
+    res.json({ deliveries });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/org/webhooks/:id', requireAuth, (req, res) => {
+  try {
+    const del = db.prepare('DELETE FROM org_webhooks WHERE id = ? AND org_id = ?').run(req.params.id, req.user.org_id);
+    if (del.changes === 0) return res.status(404).json({ error: 'Webhook not found' });
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

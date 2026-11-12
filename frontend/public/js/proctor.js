@@ -485,6 +485,9 @@ export class ProctorEngine {
       console.warn('[ProctorEngine] Failed to notify backend of warning event:', err);
     }
 
+    // Capture compressed webcam snapshot for proctor evidence audit
+    this.captureAndUploadSnapshot(reason);
+
     if (this.onWarning) {
       this.onWarning(reason, this.warningsCount, this.violations);
     }
@@ -497,6 +500,27 @@ export class ProctorEngine {
 
     // Otherwise show Warning Modal Alert to candidate
     this.showWarningOverlay(reason, this.warningsCount);
+  }
+
+  /**
+   * Capture a compressed 320x240 JPEG frame from webcam and upload to backend proctor_snapshots
+   */
+  captureAndUploadSnapshot(reason) {
+    try {
+      if (!this.token || !this.videoEl || this.videoEl.readyState < 2) return;
+      const canvas = document.createElement('canvas');
+      canvas.width = 320;
+      canvas.height = 240;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.drawImage(this.videoEl, 0, 0, canvas.width, canvas.height);
+      const imageData = canvas.toDataURL('image/jpeg', 0.55);
+      fetch(`/i/${this.token}/snapshot`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason, imageData })
+      }).catch(() => {});
+    } catch (_) {}
   }
 
   /**

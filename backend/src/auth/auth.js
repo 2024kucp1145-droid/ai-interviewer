@@ -3,7 +3,17 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { db } from '../db/database.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_secret_key_849204910284019284019';
+const DEV_JWT_FALLBACK = 'dev_jwt_secret_key_849204910284019284019';
+const JWT_SECRET = process.env.JWT_SECRET || DEV_JWT_FALLBACK;
+
+/**
+ * Verify JWT_SECRET is explicitly configured in production (fail-closed).
+ */
+export function validateJwtSecret() {
+  if (process.env.NODE_ENV === 'production' && (!process.env.JWT_SECRET || process.env.JWT_SECRET === DEV_JWT_FALLBACK || process.env.JWT_SECRET.length < 32)) {
+    throw new Error('SECURITY: JWT_SECRET must be set to a strong >=32 character secret in production.');
+  }
+}
 
 export function hashPassword(password) {
   return bcrypt.hashSync(password, 10);
