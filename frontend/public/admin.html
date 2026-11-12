@@ -573,9 +573,190 @@
     /* Metric Cards Grid (TailAdmin KPIs) */
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 1.05rem;
       margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 1180px) {
+      .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    /* Topbar Global Command Search */
+    .ta-global-search-wrap {
+      position: relative;
+      display: none;
+      align-items: center;
+      flex: 1;
+      max-width: 390px;
+      margin: 0 1rem;
+    }
+
+    .ta-global-search-input-box {
+      position: relative;
+      width: 100%;
+      display: flex;
+      align-items: center;
+    }
+
+    .ta-global-search-input-box i {
+      position: absolute;
+      left: 0.78rem;
+      color: var(--text-subtle);
+      font-size: 0.85rem;
+      pointer-events: none;
+    }
+
+    .ta-global-search-input {
+      width: 100%;
+      padding: 0.46rem 3.3rem 0.46rem 2.2rem;
+      font-size: 0.79rem;
+      font-family: inherit;
+      background-color: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .ta-global-search-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-subtle);
+    }
+
+    .ta-kbd-hint {
+      position: absolute;
+      right: 0.55rem;
+      font-size: 0.65rem;
+      font-family: var(--mono);
+      color: var(--text-subtle);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 0.08rem 0.35rem;
+      pointer-events: none;
+    }
+
+    .ta-global-results {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border-bright);
+      border-radius: 12px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.38);
+      max-height: 360px;
+      overflow-y: auto;
+      z-index: 120;
+      display: none;
+      padding: 0.45rem;
+    }
+
+    .ta-global-results.show {
+      display: block;
+    }
+
+    .ta-search-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.65rem;
+      padding: 0.55rem 0.7rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.12s ease;
+    }
+
+    .ta-search-item:hover {
+      background-color: var(--surface-elevated);
+    }
+
+    /* Filter Chips & Settings Sub-Tabs */
+    .filter-chip-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-chip {
+      border: 1px solid var(--border);
+      background: var(--surface-elevated);
+      color: var(--text-muted);
+      border-radius: 999px;
+      padding: 0.3rem 0.72rem;
+      font-size: 0.73rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.14s ease;
+    }
+
+    .filter-chip:hover {
+      color: var(--text);
+      border-color: var(--border-bright);
+    }
+
+    .filter-chip.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    .settings-subtabs {
+      display: flex;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.75rem;
+    }
+
+    .settings-subtab-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.5rem 0.95rem;
+      border-radius: 9px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s ease;
+    }
+
+    .settings-subtab-btn:hover {
+      color: var(--text);
+      background: var(--surface-elevated);
+    }
+
+    .settings-subtab-btn.active {
+      background: var(--primary-subtle);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #10b981;
+      display: inline-block;
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      animation: livePulse 1.6s infinite;
+    }
+
+    @keyframes livePulse {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { box-shadow: 0 0 0 7px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
     }
 
     .kpi-card {
@@ -1353,6 +1534,21 @@
 
     .modal-backdrop.show {
       display: flex;
+      animation: fadeInModal 0.16s ease-out;
+    }
+
+    .modal-backdrop.show .modal-box {
+      animation: modalPop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes fadeInModal {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes modalPop {
+      from { opacity: 0; transform: translateY(8px) scale(0.985); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
     .modal-box {
@@ -1473,6 +1669,12 @@
     }
 
     @media (max-width: 768px) {
+      .ta-global-search-wrap {
+        order: 3;
+        max-width: 100%;
+        width: 100%;
+        margin: 0.25rem 0 0;
+      }
       .header-inner {
         padding: 0.65rem 1rem;
         flex-wrap: wrap;
@@ -1521,9 +1723,19 @@
           <i class="bi bi-shield-lock-fill"></i> SUPERADMIN
         </div>
         <div>
-          <span class="brand-title">RoundOne AI Platform Ops</span>
-          <span class="brand-subtitle">TailAdmin Workspace &middot; Recruiter &amp; Company Operations</span>
+          <span class="brand-title">RoundOne AI Ops</span>
+          <span class="brand-subtitle">Admin Control Center</span>
         </div>
+      </div>
+
+      <!-- Global Quick Command Search (Shown when logged in) -->
+      <div id="ta-global-search-wrap" class="ta-global-search-wrap">
+        <div class="ta-global-search-input-box">
+          <i class="bi bi-search"></i>
+          <input type="text" id="ta-global-search" class="ta-global-search-input" placeholder="Search companies, recruiters, candidates, jobs..." oninput="runGlobalAdminSearch()" onfocus="runGlobalAdminSearch()">
+          <span class="ta-kbd-hint">Ctrl K</span>
+        </div>
+        <div id="ta-global-results" class="ta-global-results"></div>
       </div>
 
       <div class="header-meta">
@@ -1755,9 +1967,14 @@
             </button>
             <button type="button" class="nav-tab-btn ta-nav-item" data-tab="interviews" onclick="switchDashboardTab('interviews')">
               <span class="ta-nav-item-left"><i class="bi bi-camera-video-fill"></i> <span>All Interviews</span></span>
+              <span id="sidebar-live-badge" class="badge badge-success" style="display:none; font-size:0.65rem;"><span class="live-dot" style="margin-right:0.25rem;"></span><span id="sidebar-live-count">0</span> Live</span>
             </button>
             <button type="button" class="nav-tab-btn ta-nav-item" data-tab="orders" onclick="switchDashboardTab('orders')">
               <span class="ta-nav-item-left"><i class="bi bi-credit-card-2-front-fill"></i> <span>Billing &amp; Orders</span></span>
+            </button>
+            <button type="button" class="nav-tab-btn ta-nav-item" data-tab="feedbacks" onclick="switchDashboardTab('feedbacks')">
+              <span class="ta-nav-item-left"><i class="bi bi-chat-square-heart-fill"></i> <span>Feedbacks</span></span>
+              <span id="feedbacks-badge" class="badge badge-neutral" style="display:none;">0</span>
             </button>
           </div>
         </div>
@@ -1809,6 +2026,24 @@
     <div id="tab-content-overview">
       <!-- High-Priority Action Alerts (HireVue Style) -->
       <div id="overview-quick-actions" class="quick-actions-strip" style="display: none;"></div>
+
+      <!-- Real-Time Live Interviews Monitor -->
+      <div class="card" id="overview-live-sessions-card" style="margin-bottom: 1.35rem;">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="live-dot"></span> Live Interviews Happening Now
+          </div>
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            <span id="overview-live-count-badge" class="badge badge-neutral">0 Active</span>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="switchDashboardTab('interviews')">
+              All Sessions <i class="bi bi-arrow-right-short"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-body" id="overview-live-sessions-list" style="padding: 0.9rem 1.25rem;">
+          <p style="color: var(--text-muted); font-size: 0.8rem;">No live interviews right now &mdash; monitoring every 15s.</p>
+        </div>
+      </div>
 
       <div class="kpi-grid">
         <div class="kpi-card is-clickable" onclick="switchDashboardTab('users')" title="Open Recruiters directory">
@@ -2034,12 +2269,20 @@
     <!-- TAB 3: RECRUITER & USER MANAGEMENT -->
     <div id="tab-content-users" style="display: none;">
       <div class="card">
-        <div class="card-header">
-          <div class="card-title">
-            <i class="bi bi-people-fill"></i> Recruiter Accounts &amp; Organizations Directory
+        <div class="card-header" style="flex-wrap: wrap; gap: 0.75rem;">
+          <div style="display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap;">
+            <div class="card-title">
+              <i class="bi bi-people-fill"></i> Recruiters &amp; Organizations
+            </div>
+            <div id="users-status-chips" class="filter-chip-group">
+              <button type="button" class="filter-chip active" data-status="" onclick="setUsersStatusFilter('')">All</button>
+              <button type="button" class="filter-chip" data-status="pending_approval" onclick="setUsersStatusFilter('pending_approval')">Pending</button>
+              <button type="button" class="filter-chip" data-status="approved" onclick="setUsersStatusFilter('approved')">Approved</button>
+              <button type="button" class="filter-chip" data-status="suspended" onclick="setUsersStatusFilter('suspended')">Suspended</button>
+            </div>
           </div>
           <div style="display: flex; gap: 0.6rem;">
-            <input type="text" id="search-users-input" class="form-input" placeholder="Search by name, email, company..." style="width: 260px; padding: 0.35rem 0.65rem;" oninput="renderUsersTable()">
+            <input type="text" id="search-users-input" class="form-input" placeholder="Search by name, email, company..." style="width: 240px; padding: 0.35rem 0.65rem;" oninput="renderUsersTable()">
             <button class="btn btn-secondary btn-sm" onclick="loadRecruitersDirectory()">
               <i class="bi bi-arrow-clockwise"></i> Refresh
             </button>
@@ -2123,18 +2366,11 @@
       <div class="card">
         <div class="card-header">
           <div class="card-title">
-            <i class="bi bi-shield-fill-check"></i> Platform Administrators &amp; Unique IDs (Unlimited Access)
+            <i class="bi bi-shield-fill-check"></i> Platform Administrators
           </div>
-          <span class="badge badge-success">All Signed-Up Admins Enabled</span>
+          <span class="badge badge-success">Active Directory</span>
         </div>
         <div class="card-body">
-          <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.8rem;">
-            Every administrator who completes signup (Name, Email, Password + Email OTP) receives a unique readable Admin ID and full access to this portal. To log in later, admins simply enter their <strong>Name</strong> and <strong>Unique Admin ID</strong> and verify the OTP sent to their linked email.
-          </p>
-
-          <h3 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 0.75rem;">
-            Registered Administrators
-          </h3>
           <div id="admins-list-container" style="display: flex; flex-direction: column; gap: 0.6rem;">
             <!-- Rendered dynamically -->
           </div>
@@ -2168,16 +2404,20 @@
       </div>
 
       <div class="card">
-        <div class="card-header">
+        <div class="card-header" style="flex-wrap: wrap; gap: 0.75rem;">
           <div class="card-title"><i class="bi bi-credit-card-2-front-fill"></i> Organization Billing Orders &amp; Subscriptions</div>
-          <div style="display: flex; gap: 0.6rem;">
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+            <input type="text" id="orders-search-input" class="form-input" placeholder="Search order ID, company, email..." style="width: 220px; padding: 0.35rem 0.65rem; font-size: 0.75rem;" oninput="renderOrdersTable()">
             <select id="filter-orders-status" class="form-input" style="width: auto; padding: 0.35rem 0.65rem;" onchange="renderOrdersTable()">
               <option value="">All Statuses</option>
               <option value="paid">Paid</option>
               <option value="pending">Pending</option>
             </select>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="exportOrdersCsv()">
+              <i class="bi bi-download"></i> Export CSV
+            </button>
             <button class="btn btn-secondary btn-sm" onclick="loadOrdersDirectory()">
-              <i class="bi bi-arrow-clockwise"></i> Refresh Orders
+              <i class="bi bi-arrow-clockwise"></i> Refresh
             </button>
           </div>
         </div>
@@ -2202,10 +2442,48 @@
       </div>
     </div>
 
+    <!-- TAB: FEEDBACKS INBOX -->
+    <div id="tab-content-feedbacks" style="display: none;">
+      <div class="card">
+        <div class="card-header" style="flex-wrap: wrap; gap: 0.75rem;">
+          <div class="card-title">
+            <i class="bi bi-chat-square-heart-fill" style="color: var(--primary);"></i> Platform &amp; Candidate Feedback Inbox
+          </div>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+            <input type="text" id="feedbacks-search-input" class="form-input" placeholder="Search feedback, user, category..." style="width: 220px; padding: 0.35rem 0.65rem; font-size: 0.75rem;" oninput="renderFeedbacksList()">
+            <select id="feedbacks-rating-filter" class="form-input" style="width: auto; padding: 0.35rem 0.6rem; font-size: 0.75rem;" onchange="renderFeedbacksList()">
+              <option value="">All Ratings</option>
+              <option value="5">5 Stars</option>
+              <option value="4">4+ Stars</option>
+              <option value="low">1&ndash;3 Stars (Needs Attention)</option>
+            </select>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="loadFeedbacksInbox()">
+              <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+          </div>
+        </div>
+        <div class="card-body" id="feedbacks-inbox-container" style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <p style="color: var(--text-muted); text-align: center; padding: 2rem;">Loading feedback submissions...</p>
+        </div>
+      </div>
+    </div>
+
     <!-- TAB 6: GOVERNANCE SETTINGS -->
     <div id="tab-content-settings" style="display: none;">
+      <div class="settings-subtabs">
+        <button type="button" class="settings-subtab-btn active" data-subtab="governance" onclick="switchSettingsSubtab('governance')">
+          <i class="bi bi-shield-check"></i> Access &amp; Trial Credits
+        </button>
+        <button type="button" class="settings-subtab-btn" data-subtab="email" onclick="switchSettingsSubtab('email')">
+          <i class="bi bi-envelope-at-fill"></i> Email Delivery &amp; OTP
+        </button>
+        <button type="button" class="settings-subtab-btn" data-subtab="database" onclick="switchSettingsSubtab('database')">
+          <i class="bi bi-database-fill-gear"></i> Database Engine
+        </button>
+      </div>
+
       <!-- Access Governance Card -->
-      <div class="card" style="max-width: 750px;">
+      <div id="settings-panel-governance" class="card" style="max-width: 780px;">
         <div class="card-header">
           <div class="card-title">
             <i class="bi bi-sliders"></i> Platform Access &amp; Registration Governance
@@ -2217,7 +2495,7 @@
               <div>
                 <strong style="font-size: 0.9rem;">Require Admin Approval for New Recruiter Signups</strong>
                 <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">
-                  When turned ON, newly registered recruiters cannot log in or use the platform until you or your friend manually approves their account.
+                  Hold new recruiter accounts in pending review until an administrator approves them.
                 </p>
               </div>
               <input type="checkbox" id="setting-require-approval" style="width: 20px; height: 20px; cursor: pointer;">
@@ -2227,7 +2505,7 @@
           <div class="form-group" style="max-width: 320px;">
             <label class="form-label">Default Free Trial Interview Credits</label>
             <input type="number" id="setting-trial-credits" class="form-input" min="0" max="1000" value="10">
-            <span style="font-size: 0.7rem; color: var(--text-subtle);">Credits automatically granted to newly approved recruiters.</span>
+            <span style="font-size: 0.7rem; color: var(--text-subtle);">Granted automatically to newly approved recruiters.</span>
           </div>
 
           <button class="btn btn-primary" onclick="savePlatformSettings()">
@@ -2237,7 +2515,7 @@
       </div>
 
       <!-- Live Email Delivery Configuration Card -->
-      <div class="card" style="max-width: 780px; margin-top: 1.5rem;">
+      <div id="settings-panel-email" class="card" style="max-width: 820px; display: none;">
         <div class="card-header">
           <div class="card-title">
             <i class="bi bi-envelope-at-fill"></i> Live Email Delivery &amp; OTP Configuration
@@ -2245,90 +2523,73 @@
           <span id="smtp-status-badge" class="badge badge-warning">Checking Status...</span>
         </div>
         <div class="card-body">
-          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
-            To deliver verification codes, OTPs, and feedback directly to user and administrator inboxes across all email domains, select your active provider below.
-          </p>
-
-          <div class="form-group" style="margin-bottom: 1rem; max-width: 460px;">
+          <div class="form-group" style="margin-bottom: 1.15rem; max-width: 460px;">
             <label class="form-label">Active Email Provider</label>
             <select id="setting-email-provider" class="form-input">
-              <option value="smtp">Option B: Custom / Gmail SMTP (Allows all email domains free)</option>
-              <option value="resend">Option A: Resend API (Requires verified domain for all recipients)</option>
-              <option value="auto">Auto (Resend if key saved, otherwise SMTP)</option>
+              <option value="smtp">Gmail / Custom SMTP (All recipient domains)</option>
+              <option value="resend">Resend API (HTTP delivery)</option>
+              <option value="auto">Auto (Resend if configured, else SMTP)</option>
             </select>
           </div>
-          <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.35); color: #fcd34d; border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.75rem; margin-bottom: 1.25rem;">
-            <strong>Vercel Production Note (<code>prinai.vercel.app</code>):</strong> Serverless instances use isolated <code>/tmp</code> storage. For OTPs to work across every request for all users &amp; admins on Vercel, also set <code>EMAIL_PROVIDER</code>, <code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code>, and <code>SMTP_FROM_EMAIL</code> (or <code>RESEND_API_KEY</code>) in Vercel &rarr; Settings &rarr; Environment Variables and redeploy.
-          </div>
 
-          <!-- OPTION A: RESEND API KEY -->
-          <div style="background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-              <strong style="font-size: 0.9rem; color: var(--primary);"><i class="bi bi-lightning-fill"></i> Option A: Resend API Key (Recommended &middot; Easiest)</strong>
-              <span class="badge badge-success" style="font-size: 0.68rem;">Free 100 emails/day</span>
-            </div>
-            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-              No port or SMTP settings required. Create a free account at <a href="https://resend.com" target="_blank" style="color:var(--primary);">resend.com</a>, generate an API key starting with <code>re_</code>, and paste it below.
-            </p>
-            <div class="form-group" style="margin-bottom: 0.75rem;">
-              <label class="form-label">Resend API Key</label>
-              <input type="password" id="setting-resend-api-key" class="form-input code-font" placeholder="re_123456789abcdef...">
-            </div>
-            <div style="font-size: 0.7rem; color: var(--text-subtle);">
-              Default sender: <code>onboarding@resend.dev</code> (or configure your custom verified domain).
-            </div>
-          </div>
-
-          <!-- OPTION B: GMAIL / STANDARD SMTP -->
-          <div style="background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-              <strong style="font-size: 0.9rem;"><i class="bi bi-google"></i> Option B: Personal Gmail / Custom SMTP</strong>
-              <span class="badge badge-neutral" style="font-size: 0.68rem;">100% Free with Gmail</span>
-            </div>
-            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-              Use your existing Gmail account with a 16-character <strong>Google App Password</strong> (Generate at: Google Account &rarr; Security &rarr; 2-Step Verification &rarr; App passwords).
-            </p>
-
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-              <div class="form-group">
-                <label class="form-label">SMTP Host</label>
-                <input type="text" id="setting-smtp-host" class="form-input" placeholder="smtp.gmail.com">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+            <!-- RESEND API KEY -->
+            <div style="background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 10px; padding: 1.15rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
+                <strong style="font-size: 0.88rem; color: var(--primary);"><i class="bi bi-lightning-fill"></i> Resend API</strong>
+                <span class="badge badge-success" style="font-size: 0.68rem;">Free 100/day</span>
               </div>
-              <div class="form-group">
-                <label class="form-label">SMTP Port</label>
-                <input type="number" id="setting-smtp-port" class="form-input" placeholder="587">
+              <div class="form-group" style="margin-bottom: 0.55rem;">
+                <label class="form-label">Resend API Key</label>
+                <input type="password" id="setting-resend-api-key" class="form-input code-font" placeholder="re_123456789abcdef...">
+              </div>
+              <div style="font-size: 0.71rem; color: var(--text-subtle);">
+                Supports verified custom domains or <code>onboarding@resend.dev</code>.
               </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-              <div class="form-group">
-                <label class="form-label">SMTP Username / Email</label>
-                <input type="email" id="setting-smtp-user" class="form-input" placeholder="e.g. adityavyamawar@gmail.com">
+            <!-- GMAIL / STANDARD SMTP -->
+            <div style="background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 10px; padding: 1.15rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
+                <strong style="font-size: 0.88rem;"><i class="bi bi-google"></i> Gmail / Custom SMTP</strong>
+                <span class="badge badge-neutral" style="font-size: 0.68rem;">App Password</span>
               </div>
-              <div class="form-group">
-                <label class="form-label">SMTP Password / Google App Password</label>
-                <input type="password" id="setting-smtp-pass" class="form-input" placeholder="••••••••••••••••">
+              <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.65rem; margin-bottom: 0.65rem;">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label">SMTP Host</label>
+                  <input type="text" id="setting-smtp-host" class="form-input" placeholder="smtp.gmail.com">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label">Port</label>
+                  <input type="number" id="setting-smtp-port" class="form-input" placeholder="587">
+                </div>
               </div>
-            </div>
-
-            <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.8rem; background: var(--surface); border: 1px solid var(--border); border-radius: 6px;">
-              <div>
-                <strong style="font-size: 0.8rem;">Use SSL (Port 465)</strong>
-                <div style="font-size: 0.7rem; color: var(--text-muted);">Leave unchecked for Port 587 (STARTTLS). Check for Port 465 (SSL).</div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; margin-bottom: 0.65rem;">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label">Username</label>
+                  <input type="email" id="setting-smtp-user" class="form-input" placeholder="you@gmail.com">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label">Password / App Key</label>
+                  <input type="password" id="setting-smtp-pass" class="form-input" placeholder="••••••••••••••••">
+                </div>
               </div>
-              <input type="checkbox" id="setting-smtp-secure" style="width: 18px; height: 18px; cursor: pointer;">
+              <label style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.65rem; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;">
+                <span style="font-size: 0.76rem;"><strong>Use SSL (Port 465)</strong></span>
+                <input type="checkbox" id="setting-smtp-secure" style="width: 16px; height: 16px; cursor: pointer;">
+              </label>
             </div>
           </div>
 
           <!-- COMMON SENDER IDENTITY -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.15rem;">
             <div class="form-group">
               <label class="form-label">Sender Display Name</label>
               <input type="text" id="setting-smtp-from-name" class="form-input" placeholder="RoundOne AI Platform">
             </div>
             <div class="form-group">
               <label class="form-label">Sender Email Address</label>
-              <input type="email" id="setting-smtp-from-email" class="form-input" placeholder="adityavyamawar@gmail.com">
+              <input type="email" id="setting-smtp-from-email" class="form-input" placeholder="noreply@yourdomain.com">
             </div>
           </div>
 
@@ -2337,13 +2598,10 @@
           </button>
 
           <!-- Test Handshake -->
-          <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+          <div style="margin-top: 1.35rem; padding-top: 1.25rem; border-top: 1px solid var(--border);">
             <h4 style="font-size: 0.85rem; margin-bottom: 0.4rem;"><i class="bi bi-send-check"></i> Test Live Email Delivery</h4>
-            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-              Send an instant test email to verify that your credentials work and reach real inboxes.
-            </p>
             <div style="display: flex; gap: 0.5rem; max-width: 520px;">
-              <input type="email" id="smtp-test-recipient" class="form-input" placeholder="Enter recipient email (e.g. adityavyamawar@gmail.com)">
+              <input type="email" id="smtp-test-recipient" class="form-input" placeholder="Enter recipient email">
               <button class="btn btn-secondary" id="btn-test-smtp" onclick="sendTestSmtpEmail()">
                 <i class="bi bi-lightning-charge"></i> Send Test Email
               </button>
@@ -2355,7 +2613,7 @@
       </div>
 
       <!-- PostgreSQL Database Architecture & Cloud Migration Card -->
-      <div class="card" style="max-width: 780px; margin-top: 1.5rem;">
+      <div id="settings-panel-database" class="card" style="max-width: 780px; display: none;">
         <div class="card-header">
           <div class="card-title">
             <i class="bi bi-database-fill-gear"></i> Database Architecture &amp; PostgreSQL Engine

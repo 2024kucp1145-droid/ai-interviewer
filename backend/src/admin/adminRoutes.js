@@ -1586,7 +1586,138 @@ adminRouter.get('/interviews/:id', requireAdmin, (req, res) => {
       success: true,
       interview,
       turns,
-      report: reportRow ? JSON.parse(reportRow.json) : null
+      report: reportRow ? JSON.parse(reportRow.json) : null,
+      reportMeta: reportRow ? {
+        manual_decision: reportRow.manual_decision || null,
+        reviewed_by: reportRow.reviewed_by || null,
+        reviewer_note: reportRow.reviewer_note || ''
+      } : null
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Admin action: Override candidate evaluation decision & reviewer note
+ */
+adminRouter.patch('/interviews/:id/decision', requireAdmin, (req, res) => {
+  try {
+    const { id } = req.params;
+    const interview = db.prepare(`
+      SELECT i.*, j.org_id as job_org_id
+      FROM interviews i
+      JOIN jobs j ON i.job_id = j.id
+      WHERE i.id = ?
+    `).get(id);
+
+    if (!interview) return res.status(404).json({ error: 'Interview round not found' });
+
+    const rawDecision = String(req.body?.manual_decision || 'auto').toLowerCase().trim();
+    const validDecisions = ['auto', 'selected', 'borderline', 'rejected'];
+    if (!validDecisions.includes(rawDecision)) {
+      return res.status(400).json({ error: 'Decision must be auto, selected, borderline, or rejected' });
+    }
+
+    const manualDecision = rawDecision === 'auto' ? null : rawDecision;
+    const reviewerNote = typeof req.body?.reviewer_note === 'string' ? req.body.reviewer_note.trim() : null;
+    const reviewerName = `${req.admin.full_name || 'Superadmin'} (Admin)`;
+
+    const existingReport = db.prepare('SELECT * FROM reports WHERE interview_id = ?').get(id);
+    if (existingReport) {
+      let parsed = {};
+      try { parsed = JSON.parse(existingReport.json) || {}; } catch {}
+      parsed.manual_decision = manualDecision;
+      db.prepare(`
+        UPDATE reports
+        SET json = ?, manual_decision = ?, reviewed_by = ?, reviewer_note = COALESCE(?, reviewer_note)
+        WHERE interview_id = ?
+      `).run(JSON.stringify(parsed), manualDecision, reviewerName, reviewerNote, id);
+    } else {
+      const reportPayload = {
+        overall_score: interview.state === 'disqualified' ? 0 : null,
+        candidate_verdict: manualDecision ? manualDecision.toUpperCase() : null,
+        manual_decision: manualDecision,
+        hiring_clarification: reviewerNote || 'Updated manually by platform administrator.',
+        skills: []
+      };
+      db.prepare(`
+        INSERT INTO reports (id, interview_id, json, model, reviewed_by, reviewer_note, manual_decision)
+        VALUES (?, ?, ?, 'admin-override', ?, ?, ?)
+      `).run('rep_' + crypto.randomUUID(), id, JSON.stringify(reportPayload), reviewerName, reviewerNote || '', manualDecision);
+    }
+
+    logActivity({
+      action: 'CANDIDATE_DECISION_UPDATED',
+      actorType: 'admin',
+      actorId: req.admin.id,
+      actorEmail: req.admin.email,
+      actorName: req.admin.full_name,
+      orgId: interview.job_org_id,
+      entityType: 'interview',
+      entityId: id,
+      details: { manualDecision: manualDecision || 'auto', reviewerNote }
+    });
+
+    res.json({
+      success: true,
+      message: manualDecision ? `Decision overridden to ${manualDecision.toUpperCase()}.` : 'Decision reverted to AI automatic.',
+      manual_decision: manualDecision,
+      reviewed_by: reviewerName,
+      reviewer_note: reviewerNote || ''
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Admin action: Update interview session lifecycle state (expire stuck session or reopen +48h)
+ */
+adminRouter.post('/interviews/:id/state', requireAdmin, (req, res) => {
+  try {
+    const { id } = req.params;
+    const action = String(req.body?.action || '').toLowerCase().trim();
+    const interview = db.prepare(`
+      SELECT i.*, j.org_id as job_org_id
+      FROM interviews i
+      JOIN jobs j ON i.job_id = j.id
+      WHERE i.id = ?
+    `).get(id);
+
+    if (!interview) return res.status(404).json({ error: 'Interview round not found' });
+
+    if (action === 'expire') {
+      db.prepare(`
+        UPDATE interviews
+        SET state = 'expired', ended_at = COALESCE(ended_at, CURRENT_TIMESTAMP)
+        WHERE id = ?
+      `).run(id);
+    } else if (action === 'reopen') {
+      db.prepare(`
+        UPDATE interviews
+        SET state = 'created', started_at = NULL, ended_at = NULL, expires_at = datetime('now', '+48 hours')
+        WHERE id = ?
+      `).run(id);
+    } else {
+      return res.status(400).json({ error: 'Invalid session action. Use expire or reopen.' });
+    }
+
+    logActivity({
+      action: 'USER_STATUS_UPDATED',
+      actorType: 'admin',
+      actorId: req.admin.id,
+      actorEmail: req.admin.email,
+      actorName: req.admin.full_name,
+      orgId: interview.job_org_id,
+      entityType: 'interview',
+      entityId: id,
+      details: { sessionAction: action, previousState: interview.state }
+    });
+
+    res.json({
+      success: true,
+      message: action === 'expire' ? 'Session expired and closed.' : 'Invite reset and extended by 48 hours.'
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1958,6 +2089,17 @@ adminRouter.get('/feedbacks', requireAdmin, (req, res) => {
       LIMIT 100
     `).all();
     res.json({ success: true, feedbacks });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+adminRouter.delete('/feedbacks/:id', requireAdmin, (req, res) => {
+  try {
+    const { id } = req.params;
+    const info = db.prepare('DELETE FROM feedbacks WHERE id = ?').run(id);
+    if (!info.changes) return res.status(404).json({ error: 'Feedback not found' });
+    res.json({ success: true, message: 'Feedback removed.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

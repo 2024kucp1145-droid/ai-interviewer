@@ -115,7 +115,7 @@ async function checkSeatsStatus() {
     const data = await res.json();
     if (data.success) {
       if (seatsTextEl) {
-        seatsTextEl.textContent = `Active Admins: ${data.registeredAdmins} (Unlimited Access)`;
+        seatsTextEl.textContent = `Active Admins: ${data.registeredAdmins}`;
       }
 
       // If database has zero admins yet and visitor is unauthenticated, open Sign Up automatically
@@ -167,6 +167,8 @@ function showAuthView() {
   if (authControls) authControls.style.display = 'none';
   const sidebarToggle = document.getElementById('btn-sidebar-toggle');
   if (sidebarToggle) sidebarToggle.style.display = 'none';
+  const globalSearchWrap = document.getElementById('ta-global-search-wrap');
+  if (globalSearchWrap) globalSearchWrap.style.display = 'none';
 }
 
 function showDashboardView() {
@@ -175,6 +177,8 @@ function showDashboardView() {
   if (authControls) authControls.style.display = 'flex';
   const sidebarToggle = document.getElementById('btn-sidebar-toggle');
   if (sidebarToggle) sidebarToggle.style.display = 'inline-flex';
+  const globalSearchWrap = document.getElementById('ta-global-search-wrap');
+  if (globalSearchWrap) globalSearchWrap.style.display = 'flex';
   if (adminNameEl && currentAdmin) {
     const uidPart = currentAdmin.admin_uid ? ` (${currentAdmin.admin_uid})` : '';
     adminNameEl.textContent = `${currentAdmin.full_name || currentAdmin.email}${uidPart}`;
@@ -629,14 +633,19 @@ const TA_PAGE_META = {
     subtitle: 'Track credit purchases, AI token spend & organization payments',
     crumb: 'Billing & Orders'
   },
+  feedbacks: {
+    title: 'Platform & Candidate Feedback',
+    subtitle: 'Review user ratings, testimonials & issue reports submitted across pages',
+    crumb: 'Feedbacks'
+  },
   invites: {
-    title: 'Admin Team & Seat Invites',
-    subtitle: 'Manage authorized platform superadmins & access codes',
+    title: 'Platform Administrators',
+    subtitle: 'Active superadmin directory & Unique Admin IDs',
     crumb: 'Admin Team'
   },
   settings: {
     title: 'Platform Governance & Integrations',
-    subtitle: 'Configure signup rules, SMTP mail delivery & PostgreSQL database engine',
+    subtitle: 'Configure signup rules, email OTP delivery & PostgreSQL database engine',
     crumb: 'Settings'
   }
 };
@@ -686,7 +695,7 @@ window.closeMobileSidebar = function() {
 
 window.switchDashboardTab = function(tabName) {
   currentTab = tabName;
-  const tabs = ['overview', 'activities', 'users', 'interviews', 'orders', 'invites', 'settings'];
+  const tabs = ['overview', 'activities', 'users', 'interviews', 'orders', 'feedbacks', 'invites', 'settings'];
 
   tabs.forEach(t => {
     const content = document.getElementById(`tab-content-${t}`);
@@ -696,11 +705,12 @@ window.switchDashboardTab = function(tabName) {
   updateTailAdminChrome(tabName);
   closeMobileSidebar();
 
-  if (tabName === 'overview') loadDashboardStats();
+  if (tabName === 'overview') { loadDashboardStats(); loadInterviewsList(); }
   if (tabName === 'activities') refreshActiveActivitiesView();
   if (tabName === 'users') loadRecruitersDirectory();
   if (tabName === 'interviews') loadInterviewsList();
   if (tabName === 'orders') loadOrdersDirectory();
+  if (tabName === 'feedbacks') loadFeedbacksInbox();
   if (tabName === 'invites') loadAdminInvites();
   if (tabName === 'settings') loadPlatformSettings();
 };
@@ -725,17 +735,143 @@ window.resetActivityTreeFilters = function() {
   renderActivityTree();
 };
 
-// Quick '/' shortcut focuses the active tab's search field
+window.runGlobalAdminSearch = function() {
+  const input = document.getElementById('ta-global-search');
+  const box = document.getElementById('ta-global-results');
+  if (!input || !box) return;
+  const q = input.value.trim().toLowerCase();
+  if (!q) {
+    box.classList.remove('show');
+    box.innerHTML = '';
+    return;
+  }
+
+  const hits = [];
+  if (cachedActivityTree && Array.isArray(cachedActivityTree.organizations)) {
+    for (const org of cachedActivityTree.organizations) {
+      if ((org.name || '').toLowerCase().includes(q) || (org.industry || '').toLowerCase().includes(q)) {
+        hits.push({
+          kind: 'Company',
+          icon: 'bi-building',
+          title: org.name || 'Organization',
+          sub: `${(org.jobs || []).length} rounds · ${org.summary?.totalInterviews || 0} candidates`,
+          action: () => openCompanyBoxFromOverview(org.id)
+        });
+      }
+      for (const job of org.jobs || []) {
+        if ((job.title || '').toLowerCase().includes(q) || (job.skills || '').toLowerCase().includes(q)) {
+          hits.push({
+            kind: 'Round',
+            icon: 'bi-briefcase-fill',
+            title: job.title || 'Interview Round',
+            sub: `${org.name || 'Company'} · ${(job.interviews || []).length} candidates`,
+            action: () => {
+              expandedFolderIds.add(sanitizeFolderKey(`org_${org.id}`));
+              expandedFolderIds.add(sanitizeFolderKey(`job_${job.id}`));
+              switchDashboardTab('activities');
+              setActivityViewMode('tree');
+            }
+          });
+        }
+      }
+    }
+  }
+
+  for (const u of cachedUsers || []) {
+    if ((u.full_name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q) || (u.org_name || '').toLowerCase().includes(q)) {
+      hits.push({
+        kind: 'Recruiter',
+        icon: 'bi-person-badge',
+        title: u.full_name || u.email,
+        sub: `${u.org_name || 'Organization'} · ${u.approval_status || 'pending'}`,
+        action: () => {
+          switchDashboardTab('users');
+          const su = document.getElementById('search-users-input');
+          if (su) { su.value = u.email || u.full_name || ''; renderUsersTable(); }
+        }
+      });
+    }
+  }
+
+  for (const intv of cachedInterviews || []) {
+    if ((intv.candidate_name || '').toLowerCase().includes(q) || (intv.candidate_email || '').toLowerCase().includes(q) || (intv.job_title || '').toLowerCase().includes(q)) {
+      hits.push({
+        kind: 'Session',
+        icon: 'bi-camera-video',
+        title: intv.candidate_name || intv.candidate_email || 'Candidate',
+        sub: `${intv.job_title || 'Role'} (${intv.org_name || 'Company'}) · ${intv.state}`,
+        action: () => inspectInterview(intv.id)
+      });
+    }
+  }
+
+  const top = hits.slice(0, 10);
+  if (top.length === 0) {
+    box.innerHTML = '<div style="padding:0.75rem; font-size:0.78rem; color:var(--text-muted); text-align:center;">No matching companies, recruiters, rounds, or candidates.</div>';
+  } else {
+    window._globalSearchActions = top.map(h => h.action);
+    box.innerHTML = top.map((h, idx) => `
+      <div class="ta-search-item" onclick="executeGlobalSearchAction(${idx})">
+        <div style="display:flex; align-items:center; gap:0.65rem; min-width:0;">
+          <i class="bi ${h.icon}" style="color:var(--primary); font-size:0.95rem; flex-shrink:0;"></i>
+          <div style="min-width:0;">
+            <div style="font-size:0.8rem; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(h.title)}</div>
+            <div style="font-size:0.71rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(h.sub)}</div>
+          </div>
+        </div>
+        <span class="badge badge-neutral" style="font-size:0.65rem; flex-shrink:0;">${h.kind}</span>
+      </div>
+    `).join('');
+  }
+  box.classList.add('show');
+};
+
+window.executeGlobalSearchAction = function(idx) {
+  const fn = (window._globalSearchActions || [])[idx];
+  const box = document.getElementById('ta-global-results');
+  if (box) box.classList.remove('show');
+  if (typeof fn === 'function') fn();
+};
+
+// Close modals / command dropdown on ESC or backdrop click; support Ctrl+K & '/' shortcuts
+document.addEventListener('click', (e) => {
+  const wrap = document.getElementById('ta-global-search-wrap');
+  const box = document.getElementById('ta-global-results');
+  if (wrap && box && !wrap.contains(e.target)) {
+    box.classList.remove('show');
+  }
+  if (e.target && e.target.classList?.contains('modal-backdrop')) {
+    e.target.classList.remove('show');
+  }
+});
+
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-backdrop.show').forEach(m => m.classList.remove('show'));
+    const box = document.getElementById('ta-global-results');
+    if (box) box.classList.remove('show');
+    return;
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    const gs = document.getElementById('ta-global-search');
+    if (gs && adminToken) {
+      e.preventDefault();
+      gs.focus();
+      gs.select();
+    }
+    return;
+  }
   if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
   const tag = (document.activeElement?.tagName || '').toLowerCase();
   if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
   const searchMap = {
     activities: 'tree-search-input',
     users: 'search-users-input',
-    interviews: 'interviews-search-input'
+    interviews: 'interviews-search-input',
+    orders: 'orders-search-input',
+    feedbacks: 'feedbacks-search-input'
   };
-  const targetId = searchMap[currentTab];
+  const targetId = searchMap[currentTab] || 'ta-global-search';
   const target = targetId ? document.getElementById(targetId) : null;
   if (target) {
     e.preventDefault();
@@ -744,19 +880,20 @@ document.addEventListener('keydown', (e) => {
 });
 
 function loadAllDashboardData() {
-  // Prioritize visible overview + activity folders/stream first for snappy startup
+  // Prioritize visible overview + activity folders/stream + live sessions first
   Promise.allSettled([
     loadDashboardStats(),
     loadActivityTree(),
     loadActivityStream(),
-    loadRecruitersDirectory()
+    loadRecruitersDirectory(),
+    loadInterviewsList()
   ]);
 
   // Defer secondary tabs slightly so initial render and API responses stay fast
   setTimeout(() => {
     if (!adminToken) return;
-    loadInterviewsList();
     loadOrdersDirectory();
+    loadFeedbacksInbox();
     loadAdminInvites();
     loadPlatformSettings();
   }, 180);
@@ -787,12 +924,15 @@ function renderQuickActionsStrip(actions) {
 window.handleQuickAction = function(type) {
   if (type === 'approval') {
     switchDashboardTab('users');
+    setUsersStatusFilter('pending_approval');
   } else if (type === 'live') {
-    switchDashboardTab('activities');
-    const f = document.getElementById('tree-state-filter');
-    if (f) { f.value = 'live'; renderActivityTree(); }
+    switchDashboardTab('interviews');
+    const f = document.getElementById('interviews-state-filter');
+    if (f) { f.value = 'live'; renderInterviewsTable(); }
   } else if (type === 'expiring') {
     switchDashboardTab('interviews');
+  } else if (type === 'feedback') {
+    switchDashboardTab('feedbacks');
   } else {
     switchDashboardTab('activities');
   }
@@ -964,7 +1104,7 @@ async function loadDashboardStats(isSilent = false) {
     renderOverviewScoreChart(s.scoreDistribution);
     renderOverviewTopCompanies(s.topCompanies);
 
-    // Badges in tabs
+    // Badges in tabs & sidebar
     const pendingBadge = document.getElementById('pending-users-badge');
     if (pendingBadge) {
       if (s.users.pending > 0) {
@@ -975,8 +1115,23 @@ async function loadDashboardStats(isSilent = false) {
       }
     }
 
+    const liveBadge = document.getElementById('sidebar-live-badge');
+    const liveCountEl = document.getElementById('sidebar-live-count');
+    if (liveBadge && liveCountEl) {
+      const liveN = Number(s.interviews?.inProgress || 0);
+      liveCountEl.textContent = liveN;
+      liveBadge.style.display = liveN > 0 ? 'inline-flex' : 'none';
+    }
+
+    const fbBadge = document.getElementById('feedbacks-badge');
+    if (fbBadge) {
+      const fbCount = Number(s.feedbacks || 0);
+      fbBadge.textContent = fbCount;
+      fbBadge.style.display = fbCount > 0 ? 'inline-block' : 'none';
+    }
+
     if (seatsTextEl) {
-      seatsTextEl.textContent = `Active Admins: ${s.admins.occupied} (Unlimited Access)`;
+      seatsTextEl.textContent = `Active Admins: ${s.admins.occupied}`;
     }
     updateLastSyncBadge();
   } catch (err) {
@@ -1868,13 +2023,40 @@ window.loadRecruitersDirectory = async function() {
   }
 };
 
+let usersStatusFilter = '';
+
+window.setUsersStatusFilter = function(status) {
+  usersStatusFilter = status || '';
+  document.querySelectorAll('#users-status-chips .filter-chip').forEach(btn => {
+    btn.classList.toggle('active', (btn.getAttribute('data-status') || '') === usersStatusFilter);
+  });
+  renderUsersTable();
+};
+
 window.renderUsersTable = function() {
   const tbody = document.getElementById('recruiters-table-body');
   if (!tbody) return;
 
+  const counts = {
+    all: cachedUsers.length,
+    pending_approval: cachedUsers.filter(u => u.approval_status === 'pending_approval').length,
+    approved: cachedUsers.filter(u => u.approval_status === 'approved').length,
+    suspended: cachedUsers.filter(u => u.approval_status === 'suspended').length
+  };
+  document.querySelectorAll('#users-status-chips .filter-chip').forEach(btn => {
+    const st = btn.getAttribute('data-status') || '';
+    if (st === '') btn.textContent = `All (${counts.all})`;
+    else if (st === 'pending_approval') btn.textContent = `Pending (${counts.pending_approval})`;
+    else if (st === 'approved') btn.textContent = `Approved (${counts.approved})`;
+    else if (st === 'suspended') btn.textContent = `Suspended (${counts.suspended})`;
+  });
+
   const filter = (document.getElementById('search-users-input')?.value || '').toLowerCase().trim();
 
   let list = cachedUsers;
+  if (usersStatusFilter) {
+    list = list.filter(u => (u.approval_status || '') === usersStatusFilter);
+  }
   if (filter) {
     list = list.filter(u => 
       (u.full_name && u.full_name.toLowerCase().includes(filter)) ||
@@ -2043,11 +2225,54 @@ window.loadInterviewsList = async function() {
 
     cachedInterviews = data.interviews || [];
     renderInterviewsTable();
+    renderOverviewLiveSessions();
   } catch (err) {
     console.error('Failed to load interviews:', err);
     if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="color:var(--danger); padding:2rem; text-align:center;">Failed to load interviews: ${err.message}</td></tr>`;
   }
 };
+
+function renderOverviewLiveSessions() {
+  const listEl = document.getElementById('overview-live-sessions-list');
+  const badgeEl = document.getElementById('overview-live-count-badge');
+  if (!listEl) return;
+
+  const liveSessions = (cachedInterviews || []).filter(i => i.state === 'in_progress');
+  if (badgeEl) {
+    badgeEl.textContent = `${liveSessions.length} Active`;
+    badgeEl.className = `badge ${liveSessions.length > 0 ? 'badge-success' : 'badge-neutral'}`;
+  }
+
+  if (liveSessions.length === 0) {
+    listEl.innerHTML = '<p style="color: var(--text-muted); font-size: 0.8rem; margin: 0;">No live interviews right now &mdash; monitoring every 15s.</p>';
+    return;
+  }
+
+  listEl.innerHTML = `<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(290px, 1fr)); gap:0.75rem;">` +
+    liveSessions.slice(0, 6).map(s => {
+      const warns = Number(s.proctor_warnings || 0);
+      return `
+        <div style="padding:0.8rem 0.95rem; border:1px solid var(--border); border-radius:10px; background:var(--surface-elevated); display:flex; justify-content:space-between; align-items:center; gap:0.75rem;">
+          <div style="min-width:0;">
+            <div style="font-size:0.84rem; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+              <span class="live-dot" style="margin-right:0.35rem;"></span>${escapeHtml(s.candidate_name || s.candidate_email || 'Candidate')}
+            </div>
+            <div style="font-size:0.73rem; color:var(--text-muted); margin-top:0.15rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+              ${escapeHtml(s.job_title || 'Screening')} &middot; ${escapeHtml(s.org_name || 'Organization')}
+            </div>
+            <div style="font-size:0.7rem; color:var(--text-subtle); margin-top:0.2rem;">
+              Started ${formatExactClock(s.started_at)} &middot; Turns: ${s.turns_count || 0} &middot;
+              <span style="color:${warns > 0 ? 'var(--danger)' : 'var(--success)'}; font-weight:600;">${warns} warn(s)</span>
+            </div>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" onclick="inspectInterview('${s.id}')">
+            <i class="bi bi-eye"></i> Inspect
+          </button>
+        </div>
+      `;
+    }).join('') +
+  `</div>`;
+}
 
 function downloadCsvFile(filename, headers, rows) {
   const csvEscape = (v) => {
@@ -2351,6 +2576,37 @@ window.inspectInterview = async function(interviewId) {
 
       ${integrityHtml}
 
+      <!-- Admin Decision Override & Session Controls -->
+      <div style="margin-bottom: 1.15rem; padding: 0.9rem 1rem; border-radius: 10px; border: 1px solid var(--border); background-color: var(--surface-elevated);">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.65rem;">
+          <strong style="font-size:0.82rem; color:var(--text);"><i class="bi bi-sliders2"></i> Admin Session Controls</strong>
+          <div style="display:flex; gap:0.45rem; flex-wrap:wrap;">
+            ${intv.state !== 'expired' ? `
+              <button type="button" class="btn btn-secondary btn-sm" style="color:var(--warning);" onclick="runAdminSessionAction('${intv.id}', 'expire')">
+                <i class="bi bi-stop-circle"></i> Expire Session
+              </button>
+            ` : ''}
+            ${intv.state !== 'completed' && intv.state !== 'report_ready' ? `
+              <button type="button" class="btn btn-secondary btn-sm" onclick="runAdminSessionAction('${intv.id}', 'reopen')">
+                <i class="bi bi-arrow-counterclockwise"></i> Reopen +48h
+              </button>
+            ` : ''}
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns: 180px 1fr auto; gap:0.55rem; align-items:center;">
+          <select id="admin-override-decision" class="form-input" style="padding:0.4rem 0.6rem; font-size:0.78rem;">
+            <option value="auto" ${!(data.reportMeta?.manual_decision || report?.manual_decision) ? 'selected' : ''}>AI Automatic</option>
+            <option value="selected" ${(data.reportMeta?.manual_decision || report?.manual_decision) === 'selected' ? 'selected' : ''}>Force Selected</option>
+            <option value="borderline" ${(data.reportMeta?.manual_decision || report?.manual_decision) === 'borderline' ? 'selected' : ''}>Mark Borderline</option>
+            <option value="rejected" ${(data.reportMeta?.manual_decision || report?.manual_decision) === 'rejected' ? 'selected' : ''}>Force Rejected</option>
+          </select>
+          <input type="text" id="admin-override-note" class="form-input" style="padding:0.4rem 0.65rem; font-size:0.78rem;" placeholder="Optional reviewer note..." value="${escapeHtml(data.reportMeta?.reviewer_note || '')}">
+          <button type="button" class="btn btn-primary btn-sm" onclick="saveAdminInterviewDecision('${intv.id}')">
+            <i class="bi bi-check2"></i> Save Decision
+          </button>
+        </div>
+      </div>
+
       <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; margin-bottom:0.65rem; flex-wrap:wrap;">
         <h4 style="font-size:0.85rem; font-weight:700; margin:0;"><i class="bi bi-chat-left-text"></i> Full Conversational Transcript (${turns.length} Turns)</h4>
         <input type="text" id="inspect-transcript-search" class="form-input" placeholder="Search transcript (Metaview filter)..." style="width: 230px; padding: 0.3rem 0.6rem; font-size: 0.74rem;" oninput="filterInspectModalTranscript()">
@@ -2368,6 +2624,57 @@ window.inspectInterview = async function(interviewId) {
 
 window.closeInspectModal = function() {
   document.getElementById('modal-inspect-interview').classList.remove('show');
+};
+
+window.saveAdminInterviewDecision = async function(interviewId) {
+  const decisionEl = document.getElementById('admin-override-decision');
+  const noteEl = document.getElementById('admin-override-note');
+  if (!decisionEl) return;
+  try {
+    const res = await fetch(`${API_BASE}/interviews/${interviewId}/decision`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${adminToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        manual_decision: decisionEl.value,
+        reviewer_note: noteEl?.value || ''
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update decision');
+    showToast(data.message || 'Decision updated.', 'success');
+    await inspectInterview(interviewId);
+    loadInterviewsList();
+    loadActivityTree(true);
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+};
+
+window.runAdminSessionAction = async function(interviewId, action) {
+  const label = action === 'expire' ? 'expire and close this session' : 'reset and extend this invite by 48 hours';
+  if (!confirm(`Are you sure you want to ${label}?`)) return;
+  try {
+    const res = await fetch(`${API_BASE}/interviews/${interviewId}/state`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${adminToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ action })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update session state');
+    showToast(data.message || 'Session updated.', 'success');
+    await inspectInterview(interviewId);
+    loadInterviewsList();
+    loadDashboardStats(true);
+    loadActivityTree(true);
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2460,12 +2767,35 @@ window.loadOrdersDirectory = async function() {
   }
 };
 
+function getFilteredOrders() {
+  const filterStatus = document.getElementById('filter-orders-status')?.value || '';
+  const searchTerm = (document.getElementById('orders-search-input')?.value || '').trim().toLowerCase();
+  return cachedOrders.filter(o => {
+    if (filterStatus && o.status !== filterStatus) return false;
+    if (searchTerm) {
+      return matchesTreeSearch(searchTerm, o.id, o.org_name, o.recruiter_email, o.recruiter_name, o.plan_id, o.type);
+    }
+    return true;
+  });
+}
+
+window.exportOrdersCsv = function() {
+  const list = getFilteredOrders();
+  const headers = ['Order ID', 'Company', 'Recruiter Email', 'Type', 'Plan / Quantity', 'Amount USD', 'Status', 'Created At', 'Paid At'];
+  const rows = list.map(o => [
+    o.id, o.org_name || '', o.recruiter_email || o.recruiter_name || '', o.type || '',
+    o.type === 'pay_per_use' ? `${o.quantity} (${o.duration_minutes}m)` : (o.plan_id || ''),
+    parseFloat(o.amount_usd || 0).toFixed(2), o.status || '', o.created_at || '', o.paid_at || ''
+  ]);
+  downloadCsvFile(`roundone-orders-${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
+  showToast(`Exported ${rows.length} order(s) to CSV.`, 'success');
+};
+
 window.renderOrdersTable = function() {
   const tbody = document.getElementById('orders-table-body');
   if (!tbody) return;
 
-  const filterStatus = document.getElementById('filter-orders-status')?.value || '';
-  const filtered = cachedOrders.filter(o => !filterStatus || o.status === filterStatus);
+  const filtered = getFilteredOrders();
 
   if (filtered.length === 0) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-muted);">No orders found.</td></tr>`;
@@ -2528,6 +2858,111 @@ window.markOrderPaid = async function(orderId) {
   } catch (err) {
     showToast(err.message, 'danger');
   }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TAB: FEEDBACKS INBOX
+// ─────────────────────────────────────────────────────────────────────────────
+
+let cachedFeedbacks = [];
+
+window.loadFeedbacksInbox = async function() {
+  const container = document.getElementById('feedbacks-inbox-container');
+  try {
+    const res = await fetch(`${API_BASE}/feedbacks`, {
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to load feedbacks');
+    cachedFeedbacks = data.feedbacks || [];
+
+    const badge = document.getElementById('feedbacks-badge');
+    if (badge) {
+      badge.textContent = cachedFeedbacks.length;
+      badge.style.display = cachedFeedbacks.length > 0 ? 'inline-block' : 'none';
+    }
+    renderFeedbacksList();
+  } catch (err) {
+    if (container) container.innerHTML = `<p style="color:var(--danger); text-align:center; padding:1.5rem;">${escapeHtml(err.message)}</p>`;
+  }
+};
+
+window.renderFeedbacksList = function() {
+  const container = document.getElementById('feedbacks-inbox-container');
+  if (!container) return;
+
+  const search = (document.getElementById('feedbacks-search-input')?.value || '').trim().toLowerCase();
+  const ratingFilter = document.getElementById('feedbacks-rating-filter')?.value || '';
+
+  const filtered = (cachedFeedbacks || []).filter(fb => {
+    const rating = Number(fb.rating || 0);
+    if (ratingFilter === '5' && rating !== 5) return false;
+    if (ratingFilter === '4' && rating < 4) return false;
+    if (ratingFilter === 'low' && rating > 3) return false;
+    if (search) {
+      return matchesTreeSearch(search, fb.user_name, fb.user_email, fb.category, fb.message, fb.source_page);
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:2rem; font-size:0.82rem;">No feedback submissions match the current filter.</p>';
+    return;
+  }
+
+  container.innerHTML = filtered.map(fb => {
+    const stars = Number(fb.rating || 0);
+    const starsHtml = '★'.repeat(Math.max(0, Math.min(5, stars))) + '☆'.repeat(Math.max(0, 5 - Math.min(5, stars)));
+    const ratingTone = stars >= 4 ? 'badge-success' : (stars === 3 ? 'badge-warning' : 'badge-danger');
+    return `
+      <div style="padding:1rem 1.15rem; border:1px solid var(--border); border-radius:12px; background:var(--surface-elevated); display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; align-items:flex-start;">
+        <div style="flex:1; min-width:260px;">
+          <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.4rem;">
+            <strong style="font-size:0.88rem; color:var(--text);">${escapeHtml(fb.user_name || 'Anonymous')}</strong>
+            ${fb.user_email ? `<span style="font-size:0.75rem; color:var(--text-muted); font-family:var(--mono);">${escapeHtml(fb.user_email)}</span>` : ''}
+            <span class="badge ${ratingTone}" style="font-size:0.68rem;">${starsHtml} (${stars}/5)</span>
+            ${fb.category ? `<span class="badge badge-info" style="font-size:0.68rem;">${escapeHtml(fb.category)}</span>` : ''}
+            ${fb.source_page ? `<span class="badge badge-neutral" style="font-size:0.66rem;">${escapeHtml(fb.source_page)}</span>` : ''}
+          </div>
+          <p style="font-size:0.82rem; color:var(--text); line-height:1.5; margin:0; white-space:pre-wrap;">${escapeHtml(fb.message || '')}</p>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.45rem;">
+          <span style="font-size:0.72rem; color:var(--text-subtle);">${formatTimeAgo(fb.created_at)}</span>
+          <button type="button" class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="deleteFeedbackItem('${fb.id}')">
+            <i class="bi bi-trash"></i> Delete
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+};
+
+window.deleteFeedbackItem = async function(feedbackId) {
+  if (!confirm('Delete this feedback entry?')) return;
+  try {
+    const res = await fetch(`${API_BASE}/feedbacks/${feedbackId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete feedback');
+    showToast('Feedback deleted.', 'info');
+    loadFeedbacksInbox();
+    loadDashboardStats(true);
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+};
+
+window.switchSettingsSubtab = function(subtab) {
+  const panels = ['governance', 'email', 'database'];
+  panels.forEach(p => {
+    const el = document.getElementById(`settings-panel-${p}`);
+    if (el) el.style.display = p === subtab ? 'block' : 'none';
+  });
+  document.querySelectorAll('.settings-subtab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-subtab') === subtab);
+  });
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
