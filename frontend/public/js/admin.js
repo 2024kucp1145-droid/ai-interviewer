@@ -180,7 +180,11 @@ function setupPolling() {
   activityPollInterval = setInterval(() => {
     if (adminToken && (currentTab === 'overview' || currentTab === 'activities')) {
       loadDashboardStats(true);
-      loadActivityStream(true);
+      if (currentTab === 'activities' && activityViewMode === 'tree') {
+        loadActivityTree(true);
+      } else {
+        loadActivityStream(true);
+      }
     }
   }, 15000);
 }
@@ -245,9 +249,9 @@ window.handleLoginRequest = async function() {
     document.getElementById('login-target-email').textContent = data.emailHint || 'your registered email';
 
     if (data.forwardedTo) {
-      showToast(`✓ Login OTP dispatched (sandbox forwarded to ${data.forwardedTo}).`, 'success');
+      showToast(`Done — mail sent (forwarded to ${data.forwardedTo}).`, 'success');
     } else if (data.emailSent) {
-      showToast(`✓ Login OTP sent to ${data.emailHint || 'your registered email'}!`, 'success');
+      showToast(`Done — mail sent to ${data.emailHint || 'your registered email'}.`, 'success');
     } else {
       showToast('ℹ️ Email delivery fallback: Enter code 000000 (or check console) to log in.', 'info');
       const otpInput = document.getElementById('login-otp');
@@ -368,9 +372,9 @@ window.handleRegisterRequest = async function() {
     document.getElementById('reg-target-email').textContent = email;
 
     if (data.forwardedTo) {
-      showToast(`✓ OTP sent! (Resend sandbox forwarded it to ${data.forwardedTo})`, 'success');
+      showToast(`Done — mail sent (forwarded to ${data.forwardedTo}).`, 'success');
     } else if (data.emailSent) {
-      showToast(`✓ Verification OTP sent to ${email}!`, 'success');
+      showToast(`Done — mail sent to ${email}.`, 'success');
     } else {
       showToast('⚠️ Email delivery fallback: Enter 000000 (or check console) to continue.', 'warning');
       const regOtpEl = document.getElementById('reg-otp');
@@ -511,7 +515,7 @@ window.handleResetPasswordRequest = async function() {
     document.getElementById('reset-target-email').textContent = email;
 
     if (data.emailSent) {
-      showToast('✓ Password reset code dispatched to your email inbox!', 'success');
+      showToast('Done — mail sent to your email inbox.', 'success');
     } else {
       showToast('⚠️ Email service not configured yet: Your reset OTP code is printed in the server terminal console!', 'warning');
     }
@@ -605,7 +609,7 @@ window.switchDashboardTab = function(tabName) {
   });
 
   if (tabName === 'overview') loadDashboardStats();
-  if (tabName === 'activities') loadActivityStream();
+  if (tabName === 'activities') refreshActiveActivitiesView();
   if (tabName === 'users') loadRecruitersDirectory();
   if (tabName === 'interviews') loadInterviewsList();
   if (tabName === 'orders') loadOrdersDirectory();
@@ -614,13 +618,22 @@ window.switchDashboardTab = function(tabName) {
 };
 
 function loadAllDashboardData() {
-  loadDashboardStats();
-  loadActivityStream();
-  loadRecruitersDirectory();
-  loadInterviewsList();
-  loadOrdersDirectory();
-  loadAdminInvites();
-  loadPlatformSettings();
+  // Prioritize visible overview + activity folders/stream first for snappy startup
+  Promise.allSettled([
+    loadDashboardStats(),
+    loadActivityTree(),
+    loadActivityStream(),
+    loadRecruitersDirectory()
+  ]);
+
+  // Defer secondary tabs slightly so initial render and API responses stay fast
+  setTimeout(() => {
+    if (!adminToken) return;
+    loadInterviewsList();
+    loadOrdersDirectory();
+    loadAdminInvites();
+    loadPlatformSettings();
+  }, 180);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -679,6 +692,547 @@ async function loadDashboardStats(isSilent = false) {
 // TAB 2: REAL-TIME ACTIVITY STREAM
 // ─────────────────────────────────────────────────────────────────────────────
 
+let activityViewMode = 'tree';
+let cachedActivityTree = null;
+const expandedFolderIds = new Set();
+const loadedInterviewDetails = new Map();
+
+function sanitizeFolderKey(id) {
+  return String(id || '').replace(/[^a-zA-Z0-9_:-]/g, '');
+}
+
+function getInterviewStateBadge(state) {
+  const s = String(state || 'created').toLowerCase();
+  if (s === 'completed') return '<span class="badge badge-success">Completed</span>';
+  if (s === 'live') return '<span class="badge badge-warning">Live</span>';
+  if (s === 'disqualified') return '<span class="badge badge-danger">Disqualified</span>';
+  return `<span class="badge badge-info">${escapeHtml(s)}</span>`;
+}
+
+function renderFolderWrapper({ id, levelClass, icon, iconBg, iconColor, titleHtml, subtitleHtml = '', chipsHtml = '', bodyHtml = '', actionsHtml = '' }) {
+  const safeId = sanitizeFolderKey(id);
+  const isOpen = expandedFolderIds.has(safeId);
+  const chevronIcon = isOpen ? 'bi-chevron-down' : 'bi-chevron-right';
+  const folderIcon = isOpen && icon === 'bi-folder-fill' ? 'bi-folder2-open' : icon;
+
+  return `
+    <div class="folder-node ${levelClass}">
+      <div class="folder-header" onclick="toggleFolderNode('${safeId}')">
+        <div class="folder-title-wrap">
+          <i class="bi ${chevronIcon} folder-chevron"></i>
+          <div class="folder-icon-badge" style="background: ${iconBg}; color: ${iconColor};">
+            <i class="bi ${folderIcon}"></i>
+          </div>
+          <div style="min-width: 0;">
+            <div style="font-size: 0.86rem; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
+              ${titleHtml}
+            </div>
+            ${subtitleHtml ? `<div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.1rem;">${subtitleHtml}</div>` : ''}
+          </div>
+        </div>
+        <div class="folder-meta-chips" onclick="event.stopPropagation()">
+          ${chipsHtml}
+          ${actionsHtml}
+        </div>
+      </div>
+      ${isOpen ? `<div class="folder-children">${bodyHtml}</div>` : ''}
+    </div>
+  `;
+}
+
+window.setActivityViewMode = function(mode) {
+  activityViewMode = mode === 'stream' ? 'stream' : 'tree';
+  const isTree = activityViewMode === 'tree';
+
+  const btnTree = document.getElementById('btn-view-tree');
+  const btnStream = document.getElementById('btn-view-stream');
+  const treeControls = document.getElementById('tree-controls-bar');
+  const streamFilter = document.getElementById('filter-activity-action');
+  const treeContainer = document.getElementById('activity-tree-container');
+  const streamContainer = document.getElementById('full-activity-stream');
+
+  if (btnTree) btnTree.classList.toggle('active', isTree);
+  if (btnStream) btnStream.classList.toggle('active', !isTree);
+  if (treeControls) treeControls.style.display = isTree ? 'flex' : 'none';
+  if (streamFilter) streamFilter.style.display = isTree ? 'none' : 'inline-block';
+  if (treeContainer) treeContainer.style.display = isTree ? 'flex' : 'none';
+  if (streamContainer) streamContainer.style.display = isTree ? 'none' : 'flex';
+
+  refreshActiveActivitiesView();
+};
+
+window.refreshActiveActivitiesView = function() {
+  if (activityViewMode === 'tree') {
+    loadActivityTree();
+  } else {
+    loadActivityStream();
+  }
+};
+
+window.toggleFolderNode = function(folderId) {
+  const safeId = sanitizeFolderKey(folderId);
+  if (!safeId) return;
+
+  if (expandedFolderIds.has(safeId)) {
+    expandedFolderIds.delete(safeId);
+  } else {
+    expandedFolderIds.add(safeId);
+    if (safeId.startsWith('intv_')) {
+      const intvId = safeId.slice(5);
+      if (intvId && !loadedInterviewDetails.has(intvId)) {
+        loadInlineInterviewTranscript(intvId);
+      }
+    }
+  }
+  renderActivityTree();
+};
+
+window.toggleAllOrgFolders = function(expand) {
+  expandedFolderIds.clear();
+  if (expand && cachedActivityTree) {
+    (cachedActivityTree.organizations || []).forEach(org => {
+      expandedFolderIds.add(sanitizeFolderKey(`org_${org.id}`));
+    });
+    if ((cachedActivityTree.directActivities || []).length) expandedFolderIds.add('direct_org_activities');
+    if ((cachedActivityTree.directOrders || []).length) expandedFolderIds.add('direct_orders');
+    if ((cachedActivityTree.directFeedbacks || []).length) expandedFolderIds.add('direct_feedbacks');
+  }
+  renderActivityTree();
+};
+
+window.manageUserFromTree = function(userId) {
+  if (!userId) return;
+  if (!cachedUsers.some(u => u.id === userId) && cachedActivityTree?.organizations) {
+    for (const org of cachedActivityTree.organizations) {
+      const found = (org.recruiters || []).find(r => r.id === userId);
+      if (found) {
+        cachedUsers.push({
+          ...found,
+          org_name: org.name,
+          plan: org.plan,
+          included_interviews: org.included_interviews
+        });
+        break;
+      }
+    }
+  }
+  openManageUserModal(userId);
+};
+
+async function loadInlineInterviewTranscript(interviewId) {
+  loadedInterviewDetails.set(interviewId, { loading: true });
+  try {
+    const res = await fetch(`${API_BASE}/interviews/${encodeURIComponent(interviewId)}`, {
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    const data = await res.json();
+    if (!data.success) {
+      loadedInterviewDetails.set(interviewId, { error: data.error || 'Could not load transcript' });
+    } else {
+      loadedInterviewDetails.set(interviewId, {
+        loading: false,
+        turns: data.turns || [],
+        report: data.report || null
+      });
+    }
+  } catch (err) {
+    loadedInterviewDetails.set(interviewId, { error: err.message || 'Network error' });
+  }
+  if (activityViewMode === 'tree') renderActivityTree();
+}
+
+window.loadActivityTree = async function(isSilent = false) {
+  const container = document.getElementById('activity-tree-container');
+  try {
+    const res = await fetch(`${API_BASE}/activity-tree`, {
+      headers: { 'Authorization': `Bearer ${adminToken}` }
+    });
+    const data = await res.json();
+    if (!data.success) return;
+
+    cachedActivityTree = data;
+    renderActivityTree();
+  } catch (err) {
+    if (!isSilent && container) {
+      container.innerHTML = `<p style="color:var(--danger); text-align:center; padding: 1.5rem;">Failed to load folder tree: ${escapeHtml(err.message)}</p>`;
+    }
+  }
+};
+
+function matchesTreeSearch(searchTerm, ...values) {
+  if (!searchTerm) return true;
+  return values.some(v => v && String(v).toLowerCase().includes(searchTerm));
+}
+
+function renderInterviewFolderNode(intv) {
+  const folderId = `intv_${intv.id}`;
+  const detailState = loadedInterviewDetails.get(intv.id);
+  const proctorLogs = Array.isArray(intv.proctor_logs) ? intv.proctor_logs : [];
+  const skillsList = Array.isArray(intv.skills_evaluated) ? intv.skills_evaluated : [];
+  const dsa = intv.dsa_result && typeof intv.dsa_result === 'object' ? intv.dsa_result : null;
+
+  let transcriptHtml = '';
+  if (!detailState || detailState.loading) {
+    transcriptHtml = `<div style="color: var(--text-muted); font-size: 0.76rem; padding: 0.4rem 0;"><i class="bi bi-hourglass-split"></i> Loading inline Q&amp;A transcript...</div>`;
+  } else if (detailState.error) {
+    transcriptHtml = `<div style="color: var(--danger); font-size: 0.76rem;">${escapeHtml(detailState.error)}</div>`;
+  } else if (!detailState.turns?.length) {
+    transcriptHtml = `<div style="color: var(--text-muted); font-size: 0.76rem;">No Q&amp;A turns recorded yet.</div>`;
+  } else {
+    transcriptHtml = detailState.turns.map(t => `
+      <div style="border-bottom: 1px dashed var(--border); padding: 0.45rem 0;">
+        <div style="font-size: 0.75rem; font-weight: 600; color: var(--primary-hover);">Q${t.turn_index}: ${escapeHtml(t.question_text || '')}</div>
+        <div style="font-size: 0.76rem; color: var(--text); margin-top: 0.2rem; white-space: pre-wrap;">${escapeHtml(t.answer_text || '(No response)')}</div>
+        ${t.ai_followup ? `<div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem;"><em>AI Follow-up:</em> ${escapeHtml(t.ai_followup)}</div>` : ''}
+      </div>
+    `).join('');
+  }
+
+  const timelineHtml = (intv.activities || []).length
+    ? intv.activities.map(a => renderActivityItem(a, true)).join('')
+    : '<div style="font-size: 0.75rem; color: var(--text-muted);">No timeline events logged for this session yet.</div>';
+
+  const bodyHtml = `
+    <div class="folder-detail-grid">
+      <div class="folder-detail-card">
+        <div class="folder-detail-label">Candidate &amp; Session</div>
+        <div><strong>Name:</strong> ${escapeHtml(intv.candidate_name || 'N/A')}</div>
+        <div><strong>Email:</strong> ${escapeHtml(intv.candidate_email || 'N/A')}</div>
+        <div><strong>Phone:</strong> ${escapeHtml(intv.candidate_phone || 'N/A')}</div>
+        <div><strong>Source:</strong> ${escapeHtml(intv.candidate_source || 'direct')} &middot; <strong>Channel:</strong> ${escapeHtml(intv.dispatch_channel || 'email')}</div>
+        <div><strong>Duration:</strong> ${intv.duration_seconds ? `${Math.round(intv.duration_seconds / 60)}m (${intv.duration_seconds}s)` : 'N/A'} &middot; <strong>Consent:</strong> ${intv.consent_at ? formatTimeAgo(intv.consent_at) : 'Pending'}</div>
+      </div>
+
+      <div class="folder-detail-card">
+        <div class="folder-detail-label">AI Evaluation &amp; Usage</div>
+        <div><strong>Score:</strong> ${intv.score !== null && intv.score !== undefined ? `${intv.score}/100` : 'Pending'} &middot; <strong>Verdict:</strong> ${escapeHtml(intv.verdict || intv.recommendation || 'N/A')}</div>
+        <div><strong>Turns:</strong> ${intv.turns_count || 0} &middot; <strong>Tokens:</strong> ${(intv.tokens_used || 0).toLocaleString()} &middot; <strong>Cost:</strong> &#8377;${Number(intv.est_cost || 0).toFixed(2)}</div>
+        ${intv.overall_summary ? `<div style="margin-top: 0.3rem; color: var(--text-muted);">${escapeHtml(intv.overall_summary)}</div>` : ''}
+        ${intv.hiring_clarification ? `<div style="margin-top: 0.25rem; color: var(--text-muted);"><strong>Note:</strong> ${escapeHtml(intv.hiring_clarification)}</div>` : ''}
+        ${skillsList.length ? `<div style="margin-top: 0.3rem;"><strong>Skills:</strong> ${skillsList.map(s => `<span class="badge badge-info" style="margin: 0.1rem;">${escapeHtml(typeof s === 'object' ? `${s.skill || s.name}: ${s.score ?? ''}` : s)}</span>`).join('')}</div>` : ''}
+      </div>
+
+      <div class="folder-detail-card">
+        <div class="folder-detail-label">Proctoring &amp; Code Lab</div>
+        <div><strong>Warnings:</strong> ${intv.proctor_warnings || 0}${intv.disqualified_reason ? ` &middot; <span style="color:var(--danger);">Disqualified: ${escapeHtml(intv.disqualified_reason)}</span>` : ''}</div>
+        ${proctorLogs.length ? `<div style="margin-top: 0.25rem; color: var(--text-muted);">${proctorLogs.slice(-3).map(l => `<div>&bull; ${escapeHtml(l.type || l.reason || JSON.stringify(l))}</div>`).join('')}</div>` : '<div style="color: var(--text-muted);">No proctoring alerts.</div>'}
+        ${dsa ? `<div style="margin-top: 0.35rem; padding-top: 0.35rem; border-top: 1px dashed var(--border);"><strong>DSA Result:</strong> ${escapeHtml(dsa.problem || dsa.title || 'Submitted')} (${escapeHtml(dsa.status || (dsa.passed ? 'Passed' : 'Recorded'))})</div>` : ''}
+        ${intv.reviewed_by || intv.reviewer_note ? `<div style="margin-top: 0.35rem;"><strong>Reviewer (${escapeHtml(intv.reviewed_by || 'Team')}):</strong> ${escapeHtml(intv.reviewer_note || '')}</div>` : ''}
+      </div>
+    </div>
+
+    ${intv.resume_text ? `
+      <div class="folder-detail-card" style="margin-top: 0.6rem;">
+        <div class="folder-detail-label">Candidate Resume Extract</div>
+        <div style="max-height: 110px; overflow-y: auto; white-space: pre-wrap; color: var(--text-muted); font-size: 0.74rem;">${escapeHtml(intv.resume_text.slice(0, 1200))}${intv.resume_text.length > 1200 ? '...' : ''}</div>
+      </div>
+    ` : ''}
+
+    <div class="folder-detail-card" style="margin-top: 0.6rem;">
+      <div class="folder-detail-label">Interview Q&amp;A Transcript</div>
+      <div style="max-height: 240px; overflow-y: auto;">${transcriptHtml}</div>
+    </div>
+
+    <div class="folder-detail-card" style="margin-top: 0.6rem;">
+      <div class="folder-detail-label">Session Activity Timeline (${(intv.activities || []).length})</div>
+      <div class="activity-feed">${timelineHtml}</div>
+    </div>
+  `;
+
+  return renderFolderWrapper({
+    id: folderId,
+    levelClass: 'level-interview',
+    icon: 'bi-person-video3',
+    iconBg: 'rgba(16, 185, 129, 0.14)',
+    iconColor: '#10b981',
+    titleHtml: `${escapeHtml(intv.candidate_name || 'Candidate')} ${getInterviewStateBadge(intv.state)}`,
+    subtitleHtml: `${escapeHtml(intv.candidate_email || '')} &middot; ID: <span class="code-font">${escapeHtml(intv.id)}</span> &middot; ${formatTimeAgo(intv.started_at || intv.ended_at)}`,
+    chipsHtml: `
+      ${intv.score !== null && intv.score !== undefined ? `<span class="badge badge-primary">Score: ${intv.score}/100</span>` : ''}
+      <span class="badge badge-info">${intv.turns_count || 0} Q&amp;A</span>
+      ${(intv.proctor_warnings || 0) > 0 ? `<span class="badge badge-warning">${intv.proctor_warnings} Warn</span>` : ''}
+    `,
+    actionsHtml: `
+      <button type="button" class="btn btn-secondary btn-sm" onclick="inspectInterview('${sanitizeFolderKey(intv.id)}')">
+        <i class="bi bi-arrows-fullscreen"></i> Full Modal
+      </button>
+    `,
+    bodyHtml
+  });
+}
+
+function renderJobFolderNode(job, searchTerm, stateFilter) {
+  const jobMatchesSelf = matchesTreeSearch(searchTerm, job.title, job.category, job.skills, job.purpose);
+  const filteredInterviews = (job.interviews || []).filter(intv => {
+    if (stateFilter && String(intv.state || '').toLowerCase() !== stateFilter) return false;
+    if (jobMatchesSelf) return true;
+    return matchesTreeSearch(searchTerm, intv.candidate_name, intv.candidate_email, intv.id, intv.verdict);
+  });
+
+  if (searchTerm && !jobMatchesSelf && filteredInterviews.length === 0) return '';
+  if (stateFilter && filteredInterviews.length === 0) return '';
+
+  const skillsStr = Array.isArray(job.skills) ? job.skills.join(', ') : (job.skills || '');
+  const bodyHtml = `
+    <div class="folder-detail-grid" style="margin-bottom: 0.65rem;">
+      <div class="folder-detail-card">
+        <div class="folder-detail-label">Job Configuration</div>
+        <div><strong>Level:</strong> ${escapeHtml(job.level || 'N/A')} &middot; <strong>Exp:</strong> ${escapeHtml(job.experience_required || 'N/A')}</div>
+        <div><strong>Limits:</strong> ${job.max_minutes || 0} mins / ${job.max_questions || 0} Qs &middot; <strong>Custom Qs:</strong> ${job.custom_questions_count || 0}</div>
+        <div><strong>Tools:</strong> ${job.terminal_required ? 'Terminal ' : ''}${job.word_editor_required ? 'Editor ' : ''}${job.resume_required ? 'Resume ' : ''}${job.auto_submit_timer ? 'Auto-Submit' : ''}</div>
+      </div>
+      <div class="folder-detail-card">
+        <div class="folder-detail-label">Skills &amp; Purpose</div>
+        <div><strong>Skills:</strong> ${escapeHtml(skillsStr || 'Not specified')}</div>
+        ${job.purpose ? `<div style="margin-top: 0.25rem; color: var(--text-muted);">${escapeHtml(job.purpose)}</div>` : ''}
+      </div>
+    </div>
+    ${filteredInterviews.length
+      ? filteredInterviews.map(renderInterviewFolderNode).join('')
+      : '<div style="font-size: 0.76rem; color: var(--text-muted); padding: 0.35rem 0;">No candidate interviews in this job role match the active filter.</div>'
+    }
+  `;
+
+  return renderFolderWrapper({
+    id: `job_${job.id}`,
+    levelClass: 'level-job',
+    icon: 'bi-briefcase-fill',
+    iconBg: 'rgba(14, 165, 233, 0.14)',
+    iconColor: '#0ea5e9',
+    titleHtml: `${escapeHtml(job.title || 'Untitled Role')} <span class="badge badge-info">${escapeHtml(job.category || 'General')}</span>`,
+    subtitleHtml: `Created ${formatTimeAgo(job.created_at)} &middot; ${job.summary?.completedCount || 0} completed &middot; ${job.summary?.liveCount || 0} live`,
+    chipsHtml: `<span class="badge badge-primary">${filteredInterviews.length} Interviews</span>`,
+    bodyHtml
+  });
+}
+
+function renderRecruitersSubFolder(org, recruiters) {
+  const bodyHtml = recruiters.map(rec => renderFolderWrapper({
+    id: `rec_${rec.id}`,
+    levelClass: 'level-job',
+    icon: 'bi-person-badge-fill',
+    iconBg: 'rgba(139, 92, 246, 0.15)',
+    iconColor: '#8b5cf6',
+    titleHtml: `${escapeHtml(rec.full_name || rec.email)} <span class="badge badge-${rec.approval_status === 'suspended' ? 'danger' : (rec.approval_status === 'pending' ? 'warning' : 'success')}">${escapeHtml(rec.approval_status || 'approved')}</span>`,
+    subtitleHtml: `${escapeHtml(rec.email)}${rec.job_title ? ` &middot; ${escapeHtml(rec.job_title)}` : ''}${rec.last_login_at ? ` &middot; Last login ${formatTimeAgo(rec.last_login_at)}` : ''}`,
+    chipsHtml: `<span class="badge badge-info">${rec.activityCount || 0} Actions</span>`,
+    actionsHtml: `
+      <button type="button" class="btn btn-secondary btn-sm" onclick="manageUserFromTree('${sanitizeFolderKey(rec.id)}')">
+        <i class="bi bi-sliders"></i> Manage
+      </button>
+    `,
+    bodyHtml: `
+      <div class="folder-detail-card" style="margin-bottom: 0.5rem;">
+        <div class="folder-detail-label">Interviewer / Recruiter Details</div>
+        <div><strong>Role:</strong> ${escapeHtml(rec.role || 'recruiter')} &middot; <strong>Verified:</strong> ${rec.is_verified ? 'Yes' : 'No'} &middot; <strong>Phone:</strong> ${escapeHtml(rec.phone || 'N/A')}</div>
+        ${rec.admin_notes ? `<div style="margin-top: 0.25rem; color: var(--text-muted);"><strong>Admin Notes:</strong> ${escapeHtml(rec.admin_notes)}</div>` : ''}
+      </div>
+      <div class="activity-feed">
+        ${(rec.activities || []).length
+          ? rec.activities.map(a => renderActivityItem(a, true)).join('')
+          : '<div style="font-size: 0.75rem; color: var(--text-muted);">No individual actions logged yet.</div>'}
+      </div>
+    `
+  })).join('');
+
+  return renderFolderWrapper({
+    id: `org_rec_${org.id}`,
+    levelClass: 'level-sub',
+    icon: 'bi-people-fill',
+    iconBg: 'rgba(139, 92, 246, 0.14)',
+    iconColor: '#8b5cf6',
+    titleHtml: `Interviewers &amp; Recruiters`,
+    subtitleHtml: `${recruiters.length} team member(s) managing interviews under ${escapeHtml(org.name || 'this company')}`,
+    chipsHtml: `<span class="badge badge-primary">${recruiters.length} Members</span>`,
+    bodyHtml
+  });
+}
+
+function renderOrgFolderNode(org, searchTerm, stateFilter) {
+  const orgMatchesSelf = matchesTreeSearch(searchTerm, org.name, org.website, org.industry, org.plan, org.id);
+  const matchingRecruiters = (org.recruiters || []).filter(r =>
+    !searchTerm || orgMatchesSelf || matchesTreeSearch(searchTerm, r.full_name, r.email, r.job_title)
+  );
+  const renderedJobs = (org.jobs || [])
+    .map(job => renderJobFolderNode(job, orgMatchesSelf ? '' : searchTerm, stateFilter))
+    .filter(Boolean);
+
+  if (stateFilter && renderedJobs.length === 0) return '';
+  if (searchTerm && !orgMatchesSelf && matchingRecruiters.length === 0 && renderedJobs.length === 0) return '';
+
+  const s = org.summary || {};
+  const subParts = [];
+
+  if (matchingRecruiters.length > 0) {
+    subParts.push(renderRecruitersSubFolder(org, matchingRecruiters));
+  }
+
+  if (renderedJobs.length > 0) {
+    subParts.push(renderFolderWrapper({
+      id: `org_jobs_${org.id}`,
+      levelClass: 'level-sub',
+      icon: 'bi-folder-fill',
+      iconBg: 'rgba(14, 165, 233, 0.14)',
+      iconColor: '#0ea5e9',
+      titleHtml: `Job Roles &amp; Candidate Interviews`,
+      subtitleHtml: `${renderedJobs.length} job folder(s) &middot; ${s.completedCount || 0} completed &middot; ${s.liveCount || 0} live`,
+      chipsHtml: `<span class="badge badge-info">${renderedJobs.length} Jobs</span>`,
+      bodyHtml: renderedJobs.join('')
+    }));
+  }
+
+  if ((org.activities || []).length > 0) {
+    subParts.push(renderFolderWrapper({
+      id: `org_acts_${org.id}`,
+      levelClass: 'level-sub',
+      icon: 'bi-activity',
+      iconBg: 'rgba(245, 158, 11, 0.14)',
+      iconColor: '#f59e0b',
+      titleHtml: `Company Event Log`,
+      subtitleHtml: `All chronological events triggered inside ${escapeHtml(org.name || 'this company')}`,
+      chipsHtml: `<span class="badge badge-warning">${org.activities.length} Events</span>`,
+      bodyHtml: `<div class="activity-feed">${org.activities.map(a => renderActivityItem(a, true)).join('')}</div>`
+    }));
+  }
+
+  if ((org.orders || []).length > 0) {
+    subParts.push(renderFolderWrapper({
+      id: `org_orders_${org.id}`,
+      levelClass: 'level-sub',
+      icon: 'bi-receipt',
+      iconBg: 'rgba(16, 185, 129, 0.14)',
+      iconColor: '#10b981',
+      titleHtml: `Billing &amp; Plan Orders`,
+      subtitleHtml: `Credit purchases and Razorpay order history`,
+      chipsHtml: `<span class="badge badge-success">${org.orders.length} Orders</span>`,
+      bodyHtml: org.orders.map(o => `
+        <div class="folder-detail-card">
+          <strong>${escapeHtml(o.plan || 'Plan')}</strong> &middot; ${o.credits || 0} credits &middot; &#8377;${Number(o.amount_inr || 0).toFixed(2)} &middot;
+          <span class="badge badge-${o.status === 'paid' ? 'success' : 'warning'}">${escapeHtml(o.status || 'created')}</span> &middot;
+          <span style="color:var(--text-muted);">${formatTimeAgo(o.created_at)}</span>
+        </div>
+      `).join('')
+    }));
+  }
+
+  if ((org.feedbacks || []).length > 0) {
+    subParts.push(renderFolderWrapper({
+      id: `org_fb_${org.id}`,
+      levelClass: 'level-sub',
+      icon: 'bi-chat-heart-fill',
+      iconBg: 'rgba(236, 72, 153, 0.14)',
+      iconColor: '#ec4899',
+      titleHtml: `User Feedback`,
+      subtitleHtml: `Submitted product feedback from this organization`,
+      chipsHtml: `<span class="badge badge-primary">${org.feedbacks.length} Feedbacks</span>`,
+      bodyHtml: org.feedbacks.map(f => `
+        <div class="folder-detail-card">
+          <div><strong>${escapeHtml(f.name || f.email || 'User')}</strong> ${f.rating ? `(${f.rating}/5)` : ''} &middot; <span class="badge badge-info">${escapeHtml(f.category || 'general')}</span> &middot; ${formatTimeAgo(f.created_at)}</div>
+          <div style="margin-top: 0.25rem; color: var(--text-muted);">${escapeHtml(f.message || '')}</div>
+        </div>
+      `).join('')
+    }));
+  }
+
+  const orgDetailsHeader = `
+    <div class="folder-detail-grid" style="margin-bottom: 0.65rem;">
+      <div class="folder-detail-card">
+        <div class="folder-detail-label">Organization Profile</div>
+        <div><strong>Industry:</strong> ${escapeHtml(org.industry || 'N/A')} &middot; <strong>Size:</strong> ${escapeHtml(org.company_size || 'N/A')}</div>
+        <div><strong>Country:</strong> ${escapeHtml(org.country || 'N/A')} &middot; <strong>Website:</strong> ${escapeHtml(org.website || 'N/A')}</div>
+      </div>
+      <div class="folder-detail-card">
+        <div class="folder-detail-label">Plan &amp; Consumption</div>
+        <div><strong>Plan:</strong> ${escapeHtml(org.plan || 'free_trial')} &middot; <strong>Remaining Credits:</strong> ${org.included_interviews ?? 0}</div>
+        <div><strong>Tokens Used:</strong> ${(s.totalTokens || 0).toLocaleString()} &middot; <strong>Est AI Cost:</strong> &#8377;${Number(s.totalCostInr || 0).toFixed(2)}</div>
+      </div>
+    </div>
+  `;
+
+  return renderFolderWrapper({
+    id: `org_${org.id}`,
+    levelClass: 'level-org',
+    icon: 'bi-folder-fill',
+    iconBg: 'rgba(99, 102, 241, 0.15)',
+    iconColor: '#818cf8',
+    titleHtml: `${escapeHtml(org.name || 'Unnamed Company')} <span class="badge badge-primary">${escapeHtml(org.plan || 'free_trial')}</span>`,
+    subtitleHtml: `${s.recruiterCount || 0} Interviewer(s) &middot; ${s.jobCount || 0} Job(s) &middot; ${s.interviewCount || 0} Interview(s) &middot; Last Active: ${s.lastActiveAt ? formatTimeAgo(s.lastActiveAt) : 'N/A'}`,
+    chipsHtml: `
+      <span class="badge badge-success">${s.completedCount || 0} Done</span>
+      ${(s.liveCount || 0) > 0 ? `<span class="badge badge-warning">${s.liveCount} Live</span>` : ''}
+      ${(s.disqualifiedCount || 0) > 0 ? `<span class="badge badge-danger">${s.disqualifiedCount} Disq</span>` : ''}
+      <span class="badge badge-info">${s.activityCount || 0} Events</span>
+    `,
+    bodyHtml: orgDetailsHeader + (subParts.join('') || '<div style="font-size:0.76rem; color:var(--text-muted);">No sub-folders recorded yet.</div>')
+  });
+}
+
+window.renderActivityTree = function() {
+  const container = document.getElementById('activity-tree-container');
+  if (!container) return;
+  if (!cachedActivityTree) {
+    container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding: 2rem;">Loading hierarchical activity folders...</p>';
+    return;
+  }
+
+  const searchTerm = (document.getElementById('tree-search-input')?.value || '').trim().toLowerCase();
+  const stateFilter = (document.getElementById('tree-state-filter')?.value || '').trim().toLowerCase();
+
+  const orgHtml = (cachedActivityTree.organizations || [])
+    .map(org => renderOrgFolderNode(org, searchTerm, stateFilter))
+    .filter(Boolean);
+
+  const directHtml = [];
+  if (!stateFilter) {
+    const directActs = (cachedActivityTree.directActivities || []).filter(a =>
+      !searchTerm || matchesTreeSearch(searchTerm, a.action, a.actor_name, a.actor_email, JSON.stringify(a.details || ''))
+    );
+    if (directActs.length > 0) {
+      directHtml.push(renderFolderWrapper({
+        id: 'direct_org_activities',
+        levelClass: 'level-org',
+        icon: 'bi-globe2',
+        iconBg: 'rgba(245, 158, 11, 0.15)',
+        iconColor: '#f59e0b',
+        titleHtml: 'Platform &amp; Unassigned Events',
+        subtitleHtml: 'Global admin, waitlist, and system-level activity records',
+        chipsHtml: `<span class="badge badge-warning">${directActs.length} Events</span>`,
+        bodyHtml: `<div class="activity-feed">${directActs.map(a => renderActivityItem(a, true)).join('')}</div>`
+      }));
+    }
+
+    const directFbs = (cachedActivityTree.directFeedbacks || cachedActivityTree.feedbacks || []).filter(f =>
+      !searchTerm || matchesTreeSearch(searchTerm, f.name, f.email, f.category, f.message)
+    );
+    if (directFbs.length > 0) {
+      directHtml.push(renderFolderWrapper({
+        id: 'direct_feedbacks',
+        levelClass: 'level-org',
+        icon: 'bi-chat-square-quote-fill',
+        iconBg: 'rgba(236, 72, 153, 0.15)',
+        iconColor: '#ec4899',
+        titleHtml: 'Website Feedback Folder',
+        subtitleHtml: 'All user &amp; candidate experience feedback submissions',
+        chipsHtml: `<span class="badge badge-primary">${directFbs.length} Submissions</span>`,
+        bodyHtml: directFbs.map(f => `
+          <div class="folder-detail-card">
+            <div><strong>${escapeHtml(f.name || f.email || 'Anonymous')}</strong> ${f.rating ? `(${f.rating}/5)` : ''} &middot; <span class="badge badge-info">${escapeHtml(f.category || 'general')}</span> &middot; <span style="color:var(--text-muted);">${escapeHtml(f.source_page || 'website')}</span> &middot; ${formatTimeAgo(f.created_at)}</div>
+            <div style="margin-top: 0.25rem; color: var(--text-muted);">${escapeHtml(f.message || '')}</div>
+          </div>
+        `).join('')
+      }));
+    }
+  }
+
+  const allNodes = [...orgHtml, ...directHtml];
+  if (allNodes.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding: 2rem;">No interviewer folders match the current search or status filter.</p>';
+    return;
+  }
+
+  container.innerHTML = allNodes.join('');
+};
+
 window.loadActivityStream = async function(isSilent = false) {
   const container = document.getElementById('full-activity-stream');
   const previewContainer = document.getElementById('overview-recent-activities-list');
@@ -721,13 +1275,17 @@ function renderActivityItem(act, isCompact = false) {
     USER_SIGNUP: { icon: 'bi-person-plus-fill', color: '#6366f1', label: 'New Recruiter Signup' },
     USER_LOGIN: { icon: 'bi-box-arrow-in-right', color: '#3b82f6', label: 'Recruiter Login' },
     USER_VERIFIED: { icon: 'bi-patch-check-fill', color: '#10b981', label: 'Email Verified' },
+    USER_PASSWORD_RESET: { icon: 'bi-key-fill', color: '#f59e0b', label: 'Password Reset' },
     COMPANY_PROFILE_UPDATED: { icon: 'bi-building', color: '#8b5cf6', label: 'Company Profile Set' },
     JOB_CREATED: { icon: 'bi-plus-square-fill', color: '#0ea5e9', label: 'Job Role Created' },
     JOB_DELETED: { icon: 'bi-trash3-fill', color: '#ef4444', label: 'Job Deleted' },
-    INTERVIEW_DISPATCHED: { icon: 'bi-send-fill', color: '#10b981', label: 'Interview Invitation Dispatched' },
+    INTERVIEW_DISPATCHED: { icon: 'bi-send-fill', color: '#10b981', label: 'Interview Invitation Sent' },
     INTERVIEW_STARTED: { icon: 'bi-play-circle-fill', color: '#f59e0b', label: 'Candidate Started Screening' },
     INTERVIEW_COMPLETED: { icon: 'bi-check-all', color: '#10b981', label: 'Interview Completed' },
     INTERVIEW_DISQUALIFIED: { icon: 'bi-shield-x', color: '#ef4444', label: 'Proctoring Disqualification' },
+    FEEDBACK_SUBMITTED: { icon: 'bi-chat-heart-fill', color: '#ec4899', label: 'User Feedback Submitted' },
+    SMTP_TEST_SENT: { icon: 'bi-envelope-check-fill', color: '#10b981', label: 'Test Mail Sent' },
+    PLATFORM_SETTINGS_UPDATED: { icon: 'bi-sliders', color: '#6366f1', label: 'Platform Settings Updated' },
     USER_STATUS_UPDATED: { icon: 'bi-person-gear', color: '#ec4899', label: 'Admin Status Override' },
     CREDITS_ADJUSTED: { icon: 'bi-coin', color: '#eab308', label: 'Credits Modified' },
     ADMIN_REGISTERED: { icon: 'bi-shield-lock-fill', color: '#a855f7', label: 'New Superadmin Activated' },
@@ -745,10 +1303,15 @@ function renderActivityItem(act, isCompact = false) {
       if (act.details.jobTitle) parts.push(`Job: <strong>${escapeHtml(act.details.jobTitle)}</strong>`);
       if (act.details.title) parts.push(`Role: <strong>${escapeHtml(act.details.title)}</strong>`);
       if (act.details.candidateEmail) parts.push(`Candidate: <strong>${escapeHtml(act.details.candidateEmail)}</strong>`);
-      if (act.details.newStatus) parts.push(`Status &rarr; <span class="badge badge-primary">${act.details.newStatus}</span>`);
+      if (act.details.email) parts.push(`Email: <strong>${escapeHtml(act.details.email)}</strong>`);
+      if (act.details.category) parts.push(`Category: <span class="badge badge-info">${escapeHtml(act.details.category)}</span>`);
+      if (act.details.rating) parts.push(`Rating: <strong>${escapeHtml(act.details.rating)}/5</strong>`);
+      if (act.details.sourcePage) parts.push(`Source: ${escapeHtml(act.details.sourcePage)}`);
+      if (act.details.newStatus) parts.push(`Status &rarr; <span class="badge badge-primary">${escapeHtml(act.details.newStatus)}</span>`);
       if (act.details.newCredits !== undefined) parts.push(`Credits set to <strong>${act.details.newCredits}</strong>`);
       if (act.details.reason) parts.push(`<span style="color:var(--danger)">Violation: ${escapeHtml(act.details.reason)}</span>`);
       if (act.details.score !== undefined) parts.push(`Score: <strong>${act.details.score}/100</strong>`);
+      if (act.ip_address) parts.push(`IP: <span class="code-font">${escapeHtml(act.ip_address)}</span>`);
       detailsText = parts.join(' &middot; ');
     } else {
       detailsText = escapeHtml(String(act.details));
@@ -1472,7 +2035,7 @@ window.saveSmtpSettings = async function() {
     if (!res.ok) throw new Error(data.error || 'Failed to save email settings');
 
     saveLocalSmtpProfile(settingsPayload);
-    showToast('Email Delivery Configuration saved successfully!', 'success');
+    showToast('Done — email settings saved.', 'success');
     loadPlatformSettings();
   } catch (err) {
     showToast(err.message, 'danger');
@@ -1508,7 +2071,7 @@ window.sendTestSmtpEmail = async function() {
       resultDiv.style.color = 'var(--success)';
       resultDiv.innerHTML = `<strong>✓ Success:</strong> ${escapeHtml(data.message)}`;
     }
-    showToast('Test email successfully dispatched!', 'success');
+    showToast('Done — mail sent!', 'success');
     loadPlatformSettings();
   } catch (err) {
     if (resultDiv) {

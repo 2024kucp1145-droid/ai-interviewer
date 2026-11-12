@@ -264,7 +264,7 @@ function beginRecruiterOtpStep({ mode, email, token, otpToken, pendingPassword, 
   }
 
   if (emailSent) {
-    setVerifyStatusBanner(`Verification code sent to ${pendingRecruiterAuth.email}.`, 'success');
+    setVerifyStatusBanner(`Done — mail sent to ${pendingRecruiterAuth.email}.`, 'success');
   } else {
     setVerifyStatusBanner(emailError ? `Email delivery notice: ${emailError}` : (message || 'Enter the 6-digit verification code to continue.'), 'warning');
   }

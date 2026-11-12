@@ -185,8 +185,8 @@ app.post('/auth/signup', async (req, res) => {
         forwardedTo: mailRes.forwardedTo || cleanEmail,
         emailError: mailRes.error || null,
         message: mailRes.sent
-          ? `Verification code sent to ${cleanEmail}.`
-          : 'Verification code generated. Check your email or resend.',
+          ? `Done — mail sent to ${cleanEmail}.`
+          : 'Enter the 6-digit verification code to continue.',
         user: {
           id: user.id,
           email: user.email,
@@ -267,8 +267,8 @@ app.post('/auth/signup', async (req, res) => {
       forwardedTo: mailRes.forwardedTo || cleanEmail,
       emailError: mailRes.error || null,
       message: mailRes.sent
-        ? `Account created! A 6-digit verification code has been sent to ${cleanEmail}.`
-        : 'Account created! Enter the 6-digit verification code to verify your email.',
+        ? `Done — mail sent to ${cleanEmail}.`
+        : 'Done — enter your 6-digit verification code to verify your email.',
       user: {
         id: userId,
         email: cleanEmail,
@@ -376,8 +376,8 @@ async function handleRecruiterResendCode(req, res) {
       forwardedTo: mailRes.forwardedTo || cleanEmail,
       emailError: mailRes.error || null,
       message: mailRes.sent
-        ? `A new 6-digit verification code has been sent to ${cleanEmail}.`
-        : (mailRes.error ? `Verification code generated, but email delivery failed: ${mailRes.error}` : 'Verification code regenerated. Check server logs or configure SMTP in Admin Settings.')
+        ? `Done — mail sent to ${cleanEmail}.`
+        : (mailRes.error ? `Verification code ready, email notice: ${mailRes.error}` : 'Done — new code ready.')
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -490,7 +490,7 @@ app.post('/auth/login', async (req, res) => {
       forwardedTo: mailRes.forwardedTo || cleanEmail,
       emailError: mailRes.error || null,
       message: mailRes.sent
-        ? `A 6-digit login verification code has been sent to ${cleanEmail}.`
+        ? `Done — mail sent to ${cleanEmail}.`
         : 'Enter your 6-digit verification code to complete sign in.'
     });
   } catch (err) {
@@ -625,7 +625,7 @@ app.post('/auth/reset-password', async (req, res) => {
       forwardedTo: mailRes.forwardedTo || cleanEmail,
       emailError: mailRes.error || null,
       message: mailRes.sent
-        ? `A 6-digit password reset code has been sent to ${cleanEmail}.`
+        ? `Done — mail sent to ${cleanEmail}.`
         : 'Enter the 6-digit verification code to confirm your password reset.'
     });
   } catch (err) {
@@ -2067,7 +2067,7 @@ app.post('/i/:token/finish', async (req, res) => {
       }
     }
 
-    res.json({ success: true, message: 'Interview completed and report generated.', emailSent, report });
+    res.json({ success: true, message: emailSent ? 'Done — interview submitted. Mail sent.' : 'Done — interview submitted.', emailSent, report });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -2416,8 +2416,8 @@ app.post('/api/waitlist', async (req, res) => {
       success: true,
       emailSent,
       message: emailSent
-        ? 'Thank you! You have been added to the VIP Pilot program and a confirmation email was sent.'
-        : 'Thank you! You have been added to the VIP Pilot program.'
+        ? `Done! Mail sent to ${cleanEmail}.`
+        : 'Done! Request received.'
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -2482,8 +2482,8 @@ app.post('/api/feedback', async (req, res) => {
       id: feedbackId,
       emailSent,
       message: emailSent
-        ? `Thank you for your feedback! A confirmation email has been sent to ${cleanEmail}.`
-        : 'Thank you for your feedback! Your message has been recorded.'
+        ? `Done! Mail sent to ${cleanEmail}.`
+        : 'Done! Submitted successfully.'
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -129,7 +129,18 @@ try {
     const teamData = await teamRes.json();
     assert(teamData.admins.length >= 4, 'All registered admins must appear in team list');
   }
-  console.log('   ✓ Name + Unique ID -> linked Email OTP login & multi-admin portal access PASSED\n');
+
+  const treeRes = await fetch(`${baseUrl}/api/admin/activity-tree`, {
+    headers: { 'Authorization': `Bearer ${registeredAdmins[0].token}` }
+  });
+  assert.strictEqual(treeRes.status, 200, 'GET /api/admin/activity-tree must return 200');
+  const treeData = await treeRes.json();
+  assert.strictEqual(treeData.success, true, 'activity-tree response must have success: true');
+  assert(Array.isArray(treeData.organizations), 'activity-tree must include organizations array');
+  assert(Array.isArray(treeData.directActivities), 'activity-tree must include directActivities array');
+  assert(Array.isArray(treeData.feedbacks), 'activity-tree must include feedbacks array');
+
+  console.log('   ✓ Name + Unique ID -> linked Email OTP, /activity-tree & multi-admin portal access PASSED\n');
 
   // 4. Test Self-Healing requireAdmin on Ephemeral Vercel Restarts & Activity Logging
   console.log('4. Testing Ephemeral Session Persistence & Activity Logging...');

@@ -616,6 +616,156 @@
       font-family: var(--mono);
     }
 
+    /* Hierarchical Activity Folder Tree */
+    .view-pill-group {
+      display: inline-flex;
+      background-color: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.2rem;
+      gap: 0.2rem;
+    }
+
+    .view-pill {
+      background: transparent;
+      border: 0;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.15s ease;
+    }
+
+    .view-pill.active {
+      background-color: var(--primary);
+      color: #ffffff;
+    }
+
+    .folder-tree {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .folder-node {
+      background-color: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      transition: border-color 0.15s ease;
+    }
+
+    .folder-node:hover {
+      border-color: var(--border-bright);
+    }
+
+    .folder-node.level-org {
+      border-left: 3px solid var(--primary);
+    }
+
+    .folder-node.level-sub {
+      background-color: var(--surface);
+      border-radius: 8px;
+    }
+
+    .folder-node.level-job {
+      background-color: var(--surface-elevated);
+      border-left: 3px solid #0ea5e9;
+      border-radius: 8px;
+    }
+
+    .folder-node.level-interview {
+      background-color: var(--surface);
+      border-left: 3px solid #10b981;
+      border-radius: 8px;
+    }
+
+    .folder-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.75rem 0.95rem;
+      cursor: pointer;
+      user-select: none;
+      flex-wrap: wrap;
+    }
+
+    .folder-header:hover {
+      background-color: rgba(99, 102, 241, 0.05);
+    }
+
+    .folder-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .folder-chevron {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      transition: transform 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .folder-icon-badge {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+      flex-shrink: 0;
+    }
+
+    .folder-meta-chips {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+    }
+
+    .folder-children {
+      padding: 0.25rem 0.95rem 0.9rem 1.35rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .folder-detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 0.65rem;
+      margin-top: 0.5rem;
+    }
+
+    .folder-detail-card {
+      background-color: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.65rem 0.8rem;
+      font-size: 0.77rem;
+      line-height: 1.45;
+    }
+
+    .folder-detail-label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
     /* Modal */
     .modal-backdrop {
       position: fixed;
@@ -935,7 +1085,7 @@
         <i class="bi bi-speedometer2"></i> Live Overview
       </button>
       <button class="nav-tab-btn" onclick="switchDashboardTab('activities')">
-        <i class="bi bi-broadcast"></i> Activity Stream <span id="activities-badge" class="badge badge-neutral" style="margin-left: 0.3rem;">0</span>
+        <i class="bi bi-folder2-open"></i> Activity Folders &amp; Stream <span id="activities-badge" class="badge badge-neutral" style="margin-left: 0.3rem;">0</span>
       </button>
       <button class="nav-tab-btn" onclick="switchDashboardTab('users')">
         <i class="bi bi-people-fill"></i> Recruiters &amp; Approvals <span id="pending-users-badge" class="badge badge-warning" style="display:none; margin-left: 0.3rem;">0 Pending</span>
@@ -1042,32 +1192,66 @@
       </div>
     </div>
 
-    <!-- TAB 2: REAL-TIME ACTIVITY STREAM -->
+    <!-- TAB 2: HIERARCHICAL ACTIVITY FOLDERS & REAL-TIME STREAM -->
     <div id="tab-content-activities" style="display: none;">
       <div class="card">
-        <div class="card-header">
-          <div class="card-title">
-            <i class="bi bi-activity"></i> Platform Real-Time Activity Stream
+        <div class="card-header" style="flex-wrap: wrap; gap: 0.75rem;">
+          <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <div class="card-title">
+              <i class="bi bi-folder2-open"></i> Interviewer Activity Explorer
+            </div>
+            <div class="view-pill-group">
+              <button type="button" id="btn-view-tree" class="view-pill active" onclick="setActivityViewMode('tree')">
+                <i class="bi bi-diagram-3-fill"></i> Folder Hierarchy
+              </button>
+              <button type="button" id="btn-view-stream" class="view-pill" onclick="setActivityViewMode('stream')">
+                <i class="bi bi-broadcast"></i> Live Stream
+              </button>
+            </div>
           </div>
-          <div style="display: flex; gap: 0.6rem;">
-            <select id="filter-activity-action" class="form-input" style="width: auto; padding: 0.35rem 0.6rem; font-size: 0.75rem;" onchange="loadActivityStream()">
+
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+            <div id="tree-controls-bar" style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+              <input type="text" id="tree-search-input" class="form-input" placeholder="Search company, interviewer, job, candidate..." style="width: 240px; padding: 0.35rem 0.65rem; font-size: 0.75rem;" oninput="renderActivityTree()">
+              <select id="tree-state-filter" class="form-input" style="width: auto; padding: 0.35rem 0.6rem; font-size: 0.75rem;" onchange="renderActivityTree()">
+                <option value="">All Statuses</option>
+                <option value="live">Live Only</option>
+                <option value="completed">Completed</option>
+                <option value="disqualified">Disqualified</option>
+                <option value="created">Invited / Created</option>
+              </select>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAllOrgFolders(true)" title="Open all organization folders">
+                <i class="bi bi-arrows-expand"></i> Expand Orgs
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAllOrgFolders(false)" title="Collapse all folders">
+                <i class="bi bi-arrows-collapse"></i> Collapse
+              </button>
+            </div>
+
+            <select id="filter-activity-action" class="form-input" style="display: none; width: auto; padding: 0.35rem 0.6rem; font-size: 0.75rem;" onchange="loadActivityStream()">
               <option value="">All Events</option>
               <option value="USER_SIGNUP">Signups</option>
               <option value="USER_LOGIN">Logins</option>
+              <option value="USER_PASSWORD_RESET">Password Resets</option>
               <option value="JOB_CREATED">Jobs Created</option>
               <option value="INTERVIEW_DISPATCHED">Interview Dispatched</option>
               <option value="INTERVIEW_STARTED">Interview Started</option>
               <option value="INTERVIEW_COMPLETED">Interview Completed</option>
               <option value="INTERVIEW_DISQUALIFIED">Disqualifications</option>
+              <option value="FEEDBACK_SUBMITTED">Feedback Submitted</option>
               <option value="USER_STATUS_UPDATED">Admin Actions</option>
             </select>
-            <button class="btn btn-secondary btn-sm" onclick="loadActivityStream()">
-              <i class="bi bi-arrow-clockwise"></i> Refresh Stream
+
+            <button class="btn btn-secondary btn-sm" onclick="refreshActiveActivitiesView()">
+              <i class="bi bi-arrow-clockwise"></i> Refresh
             </button>
           </div>
         </div>
         <div class="card-body">
-          <div id="full-activity-stream" class="activity-feed">
+          <div id="activity-tree-container" class="folder-tree">
+            <p style="color: var(--text-muted); text-align: center; padding: 2rem;">Loading hierarchical activity folders...</p>
+          </div>
+          <div id="full-activity-stream" class="activity-feed" style="display: none;">
             <p style="color: var(--text-muted); text-align: center; padding: 2rem;">Loading stream...</p>
           </div>
         </div>

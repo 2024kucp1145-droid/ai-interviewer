@@ -73,6 +73,9 @@ export function createTransporter() {
     host: config.host,
     port: config.port,
     secure: config.secure,
+    connectionTimeout: 8000,
+    greetingTimeout: 8000,
+    socketTimeout: 10000,
     auth: {
       user: config.user.trim(),
       pass: cleanPass

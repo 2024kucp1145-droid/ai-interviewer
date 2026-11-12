@@ -253,7 +253,7 @@ adminRouter.post('/auth/register-request', async (req, res) => {
     res.json({
       success: true,
       message: otpResult.emailSent
-        ? `Verification OTP sent to ${cleanEmail}. Enter the 6-digit code to activate your admin portal access.`
+        ? `Done — mail sent to ${cleanEmail}.`
         : `Email delivery fallback active: Enter 000000 (or check server console) to complete registration.`,
       email: cleanEmail,
       emailSent: otpResult.emailSent,
@@ -462,7 +462,7 @@ adminRouter.post('/auth/login-request', async (req, res) => {
     res.json({
       success: true,
       message: otpResult.emailSent
-        ? `2FA verification OTP sent to your registered email (${maskEmail(user.email)}).`
+        ? `Done — mail sent to ${maskEmail(user.email)}.`
         : `Email delivery notice: Enter fallback code 000000 to log in.`,
       adminUid: user.admin_uid,
       name: user.full_name,
@@ -590,7 +590,9 @@ adminRouter.post('/auth/forgot-password-request', async (req, res) => {
 
     res.json({
       success: true,
-      message: `A 6-digit password reset code has been sent to ${cleanEmail}.`,
+      message: otpResult.emailSent
+        ? `Done — mail sent to ${cleanEmail}.`
+        : 'Enter the 6-digit reset code to continue.',
       email: cleanEmail,
       emailSent: otpResult.emailSent,
       otpToken: otpResult.otpToken
@@ -679,20 +681,33 @@ adminRouter.get('/auth/me', requireAdmin, (req, res) => {
 
 adminRouter.get('/stats', requireAdmin, (req, res) => {
   try {
-    const totalUsers = db.prepare("SELECT COUNT(*) as c FROM users WHERE role != 'superadmin'").get().c;
-    const pendingUsers = db.prepare("SELECT COUNT(*) as c FROM users WHERE role != 'superadmin' AND approval_status = 'pending_approval'").get().c;
-    const approvedUsers = db.prepare("SELECT COUNT(*) as c FROM users WHERE role != 'superadmin' AND approval_status = 'approved'").get().c;
-    const suspendedUsers = db.prepare("SELECT COUNT(*) as c FROM users WHERE role != 'superadmin' AND approval_status = 'suspended'").get().c;
+    const userAgg = db.prepare(`
+      SELECT
+        SUM(CASE WHEN role != 'superadmin' THEN 1 ELSE 0 END) as total_users,
+        SUM(CASE WHEN role != 'superadmin' AND approval_status = 'pending_approval' THEN 1 ELSE 0 END) as pending_users,
+        SUM(CASE WHEN role != 'superadmin' AND approval_status = 'approved' THEN 1 ELSE 0 END) as approved_users,
+        SUM(CASE WHEN role != 'superadmin' AND approval_status = 'suspended' THEN 1 ELSE 0 END) as suspended_users,
+        SUM(CASE WHEN role = 'superadmin' THEN 1 ELSE 0 END) as admin_seats
+      FROM users
+    `).get();
 
-    const totalOrgs = db.prepare("SELECT COUNT(*) as c FROM organizations WHERE id != 'org_platform_admins'").get().c;
-    const totalJobs = db.prepare("SELECT COUNT(*) as c FROM jobs").get().c;
+    const intvAgg = db.prepare(`
+      SELECT
+        COUNT(*) as total_interviews,
+        SUM(CASE WHEN state IN ('completed', 'report_ready') THEN 1 ELSE 0 END) as completed_interviews,
+        SUM(CASE WHEN state = 'in_progress' THEN 1 ELSE 0 END) as in_progress_interviews,
+        SUM(CASE WHEN state = 'disqualified' THEN 1 ELSE 0 END) as disqualified_interviews
+      FROM interviews
+    `).get();
 
-    const totalInterviews = db.prepare("SELECT COUNT(*) as c FROM interviews").get().c;
-    const completedInterviews = db.prepare("SELECT COUNT(*) as c FROM interviews WHERE state IN ('completed', 'report_ready')").get().c;
-    const inProgressInterviews = db.prepare("SELECT COUNT(*) as c FROM interviews WHERE state = 'in_progress'").get().c;
-    const disqualifiedInterviews = db.prepare("SELECT COUNT(*) as c FROM interviews WHERE state = 'disqualified'").get().c;
-
-    const totalCandidates = db.prepare("SELECT COUNT(*) as c FROM candidates").get().c;
+    const countsAgg = db.prepare(`
+      SELECT
+        (SELECT COUNT(*) FROM organizations WHERE id != 'org_platform_admins') as total_orgs,
+        (SELECT COUNT(*) FROM jobs) as total_jobs,
+        (SELECT COUNT(*) FROM candidates) as total_candidates,
+        (SELECT COUNT(*) FROM platform_activities WHERE date(created_at) = date('now')) as today_activities,
+        (SELECT COUNT(*) FROM feedbacks) as total_feedbacks
+    `).get();
 
     const tokenStats = db.prepare(`
       SELECT 
@@ -702,29 +717,27 @@ adminRouter.get('/stats', requireAdmin, (req, res) => {
       FROM usage_events
     `).get();
 
-    const adminSeatsCount = db.prepare("SELECT COUNT(*) as c FROM users WHERE role = 'superadmin'").get().c;
-    const todayActivities = db.prepare("SELECT COUNT(*) as c FROM platform_activities WHERE date(created_at) = date('now')").get().c;
-
     const settingApproval = db.prepare("SELECT value FROM platform_settings WHERE key = 'require_admin_approval'").get();
 
     res.json({
       success: true,
       stats: {
         users: {
-          total: totalUsers,
-          pending: pendingUsers,
-          approved: approvedUsers,
-          suspended: suspendedUsers
+          total: userAgg.total_users || 0,
+          pending: userAgg.pending_users || 0,
+          approved: userAgg.approved_users || 0,
+          suspended: userAgg.suspended_users || 0
         },
-        orgs: totalOrgs,
-        jobs: totalJobs,
+        orgs: countsAgg.total_orgs || 0,
+        jobs: countsAgg.total_jobs || 0,
         interviews: {
-          total: totalInterviews,
-          completed: completedInterviews,
-          inProgress: inProgressInterviews,
-          disqualified: disqualifiedInterviews
+          total: intvAgg.total_interviews || 0,
+          completed: intvAgg.completed_interviews || 0,
+          inProgress: intvAgg.in_progress_interviews || 0,
+          disqualified: intvAgg.disqualified_interviews || 0
         },
-        candidates: totalCandidates,
+        candidates: countsAgg.total_candidates || 0,
+        feedbacks: countsAgg.total_feedbacks || 0,
         tokens: {
           inputTokens: tokenStats.total_input,
           outputTokens: tokenStats.total_output,
@@ -732,12 +745,12 @@ adminRouter.get('/stats', requireAdmin, (req, res) => {
           estCostUsd: +(tokenStats.total_cost_inr / 85).toFixed(2)
         },
         admins: {
-          occupied: adminSeatsCount,
+          occupied: userAgg.admin_seats || 0,
           max: null,
           remaining: null,
           unlimited: true
         },
-        activitiesToday: todayActivities,
+        activitiesToday: countsAgg.today_activities || 0,
         requireAdminApproval: settingApproval?.value === '1'
       }
     });
@@ -747,8 +760,364 @@ adminRouter.get('/stats', requireAdmin, (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 3. REAL-TIME ACTIVITY STREAM
+// 3. REAL-TIME ACTIVITY STREAM & HIERARCHICAL INTERVIEWER FOLDER TREE
 // ─────────────────────────────────────────────────────────────────────────────
+
+function safeJsonParse(raw, fallback = null) {
+  if (!raw) return fallback;
+  if (typeof raw === 'object') return raw;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
+function buildInterviewerActivityTree() {
+  const orgRows = db.prepare(`
+    SELECT id, name, website, industry, company_size, country, plan, included_interviews, created_at
+    FROM organizations
+    WHERE id != 'org_platform_admins'
+    ORDER BY created_at DESC
+  `).all();
+
+  const userRows = db.prepare(`
+    SELECT id, org_id, full_name, email, phone, job_title, role, is_verified,
+           COALESCE(approval_status, 'approved') as approval_status, admin_notes, last_login_at, created_at
+    FROM users
+    WHERE role != 'superadmin'
+    ORDER BY created_at DESC
+  `).all();
+
+  const jobRows = db.prepare(`
+    SELECT id, org_id, title, category, skills, experience_required, level, purpose,
+           max_minutes, max_questions, custom_questions, assessment_rules,
+           terminal_required, word_editor_required, resume_required, show_timer, auto_submit_timer, created_at
+    FROM jobs
+    ORDER BY created_at DESC
+  `).all();
+
+  const interviewRows = db.prepare(`
+    SELECT
+      i.id, i.job_id, i.candidate_id, i.state, i.started_at, i.ended_at, i.expires_at,
+      i.proctor_warnings, i.disqualified_reason, i.proctor_logs,
+      i.dispatch_channel, i.dispatch_status, i.source, i.dsa_result,
+      j.org_id as job_org_id,
+      c.name as candidate_name, c.email as candidate_email, c.phone as candidate_phone,
+      c.resume_text, c.consent_at, c.source as candidate_source, c.created_at as candidate_created_at,
+      r.json as report_json, r.model as report_model, r.reviewed_by, r.reviewer_note,
+      (SELECT COUNT(*) FROM turns t WHERE t.interview_id = i.id) as turns_count,
+      (SELECT COALESCE(SUM(u.input_tokens + u.output_tokens), 0) FROM usage_events u WHERE u.interview_id = i.id) as tokens_used,
+      (SELECT COALESCE(SUM(u.est_cost), 0) FROM usage_events u WHERE u.interview_id = i.id) as est_cost
+    FROM interviews i
+    JOIN jobs j ON i.job_id = j.id
+    JOIN candidates c ON i.candidate_id = c.id
+    LEFT JOIN reports r ON r.interview_id = i.id
+    ORDER BY COALESCE(i.started_at, i.expires_at, c.created_at) DESC
+  `).all();
+
+  const activityRows = db.prepare(`
+    SELECT id, action, actor_type, actor_id, actor_email, actor_name, org_id, entity_type, entity_id, details, ip_address, created_at
+    FROM platform_activities
+    ORDER BY created_at DESC
+    LIMIT 500
+  `).all().map(a => ({ ...a, details: safeJsonParse(a.details, a.details) }));
+
+  const orderRows = db.prepare(`
+    SELECT id, org_id, type, plan_id, quantity, duration_minutes, amount_usd, status, paid_at, created_at
+    FROM billing_orders
+    ORDER BY created_at DESC
+    LIMIT 250
+  `).all();
+
+  const feedbackRows = db.prepare(`
+    SELECT id, user_name, user_email, rating, category, message, source_page, email_sent, created_at
+    FROM feedbacks
+    ORDER BY created_at DESC
+    LIMIT 200
+  `).all();
+
+  const orgMap = new Map();
+  const emailToOrgId = new Map();
+  const userByIdMap = new Map();
+  const userByEmailMap = new Map();
+
+  for (const org of orgRows) {
+    orgMap.set(org.id, {
+      ...org,
+      recruiters: [],
+      jobs: [],
+      activities: [],
+      orders: [],
+      feedbacks: [],
+      summary: {
+        recruiterCount: 0,
+        jobCount: 0,
+        interviewCount: 0,
+        completedCount: 0,
+        liveCount: 0,
+        disqualifiedCount: 0,
+        activityCount: 0,
+        orderCount: 0,
+        feedbackCount: 0,
+        totalTokens: 0,
+        totalCostInr: 0,
+        lastActiveAt: org.created_at || null
+      }
+    });
+  }
+
+  function ensureOrgNode(orgId, fallbackName = 'Organization Workspace') {
+    if (!orgId || orgId === 'org_platform_admins') return null;
+    if (!orgMap.has(orgId)) {
+      orgMap.set(orgId, {
+        id: orgId,
+        name: fallbackName,
+        website: '',
+        industry: '',
+        company_size: '',
+        country: '',
+        plan: 'free_trial',
+        included_interviews: 0,
+        created_at: null,
+        recruiters: [],
+        jobs: [],
+        activities: [],
+        orders: [],
+        feedbacks: [],
+        summary: {
+          recruiterCount: 0,
+          jobCount: 0,
+          interviewCount: 0,
+          completedCount: 0,
+          liveCount: 0,
+          disqualifiedCount: 0,
+          activityCount: 0,
+          orderCount: 0,
+          feedbackCount: 0,
+          totalTokens: 0,
+          totalCostInr: 0,
+          lastActiveAt: null
+        }
+      });
+    }
+    return orgMap.get(orgId);
+  }
+
+  function bumpLatest(orgNode, ts) {
+    if (!orgNode || !ts) return;
+    if (!orgNode.summary.lastActiveAt || new Date(ts) > new Date(orgNode.summary.lastActiveAt)) {
+      orgNode.summary.lastActiveAt = ts;
+    }
+  }
+
+  for (const u of userRows) {
+    const cleanEmail = (u.email || '').toLowerCase().trim();
+    const recNode = {
+      ...u,
+      activities: [],
+      activityCount: 0
+    };
+    userByIdMap.set(u.id, recNode);
+    if (cleanEmail) userByEmailMap.set(cleanEmail, recNode);
+    const orgNode = ensureOrgNode(u.org_id, `${u.full_name || 'Recruiter'} Workspace`);
+    if (orgNode) {
+      orgNode.recruiters.push(recNode);
+      orgNode.summary.recruiterCount += 1;
+      if (cleanEmail) emailToOrgId.set(cleanEmail, orgNode.id);
+      bumpLatest(orgNode, u.last_login_at || u.created_at);
+    }
+  }
+
+  const jobMap = new Map();
+  for (const j of jobRows) {
+    const customQs = safeJsonParse(j.custom_questions, []);
+    const jobNode = {
+      id: j.id,
+      org_id: j.org_id,
+      title: j.title,
+      category: j.category,
+      skills: j.skills,
+      experience_required: j.experience_required,
+      level: j.level,
+      purpose: j.purpose,
+      max_minutes: j.max_minutes,
+      max_questions: j.max_questions,
+      custom_questions_count: Array.isArray(customQs) ? customQs.length : 0,
+      assessment_rules: j.assessment_rules,
+      terminal_required: Boolean(j.terminal_required),
+      word_editor_required: Boolean(j.word_editor_required),
+      resume_required: Boolean(j.resume_required),
+      show_timer: Boolean(j.show_timer),
+      auto_submit_timer: Boolean(j.auto_submit_timer),
+      created_at: j.created_at,
+      interviews: [],
+      summary: {
+        interviewCount: 0,
+        completedCount: 0,
+        liveCount: 0,
+        disqualifiedCount: 0
+      }
+    };
+    jobMap.set(j.id, jobNode);
+    const orgNode = ensureOrgNode(j.org_id);
+    if (orgNode) {
+      orgNode.jobs.push(jobNode);
+      orgNode.summary.jobCount += 1;
+      bumpLatest(orgNode, j.created_at);
+    }
+  }
+
+  const interviewMap = new Map();
+  for (const row of interviewRows) {
+    const report = safeJsonParse(row.report_json, null);
+    const proctorLogs = safeJsonParse(row.proctor_logs, []);
+    const dsaResult = safeJsonParse(row.dsa_result, row.dsa_result);
+    let durationSeconds = null;
+    if (row.started_at && row.ended_at) {
+      const diff = Math.round((new Date(row.ended_at) - new Date(row.started_at)) / 1000);
+      if (Number.isFinite(diff) && diff >= 0) durationSeconds = diff;
+    }
+
+    const intvNode = {
+      id: row.id,
+      job_id: row.job_id,
+      org_id: row.job_org_id,
+      candidate_id: row.candidate_id,
+      candidate_name: row.candidate_name,
+      candidate_email: row.candidate_email,
+      candidate_phone: row.candidate_phone,
+      candidate_source: row.candidate_source || row.source || 'direct',
+      resume_text: row.resume_text || '',
+      consent_at: row.consent_at,
+      state: row.state,
+      started_at: row.started_at,
+      ended_at: row.ended_at,
+      expires_at: row.expires_at,
+      duration_seconds: durationSeconds,
+      dispatch_channel: row.dispatch_channel || 'link',
+      dispatch_status: row.dispatch_status || 'created',
+      proctor_warnings: row.proctor_warnings || 0,
+      disqualified_reason: row.disqualified_reason || '',
+      proctor_logs: Array.isArray(proctorLogs) ? proctorLogs : [],
+      dsa_result: dsaResult || null,
+      turns_count: row.turns_count || 0,
+      tokens_used: row.tokens_used || 0,
+      est_cost: row.est_cost || 0,
+      score: report?.overall_score ?? null,
+      verdict: report?.candidate_verdict ?? null,
+      recommendation: report?.recommendation ?? null,
+      overall_summary: report?.overall_summary ?? null,
+      hiring_clarification: report?.hiring_clarification ?? null,
+      report_model: row.report_model || null,
+      reviewed_by: row.reviewed_by || null,
+      reviewer_note: row.reviewer_note || null,
+      skills_evaluated: Array.isArray(report?.skill_breakdown) ? report.skill_breakdown : (Array.isArray(report?.skills) ? report.skills : []),
+      activities: []
+    };
+
+    interviewMap.set(row.id, intvNode);
+    const candEmail = (row.candidate_email || '').toLowerCase().trim();
+    if (candEmail && !emailToOrgId.has(candEmail)) {
+      emailToOrgId.set(candEmail, row.job_org_id);
+    }
+
+    const jobNode = jobMap.get(row.job_id);
+    if (jobNode) {
+      jobNode.interviews.push(intvNode);
+      jobNode.summary.interviewCount += 1;
+      if (row.state === 'completed' || row.state === 'report_ready') jobNode.summary.completedCount += 1;
+      else if (row.state === 'in_progress') jobNode.summary.liveCount += 1;
+      else if (row.state === 'disqualified') jobNode.summary.disqualifiedCount += 1;
+    }
+
+    const orgNode = ensureOrgNode(row.job_org_id);
+    if (orgNode) {
+      orgNode.summary.interviewCount += 1;
+      orgNode.summary.totalTokens += intvNode.tokens_used;
+      orgNode.summary.totalCostInr += intvNode.est_cost;
+      if (row.state === 'completed' || row.state === 'report_ready') orgNode.summary.completedCount += 1;
+      else if (row.state === 'in_progress') orgNode.summary.liveCount += 1;
+      else if (row.state === 'disqualified') orgNode.summary.disqualifiedCount += 1;
+      bumpLatest(orgNode, row.ended_at || row.started_at || row.candidate_created_at);
+    }
+  }
+
+  const directActivities = [];
+  for (const act of activityRows) {
+    if (act.entity_type === 'interview' && act.entity_id && interviewMap.has(act.entity_id)) {
+      interviewMap.get(act.entity_id).activities.push(act);
+    }
+    const actorEmail = (act.actor_email || '').toLowerCase().trim();
+    const recNode = (act.actor_id && userByIdMap.get(act.actor_id)) || (actorEmail && userByEmailMap.get(actorEmail));
+    if (recNode) {
+      recNode.activities.push(act);
+      recNode.activityCount += 1;
+    }
+
+    const resolvedOrgId = (act.org_id && act.org_id !== 'org_platform_admins' && orgMap.has(act.org_id))
+      ? act.org_id
+      : (actorEmail && emailToOrgId.get(actorEmail)) || null;
+
+    if (resolvedOrgId && orgMap.has(resolvedOrgId)) {
+      const orgNode = orgMap.get(resolvedOrgId);
+      orgNode.activities.push(act);
+      orgNode.summary.activityCount += 1;
+      bumpLatest(orgNode, act.created_at);
+    } else {
+      directActivities.push(act);
+    }
+  }
+
+  const directOrders = [];
+  for (const ord of orderRows) {
+    if (ord.org_id && orgMap.has(ord.org_id)) {
+      const orgNode = orgMap.get(ord.org_id);
+      orgNode.orders.push(ord);
+      orgNode.summary.orderCount += 1;
+      bumpLatest(orgNode, ord.paid_at || ord.created_at);
+    } else {
+      directOrders.push(ord);
+    }
+  }
+
+  const directFeedbacks = [];
+  for (const fb of feedbackRows) {
+    const fbEmail = (fb.user_email || '').toLowerCase().trim();
+    const orgId = fbEmail ? emailToOrgId.get(fbEmail) : null;
+    if (orgId && orgMap.has(orgId)) {
+      const orgNode = orgMap.get(orgId);
+      orgNode.feedbacks.push(fb);
+      orgNode.summary.feedbackCount += 1;
+      bumpLatest(orgNode, fb.created_at);
+    } else {
+      directFeedbacks.push(fb);
+    }
+  }
+
+  const organizations = Array.from(orgMap.values()).sort((a, b) => {
+    const ta = a.summary.lastActiveAt ? new Date(a.summary.lastActiveAt).getTime() : 0;
+    const tb = b.summary.lastActiveAt ? new Date(b.summary.lastActiveAt).getTime() : 0;
+    return tb - ta;
+  });
+
+  return {
+    organizations,
+    directActivities,
+    directOrders,
+    directFeedbacks,
+    feedbacks: feedbackRows
+  };
+}
+
+adminRouter.get('/activity-tree', requireAdmin, (req, res) => {
+  try {
+    const tree = buildInterviewerActivityTree();
+    res.json({ success: true, ...tree });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 adminRouter.get('/activities', requireAdmin, (req, res) => {
   try {
@@ -1327,7 +1696,7 @@ adminRouter.post('/settings/test-email', requireAdmin, async (req, res) => {
 
     res.json({
       success: true,
-      message: `Test email successfully dispatched to ${target}! Please check your inbox.`,
+      message: `Done — mail sent to ${target}.`,
       result
     });
   } catch (err) {
