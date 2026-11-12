@@ -5972,3 +5972,271 @@ window.exportRegisteredUsersCsv = function() {
   link.click();
   document.body.removeChild(link);
 };
+
+
+// ============================================================
+// UX IMPROVEMENTS: Click-outside-to-close, ESC, Back Button
+// ============================================================
+
+(function initUX() {
+
+  // ---- 1. MODAL CONFIG ----
+  // Map: overlay element ID -> close function name
+  const MODAL_MAP = [
+    { id: 'auth-modal',              close: 'closeAuthModal',               safe: false }, // don't close on outside click (auth flow)
+    { id: 'billing-checkout-modal',  close: 'closeBillingModal',            safe: true  },
+    { id: 'report-modal',            close: 'closeReportModal',             safe: true  },
+    { id: 'waitlist-modal',          close: 'closeWaitlistModal',           safe: true  },
+    { id: 'feedback-modal',          close: 'closeFeedbackModal',           safe: true  },
+    { id: 'modal-share-link',        close: 'closeShareModal',              safe: true  },
+    { id: 'modal-questions-preview', close: 'closeQuestionsPreviewModal',   safe: true  },
+    { id: 'modal-question-bank',     close: 'closeQuestionBankModal',       safe: true  },
+    { id: 'modal-registered-users',  close: 'closeRegisteredUsersModal',    safe: true  },
+  ];
+
+  const DRAWER_MAP = [
+    { id: 'responses-drawer', close: 'closeResponsesDrawer', safe: true },
+  ];
+
+  // ---- 2. CLICK OUTSIDE TO CLOSE ----
+  function getCloseFunction(name) {
+    return window[name];
+  }
+
+  function isModalVisible(id) {
+    const el = document.getElementById(id);
+    return el && el.style.display !== 'none' && el.style.display !== '';
+  }
+
+  document.addEventListener('click', function(e) {
+    // Modals: overlay is the backdrop, inner .modal-content is the actual box
+    for (const m of MODAL_MAP) {
+      if (!m.safe) continue;
+      const overlay = document.getElementById(m.id);
+      if (!overlay || overlay.style.display === 'none') continue;
+      // If click landed directly on the overlay (backdrop), not on content inside
+      if (e.target === overlay) {
+        const fn = getCloseFunction(m.close);
+        if (fn) fn();
+        break;
+      }
+    }
+    // Drawers
+    for (const d of DRAWER_MAP) {
+      if (!d.safe) continue;
+      const overlay = document.getElementById(d.id);
+      if (!overlay || overlay.style.display === 'none') continue;
+      const content = overlay.querySelector('.drawer-content');
+      if (content && !content.contains(e.target)) {
+        const fn = getCloseFunction(d.close);
+        if (fn) fn();
+        break;
+      }
+    }
+  }, true);
+
+  // ---- 3. ESC KEY TO CLOSE ----
+  document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Escape') return;
+    // Close topmost visible modal/drawer
+    // Drawers first (highest z-index typically)
+    for (const d of DRAWER_MAP) {
+      const overlay = document.getElementById(d.id);
+      if (overlay && overlay.style.display !== 'none') {
+        const fn = getCloseFunction(d.close);
+        if (fn) { fn(); return; }
+      }
+    }
+    for (const m of [...MODAL_MAP].reverse()) {
+      const overlay = document.getElementById(m.id);
+      if (overlay && overlay.style.display !== 'none') {
+        const fn = getCloseFunction(m.close);
+        if (fn) { fn(); return; }
+      }
+    }
+  });
+
+  // ---- 4. BROWSER BACK BUTTON (History API) ----
+  // Push a state whenever a modal/drawer opens so back button closes it.
+  const _origOpen = {
+    openAuthModal:              window.openAuthModal,
+    openBillingCheckout:        window.openBillingCheckout,
+    openReportModal:            window.openReportModal,
+    openWaitlistModal:          window.openWaitlistModal,
+    openFeedbackModal:          window.openFeedbackModal,
+    openShareModalForJob:       window.openShareModalForJob,
+    openQuestionsPreviewModal:  window.openQuestionsPreviewModal,
+    openQuestionBankModal:      window.openQuestionBankModal,
+    openRegisteredUsersModal:   window.openRegisteredUsersModal,
+    openResponsesDrawer:        window.openResponsesDrawer,
+  };
+
+  function wrapOpen(fnName, closeFnName) {
+    if (!window[fnName]) return;
+    const orig = window[fnName];
+    window[fnName] = function(...args) {
+      history.pushState({ modal: closeFnName }, '');
+      return orig.apply(this, args);
+    };
+  }
+
+  wrapOpen('openBillingCheckout',       'closeBillingModal');
+  wrapOpen('openReportModal',           'closeReportModal');
+  wrapOpen('openWaitlistModal',         'closeWaitlistModal');
+  wrapOpen('openFeedbackModal',         'closeFeedbackModal');
+  wrapOpen('openShareModalForJob',      'closeShareModal');
+  wrapOpen('openQuestionsPreviewModal', 'closeQuestionsPreviewModal');
+  wrapOpen('openQuestionBankModal',     'closeQuestionBankModal');
+  wrapOpen('openRegisteredUsersModal',  'closeRegisteredUsersModal');
+  wrapOpen('openResponsesDrawer',       'closeResponsesDrawer');
+
+  window.addEventListener('popstate', function(e) {
+    if (e.state && e.state.modal) {
+      const fn = getCloseFunction(e.state.modal);
+      if (fn) fn();
+    } else {
+      // No modal state → close any open modal
+      for (const d of DRAWER_MAP) {
+        const overlay = document.getElementById(d.id);
+        if (overlay && overlay.style.display !== 'none') {
+          const fn = getCloseFunction(d.close);
+          if (fn) fn();
+          return;
+        }
+      }
+      for (const m of [...MODAL_MAP].reverse()) {
+        const overlay = document.getElementById(m.id);
+        if (overlay && overlay.style.display !== 'none') {
+          const fn = getCloseFunction(m.close);
+          if (fn) fn();
+          return;
+        }
+      }
+    }
+  });
+
+  // ---- 5. MODAL OPEN ANIMATION (fade+scale) ----
+  // Inject CSS for modal transitions
+  const style = document.createElement('style');
+  style.textContent = `
+    .modal-overlay, .modal-backdrop, .drawer-overlay {
+      transition: opacity 0.18s ease;
+    }
+    .modal-content {
+      transform-origin: center top;
+      transition: transform 0.18s cubic-bezier(.4,0,.2,1), opacity 0.18s ease;
+    }
+    .drawer-content {
+      transition: transform 0.22s cubic-bezier(.4,0,.2,1);
+    }
+    /* Scroll lock when modal open */
+    body.modal-open {
+      overflow: hidden;
+    }
+    /* Cursor pointer on modal backdrops */
+    .modal-overlay, .modal-backdrop {
+      cursor: default;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // ---- 6. BODY SCROLL LOCK ----
+  // Lock scroll when any modal is open
+  function anyModalOpen() {
+    const allIds = [...MODAL_MAP.map(m => m.id), ...DRAWER_MAP.map(d => d.id)];
+    return allIds.some(id => {
+      const el = document.getElementById(id);
+      return el && el.style.display !== 'none';
+    });
+  }
+
+  function updateScrollLock() {
+    if (anyModalOpen()) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+  }
+
+  // Observe display changes on modals using MutationObserver
+  const observer = new MutationObserver(updateScrollLock);
+  const allModalIds = [...MODAL_MAP.map(m => m.id), ...DRAWER_MAP.map(d => d.id)];
+  allModalIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) observer.observe(el, { attributes: true, attributeFilter: ['style'] });
+  });
+
+  // ---- 7. TAB SWITCHING WITH BROWSER HISTORY ----
+  // So that browser back button works between tabs too
+  const _origSwitchTab = window.switchTab;
+  if (_origSwitchTab) {
+    window.switchTab = function(tabName) {
+      const currentState = history.state;
+      // Only push if switching to a different tab (not a modal back)
+      if (!currentState || currentState.tab !== tabName) {
+        history.pushState({ tab: tabName }, '', '#' + tabName);
+      }
+      return _origSwitchTab(tabName);
+    };
+  }
+
+  window.addEventListener('popstate', function(e) {
+    if (e.state && e.state.tab && _origSwitchTab) {
+      _origSwitchTab(e.state.tab);
+    }
+  });
+
+  // On page load, restore tab from URL hash
+  const hash = window.location.hash.replace('#', '');
+  const validTabs = ['jobs', 'candidates', 'keys', 'metrics'];
+  if (hash && validTabs.includes(hash) && _origSwitchTab) {
+    setTimeout(() => _origSwitchTab(hash), 100);
+  }
+
+  // ---- 8. BACK BUTTON VISUAL (floating) ----
+  // Show a "← Back" pill when navigated deeper in tabs or modals
+  function updateBackButton() {
+    // Only show if we can go back (history length > 1 and there's a valid previous state)
+    let btn = document.getElementById('ux-back-btn');
+    // We show back button when any modal is open (simpler UX)
+    const modalOpen = anyModalOpen();
+    if (!btn) return;
+    btn.style.display = modalOpen ? 'flex' : 'none';
+  }
+
+  // Create floating back button
+  const backBtn = document.createElement('button');
+  backBtn.id = 'ux-back-btn';
+  backBtn.innerHTML = '<i class="bi bi-arrow-left"></i> Back';
+  backBtn.style.cssText = `
+    display: none;
+    position: fixed;
+    bottom: 1.25rem;
+    left: 1.25rem;
+    z-index: 99999;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--surface, #fff);
+    color: var(--text, #000);
+    border: 1.5px solid var(--border, #e5e7eb);
+    border-radius: 999px;
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    transition: all 0.18s ease;
+  `;
+  backBtn.onmouseover = () => backBtn.style.transform = 'scale(1.04)';
+  backBtn.onmouseleave = () => backBtn.style.transform = 'scale(1)';
+  backBtn.onclick = () => history.back();
+  document.body.appendChild(backBtn);
+
+  // Update back button visibility on modal changes
+  const observer2 = new MutationObserver(updateBackButton);
+  allModalIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) observer2.observe(el, { attributes: true, attributeFilter: ['style'] });
+  });
+
+})();
