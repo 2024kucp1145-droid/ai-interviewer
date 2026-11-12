@@ -5,6 +5,7 @@
 
 import express from 'express';
 import crypto from 'crypto';
+import Stripe from 'stripe';
 import { db } from '../db/database.js';
 import { requireAuth } from '../auth/auth.js';
 import { logActivity } from '../services/activityService.js';
@@ -17,6 +18,44 @@ import {
 } from './pricing.js';
 
 export const billingRouter = express.Router();
+
+function getStripeClient() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  return key ? new Stripe(key) : null;
+}
+
+async function ensureStripeCustomer(stripe, orgId, actorEmail) {
+  const org = db.prepare('SELECT id, name, stripe_customer_id FROM organizations WHERE id = ?').get(orgId);
+  if (!org) throw new Error('Organization not found');
+  if (org.stripe_customer_id) return org.stripe_customer_id;
+
+  const customer = await stripe.customers.create({
+    name: org.name || 'RoundOne AI Customer',
+    email: actorEmail || undefined,
+    metadata: { orgId },
+  });
+  db.prepare('UPDATE organizations SET stripe_customer_id = ? WHERE id = ?').run(customer.id, orgId);
+  return customer.id;
+}
+
+async function attachOrderInvoiceDetails(stripe, orderId, invoiceRef) {
+  if (!orderId || !invoiceRef) return null;
+  let inv = typeof invoiceRef === 'object' ? invoiceRef : null;
+  if (!inv && typeof invoiceRef === 'string' && stripe) {
+    try { inv = await stripe.invoices.retrieve(invoiceRef); } catch { inv = null; }
+  }
+  const invoiceId = inv?.id || (typeof invoiceRef === 'string' ? invoiceRef : null);
+  const pdfUrl = inv?.invoice_pdf || null;
+  const hostedUrl = inv?.hosted_invoice_url || null;
+  db.prepare(`
+    UPDATE billing_orders
+    SET stripe_invoice_id = COALESCE(?, stripe_invoice_id),
+        invoice_pdf_url = COALESCE(?, invoice_pdf_url),
+        hosted_invoice_url = COALESCE(?, hosted_invoice_url)
+    WHERE id = ?
+  `).run(invoiceId, pdfUrl, hostedUrl, orderId);
+  return { invoiceId, pdfUrl, hostedUrl };
+}
 
 /**
  * Idempotently fulfill a paid billing order and credit the organization.
@@ -116,31 +155,51 @@ function verifyHmacHex(rawBody, sigHex, secret) {
   return crypto.timingSafeEqual(Buffer.from(expected, 'utf8'), Buffer.from(sigHex, 'utf8'));
 }
 
-async function createStripeCheckoutSession({ orderId, quote, amountUsd, baseUrl }) {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) return null;
-  const params = new URLSearchParams();
-  params.set('mode', 'payment');
-  params.set('success_url', `${baseUrl}/billing/checkout?order=${orderId}&status=success`);
-  params.set('cancel_url', `${baseUrl}/billing/checkout?order=${orderId}&status=cancelled`);
-  params.set('client_reference_id', orderId);
-  params.set('metadata[orderId]', orderId);
-  params.set('line_items[0][quantity]', '1');
-  params.set('line_items[0][price_data][currency]', 'usd');
-  params.set('line_items[0][price_data][unit_amount]', String(Math.round(Number(amountUsd) * 100)));
-  params.set('line_items[0][price_data][product_data][name]', quote.label || `RoundOne AI Credits (${orderId})`);
+async function createStripeCheckoutSession({ orderId, type, quote, amountUsd, baseUrl, orgId, user }) {
+  const stripe = getStripeClient();
+  if (!stripe) return null;
 
-  const resp = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${key}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
+  const customerId = await ensureStripeCustomer(stripe, orgId, user?.email);
+  const unitAmount = Math.round(Number(amountUsd) * 100);
+  const isSubscription = type === 'subscription';
+
+  const priceData = {
+    currency: 'usd',
+    unit_amount: unitAmount,
+    product_data: {
+      name: isSubscription
+        ? `RoundOne AI — ${quote.label || 'Subscription'} (${quote.includedInterviews || 0} interviews)`
+        : `RoundOne AI — ${quote.breakdown || `Credits (${orderId})`}`,
     },
-    body: params.toString(),
-  });
-  const data = await resp.json();
-  if (!resp.ok) throw new Error(data.error?.message || 'Stripe session creation failed');
-  return { provider: 'stripe', sessionId: data.id, checkoutUrl: data.url };
+  };
+  if (isSubscription) {
+    priceData.recurring = {
+      interval: 'month',
+      interval_count: Math.max(1, Number(quote.months) || 1),
+    };
+  }
+
+  const sessionPayload = {
+    mode: isSubscription ? 'subscription' : 'payment',
+    customer: customerId,
+    client_reference_id: orderId,
+    success_url: `${baseUrl}/billing/checkout?order=${orderId}&status=success&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${baseUrl}/billing/checkout?order=${orderId}&status=cancelled`,
+    metadata: { orderId, orgId, orderType: type },
+    line_items: [{ quantity: 1, price_data: priceData }],
+  };
+
+  if (isSubscription) {
+    sessionPayload.subscription_data = {
+      metadata: { orderId, orgId, planId: quote.id || '' },
+    };
+  } else {
+    sessionPayload.invoice_creation = { enabled: true };
+  }
+
+  const session = await stripe.checkout.sessions.create(sessionPayload);
+  db.prepare('UPDATE billing_orders SET stripe_session_id = ? WHERE id = ?').run(session.id, orderId);
+  return { provider: 'stripe', sessionId: session.id, checkoutUrl: session.url };
 }
 
 async function createRazorpayOrder({ orderId, amountUsd }) {
@@ -250,7 +309,15 @@ billingRouter.post('/order', requireAuth, async (req, res) => {
     if (gateway === 'razorpay' && process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
       providerSession = await createRazorpayOrder({ orderId, amountUsd });
     } else if (process.env.STRIPE_SECRET_KEY && gateway !== 'demo') {
-      providerSession = await createStripeCheckoutSession({ orderId, quote, amountUsd, baseUrl });
+      providerSession = await createStripeCheckoutSession({
+        orderId,
+        type,
+        quote,
+        amountUsd,
+        baseUrl,
+        orgId,
+        user: req.user,
+      });
     }
 
     res.json({
@@ -270,6 +337,11 @@ billingRouter.post('/order', requireAuth, async (req, res) => {
 // Confirm/complete an order (demo checkout confirmation when webhooks are not active)
 billingRouter.post('/order/:id/confirm', requireAuth, (req, res) => {
   try {
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(403).json({
+        error: 'Direct demo confirmation is disabled in production. Complete payment via Stripe Checkout.',
+      });
+    }
     const orderId = req.params.id;
     const orgId = req.user.org_id;
 
@@ -301,12 +373,14 @@ billingRouter.get('/balance', requireAuth, (req, res) => {
   try {
     const orgId = req.user.org_id;
     const org = db.prepare(`
-      SELECT plan, included_interviews, subscription_expires_at, subscription_plan_id
+      SELECT plan, included_interviews, subscription_expires_at, subscription_plan_id,
+             stripe_customer_id, stripe_subscription_id, stripe_subscription_status
       FROM organizations WHERE id = ?
     `).get(orgId);
 
     const recentOrders = db.prepare(`
-      SELECT id, type, plan_id, quantity, duration_minutes, amount_usd, status, paid_at, created_at
+      SELECT id, type, plan_id, quantity, duration_minutes, amount_usd, status, paid_at,
+             stripe_invoice_id, invoice_pdf_url, hosted_invoice_url, created_at
       FROM billing_orders WHERE org_id = ? ORDER BY created_at DESC LIMIT 20
     `).all(orgId);
 
@@ -320,6 +394,9 @@ billingRouter.get('/balance', requireAuth, (req, res) => {
       plan: org.plan,
       subscriptionExpiresAt: org.subscription_expires_at,
       subscriptionPlan,
+      stripeSubscriptionStatus: org.stripe_subscription_status || null,
+      hasStripeCustomer: Boolean(org.stripe_customer_id),
+      stripeConfigured: Boolean(process.env.STRIPE_SECRET_KEY),
       recentOrders,
     });
   } catch (err) {
@@ -333,7 +410,8 @@ billingRouter.get('/history', requireAuth, (req, res) => {
   try {
     const orgId = req.user.org_id;
     const orders = db.prepare(`
-      SELECT id, type, plan_id, quantity, duration_minutes, amount_usd, status, paid_at, created_at, quote_json
+      SELECT id, type, plan_id, quantity, duration_minutes, amount_usd, status, paid_at,
+             quote_json, stripe_invoice_id, invoice_pdf_url, hosted_invoice_url, created_at
       FROM billing_orders WHERE org_id = ? ORDER BY created_at DESC
     `).all(orgId);
 
@@ -348,9 +426,71 @@ billingRouter.get('/history', requireAuth, (req, res) => {
   }
 });
 
+// ─── POST /billing/portal ─────────────────────────────────────────────────────
+// Launch Stripe Customer Portal so orgs can manage cards, subscriptions & PDF invoices
+billingRouter.post('/portal', requireAuth, async (req, res) => {
+  try {
+    const stripe = getStripeClient();
+    if (!stripe) {
+      return res.status(503).json({ error: 'Stripe is not configured on this server yet (STRIPE_SECRET_KEY missing).' });
+    }
+    const customerId = await ensureStripeCustomer(stripe, req.user.org_id, req.user?.email);
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const portalSession = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${baseUrl}/`,
+    });
+    res.json({ url: portalSession.url });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── GET /billing/orders/:id/invoice ──────────────────────────────────────────
+// Fetch or hydrate downloadable Stripe PDF invoice & hosted receipt URL
+billingRouter.get('/orders/:id/invoice', requireAuth, async (req, res) => {
+  try {
+    const order = db.prepare('SELECT * FROM billing_orders WHERE id = ? AND org_id = ?').get(req.params.id, req.user.org_id);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+
+    if (order.invoice_pdf_url || order.hosted_invoice_url) {
+      return res.json({
+        orderId: order.id,
+        stripeInvoiceId: order.stripe_invoice_id,
+        invoicePdfUrl: order.invoice_pdf_url,
+        hostedInvoiceUrl: order.hosted_invoice_url,
+      });
+    }
+
+    const stripe = getStripeClient();
+    if (!stripe) {
+      return res.status(404).json({ error: 'No Stripe invoice attached for this order.' });
+    }
+
+    let invoiceId = order.stripe_invoice_id;
+    if (!invoiceId && order.stripe_session_id) {
+      const session = await stripe.checkout.sessions.retrieve(order.stripe_session_id);
+      invoiceId = typeof session.invoice === 'string' ? session.invoice : session.invoice?.id;
+    }
+    if (!invoiceId) {
+      return res.status(404).json({ error: 'Invoice is not yet available for this order.' });
+    }
+
+    const attached = await attachOrderInvoiceDetails(stripe, order.id, invoiceId);
+    res.json({
+      orderId: order.id,
+      stripeInvoiceId: attached?.invoiceId || invoiceId,
+      invoicePdfUrl: attached?.pdfUrl || null,
+      hostedInvoiceUrl: attached?.hostedUrl || null,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── POST /billing/webhook/stripe ─────────────────────────────────────────────
-// Signed Stripe webhook handler (checkout.session.completed)
-billingRouter.post('/webhook/stripe', (req, res) => {
+// Signed Stripe webhook handler (Checkout, Payments, Recurring Subscriptions & Invoices)
+billingRouter.post('/webhook/stripe', async (req, res) => {
   try {
     const secret = process.env.STRIPE_WEBHOOK_SECRET;
     if (!secret) {
@@ -358,13 +498,51 @@ billingRouter.post('/webhook/stripe', (req, res) => {
     }
     const rawBody = req.rawBody ? req.rawBody.toString('utf8') : JSON.stringify(req.body || {});
     const sig = req.headers['stripe-signature'];
-    if (!verifyStripeSignature(rawBody, sig, secret)) {
+    const stripe = getStripeClient();
+
+    let event = req.body || {};
+    if (stripe) {
+      try {
+        event = stripe.webhooks.constructEvent(rawBody, sig, secret);
+      } catch {
+        return res.status(400).json({ error: 'Invalid Stripe webhook signature.' });
+      }
+    } else if (!verifyStripeSignature(rawBody, sig, secret)) {
       return res.status(400).json({ error: 'Invalid Stripe webhook signature.' });
     }
 
-    const event = req.body || {};
-    if (event.type === 'checkout.session.completed' || event.type === 'payment_intent.succeeded') {
-      const obj = event.data?.object || {};
+    const obj = event.data?.object || {};
+
+    if (event.type === 'checkout.session.completed') {
+      const orderId = obj.metadata?.orderId || obj.client_reference_id;
+      if (!orderId) return res.status(400).json({ error: 'Missing orderId metadata in Stripe event.' });
+
+      db.prepare('UPDATE billing_orders SET stripe_session_id = COALESCE(?, stripe_session_id) WHERE id = ?')
+        .run(obj.id || null, orderId);
+
+      if (obj.invoice) {
+        await attachOrderInvoiceDetails(stripe, orderId, obj.invoice);
+      }
+      if (obj.subscription && obj.metadata?.orgId) {
+        db.prepare(`
+          UPDATE organizations
+          SET stripe_customer_id = COALESCE(?, stripe_customer_id),
+              stripe_subscription_id = ?,
+              stripe_subscription_status = 'active'
+          WHERE id = ?
+        `).run(obj.customer || null, String(obj.subscription), obj.metadata.orgId);
+      }
+
+      const result = fulfillPaidOrder(orderId, {
+        provider: 'stripe',
+        externalRef: obj.id || event.id,
+        ipAddress: req.ip,
+      });
+      if (!result.ok) return res.status(result.status || 404).json({ error: result.error });
+      return res.json({ received: true, fulfilled: !result.alreadyPaid, orderId });
+    }
+
+    if (event.type === 'payment_intent.succeeded') {
       const orderId = obj.metadata?.orderId || obj.client_reference_id;
       if (!orderId) return res.status(400).json({ error: 'Missing orderId metadata in Stripe event.' });
 
@@ -375,6 +553,81 @@ billingRouter.post('/webhook/stripe', (req, res) => {
       });
       if (!result.ok) return res.status(result.status || 404).json({ error: result.error });
       return res.json({ received: true, fulfilled: !result.alreadyPaid, orderId });
+    }
+
+    if (event.type === 'invoice.paid' || event.type === 'invoice.payment_succeeded') {
+      const invoiceId = obj.id || null;
+      const pdfUrl = obj.invoice_pdf || null;
+      const hostedUrl = obj.hosted_invoice_url || null;
+
+      if (invoiceId) {
+        db.prepare(`
+          UPDATE billing_orders
+          SET invoice_pdf_url = COALESCE(?, invoice_pdf_url),
+              hosted_invoice_url = COALESCE(?, hosted_invoice_url)
+          WHERE stripe_invoice_id = ?
+        `).run(pdfUrl, hostedUrl, invoiceId);
+      }
+
+      const metaOrderId = obj.metadata?.orderId || obj.parent?.subscription_details?.metadata?.orderId;
+      if (metaOrderId) {
+        await attachOrderInvoiceDetails(stripe, metaOrderId, obj);
+      }
+
+      // Auto-renewal cycle: replenish credits & extend subscription period automatically
+      if (obj.billing_reason === 'subscription_cycle' && obj.subscription) {
+        const subId = String(obj.subscription);
+        const alreadyLogged = invoiceId
+          ? db.prepare('SELECT id FROM billing_orders WHERE stripe_invoice_id = ?').get(invoiceId)
+          : null;
+        if (!alreadyLogged) {
+          const org = db.prepare('SELECT id, subscription_plan_id FROM organizations WHERE stripe_subscription_id = ?').get(subId);
+          if (org && org.subscription_plan_id) {
+            const plan = SUBSCRIPTION_PLANS.find((p) => p.id === org.subscription_plan_id);
+            if (plan) {
+              const renewOrderId = 'ord_ren_' + crypto.randomUUID().slice(0, 12);
+              const amountUsd = obj.amount_paid != null ? +(obj.amount_paid / 100).toFixed(2) : plan.priceUsd;
+              const quote = buildSubscriptionQuote({ planId: plan.id });
+
+              db.transaction(() => {
+                db.prepare(`
+                  INSERT INTO billing_orders
+                    (id, org_id, type, plan_id, quantity, duration_minutes, amount_usd, status, paid_at, quote_json, stripe_invoice_id, invoice_pdf_url, hosted_invoice_url, created_at)
+                  VALUES (?, ?, 'subscription', ?, NULL, NULL, ?, 'paid', CURRENT_TIMESTAMP, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                `).run(renewOrderId, org.id, plan.id, amountUsd, JSON.stringify(quote), invoiceId, pdfUrl, hostedUrl);
+
+                const expiresAt = new Date();
+                expiresAt.setMonth(expiresAt.getMonth() + plan.months);
+                db.prepare(`
+                  UPDATE organizations
+                  SET included_interviews = included_interviews + ?,
+                      subscription_expires_at = ?,
+                      stripe_subscription_status = 'active'
+                  WHERE id = ?
+                `).run(plan.includedInterviews, expiresAt.toISOString(), org.id);
+
+                db.prepare(`
+                  INSERT INTO billing_events (id, org_id, order_id, event, amount_usd, created_at)
+                  VALUES (?, ?, ?, 'payment_confirmed:stripe_renewal', ?, CURRENT_TIMESTAMP)
+                `).run('be_' + crypto.randomUUID(), org.id, renewOrderId, amountUsd);
+              })();
+
+              return res.json({ received: true, renewed: true, orderId: renewOrderId });
+            }
+          }
+        }
+      }
+      return res.json({ received: true, invoiceRecorded: true });
+    }
+
+    if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.deleted') {
+      const subId = obj.id;
+      const nextStatus = event.type === 'customer.subscription.deleted' ? 'canceled' : (obj.status || 'active');
+      if (subId) {
+        db.prepare('UPDATE organizations SET stripe_subscription_status = ? WHERE stripe_subscription_id = ?')
+          .run(nextStatus, String(subId));
+      }
+      return res.json({ received: true, subscriptionStatus: nextStatus });
     }
 
     res.json({ received: true, ignored: true, type: event.type || 'unknown' });

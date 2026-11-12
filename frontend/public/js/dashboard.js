@@ -5872,10 +5872,42 @@ async function loadBillingBalance() {
     setEl('billing-plan-label', data.subscriptionPlan ? `${data.subscriptionPlan.label} Subscription` : 'Pay-as-you-go');
     if (data.subscriptionExpiresAt) {
       const exp = new Date(data.subscriptionExpiresAt).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
-      setEl('billing-expiry-label', `Expires ${exp}`);
+      const statusNote = data.stripeSubscriptionStatus ? ` · ${data.stripeSubscriptionStatus.replace(/_/g, ' ')}` : '';
+      setEl('billing-expiry-label', `Renews / Expires ${exp}${statusNote}`);
     }
+    const portalBtn = document.getElementById('btn-stripe-portal');
+    if (portalBtn) portalBtn.style.display = data.stripeConfigured ? 'inline-flex' : 'none';
   } catch (e) { /* silently fail */ }
 }
+
+window.openBillingPortal = async function() {
+  const btn = document.getElementById('btn-stripe-portal');
+  const orig = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Opening Portal...'; }
+  try {
+    const res = await apiRequest('/billing/portal', { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not open billing portal');
+    window.location.href = data.url;
+  } catch (err) {
+    alert(err.message);
+    if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+  }
+};
+
+window.fetchOrderInvoice = async function(orderId) {
+  try {
+    const res = await apiRequest(`/billing/orders/${encodeURIComponent(orderId)}/invoice`);
+    const data = await res.json();
+    if (!res.ok) return alert(data.error || 'Invoice not available for this order.');
+    const target = data.invoicePdfUrl || data.hostedInvoiceUrl;
+    if (target) window.open(target, '_blank', 'noopener');
+    else alert('No PDF invoice URL returned yet by Stripe.');
+    loadBillingHistory();
+  } catch (err) {
+    alert(err.message);
+  }
+};
 
 // ── Load order history ────────────────────────────────────────────────────
 window.loadBillingHistory = async function() {
@@ -5897,21 +5929,33 @@ window.loadBillingHistory = async function() {
             <th style="text-align:left; padding:0.5rem; color:var(--text-muted); font-size:0.72rem; text-transform:uppercase;">Type</th>
             <th style="text-align:right; padding:0.5rem; color:var(--text-muted); font-size:0.72rem; text-transform:uppercase;">Amount</th>
             <th style="text-align:right; padding:0.5rem; color:var(--text-muted); font-size:0.72rem; text-transform:uppercase;">Status</th>
+            <th style="text-align:right; padding:0.5rem; color:var(--text-muted); font-size:0.72rem; text-transform:uppercase;">Invoice</th>
             <th style="text-align:right; padding:0.5rem; color:var(--text-muted); font-size:0.72rem; text-transform:uppercase;">Date</th>
           </tr>
         </thead>
         <tbody>
-          ${data.orders.map(o => `
+          ${data.orders.map(o => {
+            const safeOrderId = escapeHtml(o.id);
+            let invoiceHtml = '<span style="color:var(--text-muted);font-size:0.72rem;">—</span>';
+            if (o.invoice_pdf_url) {
+              invoiceHtml = `<a href="${escapeHtml(o.invoice_pdf_url)}" target="_blank" rel="noopener" class="btn btn-outline btn-sm" style="padding:0.2rem 0.5rem;font-size:0.7rem;"><i class="bi bi-file-earmark-pdf"></i> PDF</a>`;
+            } else if (o.hosted_invoice_url) {
+              invoiceHtml = `<a href="${escapeHtml(o.hosted_invoice_url)}" target="_blank" rel="noopener" class="btn btn-outline btn-sm" style="padding:0.2rem 0.5rem;font-size:0.7rem;"><i class="bi bi-receipt"></i> View</a>`;
+            } else if (o.status === 'paid' && o.stripe_invoice_id) {
+              invoiceHtml = `<button type="button" class="btn btn-outline btn-sm" style="padding:0.2rem 0.5rem;font-size:0.7rem;" onclick="fetchOrderInvoice('${safeOrderId}')"><i class="bi bi-download"></i> PDF</button>`;
+            }
+            return `
             <tr style="border-bottom:1px solid var(--border);">
-              <td style="padding:0.5rem; color:var(--text-muted); font-size:0.72rem;">${o.id.substring(0, 14)}…</td>
-              <td style="padding:0.5rem;">${o.type === 'pay_per_use' ? `${o.quantity} interviews (${o.duration_minutes}min)` : (o.plan_id ? o.plan_id.replace(/_/g,' ') : 'Subscription')}</td>
+              <td style="padding:0.5rem; color:var(--text-muted); font-size:0.72rem;">${safeOrderId.substring(0, 14)}…</td>
+              <td style="padding:0.5rem;">${o.type === 'pay_per_use' ? `${o.quantity} interviews (${o.duration_minutes}min)` : (o.plan_id ? escapeHtml(o.plan_id.replace(/_/g,' ')) : 'Subscription')}</td>
               <td style="text-align:right; padding:0.5rem; font-weight:700;">$${parseFloat(o.amount_usd).toFixed(2)}</td>
               <td style="text-align:right; padding:0.5rem;">
-                <span class="badge ${o.status === 'paid' ? 'badge-dark' : 'badge-outline'}" style="font-size:0.65rem;">${o.status}</span>
+                <span class="badge ${o.status === 'paid' ? 'badge-dark' : 'badge-outline'}" style="font-size:0.65rem;">${escapeHtml(o.status)}</span>
               </td>
+              <td style="text-align:right; padding:0.5rem;">${invoiceHtml}</td>
               <td style="text-align:right; padding:0.5rem; color:var(--text-muted);">${new Date(o.created_at).toLocaleDateString('en-IN')}</td>
-            </tr>
-          `).join('')}
+            </tr>`;
+          }).join('')}
         </tbody>
       </table>`;
   } catch (e) {

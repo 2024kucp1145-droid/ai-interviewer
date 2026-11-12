@@ -365,6 +365,14 @@ export function initDatabase() {
   addColumn('organizations', 'country', 'TEXT');
   addColumn('organizations', 'subscription_plan_id', 'TEXT');
   addColumn('organizations', 'subscription_expires_at', 'DATETIME');
+  addColumn('organizations', 'stripe_customer_id', 'TEXT');
+  addColumn('organizations', 'stripe_subscription_id', 'TEXT');
+  addColumn('organizations', 'stripe_subscription_status', 'TEXT');
+
+  addColumn('billing_orders', 'stripe_session_id', 'TEXT');
+  addColumn('billing_orders', 'stripe_invoice_id', 'TEXT');
+  addColumn('billing_orders', 'invoice_pdf_url', 'TEXT');
+  addColumn('billing_orders', 'hosted_invoice_url', 'TEXT');
 
   // Multi-type interview options & custom questions
   addColumn('jobs', 'qualifications', 'TEXT');

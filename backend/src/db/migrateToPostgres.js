@@ -68,16 +68,19 @@ export async function runMigration(explicitUrl) {
       name: 'organizations',
       sqliteSql: 'SELECT * FROM organizations',
       insertSql: `
-        INSERT INTO organizations (id, name, website, industry, company_size, country, plan, included_interviews, subscription_plan_id, subscription_expires_at, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        INSERT INTO organizations (id, name, website, industry, company_size, country, plan, included_interviews, subscription_plan_id, subscription_expires_at, stripe_customer_id, stripe_subscription_id, stripe_subscription_status, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         ON CONFLICT (id) DO UPDATE SET
           name = EXCLUDED.name,
           plan = EXCLUDED.plan,
           included_interviews = EXCLUDED.included_interviews,
           subscription_plan_id = EXCLUDED.subscription_plan_id,
-          subscription_expires_at = EXCLUDED.subscription_expires_at
+          subscription_expires_at = EXCLUDED.subscription_expires_at,
+          stripe_customer_id = EXCLUDED.stripe_customer_id,
+          stripe_subscription_id = EXCLUDED.stripe_subscription_id,
+          stripe_subscription_status = EXCLUDED.stripe_subscription_status
       `,
-      mapRow: (r) => [r.id, r.name, r.website, r.industry, r.company_size, r.country, r.plan, r.included_interviews, r.subscription_plan_id, r.subscription_expires_at, r.created_at]
+      mapRow: (r) => [r.id, r.name, r.website, r.industry, r.company_size, r.country, r.plan, r.included_interviews, r.subscription_plan_id, r.subscription_expires_at, r.stripe_customer_id || null, r.stripe_subscription_id || null, r.stripe_subscription_status || null, r.created_at]
     },
     {
       name: 'users',
@@ -185,13 +188,17 @@ export async function runMigration(explicitUrl) {
       name: 'billing_orders',
       sqliteSql: 'SELECT * FROM billing_orders',
       insertSql: `
-        INSERT INTO billing_orders (id, org_id, type, plan_id, quantity, duration_minutes, amount_usd, status, paid_at, quote_json, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        INSERT INTO billing_orders (id, org_id, type, plan_id, quantity, duration_minutes, amount_usd, status, paid_at, quote_json, stripe_session_id, stripe_invoice_id, invoice_pdf_url, hosted_invoice_url, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
         ON CONFLICT (id) DO UPDATE SET
           status = EXCLUDED.status,
-          paid_at = EXCLUDED.paid_at
+          paid_at = EXCLUDED.paid_at,
+          stripe_session_id = EXCLUDED.stripe_session_id,
+          stripe_invoice_id = EXCLUDED.stripe_invoice_id,
+          invoice_pdf_url = EXCLUDED.invoice_pdf_url,
+          hosted_invoice_url = EXCLUDED.hosted_invoice_url
       `,
-      mapRow: (r) => [r.id, r.org_id, r.type, r.plan_id, r.quantity, r.duration_minutes, r.amount_usd, r.status, r.paid_at, safeJson(r.quote_json), r.created_at]
+      mapRow: (r) => [r.id, r.org_id, r.type, r.plan_id, r.quantity, r.duration_minutes, r.amount_usd, r.status, r.paid_at, safeJson(r.quote_json), r.stripe_session_id || null, r.stripe_invoice_id || null, r.invoice_pdf_url || null, r.hosted_invoice_url || null, r.created_at]
     },
     {
       name: 'billing_events',

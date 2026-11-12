@@ -21,6 +21,9 @@ CREATE TABLE IF NOT EXISTS organizations (
   included_interviews INTEGER DEFAULT 10,
   subscription_plan_id VARCHAR(64),
   subscription_expires_at TIMESTAMPTZ,
+  stripe_customer_id VARCHAR(128),
+  stripe_subscription_id VARCHAR(128),
+  stripe_subscription_status VARCHAR(64),
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -192,6 +195,10 @@ CREATE TABLE IF NOT EXISTS billing_orders (
   status VARCHAR(64) DEFAULT 'pending',
   paid_at TIMESTAMPTZ,
   quote_json JSONB,
+  stripe_session_id VARCHAR(128),
+  stripe_invoice_id VARCHAR(128),
+  invoice_pdf_url TEXT,
+  hosted_invoice_url TEXT,
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -13,6 +13,7 @@
 import assert from 'assert';
 import crypto from 'crypto';
 import http from 'http';
+import Stripe from 'stripe';
 import { initDatabase, db } from '../backend/src/db/database.js';
 import { createRateLimiter, resetRateLimits } from '../backend/src/middleware/rateLimit.js';
 import { validateJwtSecret } from '../backend/src/auth/auth.js';
@@ -476,7 +477,33 @@ async function runTests() {
     assert.strictEqual(careersHtmlRes.status, 200);
     console.log('✓ 12. Public branded careers portal & standalone UI pages verified');
 
-    console.log('\n🎉 ALL 12 FULL-STACK VERIFICATION CHECKS PASSED!');
+    // 13. Stripe SDK Subscription Webhook Signature, Billing Balance Meta & Invoice PDF Endpoint
+    const testStripe = new Stripe('sk_test_dummy_for_unit_sig_check');
+    const stripeEvtPayload = JSON.stringify({ id: 'evt_test_1', type: 'invoice.payment_succeeded', data: { object: { id: 'in_test_1' } } });
+    const stripeHeader = testStripe.webhooks.generateTestHeaderString({ payload: stripeEvtPayload, secret: 'whsec_test_secret_123' });
+    const verifiedEvt = testStripe.webhooks.constructEvent(stripeEvtPayload, stripeHeader, 'whsec_test_secret_123');
+    assert.strictEqual(verifiedEvt.type, 'invoice.payment_succeeded');
+
+    db.prepare('UPDATE billing_orders SET stripe_invoice_id = ?, invoice_pdf_url = ?, hosted_invoice_url = ? WHERE id = ?')
+      .run('in_test_123', 'https://pay.stripe.com/invoice/in_test_123/pdf', 'https://invoice.stripe.com/i/acct_1/test', orderData.orderId);
+
+    const balMetaRes = await fetch(`${BASE_URL}/billing/balance`, {
+      headers: { Authorization: `Bearer ${ownerToken}` }
+    });
+    const balMeta = await balMetaRes.json();
+    assert.strictEqual(balMetaRes.status, 200);
+    assert.strictEqual(typeof balMeta.stripeConfigured, 'boolean');
+    assert.strictEqual(balMeta.recentOrders[0].invoice_pdf_url, 'https://pay.stripe.com/invoice/in_test_123/pdf');
+
+    const invRes = await fetch(`${BASE_URL}/billing/orders/${orderData.orderId}/invoice`, {
+      headers: { Authorization: `Bearer ${ownerToken}` }
+    });
+    const invData = await invRes.json();
+    assert.strictEqual(invRes.status, 200, invData.error);
+    assert.strictEqual(invData.invoicePdfUrl, 'https://pay.stripe.com/invoice/in_test_123/pdf');
+    console.log('✓ 13. Stripe SDK webhook verification, balance metadata & downloadable invoice API verified');
+
+    console.log('\n🎉 ALL 13 FULL-STACK VERIFICATION CHECKS PASSED!');
   } finally {
     await cleanup();
   }

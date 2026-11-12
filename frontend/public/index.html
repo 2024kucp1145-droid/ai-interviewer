@@ -2802,9 +2802,14 @@
             Simple and transparent pricing. Buy on-demand candidate interview credits or save with high-volume monthly subscriptions.
           </p>
         </div>
-        <button class="btn btn-sm" onclick="switchBillingTab('ppu')" style="background:#000; color:#fff; font-weight:600; padding:0.5rem 1rem;">
-          <i class="bi bi-plus-circle-fill"></i> Top-Up Credits
-        </button>
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+          <button class="btn btn-outline btn-sm" id="btn-stripe-portal" onclick="openBillingPortal()" style="display:none; font-weight:600; padding:0.5rem 0.9rem;">
+            <i class="bi bi-credit-card-2-front"></i> Manage Subscription &amp; Invoices
+          </button>
+          <button class="btn btn-sm" onclick="switchBillingTab('ppu')" style="background:#000; color:#fff; font-weight:600; padding:0.5rem 1rem;">
+            <i class="bi bi-plus-circle-fill"></i> Top-Up Credits
+          </button>
+        </div>
       </div>
 
       <!-- MODERN WALLET BALANCE STRIP -->
