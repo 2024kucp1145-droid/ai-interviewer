@@ -1184,34 +1184,57 @@ btnTestMic.addEventListener('click', async () => {
   }
 });
 
-// Setup Camera Preview Helper
+// Setup Camera Preview Helper (Mandatory Check)
+window.hasCameraVerified = false;
+
 window.verifySetupCamera = async function() {
   const preview = document.getElementById('setup-camera-preview');
   const placeholder = document.getElementById('setup-camera-placeholder');
   const btn = document.getElementById('btn-verify-camera');
   try {
-    if (btn) btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Testing camera...';
+    if (btn) btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Accessing camera...';
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: 320, height: 240, facingMode: 'user' }
+      video: { width: 640, height: 480, facingMode: 'user' }
     });
     if (preview) {
       preview.srcObject = stream;
       if (placeholder) placeholder.style.display = 'none';
     }
+    window.hasCameraVerified = true;
     if (btn) {
       btn.className = 'btn btn-sm';
       btn.style.backgroundColor = '#16a34a';
       btn.style.borderColor = '#16a34a';
       btn.style.color = '#ffffff';
-      btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Camera Verified & Ready';
+      btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Camera Verified & Live';
     }
+    const startBtn = document.getElementById('btn-start-interview-voice');
+    if (startBtn) {
+      startBtn.classList.remove('btn-disabled');
+      startBtn.style.opacity = '1';
+    }
+    return true;
   } catch (err) {
-    alert('Camera access denied or unavailable: ' + err.message + '. Camera is mandatory for proctored screening.');
-    if (btn) btn.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Camera Error - Retry';
+    window.hasCameraVerified = false;
+    alert('Camera Access Denied: Continuous camera is MANDATORY for this proctored interview. Please allow camera access in your browser address bar.');
+    if (btn) {
+      btn.className = 'btn btn-danger btn-sm';
+      btn.innerHTML = '<i class="bi bi-exclamation-octagon-fill"></i> Camera Required - Click to Allow';
+    }
+    return false;
   }
 };
 
 async function startProctoredInterview() {
+  // Enforce Mandatory Camera Check
+  if (!window.hasCameraVerified) {
+    const verified = await window.verifySetupCamera();
+    if (!verified) {
+      alert('Camera access is strictly required to proceed with this interview.');
+      return;
+    }
+  }
+
   // 1. Initialize Proctor Engine
   try {
     proctor = new ProctorEngine({
@@ -1393,15 +1416,30 @@ if (candidateFeedbackForm) {
     e.preventDefault();
     const email = (document.getElementById('cand-fb-email')?.value || '').trim();
     const rating = document.getElementById('cand-fb-rating')?.value || '5';
-    const message = (document.getElementById('cand-fb-message')?.value || '').trim();
+    const comments = (document.getElementById('cand-fb-message')?.value || '').trim();
     const statusEl = document.getElementById('cand-fb-status');
     const btn = document.getElementById('btn-cand-feedback');
     const defaultHtml = btn ? btn.innerHTML : '';
 
+    // Collect selected issue checkboxes
+    const checkedIssues = Array.from(document.querySelectorAll('input[name="reported_issues"]:checked'))
+      .map(cb => cb.value);
+
+    let compositeMessage = '';
+    if (checkedIssues.length > 0) {
+      compositeMessage += `[Reported Issues]: ${checkedIssues.join('; ')}\n`;
+    }
+    if (comments) {
+      compositeMessage += `[Candidate Details]: ${comments}`;
+    }
+    if (!compositeMessage.trim()) {
+      compositeMessage = 'No specific issues reported. Overall smooth session.';
+    }
+
     try {
       if (btn) {
         btn.disabled = true;
-        btn.textContent = 'Sending...';
+        btn.textContent = 'Submitting...';
       }
       const candName = (typeof interviewData === 'object' && interviewData)
         ? (interviewData.candidate_name || interviewData.candidateName || interviewData.candidate?.name || 'Candidate')
@@ -1414,8 +1452,8 @@ if (candidateFeedbackForm) {
           name: candName,
           email,
           rating,
-          category: 'candidate_experience',
-          message,
+          category: checkedIssues.length > 0 ? 'candidate_reported_issues' : 'candidate_experience',
+          message: compositeMessage,
           sourcePage: 'candidate_interview'
         })
       });
@@ -1427,7 +1465,7 @@ if (candidateFeedbackForm) {
         statusEl.style.background = '#ecfdf5';
         statusEl.style.border = '1px solid #a7f3d0';
         statusEl.style.color = '#065f46';
-        statusEl.textContent = data.message || 'Thank you for your feedback!';
+        statusEl.innerHTML = '<i class="bi bi-check-circle-fill"></i> Thank you! Your report has been noted and our team will review the session.';
       }
       const msgBox = document.getElementById('cand-fb-message');
       if (msgBox) msgBox.value = '';
@@ -1442,7 +1480,7 @@ if (candidateFeedbackForm) {
     } finally {
       if (btn) {
         btn.disabled = false;
-        btn.innerHTML = defaultHtml || 'Send Feedback <i class="bi bi-send"></i>';
+        btn.innerHTML = defaultHtml || 'Submit Feedback & Issues <i class="bi bi-send-fill"></i>';
       }
     }
   });

@@ -545,7 +545,7 @@ export function generateFollowUpQuestion({ lastQuestion = '', lastAnswer = '', s
   if (analysis.isRefusal) {
     if (followUpCount === 0) {
       return {
-        question: `You stated 'no' or did not provide an explanation for this core requirement. Could you at least explain the foundational concept behind it, or how you would approach researching it?`,
+        question: `No worries at all. Could you share your high-level thoughts on the concept, or how you would research it on the job?`,
         skill: `${skill} (Foundational Check)`,
         level: 2,
         isFollowUp: true
@@ -557,8 +557,15 @@ export function generateFollowUpQuestion({ lastQuestion = '', lastAnswer = '', s
   // Case 2: Candidate answered partially, but missed critical required concepts
   if (analysis.missingKeyPoints && analysis.missingKeyPoints.length > 0 && followUpCount === 0) {
     const missingTopic = analysis.missingKeyPoints[0].split('(')[0].trim();
+    const humanIntros = [
+      `That makes sense, but how would you specifically address ${missingTopic.toLowerCase()} in a production environment?`,
+      `Got it. Could you walk me through your thinking around ${missingTopic.toLowerCase()}?`,
+      `Interesting point. How would you handle ${missingTopic.toLowerCase()} if this was deployed live?`,
+      `Understood. If you had to dive deeper into ${missingTopic.toLowerCase()}, what would your approach be?`
+    ];
+    const pickedIntro = humanIntros[Math.floor(Math.random() * humanIntros.length)];
     return {
-      question: `You touched upon part of that, but could you specifically explain how you handle ${missingTopic.toLowerCase()} in a production scenario?`,
+      question: pickedIntro,
       skill: `${skill} (Missing Requirement Check)`,
       level: 2,
       isFollowUp: true

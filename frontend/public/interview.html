@@ -985,40 +985,43 @@
         <p style="margin: 0;"><strong>2. Screen Lock Protection:</strong> Do <strong>not</strong> switch tabs, minimize, or leave this interview window. Exiting the interview screen will result in <strong>immediate session disqualification</strong>.</p>
       </div>
 
-      <!-- Hardware Verification Grid: Mic + Camera -->
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
-        
-        <!-- Mic Test Box -->
-        <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; text-align: center;">
-          <div style="font-weight: 700; font-size: 0.775rem; color: var(--text); margin-bottom: 0.5rem;">
-            <i class="bi bi-mic"></i> Microphone Check
-          </div>
-          <button id="btn-test-mic" class="btn btn-record" style="margin: 0.5rem auto; padding: 0.5rem 1rem; font-size: 0.775rem;">
-            <i class="bi bi-mic-fill"></i> Test Microphone
-          </button>
-          <p id="mic-test-status" style="margin-top: 0.4rem; color: var(--text-muted); font-size: 0.7rem;">
-            Click to test voice input
-          </p>
-          <div id="mic-test-result" style="margin-top: 0.25rem; font-weight: 600; font-size: 0.725rem; color: #000;"></div>
-        </div>
-
-        <!-- Camera Test Box -->
-        <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; text-align: center;">
-          <div style="font-weight: 700; font-size: 0.775rem; color: var(--text); margin-bottom: 0.5rem;">
-            <i class="bi bi-camera-video"></i> Camera Preview
-          </div>
-          <div style="width: 100%; height: 95px; background: #09090b; border-radius: 5px; overflow: hidden; position: relative; margin-bottom: 0.5rem;">
-            <video id="setup-camera-preview" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
-            <div id="setup-camera-placeholder" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #a1a1aa; font-size: 0.7rem;">
-              <i class="bi bi-camera-video-off" style="margin-right: 0.25rem;"></i> Camera Standby
+        <!-- Hardware Verification Grid: Mic + Camera -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+          
+          <!-- Mic Test Box -->
+          <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; text-align: center;">
+            <div style="font-weight: 700; font-size: 0.775rem; color: var(--text); margin-bottom: 0.5rem;">
+              <i class="bi bi-mic"></i> Microphone Check
             </div>
+            <button id="btn-test-mic" class="btn btn-record" style="margin: 0.5rem auto; padding: 0.5rem 1rem; font-size: 0.775rem;">
+              <i class="bi bi-mic-fill"></i> Test Microphone
+            </button>
+            <p id="mic-test-status" style="margin-top: 0.4rem; color: var(--text-muted); font-size: 0.7rem;">
+              Click to test voice input
+            </p>
+            <div id="mic-test-result" style="margin-top: 0.25rem; font-weight: 600; font-size: 0.725rem; color: #000;"></div>
           </div>
-          <button type="button" class="btn btn-outline btn-sm" id="btn-verify-camera" onclick="verifySetupCamera()" style="width: 100%; font-size: 0.725rem;">
-            <i class="bi bi-check2-circle"></i> Verify Camera Access
-          </button>
-        </div>
 
-      </div>
+          <!-- Camera Test Box (MANDATORY) -->
+          <div style="background: var(--surface-subtle); border: 2px solid #ef4444; border-radius: 8px; padding: 1rem; text-align: center; position: relative;">
+            <span style="position: absolute; top: -10px; right: 10px; background: #ef4444; color: #fff; font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 999px;">
+              MANDATORY
+            </span>
+            <div style="font-weight: 700; font-size: 0.775rem; color: var(--text); margin-bottom: 0.5rem;">
+              <i class="bi bi-camera-video-fill" style="color: #ef4444;"></i> Camera Access (Required)
+            </div>
+            <div style="width: 100%; height: 95px; background: #09090b; border-radius: 5px; overflow: hidden; position: relative; margin-bottom: 0.5rem;">
+              <video id="setup-camera-preview" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+              <div id="setup-camera-placeholder" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #f87171; font-size: 0.7rem;">
+                <i class="bi bi-camera-video-off" style="margin-right: 0.25rem;"></i> Camera Required to Enter
+              </div>
+            </div>
+            <button type="button" class="btn btn-outline btn-sm" id="btn-verify-camera" onclick="verifySetupCamera()" style="width: 100%; font-size: 0.725rem; border-color: #ef4444; color: #ef4444; font-weight: 600;">
+              <i class="bi bi-camera-fill"></i> Allow & Verify Camera
+            </button>
+          </div>
+
+        </div>
 
       <div style="display: flex; flex-direction: column; gap: 0.5rem;">
         <button id="btn-start-interview-voice" class="btn" style="padding: 0.85rem; font-size: 0.95rem; font-weight: 700; background: #2563eb; color: #fff;">
@@ -1070,18 +1073,22 @@
             <div id="ai-question-text" style="font-size: 0.875rem; line-height: 1.6; color: var(--hr-text);">Loading technical question...</div>
           </div>
 
-          <!-- Candidate Live Speech Input Box -->
+          <!-- Candidate Live Speech Input Box (Hands-Free Voice Only - Typing Disabled) -->
           <div class="answer-input-area" style="margin-top: 1rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem;">
               <label style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--hr-text-muted);">
-                Candidate Spoken Response (Real-Time Voice Stream):
+                <i class="bi bi-mic-fill" style="color: var(--hr-green);"></i> Real-Time Voice Transcription (Voice Only Mode):
               </label>
               <span id="voice-indicator" style="font-size: 0.7rem; color: var(--hr-green); display: none; font-weight: 700;">
-                <i class="bi bi-record-circle-fill" style="animation: pulse 1.2s infinite;"></i> Transcribing
+                <i class="bi bi-record-circle-fill" style="animation: pulse 1.2s infinite;"></i> Listening & Transcribing
               </span>
             </div>
 
-            <textarea id="candidate-answer-box" class="hr-code-editor" style="min-height: 140px; border: 1.5px solid var(--hr-border); border-radius: var(--hr-radius-md); font-family: var(--hr-font-sans); font-size: 0.85rem;" placeholder="Your live spoken answer streams here hands-free. Speak naturally — system auto-submits on silence..."></textarea>
+            <!-- Read-only speech stream box (typing disabled per requirement) -->
+            <textarea id="candidate-answer-box" class="hr-code-editor" readonly style="min-height: 120px; border: 1.5px solid var(--hr-border); border-radius: var(--hr-radius-md); font-family: var(--hr-font-sans); font-size: 0.85rem; background: var(--hr-surface-subtle); color: var(--hr-text); cursor: default; resize: none;" placeholder="Hands-free voice interview: Speak your answer clearly into your microphone. Your spoken words will transcribe here automatically and submit upon natural pause..."></textarea>
+            <div style="margin-top: 0.35rem; font-size: 0.7rem; color: var(--hr-text-muted); display: flex; align-items: center; gap: 0.3rem;">
+              <i class="bi bi-info-circle"></i> Pure conversational voice interview. Typing is disabled — please answer by speaking.
+            </div>
           </div>
         </div>
 
@@ -1273,37 +1280,74 @@ solution();"></textarea>
         </p>
       </div>
 
-      <div id="candidate-feedback-card" style="text-align: left; margin-top: 1.25rem; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 8px; background: #fafafa;">
-        <div style="font-weight: 700; font-size: 0.9rem; color: #111827; margin-bottom: 0.25rem;">
-          <i class="bi bi-chat-heart"></i> Quick Interview Feedback
+      <!-- Screen 4: Interview Completed & Issues/Problem Reporting -->
+      <div id="candidate-feedback-card" style="text-align: left; margin-top: 1.25rem; padding: 1.25rem; border: 1px solid #e5e7eb; border-radius: 10px; background: #fafafa;">
+        <div style="font-weight: 700; font-size: 0.95rem; color: #111827; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.4rem;">
+          <i class="bi bi-question-diamond-fill" style="color: #2563eb;"></i> Did you face any problems during the interview?
         </div>
-        <p style="font-size: 0.78rem; color: #6b7280; margin-bottom: 0.75rem;">
-          Optional: share your interview experience and receive an automated thank-you confirmation email.
+        <p style="font-size: 0.78rem; color: #6b7280; margin-bottom: 0.85rem;">
+          Let us know if you encountered any technical, audio, or question clarity issues so our team can review your session.
         </p>
         <div id="cand-fb-status" style="display: none; font-size: 0.78rem; padding: 0.5rem 0.7rem; border-radius: 6px; margin-bottom: 0.65rem;"></div>
-        <form id="candidate-feedback-form" style="display: flex; flex-direction: column; gap: 0.6rem;">
+        <form id="candidate-feedback-form" style="display: flex; flex-direction: column; gap: 0.75rem;">
+          
+          <!-- Quick Problem Selectors (Checkboxes/Chips) -->
+          <div>
+            <label style="font-size: 0.75rem; font-weight: 700; display: block; margin-bottom: 0.4rem; color: #374151;">
+              Select any issues you experienced:
+            </label>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 0.5rem;">
+              <label style="display: flex; align-items: center; gap: 0.45rem; padding: 0.5rem 0.65rem; border: 1px solid #d1d5db; border-radius: 6px; background: #fff; cursor: pointer; font-size: 0.75rem; color: #1f2937;">
+                <input type="checkbox" name="reported_issues" value="No problems - Smooth experience">
+                <span>✅ No problems, went smoothly</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.45rem; padding: 0.5rem 0.65rem; border: 1px solid #d1d5db; border-radius: 6px; background: #fff; cursor: pointer; font-size: 0.75rem; color: #1f2937;">
+                <input type="checkbox" name="reported_issues" value="Audio listening issue / Mic lag">
+                <span>🎤 AI couldn't hear me / Mic lag</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.45rem; padding: 0.5rem 0.65rem; border: 1px solid #d1d5db; border-radius: 6px; background: #fff; cursor: pointer; font-size: 0.75rem; color: #1f2937;">
+                <input type="checkbox" name="reported_issues" value="AI speech cut off / Audio output issue">
+                <span>🔊 AI voice was cut off or quiet</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.45rem; padding: 0.5rem 0.65rem; border: 1px solid #d1d5db; border-radius: 6px; background: #fff; cursor: pointer; font-size: 0.75rem; color: #1f2937;">
+                <input type="checkbox" name="reported_issues" value="Repeated questions or unnatural follow-ups">
+                <span>🤖 Repetitive or robotic follow-up</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.45rem; padding: 0.5rem 0.65rem; border: 1px solid #d1d5db; border-radius: 6px; background: #fff; cursor: pointer; font-size: 0.75rem; color: #1f2937;">
+                <input type="checkbox" name="reported_issues" value="Camera or proctoring glitch">
+                <span>📷 Camera / Proctoring false alert</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.45rem; padding: 0.5rem 0.65rem; border: 1px solid #d1d5db; border-radius: 6px; background: #fff; cursor: pointer; font-size: 0.75rem; color: #1f2937;">
+                <input type="checkbox" name="reported_issues" value="Network delay / Slow response">
+                <span>🌐 Slow response / Internet lag</span>
+              </label>
+            </div>
+          </div>
+
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;">
             <div>
-              <label style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Email for Confirmation</label>
+              <label style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Your Email for Follow-Up</label>
               <input type="email" id="cand-fb-email" placeholder="you@gmail.com" required style="width: 100%; padding: 0.45rem 0.6rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.8rem;">
             </div>
             <div>
-              <label style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Rating</label>
+              <label style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Overall Experience Rating</label>
               <select id="cand-fb-rating" style="width: 100%; padding: 0.45rem 0.6rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.8rem; background: #fff;">
-                <option value="5" selected>5 / 5 - Great</option>
-                <option value="4">4 / 5 - Good</option>
-                <option value="3">3 / 5 - Fair</option>
+                <option value="5" selected>5 / 5 - Great Experience</option>
+                <option value="4">4 / 5 - Good, minor hiccups</option>
+                <option value="3">3 / 5 - Fair, had some issues</option>
                 <option value="2">2 / 5 - Needs Improvement</option>
-                <option value="1">1 / 5 - Poor</option>
+                <option value="1">1 / 5 - Poor / Technical Glitches</option>
               </select>
             </div>
           </div>
+
           <div>
-            <label style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Comments</label>
-            <textarea id="cand-fb-message" rows="2" placeholder="How was the audio, timing, and question clarity?" required style="width: 100%; padding: 0.45rem 0.6rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.8rem;"></textarea>
+            <label style="font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Additional Details (Optional)</label>
+            <textarea id="cand-fb-message" rows="2" placeholder="Tell us more about any problem or suggestions for improvement..." style="width: 100%; padding: 0.45rem 0.6rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.8rem;"></textarea>
           </div>
-          <button type="submit" id="btn-cand-feedback" class="btn" style="align-self: flex-start; padding: 0.5rem 1rem; font-size: 0.8rem;">
-            Send Feedback <i class="bi bi-send"></i>
+
+          <button type="submit" id="btn-cand-feedback" class="btn" style="align-self: flex-start; padding: 0.55rem 1.15rem; font-size: 0.8rem; background: #2563eb; color: #fff;">
+            Submit Feedback & Issues <i class="bi bi-send-fill"></i>
           </button>
         </form>
       </div>

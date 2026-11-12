@@ -92,13 +92,27 @@ export class VoiceManager {
 
       this.recognition.onerror = (event) => {
         console.warn('[Chrome Voice STT Info]:', event.error);
-        if (event.error !== 'no-speech') {
+        if (event.error === 'network' || event.error === 'aborted') {
+          // Restart recognition if abruptly stopped
+          setTimeout(() => {
+            if (this.isListening) {
+              try { this.recognition.start(); } catch (e) {}
+            }
+          }, 300);
+        } else if (event.error !== 'no-speech') {
           this.onError(event.error);
         }
       };
 
       this.recognition.onend = () => {
-        this.isListening = false;
+        // If candidate turn is still active and recognition finished, auto restart
+        if (this.isListening) {
+          try {
+            this.recognition.start();
+          } catch (e) {
+            this.isListening = false;
+          }
+        }
       };
     } catch (e) {
       console.warn('Chrome SpeechRecognition init failed:', e);
@@ -224,8 +238,8 @@ export class VoiceManager {
       }
       const avg = sum / this.dataArray.length;
 
-      // Threshold for voice activity detection
-      const speechThreshold = 18;
+      // Threshold for voice activity detection (lowered to 12 for high sensitivity on quiet laptop/phone mics)
+      const speechThreshold = 12;
 
       if (avg >= speechThreshold) {
         // User is speaking
@@ -236,8 +250,8 @@ export class VoiceManager {
         // User was speaking, now paused/silent
         if (!this.silenceStartTime) {
           this.silenceStartTime = Date.now();
-        } else if (Date.now() - this.silenceStartTime >= 2400) {
-          // 2.4s of silence after speaking: finalize audio!
+        } else if (Date.now() - this.silenceStartTime >= 2500) {
+          // 2.5s of silence after speaking: finalize audio!
           console.log('[Universal Audio VAD] Silence threshold reached. Finalizing audio chunk...');
           this.stopListening();
         }
