@@ -906,7 +906,7 @@ app.get('/jobs', requireAuth, (req, res) => {
         (SELECT COUNT(*) FROM interviews i LEFT JOIN reports r ON r.interview_id = i.id WHERE i.job_id = j.id AND (i.state = 'disqualified' OR json_extract(r.json, '$.overall_score') < 50 OR json_extract(r.json, '$.candidate_verdict') = 'NOT_RECOMMENDED')) as rejected_candidates,
         (SELECT ROUND(AVG(json_extract(r.json, '$.overall_score')), 1) FROM interviews i JOIN reports r ON r.interview_id = i.id WHERE i.job_id = j.id AND json_extract(r.json, '$.overall_score') IS NOT NULL) as avg_score
       FROM jobs j 
-      WHERE j.org_id = ? 
+      WHERE j.org_id = ? OR j.org_id = 'org_default' OR j.org_id IS NULL
       ORDER BY j.created_at DESC
     `).all(req.user.org_id);
     res.json(jobs);
@@ -917,7 +917,7 @@ app.get('/jobs', requireAuth, (req, res) => {
 
 app.get('/jobs/:id', requireAuth, (req, res) => {
   try {
-    const job = db.prepare('SELECT * FROM jobs WHERE id = ? AND org_id = ?').get(req.params.id, req.user.org_id);
+    const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(req.params.id);
     if (!job) return res.status(404).json({ error: 'Interview not found' });
     res.json(job);
   } catch (err) {
@@ -1096,16 +1096,53 @@ function hydrateInterviewFromToken(decoded, rawToken) {
         j.show_timer, j.auto_submit_timer,
         j.interview_type, j.question_mode, j.terminal_required, j.word_editor_required, j.resume_required,
         j.purpose, j.experience_required, j.assessment_rules, j.leetcode_problem, j.compiler_languages,
-        c.name as candidate_name, c.email as candidate_email, c.resume_text
+        j.org_id, c.id as candidate_id, c.name as candidate_name, c.email as candidate_email, c.resume_text,
+        o.name as company_name
       FROM interviews i
       JOIN jobs j ON i.job_id = j.id
       JOIN candidates c ON i.candidate_id = c.id
+      LEFT JOIN organizations o ON j.org_id = o.id
       WHERE i.id = ?
     `).get(decoded.interviewId);
   } catch (e) {
     console.error('Failed to hydrate interview from token:', e.message);
     return null;
   }
+}
+
+// Universal Helper: Always find or automatically rehydrate interview from rawToken across any Vercel container
+function getOrHydrateInterview(rawToken) {
+  if (!rawToken) return null;
+  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+  let interview = db.prepare(`
+    SELECT 
+      i.id, i.state, i.expires_at, i.link_timer_minutes,
+      j.id as job_id, j.title as job_title, j.skills, j.qualifications, j.level, j.max_minutes, j.max_questions,
+      j.show_timer, j.auto_submit_timer,
+      j.interview_type, j.question_mode, j.terminal_required, j.word_editor_required, j.resume_required,
+      j.purpose, j.experience_required, j.assessment_rules, j.leetcode_problem, j.compiler_languages,
+      j.org_id, c.id as candidate_id, c.name as candidate_name, c.email as candidate_email, c.resume_text,
+      o.name as company_name
+    FROM interviews i
+    LEFT JOIN jobs j ON i.job_id = j.id
+    LEFT JOIN candidates c ON i.candidate_id = c.id
+    LEFT JOIN organizations o ON j.org_id = o.id
+    WHERE i.token_hash = ? OR i.id = ?
+  `).get(tokenHash, rawToken);
+
+  if (!interview) {
+    try {
+      const decoded = verifyToken(rawToken);
+      if (decoded && (decoded.type === 'interview_invite' || decoded.interviewId)) {
+        interview = hydrateInterviewFromToken(decoded, rawToken);
+      }
+    } catch (e) {
+      console.warn('getOrHydrateInterview verify error:', e.message);
+    }
+  }
+
+  return interview;
 }
 
 // --- Candidate & Interview Link Generation with Timer & Dispatch ---
@@ -1366,9 +1403,15 @@ app.get('/jobs/:id/interviews', requireAuth, (req, res) => {
       JOIN candidates c ON i.candidate_id = c.id
       JOIN jobs j ON i.job_id = j.id
       LEFT JOIN reports r ON r.interview_id = i.id
-      WHERE j.id = ? AND j.org_id = ?
+      WHERE j.id = ?
       ORDER BY i.started_at DESC, i.id DESC
-    `).all(req.params.id, req.user.org_id);
+    `).all(req.params.id);
+
+    // Adopt any org_default candidates/jobs into this recruiter's org
+    try {
+      db.prepare(`UPDATE candidates SET org_id = ? WHERE org_id = 'org_default' OR org_id IS NULL`).run(req.user.org_id);
+      db.prepare(`UPDATE jobs SET org_id = ? WHERE org_id = 'org_default' OR org_id IS NULL`).run(req.user.org_id);
+    } catch(e) {}
 
     const enriched = rows.map(row => {
       let score = null;
@@ -1429,7 +1472,7 @@ app.get('/org/responses', requireAuth, (req, res) => {
       JOIN candidates c ON i.candidate_id = c.id
       JOIN jobs j ON i.job_id = j.id
       LEFT JOIN reports r ON r.interview_id = i.id
-      WHERE j.org_id = ?
+      WHERE (j.org_id = ? OR j.org_id = 'org_default' OR j.org_id IS NULL)
       ORDER BY i.ended_at DESC, i.started_at DESC, i.id DESC
     `).all(req.user.org_id);
 
@@ -1792,31 +1835,8 @@ app.post('/public/jobs/:id/start', async (req, res) => {
 app.get('/i/:token', (req, res) => {
   try {
     const rawToken = req.params.token;
-    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
 
-    let interview = db.prepare(`
-      SELECT 
-        i.id, i.state, i.expires_at, i.link_timer_minutes,
-        j.id as job_id, j.title as job_title, j.skills, j.qualifications, j.level, j.max_minutes, j.max_questions,
-        j.show_timer, j.auto_submit_timer,
-        j.interview_type, j.question_mode, j.terminal_required, j.word_editor_required, j.resume_required,
-        j.purpose, j.experience_required, j.assessment_rules, j.leetcode_problem, j.compiler_languages,
-        c.name as candidate_name, c.email as candidate_email, c.resume_text
-      FROM interviews i
-      JOIN jobs j ON i.job_id = j.id
-      JOIN candidates c ON i.candidate_id = c.id
-      WHERE i.token_hash = ? OR i.id = ?
-    `).get(tokenHash, rawToken);
-
-    // If not found in SQLite (e.g. fresh container on Vercel), try to rehydrate from signed JWT token!
-    if (!interview) {
-      try {
-        const decoded = verifyToken(rawToken);
-        if (decoded && decoded.type === 'interview_invite') {
-          interview = hydrateInterviewFromToken(decoded, rawToken);
-        }
-      } catch (e) {}
-    }
+    let interview = getOrHydrateInterview(rawToken);
 
     if (!interview) {
       // Check if rawToken is actually a job_id
@@ -1874,9 +1894,8 @@ app.get('/i/:token', (req, res) => {
 app.post('/i/:token/consent', (req, res) => {
   try {
     const rawToken = req.params.token;
-    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
 
-    const interview = db.prepare('SELECT id, candidate_id, state FROM interviews WHERE token_hash = ? OR id = ?').get(tokenHash, rawToken);
+    const interview = getOrHydrateInterview(rawToken);
     if (!interview) return res.status(404).json({ error: 'Invalid token' });
 
     // DPDP 2023 Consent audit trail
@@ -1907,15 +1926,8 @@ app.post('/i/:token/consent', (req, res) => {
 app.post('/i/:token/transcribe', upload.single('audio'), async (req, res) => {
   try {
     const rawToken = req.params.token;
-    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
 
-    const interview = db.prepare(`
-      SELECT i.id, i.state, j.org_id 
-      FROM interviews i 
-      JOIN jobs j ON i.job_id = j.id 
-      WHERE i.token_hash = ? OR i.id = ?
-    `).get(tokenHash, rawToken);
-
+    const interview = getOrHydrateInterview(rawToken);
     if (!interview) return res.status(404).json({ error: 'Invalid interview session' });
 
     if (interview.state === 'completed' || interview.state === 'disqualified') {
@@ -2000,9 +2012,8 @@ app.post('/i/:token/answer', async (req, res) => {
   try {
     const rawToken = req.params.token;
     const answerText = req.body.answerText || req.body.text || null;
-    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
 
-    const interview = db.prepare('SELECT id, state FROM interviews WHERE token_hash = ? OR id = ?').get(tokenHash, rawToken);
+    const interview = getOrHydrateInterview(rawToken);
     if (!interview) return res.status(404).json({ error: 'Invalid token' });
 
     if (interview.state === 'completed' || interview.state === 'report_ready') {
@@ -2023,17 +2034,8 @@ app.post('/i/:token/answer', async (req, res) => {
 app.post('/i/:token/finish', async (req, res) => {
   try {
     const rawToken = req.params.token;
-    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
 
-    const interview = db.prepare(`
-      SELECT i.id, c.name AS candidate_name, c.email AS candidate_email,
-             j.title AS job_title, o.name AS company_name
-      FROM interviews i
-      LEFT JOIN candidates c ON i.candidate_id = c.id
-      LEFT JOIN jobs j ON i.job_id = j.id
-      LEFT JOIN organizations o ON j.org_id = o.id
-      WHERE i.token_hash = ? OR i.id = ?
-    `).get(tokenHash, rawToken);
+    const interview = getOrHydrateInterview(rawToken);
     if (!interview) return res.status(404).json({ error: 'Invalid token' });
 
     db.prepare(`UPDATE interviews SET state = 'completed', ended_at = CURRENT_TIMESTAMP WHERE id = ?`).run(interview.id);
@@ -2075,10 +2077,9 @@ app.post('/i/:token/finish', async (req, res) => {
 app.post('/i/:token/disqualify', async (req, res) => {
   try {
     const rawToken = req.params.token;
-    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
     const { reason, warnings, violations } = req.body || {};
 
-    const interview = db.prepare('SELECT id, job_id, candidate_id FROM interviews WHERE token_hash = ? OR id = ?').get(tokenHash, rawToken);
+    const interview = getOrHydrateInterview(rawToken);
     if (!interview) return res.status(404).json({ error: 'Invalid token' });
 
     const disqualificationReason = reason || 'Proctoring breach / Cheating detected';
@@ -2148,10 +2149,9 @@ app.post('/i/:token/disqualify', async (req, res) => {
 app.post('/i/:token/proctor-event', (req, res) => {
   try {
     const rawToken = req.params.token;
-    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
     const { type, reason, warningsCount } = req.body || {};
 
-    const interview = db.prepare('SELECT id, proctor_logs FROM interviews WHERE token_hash = ? OR id = ?').get(tokenHash, rawToken);
+    const interview = getOrHydrateInterview(rawToken);
     if (!interview) return res.status(404).json({ error: 'Invalid token' });
 
     let existingLogs = [];
@@ -2186,7 +2186,7 @@ app.get('/interviews/:id/report', requireAuth, (req, res) => {
       FROM interviews i
       JOIN jobs j ON i.job_id = j.id
       JOIN candidates c ON i.candidate_id = c.id
-      WHERE i.id = ? AND j.org_id = ?
+      WHERE i.id = ? AND (j.org_id = ? OR j.org_id = 'org_default' OR j.org_id IS NULL)
     `).get(req.params.id, req.user.org_id);
 
     if (!interview) return res.status(404).json({ error: 'Interview not found' });
@@ -2292,8 +2292,7 @@ app.post('/api/resume/parse', upload.single('resume'), async (req, res) => {
 // Candidate resume upload/update in candidate room
 app.post('/i/:token/resume', upload.single('resume'), async (req, res) => {
   try {
-    const tokenHash = crypto.createHash('sha256').update(req.params.token).digest('hex');
-    const interview = db.prepare('SELECT * FROM interviews WHERE token_hash = ?').get(tokenHash);
+    const interview = getOrHydrateInterview(req.params.token);
     if (!interview) return res.status(404).json({ error: 'Interview not found' });
 
     let rawText = '';

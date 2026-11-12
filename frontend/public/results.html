@@ -683,7 +683,7 @@
   </div>
 
   <script>
-    const authToken = localStorage.getItem('ai_interviewer_token');
+    const authToken = localStorage.getItem('roundone_token') || localStorage.getItem('ai_interviewer_token');
     const urlParams = new URLSearchParams(window.location.search);
     const jobId = urlParams.get('jobId');
     const autoDownloadPdf = urlParams.get('downloadPdf') === '1' || urlParams.get('print') === 'true';

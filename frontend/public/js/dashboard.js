@@ -4730,6 +4730,7 @@ window.openShareModalForJob = function(jobId, rawTitle) {
       question_mode: currentJob.question_mode,
       custom_questions: currentJob.custom_questions,
       leetcode_problem: currentJob.leetcode_problem,
+      org_id: currentJob.org_id || (typeof currentOrg !== 'undefined' && currentOrg ? currentOrg.id : 'org_default'),
       company_name: (typeof currentOrg !== 'undefined' && currentOrg?.name) ? currentOrg.name : 'Technical Hiring Team'
     };
     try {
@@ -4832,6 +4833,7 @@ window.copyTrackingUrl = async function(source) {
         interview_type: currentShareJobData.interview_type,
         question_mode: currentShareJobData.question_mode,
         leetcode_problem: currentShareJobData.leetcode_problem,
+        org_id: currentShareJobData.org_id || (typeof currentOrg !== 'undefined' && currentOrg ? currentOrg.id : 'org_default'),
         company_name: (typeof currentOrg !== 'undefined' && currentOrg?.name) ? currentOrg.name : 'Technical Hiring Team'
       };
       portableParam = '&d=' + btoa(unescape(encodeURIComponent(JSON.stringify(compactObj))));
