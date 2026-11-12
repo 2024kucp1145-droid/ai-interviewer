@@ -640,6 +640,162 @@ function loadAllDashboardData() {
 // TAB 1: DASHBOARD STATS & METRICS
 // ─────────────────────────────────────────────────────────────────────────────
 
+function renderQuickActionsStrip(actions) {
+  const el = document.getElementById('overview-quick-actions');
+  if (!el) return;
+  if (!Array.isArray(actions) || actions.length === 0) {
+    el.style.display = 'none';
+    el.innerHTML = '';
+    return;
+  }
+  el.style.display = 'flex';
+  el.innerHTML = actions.map(a => `
+    <button type="button" class="quick-action-pill tone-${escapeHtml(a.tone || 'info')}" onclick="handleQuickAction('${escapeHtml(a.type || '')}')">
+      <i class="bi bi-${escapeHtml(a.icon || 'lightning-fill')}"></i>
+      <span>${escapeHtml(a.label || '')}</span>
+      <i class="bi bi-arrow-right-short"></i>
+    </button>
+  `).join('');
+}
+
+window.handleQuickAction = function(type) {
+  if (type === 'approval') {
+    switchDashboardTab('users');
+  } else if (type === 'live') {
+    switchDashboardTab('activities');
+    const f = document.getElementById('tree-state-filter');
+    if (f) { f.value = 'live'; renderActivityTree(); }
+  } else if (type === 'expiring') {
+    switchDashboardTab('interviews');
+  } else {
+    switchDashboardTab('activities');
+  }
+};
+
+window.openCompanyBoxFromOverview = function(orgId) {
+  if (!orgId) return;
+  expandedFolderIds.add(sanitizeFolderKey(`org_${orgId}`));
+  switchDashboardTab('activities');
+  setActivityViewMode('tree');
+};
+
+function renderOverviewFunnel(funnel, completionRate) {
+  const el = document.getElementById('overview-funnel-chart');
+  const badge = document.getElementById('funnel-health-badge');
+  if (!el) return;
+  const f = funnel || {};
+  const invited = Number(f.invited || 0);
+  const attempted = Number(f.attempted || 0);
+  const completed = Number(f.completed || 0);
+  const live = Number(f.live || 0);
+  const disqualified = Number(f.disqualified || 0);
+  const pending = Number(f.pending || 0);
+
+  if (badge) {
+    badge.textContent = `${completionRate || 0}% Completion`;
+    badge.className = `badge ${completionRate >= 65 ? 'badge-success' : (completionRate >= 35 ? 'badge-warning' : 'badge-info')}`;
+  }
+
+  if (invited === 0) {
+    el.innerHTML = '<p style="color:var(--text-muted); font-size:0.8rem;">No candidate invitations recorded yet.</p>';
+    return;
+  }
+
+  const pct = (val) => Math.max(0, Math.min(100, Math.round((val / invited) * 100)));
+  const stages = [
+    { label: 'Invited / Link Generated', val: invited, pct: 100, color: '#6366f1' },
+    { label: 'Started / Attempted', val: attempted, pct: pct(attempted), color: '#0ea5e9' },
+    { label: 'Completed & Evaluated', val: completed, pct: pct(completed), color: '#10b981' },
+    { label: 'Disqualified (Integrity)', val: disqualified, pct: pct(disqualified), color: '#ef4444' }
+  ];
+
+  el.innerHTML = `
+    <div class="funnel-stage-list">
+      ${stages.map(st => `
+        <div>
+          <div class="funnel-stage-head">
+            <span><strong>${escapeHtml(st.label)}</strong></span>
+            <span style="color:var(--text-muted);">${st.val} <span style="font-size:0.72rem;">(${st.pct}%)</span></span>
+          </div>
+          <div class="funnel-bar-track">
+            <div class="funnel-bar-fill" style="width:${st.pct}%; background:${st.color};"></div>
+          </div>
+        </div>
+      `).join('')}
+      <div class="timing-strip" style="margin-top:0.25rem;">
+        <span class="timing-chip"><i class="bi bi-clock"></i> Pending Invite: <strong>${pending}</strong></span>
+        <span class="timing-chip"><i class="bi bi-record-circle" style="color:#fbbf24;"></i> Live Now: <strong>${live}</strong></span>
+      </div>
+    </div>
+  `;
+}
+
+function renderOverviewScoreChart(buckets) {
+  const el = document.getElementById('overview-score-chart');
+  if (!el) return;
+  const allRanges = ['0-9', '10-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80-89', '90-100'];
+  const countMap = new Map((buckets || []).map(b => [b.range, Number(b.count || 0)]));
+  const values = allRanges.map(r => ({ range: r, count: countMap.get(r) || 0 }));
+  const maxCount = Math.max(1, ...values.map(v => v.count));
+  const totalScored = values.reduce((acc, v) => acc + v.count, 0);
+
+  if (totalScored === 0) {
+    el.innerHTML = '<p style="color:var(--text-muted); font-size:0.8rem;">No scored interviews yet. Score histogram appears once candidates complete evaluations.</p>';
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="score-hist-chart">
+      ${values.map(v => {
+        const startScore = parseInt(v.range.split('-')[0], 10);
+        const color = startScore >= 70 ? '#10b981' : (startScore >= 50 ? '#f59e0b' : '#ef4444');
+        const barHeight = v.count > 0 ? Math.max(14, Math.round((v.count / maxCount) * 100)) : 3;
+        return `
+          <div class="score-hist-col" title="${v.range} score: ${v.count} candidate(s)">
+            <span class="score-hist-count">${v.count > 0 ? v.count : ''}</span>
+            <div class="score-hist-bar" style="height:${barHeight}%; background:${v.count > 0 ? color : 'rgba(148,163,184,0.18)'};"></div>
+            <span class="score-hist-label">${escapeHtml(v.range)}</span>
+          </div>
+        `;
+      }).join('')}
+    </div>
+    <div class="timing-strip" style="margin-top:0.65rem;">
+      <span class="timing-chip"><span style="width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;"></span> Top Band (&ge;70)</span>
+      <span class="timing-chip"><span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;display:inline-block;"></span> Review (50&ndash;69)</span>
+      <span class="timing-chip"><span style="width:8px;height:8px;border-radius:50%;background:#ef4444;display:inline-block;"></span> Below 50</span>
+      <span class="timing-chip">Evaluated: <strong>${totalScored}</strong></span>
+    </div>
+  `;
+}
+
+function renderOverviewTopCompanies(companies) {
+  const el = document.getElementById('overview-top-companies');
+  if (!el) return;
+  if (!Array.isArray(companies) || companies.length === 0) {
+    el.innerHTML = '<p style="color:var(--text-muted); font-size:0.8rem;">No active organizations recorded yet.</p>';
+    return;
+  }
+  el.innerHTML = companies.map((c, idx) => `
+    <div class="top-company-row">
+      <div style="display:flex; align-items:center; gap:0.65rem; min-width:200px; flex:1;">
+        <span class="badge badge-neutral" style="font-weight:700;">#${idx + 1}</span>
+        <div>
+          <div style="font-weight:700; font-size:0.86rem; color:var(--text);">
+            ${escapeHtml(c.name || 'Company')} <span class="badge badge-primary">${escapeHtml(c.plan || 'free_trial')}</span>
+            ${(c.live_count || 0) > 0 ? `<span class="badge badge-warning">${c.live_count} Live</span>` : ''}
+          </div>
+          <div style="font-size:0.73rem; color:var(--text-muted);">
+            ${c.job_count || 0} Round(s) &middot; ${c.interview_count || 0} Candidate(s) &middot; ${c.completed_count || 0} Completed &middot; Credits Left: ${c.included_interviews ?? 0}
+          </div>
+        </div>
+      </div>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="openCompanyBoxFromOverview('${sanitizeFolderKey(c.id)}')">
+        <i class="bi bi-folder2-open"></i> Open Company Box
+      </button>
+    </div>
+  `).join('');
+}
+
 async function loadDashboardStats(isSilent = false) {
   try {
     const res = await fetch(`${API_BASE}/stats`, {
@@ -664,10 +820,23 @@ async function loadDashboardStats(isSilent = false) {
     document.getElementById('kpi-total-interviews').textContent = s.interviews.total;
     document.getElementById('kpi-interviews-sub').textContent = `${s.interviews.completed} Done · ${s.interviews.inProgress} Live · ${s.interviews.disqualified} Disqualified`;
 
+    const compRateEl = document.getElementById('kpi-completion-rate');
+    if (compRateEl) compRateEl.textContent = `${s.completionRate ?? 0}%`;
+    const compSubEl = document.getElementById('kpi-completion-sub');
+    if (compSubEl) compSubEl.textContent = `${s.interviews.attempted ?? 0} attempted → ${s.interviews.completed} finished`;
+
+    const avgScoreEl = document.getElementById('kpi-avg-score');
+    if (avgScoreEl) avgScoreEl.textContent = (s.avgScore !== null && s.avgScore !== undefined) ? `${s.avgScore}/100` : '—';
+
     document.getElementById('kpi-token-cost').textContent = `₹${Math.round(s.tokens.estCostInr)}`;
     document.getElementById('kpi-tokens-sub').textContent = `${(s.tokens.inputTokens + s.tokens.outputTokens).toLocaleString()} Tokens ($${s.tokens.estCostUsd})`;
 
     document.getElementById('kpi-today-events').textContent = s.activitiesToday;
+
+    renderQuickActionsStrip(s.quickActions);
+    renderOverviewFunnel(s.funnel, s.completionRate);
+    renderOverviewScoreChart(s.scoreDistribution);
+    renderOverviewTopCompanies(s.topCompanies);
 
     // Badges in tabs
     const pendingBadge = document.getElementById('pending-users-badge');
@@ -701,10 +870,22 @@ function sanitizeFolderKey(id) {
   return String(id || '').replace(/[^a-zA-Z0-9_:-]/g, '');
 }
 
+function matchesInterviewFilter(intv, filterVal) {
+  if (!filterVal) return true;
+  const f = String(filterVal).toLowerCase();
+  const st = String(intv.state || '').toLowerCase();
+  const outcome = String(intv.outcome_category || '').toLowerCase();
+  if (f === 'live') return st === 'in_progress' || st === 'live';
+  if (f === 'completed') return st === 'completed' || st === 'report_ready';
+  if (f === 'disqualified' || f === 'created') return st === f;
+  if (['selected', 'borderline', 'rejected'].includes(f)) return outcome === f;
+  return st === f || outcome === f;
+}
+
 function getInterviewStateBadge(state) {
   const s = String(state || 'created').toLowerCase();
-  if (s === 'completed') return '<span class="badge badge-success">Completed</span>';
-  if (s === 'live') return '<span class="badge badge-warning">Live</span>';
+  if (s === 'completed' || s === 'report_ready') return '<span class="badge badge-success">Completed</span>';
+  if (s === 'live' || s === 'in_progress') return '<span class="badge badge-warning"><i class="bi bi-record-circle"></i> Live</span>';
   if (s === 'disqualified') return '<span class="badge badge-danger">Disqualified</span>';
   return `<span class="badge badge-info">${escapeHtml(s)}</span>`;
 }
@@ -1031,9 +1212,10 @@ function renderBoxStatsRow(stats) {
 function renderJobFolderNode(job, searchTerm, stateFilter, fallbackInterviewer = '') {
   const jobMatchesSelf = matchesTreeSearch(searchTerm, job.title, job.category, job.skills, job.purpose, job.created_by_name);
   const filteredInterviews = (job.interviews || []).filter(intv => {
-    if (stateFilter && String(intv.state || '').toLowerCase() !== stateFilter) return false;
+    if (!matchesInterviewFilter(intv, stateFilter)) return false;
     if (jobMatchesSelf) return true;
-    return matchesTreeSearch(searchTerm, intv.candidate_name, intv.candidate_email, intv.id, intv.verdict, intv.outcome_category);
+    const skillsText = Array.isArray(intv.skills_evaluated) ? intv.skills_evaluated.map(s => typeof s === 'object' ? (s.skill || s.name) : s).join(' ') : '';
+    return matchesTreeSearch(searchTerm, intv.candidate_name, intv.candidate_email, intv.id, intv.verdict, intv.outcome_category, intv.score, skillsText);
   });
 
   if (searchTerm && !jobMatchesSelf && filteredInterviews.length === 0) return '';
@@ -1739,30 +1921,108 @@ window.loadInterviewsList = async function() {
   }
 };
 
+function downloadCsvFile(filename, headers, rows) {
+  const csvEscape = (v) => {
+    const str = String(v ?? '').replace(/\r?\n/g, ' ');
+    return `"${str.replace(/"/g, '""')}"`;
+  };
+  const lines = [headers.map(csvEscape).join(','), ...rows.map(r => r.map(csvEscape).join(','))];
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+window.exportActivityTreeCsv = function() {
+  if (!cachedActivityTree || !Array.isArray(cachedActivityTree.organizations)) {
+    showToast('Activity boxes are still loading.', 'warning');
+    return;
+  }
+  const headers = ['Company', 'Plan', 'Recruiter/Created By', 'Interview Round', 'Candidate Name', 'Candidate Email', 'State', 'Outcome', 'Score', 'Duration (s)', 'Invited At', 'Started At', 'Ended At', 'Warnings'];
+  const rows = [];
+  for (const org of cachedActivityTree.organizations) {
+    for (const job of org.jobs || []) {
+      if ((job.interviews || []).length === 0) {
+        rows.push([org.name, org.plan, job.created_by_name || '', job.title, '', '', 'no_candidates', '', '', '', job.created_at || '', '', '', '']);
+      } else {
+        for (const intv of job.interviews) {
+          rows.push([
+            org.name || '', org.plan || '', job.created_by_name || '', job.title || '',
+            intv.candidate_name || '', intv.candidate_email || '', intv.state || '',
+            intv.outcome_category || '', intv.score ?? '', intv.duration_seconds ?? '',
+            intv.invited_at || '', intv.started_at || '', intv.ended_at || '', intv.proctor_warnings || 0
+          ]);
+        }
+      }
+    }
+  }
+  downloadCsvFile(`roundone-company-activity-${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
+  showToast(`Exported ${rows.length} record(s) to CSV.`, 'success');
+};
+
+function getFilteredGlobalInterviews() {
+  const searchTerm = (document.getElementById('interviews-search-input')?.value || '').trim().toLowerCase();
+  const stateFilter = (document.getElementById('interviews-state-filter')?.value || '').trim().toLowerCase();
+  const tierFilter = (document.getElementById('interviews-tier-filter')?.value || '').trim().toLowerCase();
+
+  return cachedInterviews.filter(i => {
+    if (stateFilter && !matchesInterviewFilter(i, stateFilter)) return false;
+    if (tierFilter) {
+      const hasScore = i.score !== null && i.score !== undefined;
+      if (tierFilter === 'pending' && hasScore) return false;
+      if (tierFilter === 'top' && (!hasScore || i.score < 70)) return false;
+      if (tierFilter === 'mid' && (!hasScore || i.score < 50 || i.score >= 70)) return false;
+      if (tierFilter === 'low' && (!hasScore || i.score >= 50)) return false;
+    }
+    if (searchTerm) {
+      return matchesTreeSearch(searchTerm, i.candidate_name, i.candidate_email, i.job_title, i.job_skills, i.org_name, i.id, i.verdict);
+    }
+    return true;
+  });
+}
+
+window.exportGlobalInterviewsCsv = function() {
+  const list = getFilteredGlobalInterviews();
+  const headers = ['ID', 'Candidate', 'Email', 'Company', 'Job Role', 'State', 'Score', 'Verdict', 'Proctor Warnings', 'Turns', 'Started At', 'Expires At'];
+  const rows = list.map(i => [
+    i.id, i.candidate_name || '', i.candidate_email || '', i.org_name || '', i.job_title || '',
+    i.state || '', i.score ?? '', i.verdict || '', i.proctor_warnings || 0, i.turns_count || 0,
+    i.started_at || '', i.expires_at || ''
+  ]);
+  downloadCsvFile(`roundone-interviews-${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
+  showToast(`Exported ${rows.length} interview session(s) to CSV.`, 'success');
+};
+
 function renderInterviewsTable() {
   const tbody = document.getElementById('interviews-table-body');
   if (!tbody) return;
 
-  if (cachedInterviews.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 2rem; color: var(--text-muted);">No candidate screening interviews found.</td></tr>`;
+  const filtered = getFilteredGlobalInterviews();
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 2rem; color: var(--text-muted);">No candidate screening interviews match the active filters.</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = cachedInterviews.map(i => {
+  tbody.innerHTML = filtered.map(i => {
     let stateBadge = '<span class="badge badge-neutral">Created</span>';
     if (i.state === 'in_progress') stateBadge = '<span class="badge badge-warning"><i class="bi bi-record-circle"></i> Live</span>';
     else if (i.state === 'completed' || i.state === 'report_ready') stateBadge = '<span class="badge badge-success"><i class="bi bi-check2"></i> Finished</span>';
     else if (i.state === 'disqualified') stateBadge = '<span class="badge badge-danger"><i class="bi bi-x-octagon"></i> Disqualified</span>';
 
-    const scoreDisplay = i.score !== null 
-      ? `<strong style="color:${i.score >= 70 ? 'var(--success)' : (i.score < 40 ? 'var(--danger)' : 'var(--warning)')}; font-size:0.95rem;">${i.score}/100</strong>`
+    const scoreDisplay = i.score !== null && i.score !== undefined
+      ? `<strong style="color:${i.score >= 70 ? 'var(--success)' : (i.score < 50 ? 'var(--danger)' : 'var(--warning)')}; font-size:0.95rem;">${i.score}/100</strong>`
       : `<span style="color:var(--text-subtle);">Pending</span>`;
 
-    const proctorBadge = i.proctor_warnings > 0 
+    const proctorBadge = i.proctor_warnings > 0
       ? `<span class="badge badge-danger" title="${escapeHtml(i.disqualified_reason || 'Proctor Breach')}">${i.proctor_warnings} Warn</span>`
       : `<span class="badge badge-neutral">Clean</span>`;
 
-    const dateStr = i.started_at ? formatTimeAgo(i.started_at) : (i.expires_at ? `Exp: ${formatTimeAgo(i.expires_at)}` : 'Recently');
+    const dateStr = i.started_at ? `${formatExactClock(i.started_at)} (${formatTimeAgo(i.started_at)})` : (i.expires_at ? `Exp: ${formatExactClock(i.expires_at)}` : 'Recently');
 
     return `
       <tr>
@@ -1783,9 +2043,9 @@ function renderInterviewsTable() {
           <div>${scoreDisplay} &middot; ${proctorBadge}</div>
           <span style="font-size:0.7rem; color:var(--text-subtle);">${i.turns_count || 0} Turns</span>
         </td>
-        <td style="font-size:0.75rem; color:var(--text-muted); font-family:var(--mono);">${dateStr}</td>
+        <td style="font-size:0.73rem; color:var(--text-muted); font-family:var(--mono);">${dateStr}</td>
         <td style="text-align: right;">
-          <button class="btn btn-primary btn-sm" onclick="inspectInterview('${i.id}')">
+          <button class="btn btn-primary btn-sm" onclick="inspectInterview('${sanitizeFolderKey(i.id)}')">
             <i class="bi bi-search"></i> Inspect Session
           </button>
         </td>
@@ -1794,11 +2054,35 @@ function renderInterviewsTable() {
   }).join('');
 }
 
+let activeInspectedPayload = null;
+
+window.downloadInspectedSessionJson = function() {
+  if (!activeInspectedPayload) return;
+  const blob = new Blob([JSON.stringify(activeInspectedPayload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `roundone-session-${sanitizeFolderKey(activeInspectedPayload.interview?.id || 'report')}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
+
+window.filterInspectModalTranscript = function() {
+  const q = (document.getElementById('inspect-transcript-search')?.value || '').trim().toLowerCase();
+  const nodes = document.querySelectorAll('#inspect-turns-list .inspect-turn-item');
+  nodes.forEach(n => {
+    const txt = (n.textContent || '').toLowerCase();
+    n.style.display = (!q || txt.includes(q)) ? 'block' : 'none';
+  });
+};
+
 window.inspectInterview = async function(interviewId) {
   const modal = document.getElementById('modal-inspect-interview');
   const body = document.getElementById('inspect-body');
   modal.classList.add('show');
-  body.innerHTML = '<p style="text-align:center; padding:2rem; color:var(--text-muted);"><i class="bi bi-arrow-repeat spin"></i> Loading interview transcript and proctor audit logs...</p>';
+  body.innerHTML = '<p style="text-align:center; padding:2rem; color:var(--text-muted);"><i class="bi bi-arrow-repeat spin"></i> Loading interview transcript, competencies and proctor audit logs...</p>';
 
   try {
     const res = await fetch(`${API_BASE}/interviews/${interviewId}`, {
@@ -1807,72 +2091,143 @@ window.inspectInterview = async function(interviewId) {
     const data = await res.json();
     if (!data.success) throw new Error(data.error || 'Failed to inspect interview');
 
+    activeInspectedPayload = data;
     const intv = data.interview;
     const turns = data.turns || [];
     const report = data.report || null;
+
+    let durationSec = null;
+    if (intv.started_at && intv.ended_at) {
+      const diff = Math.round((new Date(intv.ended_at) - new Date(intv.started_at)) / 1000);
+      if (Number.isFinite(diff) && diff >= 0) durationSec = diff;
+    }
+
+    let proctorLogs = [];
+    try { proctorLogs = intv.proctor_logs ? (typeof intv.proctor_logs === 'string' ? JSON.parse(intv.proctor_logs) : intv.proctor_logs) : []; } catch {}
+    let dsaResult = null;
+    try { dsaResult = intv.dsa_result ? (typeof intv.dsa_result === 'string' ? JSON.parse(intv.dsa_result) : intv.dsa_result) : null; } catch {}
 
     let turnsHtml = '';
     if (turns.length === 0) {
       turnsHtml = '<p style="color:var(--text-muted); font-size:0.8rem;">No transcript recorded for this session yet.</p>';
     } else {
       turnsHtml = turns.map(t => `
-        <div style="padding: 0.75rem; border-radius: 8px; margin-bottom: 0.6rem; background-color: ${t.role === 'ai' ? 'var(--surface-elevated)' : (t.role === 'candidate' ? 'rgba(99, 102, 241, 0.08)' : 'rgba(239, 68, 68, 0.08)')}; border: 1px solid var(--border);">
+        <div class="inspect-turn-item" style="padding: 0.75rem; border-radius: 8px; margin-bottom: 0.6rem; background-color: ${t.role === 'ai' ? 'var(--surface-elevated)' : (t.role === 'candidate' ? 'rgba(99, 102, 241, 0.08)' : 'rgba(239, 68, 68, 0.08)')}; border: 1px solid var(--border);">
           <div style="display:flex; justify-content:space-between; margin-bottom:0.3rem;">
             <strong style="text-transform:uppercase; font-size:0.7rem; color:${t.role === 'ai' ? 'var(--primary)' : (t.role === 'candidate' ? 'var(--success)' : 'var(--danger)')};">
-              Turn ${t.idx}: ${t.role} ${t.skill ? `&middot; ${escapeHtml(t.skill)}` : ''}
+              Turn ${t.idx}: ${escapeHtml(t.role)} ${t.skill ? `&middot; ${escapeHtml(t.skill)}` : ''}
             </strong>
-            <span style="font-size:0.7rem; color:var(--text-subtle); font-family:var(--mono);">${formatTimeAgo(t.created_at)}</span>
+            <span style="font-size:0.7rem; color:var(--text-subtle); font-family:var(--mono);">${formatExactClock(t.created_at)}</span>
           </div>
           <div style="font-size:0.8rem; line-height:1.45; color:var(--text); white-space:pre-wrap;">${escapeHtml(t.text)}</div>
         </div>
       `).join('');
     }
 
+    const skillsBreakdown = Array.isArray(report?.skill_breakdown) ? report.skill_breakdown : (Array.isArray(report?.skills) ? report.skills : []);
+    const skillsBarsHtml = skillsBreakdown.length ? `
+      <div style="margin-top:0.85rem;">
+        <div class="folder-detail-label" style="margin-bottom:0.45rem;">Competency Scorecards (HireVue Style)</div>
+        ${skillsBreakdown.map(sk => {
+          const name = typeof sk === 'object' ? (sk.skill || sk.name || 'Skill') : String(sk);
+          const sc = typeof sk === 'object' && typeof sk.score === 'number' ? sk.score : null;
+          const pct = sc !== null ? Math.min(100, Math.max(0, sc <= 10 ? sc * 10 : sc)) : 0;
+          const color = pct >= 70 ? '#10b981' : (pct >= 50 ? '#f59e0b' : '#ef4444');
+          return `
+            <div class="modal-skill-bar-row">
+              <div style="display:flex; justify-content:space-between; font-size:0.75rem;">
+                <span><strong>${escapeHtml(name)}</strong></span>
+                <span style="color:var(--text-muted);">${sc !== null ? `${sc}/100` : 'Evaluated'}</span>
+              </div>
+              ${sc !== null ? `<div class="modal-skill-track"><div class="modal-skill-fill" style="width:${pct}%; background:${color};"></div></div>` : ''}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    ` : '';
+
     let reportHtml = '';
     if (report) {
       reportHtml = `
-        <div style="margin-top: 1.5rem; padding: 1rem; background-color: var(--surface-elevated); border-radius: 8px; border: 1px solid var(--border);">
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+        <div style="margin-top: 1.15rem; padding: 1rem; background-color: var(--surface-elevated); border-radius: 10px; border: 1px solid var(--border);">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
             <h4 style="font-size:0.9rem; font-weight:700;"><i class="bi bi-file-earmark-text"></i> Evidence-Backed AI Evaluation Report</h4>
-            <span class="badge ${report.candidate_verdict === 'RECOMMENDED_HIRE' ? 'badge-success' : (report.candidate_verdict === 'DISQUALIFIED' ? 'badge-danger' : 'badge-warning')}">
-              ${report.candidate_verdict || 'EVALUATED'} &middot; Score: ${report.overall_score || 0}/100
+            <span class="badge ${report.overall_score >= 70 ? 'badge-success' : (report.overall_score < 50 ? 'badge-danger' : 'badge-warning')}">
+              ${escapeHtml(report.candidate_verdict || report.recommendation || 'EVALUATED')} &middot; Score: ${report.overall_score ?? 0}/100
             </span>
           </div>
-          <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.75rem;">${escapeHtml(report.overall_summary || '')}</p>
-          ${report.hiring_clarification ? `<div style="font-size:0.78rem; padding:0.5rem 0.75rem; background:rgba(99, 102, 241, 0.1); border-left:3px solid var(--primary); border-radius:4px; margin-bottom:0.75rem;">${escapeHtml(report.hiring_clarification)}</div>` : ''}
+          <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.65rem;">${escapeHtml(report.overall_summary || '')}</p>
+          ${report.hiring_clarification ? `<div style="font-size:0.78rem; padding:0.5rem 0.75rem; background:rgba(99, 102, 241, 0.1); border-left:3px solid var(--primary); border-radius:4px; margin-bottom:0.65rem;">${escapeHtml(report.hiring_clarification)}</div>` : ''}
+          ${skillsBarsHtml}
         </div>
       `;
     }
 
-    body.innerHTML = `
-      <div style="margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
-        <h3 style="font-size: 1.15rem; font-weight:800; color:var(--text); margin-bottom:0.25rem;">
-          ${escapeHtml(intv.candidate_name || 'Candidate')} &mdash; ${escapeHtml(intv.job_title)}
-        </h3>
-        <p style="font-size:0.78rem; color:var(--text-muted);">
-          Company: <strong>${escapeHtml(intv.org_name)}</strong> &middot; Email: <strong>${escapeHtml(intv.candidate_email)}</strong>
-        </p>
-      </div>
-
-      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:0.75rem; margin-bottom:1.25rem;">
-        <div style="background:var(--surface-elevated); padding:0.75rem; border-radius:8px; border:1px solid var(--border);">
-          <span style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">Session State</span>
-          <div style="font-size:1rem; font-weight:700; color:var(--text); margin-top:0.2rem;">${intv.state}</div>
-        </div>
-        <div style="background:var(--surface-elevated); padding:0.75rem; border-radius:8px; border:1px solid var(--border);">
-          <span style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">Proctor Warnings</span>
-          <div style="font-size:1rem; font-weight:700; color:${intv.proctor_warnings > 0 ? 'var(--danger)' : 'var(--success)'}; margin-top:0.2rem;">
-            ${intv.proctor_warnings || 0} Warns
+    const integrityHtml = (Array.isArray(proctorLogs) && proctorLogs.length) || dsaResult ? `
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:0.75rem; margin-bottom:1rem;">
+        ${Array.isArray(proctorLogs) && proctorLogs.length ? `
+          <div class="folder-detail-card">
+            <div class="folder-detail-label"><i class="bi bi-shield-exclamation"></i> Proctoring &amp; Integrity Signals (${proctorLogs.length})</div>
+            <div style="max-height:120px; overflow-y:auto; font-size:0.74rem; color:var(--text-muted);">
+              ${proctorLogs.map(l => `<div>&bull; ${escapeHtml(l.type || l.event || l.reason || JSON.stringify(l))} ${l.ts || l.timestamp ? `<span style="color:var(--text-subtle);">(${formatExactClock(l.ts || l.timestamp)})</span>` : ''}</div>`).join('')}
+            </div>
           </div>
+        ` : ''}
+        ${dsaResult ? `
+          <div class="folder-detail-card">
+            <div class="folder-detail-label"><i class="bi bi-code-slash"></i> Technical / DSA Submission</div>
+            <div style="font-size:0.76rem;"><strong>Problem:</strong> ${escapeHtml(dsaResult.problem || dsaResult.title || 'Coding Task')} &middot; <strong>Status:</strong> ${escapeHtml(dsaResult.status || (dsaResult.passed ? 'Passed' : 'Submitted'))}</div>
+            ${dsaResult.code ? `<pre class="code-box" style="max-height:110px; overflow:auto; margin-top:0.35rem;">${escapeHtml(String(dsaResult.code).slice(0, 600))}</pre>` : ''}
+          </div>
+        ` : ''}
+      </div>
+    ` : '';
+
+    body.innerHTML = `
+      <div style="margin-bottom: 1rem; padding-bottom: 0.9rem; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:flex-start; gap:0.75rem; flex-wrap:wrap;">
+        <div>
+          <h3 style="font-size: 1.15rem; font-weight:800; color:var(--text); margin-bottom:0.25rem;">
+            ${escapeHtml(intv.candidate_name || 'Candidate')} &mdash; ${escapeHtml(intv.job_title)}
+          </h3>
+          <p style="font-size:0.78rem; color:var(--text-muted);">
+            Company: <strong>${escapeHtml(intv.org_name)}</strong> &middot; Email: <strong>${escapeHtml(intv.candidate_email)}</strong>
+          </p>
         </div>
-        <div style="background:var(--surface-elevated); padding:0.75rem; border-radius:8px; border:1px solid var(--border);">
-          <span style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">Max Time</span>
-          <div style="font-size:1rem; font-weight:700; color:var(--text); margin-top:0.2rem;">${intv.max_minutes || 15} Mins</div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="downloadInspectedSessionJson()">
+          <i class="bi bi-filetype-json"></i> Export Session JSON
+        </button>
+      </div>
+
+      <div class="candidate-timing-grid">
+        <div class="candidate-timing-tile">
+          <div class="t-label">Session State</div>
+          <div class="t-val">${escapeHtml(intv.state)}</div>
+        </div>
+        <div class="candidate-timing-tile">
+          <div class="t-label">Started At</div>
+          <div class="t-val">${formatExactClock(intv.started_at)}</div>
+        </div>
+        <div class="candidate-timing-tile">
+          <div class="t-label">Ended At</div>
+          <div class="t-val">${formatExactClock(intv.ended_at)}</div>
+        </div>
+        <div class="candidate-timing-tile">
+          <div class="t-label">Duration / Limit</div>
+          <div class="t-val">${formatDurationExact(durationSec)} / ${intv.max_minutes || 15}m</div>
+        </div>
+        <div class="candidate-timing-tile">
+          <div class="t-label">Proctor Warnings</div>
+          <div class="t-val" style="color:${intv.proctor_warnings > 0 ? 'var(--danger)' : 'var(--success)'};">${intv.proctor_warnings || 0} Warns</div>
         </div>
       </div>
 
-      <h4 style="font-size:0.85rem; font-weight:700; margin-bottom:0.75rem;"><i class="bi bi-chat-left-text"></i> Full Conversational Transcript</h4>
-      <div style="max-height:360px; overflow-y:auto; padding-right:0.5rem;">
+      ${integrityHtml}
+
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; margin-bottom:0.65rem; flex-wrap:wrap;">
+        <h4 style="font-size:0.85rem; font-weight:700; margin:0;"><i class="bi bi-chat-left-text"></i> Full Conversational Transcript (${turns.length} Turns)</h4>
+        <input type="text" id="inspect-transcript-search" class="form-input" placeholder="Search transcript (Metaview filter)..." style="width: 230px; padding: 0.3rem 0.6rem; font-size: 0.74rem;" oninput="filterInspectModalTranscript()">
+      </div>
+      <div id="inspect-turns-list" style="max-height:330px; overflow-y:auto; padding-right:0.5rem;">
         ${turnsHtml}
       </div>
 

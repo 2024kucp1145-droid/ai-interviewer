@@ -991,6 +991,146 @@
       margin-top: 0.12rem;
     }
 
+    /* Bento Overview, Funnel & Score Distribution (HackerRank + TestGorilla + HireVue) */
+    .quick-actions-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      margin-bottom: 1.15rem;
+    }
+
+    .quick-action-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.48rem 0.85rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background-color: var(--surface-elevated);
+      color: var(--text);
+      transition: transform 0.14s ease, border-color 0.14s ease;
+    }
+
+    .quick-action-pill:hover {
+      transform: translateY(-1px);
+      border-color: var(--primary);
+    }
+
+    .quick-action-pill.tone-warning { border-color: rgba(245, 158, 11, 0.45); background: rgba(245, 158, 11, 0.1); color: #fcd34d; }
+    .quick-action-pill.tone-danger { border-color: rgba(239, 68, 68, 0.45); background: rgba(239, 68, 68, 0.1); color: #fca5a5; }
+    .quick-action-pill.tone-info { border-color: rgba(14, 165, 233, 0.45); background: rgba(14, 165, 233, 0.1); color: #7dd3fc; }
+
+    .bento-analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .funnel-stage-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .funnel-stage-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .funnel-bar-track {
+      width: 100%;
+      height: 11px;
+      background-color: rgba(148, 163, 184, 0.14);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .funnel-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.35s ease;
+    }
+
+    .score-hist-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 0.4rem;
+      height: 165px;
+      padding-top: 1.1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .score-hist-col {
+      flex: 1;
+      min-width: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      height: 100%;
+      gap: 0.25rem;
+    }
+
+    .score-hist-count {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+
+    .score-hist-bar {
+      width: 100%;
+      max-width: 34px;
+      min-height: 4px;
+      border-radius: 6px 6px 2px 2px;
+      transition: height 0.3s ease;
+    }
+
+    .score-hist-label {
+      font-size: 0.66rem;
+      color: var(--text-muted);
+      margin-top: 0.35rem;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .top-company-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.7rem 0.85rem;
+      border: 1px solid var(--border);
+      background-color: var(--surface-elevated);
+      border-radius: 10px;
+      flex-wrap: wrap;
+    }
+
+    .modal-skill-bar-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.22rem;
+      margin-bottom: 0.55rem;
+    }
+
+    .modal-skill-track {
+      height: 7px;
+      background-color: rgba(148, 163, 184, 0.16);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .modal-skill-fill {
+      height: 100%;
+      border-radius: 999px;
+    }
+
     /* Modal */
     .modal-backdrop {
       position: fixed;
@@ -1013,7 +1153,7 @@
       border: 1px solid var(--border);
       border-radius: 14px;
       width: 100%;
-      max-width: 700px;
+      max-width: 860px;
       max-height: 85vh;
       display: flex;
       flex-direction: column;
@@ -1331,6 +1471,9 @@
 
     <!-- TAB 1: LIVE OVERVIEW & KPIS -->
     <div id="tab-content-overview">
+      <!-- High-Priority Action Alerts (HireVue Style) -->
+      <div id="overview-quick-actions" class="quick-actions-strip" style="display: none;"></div>
+
       <div class="kpi-grid">
         <div class="kpi-card">
           <div class="kpi-card-header">
@@ -1370,6 +1513,24 @@
 
         <div class="kpi-card">
           <div class="kpi-card-header">
+            <span class="kpi-label">Completion Rate</span>
+            <i class="bi bi-funnel-fill kpi-icon" style="color: var(--success);"></i>
+          </div>
+          <div id="kpi-completion-rate" class="kpi-value">0%</div>
+          <div id="kpi-completion-sub" class="kpi-subtext">0 attempted &rarr; 0 finished</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-card-header">
+            <span class="kpi-label">Platform Avg Score</span>
+            <i class="bi bi-award-fill kpi-icon" style="color: var(--primary);"></i>
+          </div>
+          <div id="kpi-avg-score" class="kpi-value">&mdash;</div>
+          <div class="kpi-subtext">Across evaluated interviews</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-card-header">
             <span class="kpi-label">AI Token Spend</span>
             <i class="bi bi-cpu kpi-icon"></i>
           </div>
@@ -1387,8 +1548,50 @@
         </div>
       </div>
 
+      <!-- Bento Analytics Row: Candidate Funnel (TestGorilla/HackerRank) + Score Distribution -->
+      <div class="bento-analytics-grid">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="bi bi-funnel-fill" style="color: #0ea5e9;"></i> Candidate Pipeline Funnel
+            </div>
+            <span id="funnel-health-badge" class="badge badge-info">0% Conversion</span>
+          </div>
+          <div class="card-body" id="overview-funnel-chart">
+            <p style="color: var(--text-muted); font-size: 0.8rem;">Loading pipeline funnel metrics...</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="bi bi-bar-chart-fill" style="color: #8b5cf6;"></i> AI Score Distribution
+            </div>
+            <span class="badge badge-primary">0&ndash;100 Scale</span>
+          </div>
+          <div class="card-body" id="overview-score-chart">
+            <p style="color: var(--text-muted); font-size: 0.8rem;">Loading score distribution...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Active Companies Multi-Tenant Leaderboard -->
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="bi bi-building-check" style="color: #10b981;"></i> Top Active Companies &amp; Interview Volume
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="switchDashboardTab('activities')">
+            <i class="bi bi-grid-3x3-gap-fill"></i> Open Company Boxes
+          </button>
+        </div>
+        <div class="card-body" id="overview-top-companies" style="display: flex; flex-direction: column; gap: 0.55rem;">
+          <p style="color: var(--text-muted); font-size: 0.8rem;">Loading active companies...</p>
+        </div>
+      </div>
+
       <!-- Quick Recent Feed & Pending Approvals Box -->
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem;">
         <!-- Pending Recruiters Approval Box -->
         <div class="card">
           <div class="card-header">
@@ -1437,19 +1640,25 @@
 
           <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
             <div id="tree-controls-bar" style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
-              <input type="text" id="tree-search-input" class="form-input" placeholder="Search company, interviewer, job, candidate..." style="width: 240px; padding: 0.35rem 0.65rem; font-size: 0.75rem;" oninput="renderActivityTree()">
+              <input type="text" id="tree-search-input" class="form-input" placeholder="Search company, recruiter, role, skill, score, candidate..." style="width: 260px; padding: 0.35rem 0.65rem; font-size: 0.75rem;" oninput="renderActivityTree()">
               <select id="tree-state-filter" class="form-input" style="width: auto; padding: 0.35rem 0.6rem; font-size: 0.75rem;" onchange="renderActivityTree()">
                 <option value="">All Statuses</option>
                 <option value="live">Live Only</option>
                 <option value="completed">Completed</option>
+                <option value="selected">Successful (&ge;Cutoff)</option>
+                <option value="borderline">Review / Borderline</option>
+                <option value="rejected">Rejected</option>
                 <option value="disqualified">Disqualified</option>
-                <option value="created">Invited / Created</option>
+                <option value="created">Invited / Pending</option>
               </select>
-              <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAllOrgFolders(true)" title="Open all organization folders">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAllOrgFolders(true)" title="Open all company boxes">
                 <i class="bi bi-arrows-expand"></i> Expand Orgs
               </button>
-              <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAllOrgFolders(false)" title="Collapse all folders">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAllOrgFolders(false)" title="Collapse all boxes">
                 <i class="bi bi-arrows-collapse"></i> Collapse
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="exportActivityTreeCsv()" title="Export company & candidate activity summary as CSV">
+                <i class="bi bi-download"></i> Export CSV
               </button>
             </div>
 
@@ -1521,11 +1730,29 @@
     <!-- TAB 4: GLOBAL CANDIDATE INTERVIEWS -->
     <div id="tab-content-interviews" style="display: none;">
       <div class="card">
-        <div class="card-header">
+        <div class="card-header" style="flex-wrap: wrap; gap: 0.75rem;">
           <div class="card-title">
             <i class="bi bi-camera-video-fill"></i> Global Candidate Screening Sessions
           </div>
-          <div style="display: flex; gap: 0.6rem;">
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+            <input type="text" id="interviews-search-input" class="form-input" placeholder="Search candidate, email, job, company..." style="width: 230px; padding: 0.35rem 0.65rem; font-size: 0.75rem;" oninput="renderInterviewsTable()">
+            <select id="interviews-state-filter" class="form-input" style="width: auto; padding: 0.35rem 0.6rem; font-size: 0.75rem;" onchange="renderInterviewsTable()">
+              <option value="">All States</option>
+              <option value="live">Live Now</option>
+              <option value="completed">Finished</option>
+              <option value="disqualified">Disqualified</option>
+              <option value="created">Invited / Pending</option>
+            </select>
+            <select id="interviews-tier-filter" class="form-input" style="width: auto; padding: 0.35rem 0.6rem; font-size: 0.75rem;" onchange="renderInterviewsTable()">
+              <option value="">All Score Tiers</option>
+              <option value="top">Top Band (&ge;70)</option>
+              <option value="mid">Review (50&ndash;69)</option>
+              <option value="low">Below 50</option>
+              <option value="pending">Pending Score</option>
+            </select>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="exportGlobalInterviewsCsv()">
+              <i class="bi bi-download"></i> Export CSV
+            </button>
             <button class="btn btn-secondary btn-sm" onclick="loadInterviewsList()">
               <i class="bi bi-arrow-clockwise"></i> Refresh List
             </button>

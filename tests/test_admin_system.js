@@ -148,7 +148,19 @@ try {
     }
   }
 
-  console.log('   ✓ Name + Unique ID -> linked Email OTP, /activity-tree & multi-admin portal access PASSED\n');
+  const statsRes = await fetch(`${baseUrl}/api/admin/stats`, {
+    headers: { 'Authorization': `Bearer ${registeredAdmins[0].token}` }
+  });
+  assert.strictEqual(statsRes.status, 200, 'GET /api/admin/stats must return 200');
+  const statsData = await statsRes.json();
+  assert.strictEqual(statsData.success, true, 'stats response must have success: true');
+  assert(statsData.stats?.funnel && statsData.stats.funnel.invited !== undefined, 'stats.funnel must include invited count');
+  assert(Array.isArray(statsData.stats?.scoreDistribution), 'stats.scoreDistribution must be an array');
+  assert(Array.isArray(statsData.stats?.topCompanies), 'stats.topCompanies must be an array');
+  assert(Array.isArray(statsData.stats?.quickActions), 'stats.quickActions must be an array');
+  assert(typeof statsData.stats?.completionRate === 'number', 'stats.completionRate must be numeric');
+
+  console.log('   ✓ Name + Unique ID -> linked Email OTP, /stats, /activity-tree & multi-admin portal access PASSED\n');
 
   // 4. Test Self-Healing requireAdmin on Ephemeral Vercel Restarts & Activity Logging
   console.log('4. Testing Ephemeral Session Persistence & Activity Logging...');

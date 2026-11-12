@@ -696,7 +696,8 @@ adminRouter.get('/stats', requireAdmin, (req, res) => {
         COUNT(*) as total_interviews,
         SUM(CASE WHEN state IN ('completed', 'report_ready') THEN 1 ELSE 0 END) as completed_interviews,
         SUM(CASE WHEN state = 'in_progress' THEN 1 ELSE 0 END) as in_progress_interviews,
-        SUM(CASE WHEN state = 'disqualified' THEN 1 ELSE 0 END) as disqualified_interviews
+        SUM(CASE WHEN state = 'disqualified' THEN 1 ELSE 0 END) as disqualified_interviews,
+        SUM(CASE WHEN started_at IS NOT NULL OR state IN ('in_progress','completed','report_ready','disqualified') THEN 1 ELSE 0 END) as attempted_interviews
       FROM interviews
     `).get();
 
@@ -717,6 +718,81 @@ adminRouter.get('/stats', requireAdmin, (req, res) => {
       FROM usage_events
     `).get();
 
+    // Candidate funnel data
+    const funnelData = {
+      invited: intvAgg.total_interviews || 0,
+      attempted: intvAgg.attempted_interviews || 0,
+      completed: intvAgg.completed_interviews || 0,
+      disqualified: intvAgg.disqualified_interviews || 0,
+      live: intvAgg.in_progress_interviews || 0,
+      pending: Math.max(0, (intvAgg.total_interviews || 0) - (intvAgg.attempted_interviews || 0))
+    };
+
+    // Score distribution buckets: 0-10, 10-20, ..., 90-100
+    let scoreDistribution = [];
+    try {
+      scoreDistribution = db.prepare(`
+        SELECT
+          CASE
+            WHEN json_extract(r.json, '$.overall_score') < 10 THEN '0-9'
+            WHEN json_extract(r.json, '$.overall_score') < 20 THEN '10-19'
+            WHEN json_extract(r.json, '$.overall_score') < 30 THEN '20-29'
+            WHEN json_extract(r.json, '$.overall_score') < 40 THEN '30-39'
+            WHEN json_extract(r.json, '$.overall_score') < 50 THEN '40-49'
+            WHEN json_extract(r.json, '$.overall_score') < 60 THEN '50-59'
+            WHEN json_extract(r.json, '$.overall_score') < 70 THEN '60-69'
+            WHEN json_extract(r.json, '$.overall_score') < 80 THEN '70-79'
+            WHEN json_extract(r.json, '$.overall_score') < 90 THEN '80-89'
+            ELSE '90-100'
+          END as range,
+          COUNT(*) as count
+        FROM reports r
+        WHERE json_extract(r.json, '$.overall_score') IS NOT NULL
+          AND typeof(json_extract(r.json, '$.overall_score')) IN ('integer','real')
+        GROUP BY range
+        ORDER BY range
+      `).all();
+    } catch { scoreDistribution = []; }
+
+    // Top 5 active companies
+    let topCompanies = [];
+    try {
+      topCompanies = db.prepare(`
+        SELECT o.id, o.name, o.plan, o.included_interviews,
+          (SELECT COUNT(*) FROM jobs j WHERE j.org_id = o.id) as job_count,
+          (SELECT COUNT(*) FROM interviews i JOIN jobs j2 ON i.job_id = j2.id WHERE j2.org_id = o.id) as interview_count,
+          (SELECT COUNT(*) FROM interviews i2 JOIN jobs j3 ON i2.job_id = j3.id WHERE j3.org_id = o.id AND i2.state IN ('completed','report_ready')) as completed_count,
+          (SELECT COUNT(*) FROM interviews i3 JOIN jobs j4 ON i3.job_id = j4.id WHERE j4.org_id = o.id AND i3.state = 'in_progress') as live_count
+        FROM organizations o
+        WHERE o.id != 'org_platform_admins'
+        ORDER BY interview_count DESC
+        LIMIT 5
+      `).all();
+    } catch { topCompanies = []; }
+
+    // Quick action items
+    const quickActions = [];
+    try {
+      const liveCount = intvAgg.in_progress_interviews || 0;
+      if (liveCount > 0) quickActions.push({ type: 'live', label: `${liveCount} interview(s) happening right now`, icon: 'broadcast', tone: 'warning' });
+      const pendingUsers = userAgg.pending_users || 0;
+      if (pendingUsers > 0) quickActions.push({ type: 'approval', label: `${pendingUsers} recruiter(s) awaiting approval`, icon: 'person-check', tone: 'danger' });
+      const expiringCount = db.prepare(`SELECT COUNT(*) as c FROM interviews WHERE state = 'created' AND expires_at IS NOT NULL AND datetime(expires_at) < datetime('now', '+24 hours') AND datetime(expires_at) > datetime('now')`).get()?.c || 0;
+      if (expiringCount > 0) quickActions.push({ type: 'expiring', label: `${expiringCount} interview link(s) expiring in 24h`, icon: 'clock-history', tone: 'warning' });
+      const feedbacksToday = db.prepare(`SELECT COUNT(*) as c FROM feedbacks WHERE date(created_at) = date('now')`).get()?.c || 0;
+      if (feedbacksToday > 0) quickActions.push({ type: 'feedback', label: `${feedbacksToday} new feedback(s) submitted today`, icon: 'chat-heart', tone: 'info' });
+    } catch { /* non-critical */ }
+
+    // Average score
+    let avgScore = null;
+    try {
+      const avg = db.prepare(`SELECT AVG(json_extract(r.json, '$.overall_score')) as avg_score FROM reports r WHERE json_extract(r.json, '$.overall_score') IS NOT NULL AND typeof(json_extract(r.json, '$.overall_score')) IN ('integer','real')`).get();
+      if (avg?.avg_score !== null && avg?.avg_score !== undefined) avgScore = Math.round(avg.avg_score);
+    } catch { /* skip */ }
+
+    // Completion rate
+    const completionRate = funnelData.attempted > 0 ? Math.round((funnelData.completed / funnelData.attempted) * 100) : 0;
+
     const settingApproval = db.prepare("SELECT value FROM platform_settings WHERE key = 'require_admin_approval'").get();
 
     res.json({
@@ -734,7 +810,8 @@ adminRouter.get('/stats', requireAdmin, (req, res) => {
           total: intvAgg.total_interviews || 0,
           completed: intvAgg.completed_interviews || 0,
           inProgress: intvAgg.in_progress_interviews || 0,
-          disqualified: intvAgg.disqualified_interviews || 0
+          disqualified: intvAgg.disqualified_interviews || 0,
+          attempted: intvAgg.attempted_interviews || 0
         },
         candidates: countsAgg.total_candidates || 0,
         feedbacks: countsAgg.total_feedbacks || 0,
@@ -750,6 +827,12 @@ adminRouter.get('/stats', requireAdmin, (req, res) => {
           remaining: null,
           unlimited: true
         },
+        funnel: funnelData,
+        scoreDistribution,
+        topCompanies,
+        quickActions,
+        avgScore,
+        completionRate,
         activitiesToday: countsAgg.today_activities || 0,
         requireAdminApproval: settingApproval?.value === '1'
       }
