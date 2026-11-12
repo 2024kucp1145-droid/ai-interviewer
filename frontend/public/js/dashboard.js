@@ -673,9 +673,8 @@ window.switchTab = function(tabName) {
     const buttons = mainNav.querySelectorAll('.nav-btn');
     if (tabName === 'jobs') buttons[0]?.classList.add('active');
     if (tabName === 'candidates') buttons[1]?.classList.add('active');
-    if (tabName === 'keys') buttons[2]?.classList.add('active');
-    if (tabName === 'metrics') buttons[3]?.classList.add('active');
-    if (tabName === 'leadmagnet') buttons[4]?.classList.add('active');
+    if (tabName === 'keys') buttons[3]?.classList.add('active');
+    if (tabName === 'metrics') buttons[4]?.classList.add('active');
   }
 
   if (tabName === 'jobs') loadJobs();
@@ -4594,48 +4593,6 @@ document.getElementById('form-feedback')?.addEventListener('submit', async (e) =
       btn.disabled = false;
       btn.innerHTML = defaultBtnHtml || 'Submit Feedback <i class="bi bi-send"></i>';
     }
-  }
-});
-
-// --- Free Question Generator (Lead Magnet) ---
-document.getElementById('form-leadmagnet')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const name = document.getElementById('lm-name').value;
-  const email = document.getElementById('lm-email').value;
-  const jd_text = document.getElementById('lm-jd').value;
-  const resContainer = document.getElementById('lm-result-container');
-  const questionsList = document.getElementById('lm-questions-list');
-
-  resContainer.style.display = 'block';
-  questionsList.innerHTML = '<p style="color:var(--text-muted); font-size:0.775rem;"><i class="bi bi-hourglass-split"></i> Formulating technical screening questions...</p>';
-
-  try {
-    const res = await fetch('/api/lead-magnet', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, jd_text })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to generate questions');
-
-    questionsList.innerHTML = data.questions.map(q => `
-      <div style="background:#fff; border:1px solid var(--border); border-radius:6px; padding:0.85rem 1rem; margin-bottom:0.75rem;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <strong style="color:#000; font-size:0.825rem;">Q${q.id}. ${q.skill} (${q.level})</strong>
-        </div>
-        <p style="font-size:0.8rem; margin:0.35rem 0 0.5rem; color:#18181b; font-weight:500;">
-          "${q.question}"
-        </p>
-        <div style="background:var(--surface-subtle); border-left:2px solid #000; padding:0.5rem 0.75rem; border-radius:4px; font-size:0.75rem;">
-          <div style="font-weight:700; margin-bottom:0.2rem; color:#000;">Scoring Rubric:</div>
-          <div><strong>Score 1:</strong> ${q.rubric.score_1}</div>
-          <div><strong>Score 3:</strong> ${q.rubric.score_3}</div>
-          <div><strong>Score 5:</strong> ${q.rubric.score_5}</div>
-        </div>
-      </div>
-    `).join('');
-  } catch (err) {
-    questionsList.innerHTML = `<p style="color:#000; font-size:0.75rem;">${err.message}</p>`;
   }
 });
 
