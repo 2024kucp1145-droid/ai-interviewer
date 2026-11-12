@@ -2519,7 +2519,11 @@
                 <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">Click any interview block to open its candidate results or copy direct candidate share link</div>
               </div>
             </div>
-            <div style="display: flex; gap: 0.35rem; align-items: center;">
+            <div style="display: flex; gap: 0.45rem; align-items: center; flex-wrap: wrap;">
+              <input type="text" id="pipeline-rounds-search" placeholder="Search rounds..." oninput="window.renderInterviewBlocks && window.renderInterviewBlocks()" style="padding: 0.32rem 0.65rem; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.75rem; width: 170px;">
+              <button type="button" class="btn btn-outline btn-sm" onclick="window.exportAllRoundsSummaryCsv && window.exportAllRoundsSummaryCsv()" title="Download summary across all interview rounds">
+                <i class="bi bi-file-earmark-spreadsheet"></i> Export Summary CSV
+              </button>
               <button class="btn btn-outline btn-sm" onclick="switchTab('jobs')">
                 <i class="bi bi-plus-circle"></i> New Interview Round
               </button>

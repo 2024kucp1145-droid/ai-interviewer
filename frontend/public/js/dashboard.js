@@ -3285,41 +3285,106 @@ let currentRosterFilter = 'all';
 let candidateViewMode = 'cards';
 
 // Helper to categorize candidates into Selected (Green), Borderline (Amber), Rejected (Red), or Pending
-function getCandidateClassification(item) {
+function getCandidateClassification(item, selectedCutoff, borderlineCutoff) {
+  const activeJob = (allLoadedJobs || []).find(j => j.id === activeJobId);
+  const selCut = selectedCutoff ?? activeJob?.selected_threshold ?? 70;
+  const brdCut = borderlineCutoff ?? activeJob?.borderline_threshold ?? 50;
   if (item.state === 'disqualified') {
     return { category: 'rejected', tier: 4, label: 'Disqualified', isSelected: false, isRejected: true };
   }
 
-  const score = typeof item.score === 'number' ? item.score : null;
-  const verdict = (item.verdict || '').toUpperCase();
+  const manual = String(item.manual_decision || '').toLowerCase();
+  if (manual === 'selected') return { category: 'selected', tier: 1, label: 'Selected (Manual)', isSelected: true, isRejected: false };
+  if (manual === 'borderline') return { category: 'borderline', tier: 2, label: 'Review (Manual)', isSelected: false, isRejected: false };
+  if (manual === 'rejected') return { category: 'rejected', tier: 4, label: 'Rejected (Manual)', isSelected: false, isRejected: true };
 
-  // Strict Rejected
-  if (verdict === 'NOT_RECOMMENDED' || verdict === 'DISQUALIFIED' || verdict.includes('REJECT')) {
+  const rawScore = item.score;
+  const score = (rawScore !== null && rawScore !== undefined && Number.isFinite(Number(rawScore))) ? Number(rawScore) : null;
+  const verdict = String(item.verdict || '').toUpperCase().trim();
+
+  if (score !== null) {
+    if (score >= selCut) {
+      return { category: 'selected', tier: 1, label: 'Selected (High Score)', isSelected: true, isRejected: false };
+    }
+    if (score >= brdCut) {
+      return { category: 'borderline', tier: 2, label: 'Borderline / Review', isSelected: false, isRejected: false };
+    }
+    return { category: 'rejected', tier: 4, label: 'Not Recommended (Low Score)', isSelected: false, isRejected: true };
+  }
+
+  if (verdict === 'NOT_RECOMMENDED' || verdict === 'DISQUALIFIED' || verdict === 'DO_NOT_HIRE' || verdict === 'REJECT' || verdict.includes('REJECT')) {
     return { category: 'rejected', tier: 4, label: 'Not Recommended', isSelected: false, isRejected: true };
   }
 
-  // Strict Selected
-  if (verdict === 'RECOMMENDED_HIRE' || verdict.includes('HIRE') || verdict === 'SELECTED') {
+  if (verdict === 'RECOMMENDED_HIRE' || verdict === 'STRONG_HIRE' || verdict === 'SELECTED' || verdict === 'ADVANCE' || verdict === 'HIRE') {
     return { category: 'selected', tier: 1, label: 'Selected / Recommended', isSelected: true, isRejected: false };
   }
 
-  // Score threshold logic
-  if (score !== null) {
-    if (score >= 70) {
-      return { category: 'selected', tier: 1, label: 'Selected (High Score)', isSelected: true, isRejected: false };
-    }
-    if (score < 50) {
-      return { category: 'rejected', tier: 4, label: 'Not Recommended (Low Score)', isSelected: false, isRejected: true };
-    }
+  if (verdict === 'POTENTIAL_HIRE' || verdict === 'MAYBE' || verdict.includes('CONSIDER') || item.state === 'completed' || item.state === 'report_ready') {
     return { category: 'borderline', tier: 2, label: 'Borderline / Review', isSelected: false, isRejected: false };
-  }
-
-  if (verdict === 'POTENTIAL_HIRE' || verdict.includes('CONSIDER')) {
-    return { category: 'borderline', tier: 2, label: 'Potential Hire', isSelected: false, isRejected: false };
   }
 
   return { category: 'pending', tier: 3, label: 'Link Sent / In Progress', isSelected: false, isRejected: false };
 }
+
+window.downloadJobCsvDirect = function(jobId, jobTitle) {
+  if (!jobId) return;
+  fetch(`/jobs/${encodeURIComponent(jobId)}/export.csv`, {
+    headers: { Authorization: `Bearer ${authToken}` }
+  })
+  .then(res => {
+    if (!res.ok) throw new Error('CSV export failed');
+    return res.blob();
+  })
+  .then(blob => {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `candidates_${String(jobTitle || 'round').replace(/[^a-z0-9]/gi, '_')}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  })
+  .catch(err => alert('Export error: ' + err.message));
+};
+
+window.exportAllRoundsSummaryCsv = function() {
+  if (!allLoadedJobs || allLoadedJobs.length === 0) {
+    alert('No interview rounds available to export.');
+    return;
+  }
+  const headers = ['Round Title', 'Level', 'Type', 'Duration (min)', 'Pass Cutoff', 'Review Cutoff', 'Total Candidates', 'Selected', 'Review', 'Rejected', 'Pending', 'Batch Average'];
+  const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  let csv = '\uFEFF' + headers.join(',') + '\n';
+  for (const job of allLoadedJobs) {
+    const borderline = job.borderline_candidates ?? Math.max(0, (job.completed_candidates || 0) - (job.selected_candidates || 0) - (job.rejected_candidates || 0));
+    const pending = job.pending_candidates ?? Math.max(0, (job.total_candidates || 0) - (job.selected_candidates || 0) - borderline - (job.rejected_candidates || 0));
+    csv += [
+      job.title,
+      job.level || job.experience_required || 'Mid-Level',
+      job.interview_type || 'technical',
+      job.max_minutes || 15,
+      job.selected_threshold ?? 70,
+      job.borderline_threshold ?? 50,
+      job.total_candidates || 0,
+      job.selected_candidates || 0,
+      borderline,
+      job.rejected_candidates || 0,
+      pending,
+      job.avg_score !== null && job.avg_score !== undefined ? job.avg_score : ''
+    ].map(esc).join(',') + '\n';
+  }
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `pipeline_summary_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
 
 // 1. Render Interview Round Blocks (Results Hub)
 window.renderInterviewBlocks = function() {
@@ -3338,14 +3403,30 @@ window.renderInterviewBlocks = function() {
     return;
   }
 
-  container.innerHTML = allLoadedJobs.map(job => {
+  const searchQ = (document.getElementById('pipeline-rounds-search')?.value || '').trim().toLowerCase();
+  const visibleJobs = searchQ
+    ? allLoadedJobs.filter(j =>
+        String(j.title || '').toLowerCase().includes(searchQ) ||
+        String(j.skills || '').toLowerCase().includes(searchQ) ||
+        String(j.interview_type || '').toLowerCase().includes(searchQ)
+      )
+    : allLoadedJobs;
+
+  if (visibleJobs.length === 0) {
+    container.innerHTML = `<div style="grid-column: 1 / -1; padding: 2rem; text-align: center; color: var(--text-muted);">No interview rounds match "${escapeHtml(searchQ)}".</div>`;
+    return;
+  }
+
+  container.innerHTML = visibleJobs.map(job => {
     const isActive = (job.id === activeJobId);
     const total = job.total_candidates || 0;
     const selected = job.selected_candidates || 0;
     const rejected = job.rejected_candidates || 0;
-    const completed = job.completed_candidates || 0;
-    const borderline = Math.max(0, completed - selected - rejected);
+    const borderline = job.borderline_candidates ?? Math.max(0, (job.completed_candidates || 0) - selected - rejected);
+    const pending = job.pending_candidates ?? Math.max(0, total - selected - borderline - rejected);
     const avgScoreDisplay = (job.avg_score !== null && job.avg_score !== undefined) ? `${job.avg_score} pts` : '--';
+    const passBar = job.selected_threshold ?? 70;
+    const levelLabel = job.level ? String(job.level).replace(/^\w/, c => c.toUpperCase()) : (job.experience_required || 'Mid-Level');
 
     return `
       <div class="interview-round-block ${isActive ? 'active' : ''}" onclick="selectInterviewRoundBlock('${job.id}')">
@@ -3355,13 +3436,14 @@ window.renderInterviewBlocks = function() {
             ${isActive ? `<span class="badge" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 0.65rem; font-weight: 700; flex-shrink: 0;"><i class="bi bi-check-circle-fill" style="color: #2563eb;"></i> Selected</span>` : ''}
           </div>
           <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
-            <span class="badge badge-outline" style="font-size: 0.65rem;">${escapeHtml(job.experience_level || 'Mid-Level')}</span>
+            <span class="badge badge-outline" style="font-size: 0.65rem;">${escapeHtml(levelLabel)}</span>
             <span class="badge badge-dark" style="font-size: 0.65rem;"><i class="bi bi-cpu"></i> ${escapeHtml(job.interview_type || 'Technical')}</span>
             <span class="badge badge-outline" style="font-size: 0.65rem;"><i class="bi bi-stopwatch"></i> ${job.max_minutes || 15}m</span>
+            <span class="badge badge-outline" style="font-size: 0.65rem;">Pass &ge; ${passBar}</span>
           </div>
 
           <!-- Live Candidate Results Breakdown Pills -->
-          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.35rem; margin-bottom: 0.85rem; text-align: center;">
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.35rem; margin-bottom: 0.65rem; text-align: center;">
             <div style="background: var(--surface-subtle); padding: 0.4rem 0.2rem; border-radius: 6px; border: 1px solid var(--border);">
               <div style="font-size: 1rem; font-weight: 800; color: var(--text);">${total}</div>
               <div style="font-size: 0.62rem; color: var(--text-muted); font-weight: 600;">Total</div>
@@ -3379,6 +3461,7 @@ window.renderInterviewBlocks = function() {
               <div style="font-size: 0.62rem; color: #991b1b; font-weight: 700;">Rejected</div>
             </div>
           </div>
+          ${pending > 0 ? `<div style="font-size: 0.68rem; color: var(--text-muted); margin-bottom: 0.35rem;"><i class="bi bi-clock"></i> ${pending} awaiting completion</div>` : ''}
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 0.55rem; padding-top: 0.65rem; border-top: 1px solid var(--border);">
@@ -3387,16 +3470,19 @@ window.renderInterviewBlocks = function() {
             <strong style="color: var(--text); font-size: 0.85rem;">${avgScoreDisplay}</strong>
           </div>
 
-          <!-- Direct Actions: Download PDF, Roster in Dashboard & Dedicated Full Page -->
-          <div style="display: flex; gap: 0.45rem; align-items: center; margin-top: 0.2rem;">
-            <button type="button" class="btn btn-outline btn-sm" onclick="event.stopPropagation(); window.open('/results.html?jobId=${job.id}&downloadPdf=1', '_blank')" title="Download complete PDF candidate report" style="padding: 0.35rem 0.65rem;">
+          <!-- Direct Actions: PDF, CSV, Roster in Dashboard & Full Customize/Results Page -->
+          <div style="display: flex; gap: 0.4rem; align-items: center; margin-top: 0.2rem; flex-wrap: wrap;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="event.stopPropagation(); window.open('/results.html?jobId=${job.id}&downloadPdf=1', '_blank')" title="Download complete PDF candidate report" style="padding: 0.35rem 0.55rem;">
               <i class="bi bi-file-earmark-pdf-fill" style="color: #ef4444;"></i> PDF
             </button>
-            <button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation(); selectInterviewRoundBlock('${job.id}')" style="flex: 1; justify-content: center; font-weight: 700;">
-              <i class="bi bi-people-fill"></i> View Roster &rarr;
+            <button type="button" class="btn btn-outline btn-sm" onclick="event.stopPropagation(); window.downloadJobCsvDirect('${job.id}', ${JSON.stringify(job.title || 'round').replace(/"/g, '&quot;')})" title="Download CSV spreadsheet" style="padding: 0.35rem 0.55rem;">
+              <i class="bi bi-filetype-csv" style="color: #10b981;"></i> CSV
             </button>
-            <a href="/results.html?jobId=${job.id}" target="_blank" class="btn btn-ghost btn-sm" onclick="event.stopPropagation();" title="Open full 4-section results page" style="padding: 0.35rem 0.6rem;">
-              <i class="bi bi-box-arrow-up-right"></i>
+            <button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation(); selectInterviewRoundBlock('${job.id}')" style="flex: 1; justify-content: center; font-weight: 700;">
+              <i class="bi bi-people-fill"></i> Roster &rarr;
+            </button>
+            <a href="/results.html?jobId=${job.id}" class="btn btn-outline btn-sm" onclick="event.stopPropagation();" title="Open full 4-section results page with customize &amp; exports" style="padding: 0.35rem 0.55rem; text-decoration: none; font-weight: 600;">
+              <i class="bi bi-sliders"></i> Customize
             </a>
           </div>
         </div>

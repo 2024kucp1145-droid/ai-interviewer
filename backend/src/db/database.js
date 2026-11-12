@@ -310,6 +310,12 @@ export function initDatabase() {
   // Automated LeetCode Judge & Coding Sandbox Results
   addColumn('interviews', 'dsa_result', 'TEXT');
 
+  // Results & Merit Ranking Customization
+  addColumn('jobs', 'selected_threshold', 'INTEGER DEFAULT 70');
+  addColumn('jobs', 'borderline_threshold', 'INTEGER DEFAULT 50');
+  addColumn('jobs', 'results_config', 'TEXT');
+  addColumn('reports', 'manual_decision', 'TEXT');
+
   // Platform Administration & Recruiter Approval
   addColumn('users', 'approval_status', "TEXT DEFAULT 'approved'");
   addColumn('users', 'last_login_at', 'DATETIME');

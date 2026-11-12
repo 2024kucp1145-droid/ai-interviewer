@@ -895,21 +895,264 @@ app.post('/jobs', requireAuth, (req, res) => {
   }
 });
 
+function normalizeThresholds(selectedThreshold, borderlineThreshold) {
+  let selectedCutoff = parseInt(selectedThreshold, 10);
+  let borderlineCutoff = parseInt(borderlineThreshold, 10);
+  if (!Number.isFinite(selectedCutoff)) selectedCutoff = 70;
+  if (!Number.isFinite(borderlineCutoff)) borderlineCutoff = 50;
+  selectedCutoff = Math.max(0, Math.min(100, selectedCutoff));
+  borderlineCutoff = Math.max(0, Math.min(selectedCutoff, borderlineCutoff));
+  return { selectedCutoff, borderlineCutoff };
+}
+
+function parseResultsConfig(rawConfig) {
+  if (!rawConfig) return {};
+  if (typeof rawConfig === 'object') return rawConfig;
+  try {
+    return JSON.parse(rawConfig) || {};
+  } catch {
+    return {};
+  }
+}
+
+function classifyCandidateResult({ state, score, verdict, manualDecision }, selectedCutoff = 70, borderlineCutoff = 50) {
+  const cleanState = String(state || '').toLowerCase();
+  if (cleanState === 'disqualified') return 'rejected';
+
+  const manual = String(manualDecision || '').toLowerCase();
+  if (manual === 'selected' || manual === 'borderline' || manual === 'rejected') {
+    return manual;
+  }
+
+  if (typeof score === 'number' && Number.isFinite(score)) {
+    if (score >= selectedCutoff) return 'selected';
+    if (score >= borderlineCutoff) return 'borderline';
+    return 'rejected';
+  }
+
+  const cleanVerdict = String(verdict || '').toUpperCase().trim();
+  if (
+    cleanVerdict === 'DISQUALIFIED' ||
+    cleanVerdict === 'NOT_RECOMMENDED' ||
+    cleanVerdict === 'DO_NOT_HIRE' ||
+    cleanVerdict === 'REJECT' ||
+    cleanVerdict.includes('REJECT')
+  ) {
+    return 'rejected';
+  }
+  if (
+    cleanVerdict === 'RECOMMENDED_HIRE' ||
+    cleanVerdict === 'STRONG_HIRE' ||
+    cleanVerdict === 'SELECTED' ||
+    cleanVerdict === 'ADVANCE' ||
+    cleanVerdict === 'HIRE'
+  ) {
+    return 'selected';
+  }
+  if (
+    cleanVerdict === 'POTENTIAL_HIRE' ||
+    cleanVerdict === 'MAYBE' ||
+    cleanVerdict.includes('CONSIDER') ||
+    cleanState === 'completed' ||
+    cleanState === 'report_ready'
+  ) {
+    return 'borderline';
+  }
+  return 'pending';
+}
+
+function enrichInterviewRow(row, selectedCutoff = 70, borderlineCutoff = 50) {
+  let score = null;
+  let verdict = null;
+  let summary = '';
+  let skills = [];
+  let manualDecision = row.manual_decision || null;
+  let dsaResult = null;
+
+  if (row.report_json) {
+    try {
+      const parsed = JSON.parse(row.report_json);
+      const rawScore = parsed.overall_score ?? parsed.score;
+      if (rawScore !== null && rawScore !== undefined && rawScore !== '' && Number.isFinite(Number(rawScore))) {
+        score = Math.round(Number(rawScore));
+      }
+      verdict = parsed.candidate_verdict || parsed.recommendation || null;
+      summary = parsed.hiring_clarification || parsed.overall_summary || parsed.summary || '';
+      skills = Array.isArray(parsed.skills) ? parsed.skills : [];
+      if (!manualDecision && parsed.manual_decision) manualDecision = parsed.manual_decision;
+    } catch {}
+  }
+
+  if (row.state === 'disqualified') {
+    score = 0;
+    verdict = 'DISQUALIFIED';
+  }
+
+  if (row.dsa_result) {
+    try { dsaResult = JSON.parse(row.dsa_result); } catch {}
+  }
+
+  let proctorLogs = [];
+  if (row.proctor_logs) {
+    try { proctorLogs = JSON.parse(row.proctor_logs); } catch {}
+  }
+
+  let durationSeconds = null;
+  if (row.started_at && row.ended_at) {
+    const startMs = new Date(row.started_at).getTime();
+    const endMs = new Date(row.ended_at).getTime();
+    if (Number.isFinite(startMs) && Number.isFinite(endMs) && endMs >= startMs) {
+      durationSeconds = Math.round((endMs - startMs) / 1000);
+    }
+  }
+
+  const category = classifyCandidateResult(
+    { state: row.state, score, verdict, manualDecision },
+    selectedCutoff,
+    borderlineCutoff
+  );
+
+  return {
+    ...row,
+    score,
+    verdict,
+    summary,
+    skills,
+    manual_decision: manualDecision,
+    category,
+    duration_seconds: durationSeconds,
+    proctor_logs: Array.isArray(proctorLogs) ? proctorLogs : [],
+    dsa_result: dsaResult
+  };
+}
+
+function getOrgJobOrNull(jobId, orgId) {
+  return db.prepare(`
+    SELECT * FROM jobs
+    WHERE id = ? AND (org_id = ? OR org_id = 'org_default' OR org_id IS NULL)
+  `).get(jobId, orgId);
+}
+
+function fetchEnrichedJobInterviews(job, orgId, selectedCutoff, borderlineCutoff) {
+  const rows = db.prepare(`
+    SELECT 
+      i.id as interview_id,
+      i.job_id,
+      i.state,
+      i.started_at,
+      i.ended_at,
+      i.expires_at,
+      i.dispatch_status,
+      i.dispatch_channel,
+      i.source as interview_source,
+      i.proctor_warnings,
+      i.disqualified_reason,
+      i.proctor_logs,
+      i.dsa_result,
+      c.id as candidate_id,
+      c.org_id as candidate_org_id,
+      c.name as candidate_name,
+      c.email as candidate_email,
+      c.phone as candidate_phone,
+      c.source as candidate_source,
+      r.id as report_id,
+      r.json as report_json,
+      r.reviewed_by,
+      r.reviewer_note,
+      r.manual_decision
+    FROM interviews i
+    JOIN candidates c ON i.candidate_id = c.id
+    JOIN jobs j ON i.job_id = j.id
+    LEFT JOIN reports r ON r.interview_id = i.id
+    WHERE j.id = ?
+      AND (j.org_id = ? OR c.org_id = ? OR c.org_id = 'org_default' OR c.org_id IS NULL)
+    ORDER BY COALESCE(i.ended_at, i.started_at, i.expires_at) DESC, i.id DESC
+  `).all(job.id, orgId, orgId);
+
+  return rows.map(r => enrichInterviewRow(r, selectedCutoff, borderlineCutoff));
+}
+
 app.get('/jobs', requireAuth, (req, res) => {
   try {
     const jobs = db.prepare(`
-      SELECT 
-        j.*,
-        (SELECT COUNT(*) FROM interviews i WHERE i.job_id = j.id) as total_candidates,
-        (SELECT COUNT(*) FROM interviews i WHERE i.job_id = j.id AND i.state IN ('completed', 'report_ready')) as completed_candidates,
-        (SELECT COUNT(*) FROM interviews i JOIN reports r ON r.interview_id = i.id WHERE i.job_id = j.id AND (json_extract(r.json, '$.overall_score') >= 70 OR json_extract(r.json, '$.candidate_verdict') = 'RECOMMENDED_HIRE')) as selected_candidates,
-        (SELECT COUNT(*) FROM interviews i LEFT JOIN reports r ON r.interview_id = i.id WHERE i.job_id = j.id AND (i.state = 'disqualified' OR json_extract(r.json, '$.overall_score') < 50 OR json_extract(r.json, '$.candidate_verdict') = 'NOT_RECOMMENDED')) as rejected_candidates,
-        (SELECT ROUND(AVG(json_extract(r.json, '$.overall_score')), 1) FROM interviews i JOIN reports r ON r.interview_id = i.id WHERE i.job_id = j.id AND json_extract(r.json, '$.overall_score') IS NOT NULL) as avg_score
+      SELECT j.*
       FROM jobs j 
       WHERE j.org_id = ? OR j.org_id = 'org_default' OR j.org_id IS NULL
       ORDER BY j.created_at DESC
     `).all(req.user.org_id);
-    res.json(jobs);
+
+    const rows = db.prepare(`
+      SELECT
+        i.id as interview_id,
+        i.job_id,
+        i.state,
+        c.org_id as candidate_org_id,
+        j.org_id as job_org_id,
+        r.json as report_json,
+        r.manual_decision
+      FROM interviews i
+      JOIN candidates c ON i.candidate_id = c.id
+      JOIN jobs j ON i.job_id = j.id
+      LEFT JOIN reports r ON r.interview_id = i.id
+      WHERE (j.org_id = ? OR j.org_id = 'org_default' OR j.org_id IS NULL)
+        AND (j.org_id = ? OR c.org_id = ? OR c.org_id = 'org_default' OR c.org_id IS NULL)
+    `).all(req.user.org_id, req.user.org_id, req.user.org_id);
+
+    const rowsByJob = new Map();
+    for (const r of rows) {
+      if (!rowsByJob.has(r.job_id)) rowsByJob.set(r.job_id, []);
+      rowsByJob.get(r.job_id).push(r);
+    }
+
+    const enrichedJobs = jobs.map(job => {
+      const { selectedCutoff, borderlineCutoff } = normalizeThresholds(
+        job.selected_threshold,
+        job.borderline_threshold
+      );
+      const jobRows = rowsByJob.get(job.id) || [];
+
+      let totalCandidates = 0;
+      let completedCandidates = 0;
+      let selectedCandidates = 0;
+      let borderlineCandidates = 0;
+      let rejectedCandidates = 0;
+      let pendingCandidates = 0;
+      let scoreSum = 0;
+      let scoredCount = 0;
+
+      for (const r of jobRows) {
+        totalCandidates++;
+        if (r.state === 'completed' || r.state === 'report_ready') {
+          completedCandidates++;
+        }
+        const enriched = enrichInterviewRow(r, selectedCutoff, borderlineCutoff);
+        if (enriched.category === 'selected') selectedCandidates++;
+        else if (enriched.category === 'borderline') borderlineCandidates++;
+        else if (enriched.category === 'rejected') rejectedCandidates++;
+        else pendingCandidates++;
+
+        if (typeof enriched.score === 'number') {
+          scoreSum += enriched.score;
+          scoredCount++;
+        }
+      }
+
+      return {
+        ...job,
+        selected_threshold: selectedCutoff,
+        borderline_threshold: borderlineCutoff,
+        results_config: parseResultsConfig(job.results_config),
+        total_candidates: totalCandidates,
+        completed_candidates: completedCandidates,
+        selected_candidates: selectedCandidates,
+        borderline_candidates: borderlineCandidates,
+        rejected_candidates: rejectedCandidates,
+        pending_candidates: pendingCandidates,
+        avg_score: scoredCount > 0 ? Number((scoreSum / scoredCount).toFixed(1)) : null
+      };
+    });
+
+    res.json(enrichedJobs);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1158,7 +1401,7 @@ app.post('/jobs/:id/interviews', requireAuth, async (req, res) => {
     const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(jobId);
     if (!job) return res.status(404).json({ error: 'Job not found' });
 
-    const effectiveOrgId = job.org_id || req.user.org_id;
+    const effectiveOrgId = (job.org_id && job.org_id !== 'org_default') ? job.org_id : req.user.org_id;
     // Ensure organization row exists in database
     db.prepare(`
       INSERT OR IGNORE INTO organizations (id, name, plan, included_interviews)
@@ -1272,7 +1515,7 @@ app.post('/jobs/:id/dispatch-batch', requireAuth, async (req, res) => {
     const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(jobId);
     if (!job) return res.status(404).json({ error: 'Job position not found.' });
 
-    const effectiveOrgId = job.org_id || req.user.org_id;
+    const effectiveOrgId = (job.org_id && job.org_id !== 'org_default') ? job.org_id : req.user.org_id;
     // Ensure organization row exists in database
     db.prepare(`
       INSERT OR IGNORE INTO organizations (id, name, plan, included_interviews)
@@ -1380,66 +1623,121 @@ app.post('/jobs/:id/dispatch-batch', requireAuth, async (req, res) => {
 
 app.get('/jobs/:id/interviews', requireAuth, (req, res) => {
   try {
-    const rows = db.prepare(`
-      SELECT 
-        i.id as interview_id,
-        i.state,
-        i.started_at,
-        i.ended_at,
-        i.expires_at,
-        i.dispatch_status,
-        i.dispatch_channel,
-        i.source as interview_source,
-        i.proctor_warnings,
-        i.disqualified_reason,
-        c.id as candidate_id,
-        c.name as candidate_name,
-        c.email as candidate_email,
-        c.phone as candidate_phone,
-        c.source as candidate_source,
-        r.id as report_id,
-        r.json as report_json
-      FROM interviews i
-      JOIN candidates c ON i.candidate_id = c.id
-      JOIN jobs j ON i.job_id = j.id
-      LEFT JOIN reports r ON r.interview_id = i.id
-      WHERE j.id = ?
-      ORDER BY i.started_at DESC, i.id DESC
-    `).all(req.params.id);
+    const job = getOrgJobOrNull(req.params.id, req.user.org_id);
+    if (!job) return res.status(404).json({ error: 'Interview round not found' });
 
-    // Adopt any org_default candidates/jobs into this recruiter's org
-    try {
-      db.prepare(`UPDATE candidates SET org_id = ? WHERE org_id = 'org_default' OR org_id IS NULL`).run(req.user.org_id);
-      db.prepare(`UPDATE jobs SET org_id = ? WHERE org_id = 'org_default' OR org_id IS NULL`).run(req.user.org_id);
-    } catch(e) {}
+    const { selectedCutoff, borderlineCutoff } = normalizeThresholds(
+      req.query.selectedCutoff ?? job.selected_threshold,
+      req.query.borderlineCutoff ?? job.borderline_threshold
+    );
 
-    const enriched = rows.map(row => {
-      let score = null;
-      let verdict = null;
-      let summary = '';
-      let skills = [];
-      if (row.report_json) {
-        try {
-          const parsed = JSON.parse(row.report_json);
-          score = typeof parsed.overall_score === 'number' ? parsed.overall_score : null;
-          verdict = parsed.candidate_verdict || parsed.recommendation || null;
-          summary = parsed.hiring_clarification || parsed.summary || '';
-          skills = Array.isArray(parsed.skills) ? parsed.skills : [];
-        } catch (e) {}
-      } else if (row.state === 'disqualified') {
-        score = 0;
-        verdict = 'DISQUALIFIED';
-      }
-      return {
-        ...row,
-        score,
-        verdict,
-        summary,
-        skills
-      };
+    const enriched = fetchEnrichedJobInterviews(job, req.user.org_id, selectedCutoff, borderlineCutoff);
+    res.json(enriched);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Customize Results Cutoffs & Report Preferences ---
+app.put('/jobs/:id/results-settings', requireAuth, (req, res) => {
+  try {
+    const job = getOrgJobOrNull(req.params.id, req.user.org_id);
+    if (!job) return res.status(404).json({ error: 'Interview round not found' });
+
+    const { selectedCutoff, borderlineCutoff } = normalizeThresholds(
+      req.body?.selected_threshold ?? job.selected_threshold,
+      req.body?.borderline_threshold ?? job.borderline_threshold
+    );
+
+    const incomingConfig = req.body?.results_config && typeof req.body.results_config === 'object'
+      ? req.body.results_config
+      : parseResultsConfig(job.results_config);
+
+    db.prepare(`
+      UPDATE jobs
+      SET selected_threshold = ?, borderline_threshold = ?, results_config = ?
+      WHERE id = ?
+    `).run(selectedCutoff, borderlineCutoff, JSON.stringify(incomingConfig), job.id);
+
+    logActivity({
+      action: 'RESULTS_CUSTOMIZED',
+      actorType: 'user',
+      actorId: req.user.id,
+      actorEmail: req.user.email,
+      orgId: req.user.org_id,
+      entityType: 'job',
+      entityId: job.id,
+      details: { selectedCutoff, borderlineCutoff, title: job.title },
+      ipAddress: req.ip
     });
 
-    res.json(enriched);
+    res.json({
+      success: true,
+      jobId: job.id,
+      selected_threshold: selectedCutoff,
+      borderline_threshold: borderlineCutoff,
+      results_config: incomingConfig
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Recruiter Manual Decision Override & Reviewer Note ---
+app.patch('/interviews/:id/decision', requireAuth, (req, res) => {
+  try {
+    const interview = db.prepare(`
+      SELECT i.*, j.org_id as job_org_id
+      FROM interviews i
+      JOIN jobs j ON i.job_id = j.id
+      WHERE i.id = ? AND (j.org_id = ? OR j.org_id = 'org_default' OR j.org_id IS NULL)
+    `).get(req.params.id, req.user.org_id);
+
+    if (!interview) return res.status(404).json({ error: 'Candidate interview not found' });
+
+    const rawDecision = String(req.body?.manual_decision || 'auto').toLowerCase();
+    const validDecisions = ['auto', 'selected', 'borderline', 'rejected'];
+    const manualDecision = validDecisions.includes(rawDecision) ? (rawDecision === 'auto' ? null : rawDecision) : null;
+    const reviewerNote = typeof req.body?.reviewer_note === 'string' ? req.body.reviewer_note.trim() : null;
+    const reviewerName = req.user.full_name || req.user.email || 'Recruiter';
+
+    const existingReport = db.prepare('SELECT * FROM reports WHERE interview_id = ?').get(interview.id);
+    if (existingReport) {
+      let parsed = {};
+      try { parsed = JSON.parse(existingReport.json) || {}; } catch {}
+      parsed.manual_decision = manualDecision;
+      db.prepare(`
+        UPDATE reports
+        SET json = ?, manual_decision = ?, reviewed_by = ?, reviewer_note = COALESCE(?, reviewer_note)
+        WHERE interview_id = ?
+      `).run(JSON.stringify(parsed), manualDecision, reviewerName, reviewerNote, interview.id);
+    } else {
+      const reportPayload = {
+        overall_score: interview.state === 'disqualified' ? 0 : null,
+        candidate_verdict: manualDecision ? manualDecision.toUpperCase() : null,
+        manual_decision: manualDecision,
+        hiring_clarification: reviewerNote || 'Updated manually by recruiter.',
+        skills: []
+      };
+      db.prepare(`
+        INSERT INTO reports (id, interview_id, json, model, reviewed_by, reviewer_note, manual_decision)
+        VALUES (?, ?, ?, 'recruiter-override', ?, ?, ?)
+      `).run('rep_' + crypto.randomUUID(), interview.id, JSON.stringify(reportPayload), reviewerName, reviewerNote || '', manualDecision);
+    }
+
+    logActivity({
+      action: 'CANDIDATE_DECISION_UPDATED',
+      actorType: 'user',
+      actorId: req.user.id,
+      actorEmail: req.user.email,
+      orgId: req.user.org_id,
+      entityType: 'interview',
+      entityId: interview.id,
+      details: { manualDecision: manualDecision || 'auto', reviewerNote },
+      ipAddress: req.ip
+    });
+
+    res.json({ success: true, interviewId: interview.id, manual_decision: manualDecision, reviewer_note: reviewerNote, reviewed_by: reviewerName });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -2499,51 +2797,158 @@ app.post('/api/feedback', async (req, res) => {
   }
 });
 
-// --- CSV Export for ATS & Spreadsheet Integration (Week 4 / Section 14.1) ---
+// --- Shared Export Filter & Sort Helper for CSV / JSON Downloads ---
+function buildFilteredJobExport(job, orgId, query = {}) {
+  const { selectedCutoff, borderlineCutoff } = normalizeThresholds(
+    query.selectedCutoff ?? job.selected_threshold,
+    query.borderlineCutoff ?? job.borderline_threshold
+  );
+
+  let items = fetchEnrichedJobInterviews(job, orgId, selectedCutoff, borderlineCutoff);
+
+  const catFilter = String(query.category || 'all').toLowerCase();
+  if (catFilter === 'shortlisted' || catFilter === 'selected_borderline') {
+    items = items.filter(i => i.category === 'selected' || i.category === 'borderline');
+  } else if (['selected', 'borderline', 'rejected', 'pending'].includes(catFilter)) {
+    items = items.filter(i => i.category === catFilter);
+  }
+
+  const searchTerm = String(query.search || '').trim().toLowerCase();
+  if (searchTerm) {
+    items = items.filter(i => {
+      const skillsText = (i.skills || []).map(s => s.skill).join(' ').toLowerCase();
+      return (
+        String(i.candidate_name || '').toLowerCase().includes(searchTerm) ||
+        String(i.candidate_email || '').toLowerCase().includes(searchTerm) ||
+        String(i.candidate_phone || '').toLowerCase().includes(searchTerm) ||
+        skillsText.includes(searchTerm)
+      );
+    });
+  }
+
+  const sortMode = String(query.sort || 'score_desc');
+  const tierOrder = { selected: 1, borderline: 2, pending: 3, rejected: 4 };
+  items.sort((a, b) => {
+    if (sortMode === 'score_asc') {
+      return (a.score ?? -1) - (b.score ?? -1);
+    }
+    if (sortMode === 'name_asc') {
+      return String(a.candidate_name || '').localeCompare(String(b.candidate_name || ''));
+    }
+    if (sortMode === 'recent') {
+      const tA = new Date(a.ended_at || a.started_at || 0).getTime() || 0;
+      const tB = new Date(b.ended_at || b.started_at || 0).getTime() || 0;
+      return tB - tA;
+    }
+    // Default: Merit category tier, then point-wise score descending
+    const tierDiff = (tierOrder[a.category] || 9) - (tierOrder[b.category] || 9);
+    if (tierDiff !== 0) return tierDiff;
+    return (b.score ?? -1) - (a.score ?? -1);
+  });
+
+  return { selectedCutoff, borderlineCutoff, items };
+}
+
+function escapeCsvCell(val) {
+  const s = String(val ?? '').replace(/\r?\n/g, ' ').replace(/"/g, '""');
+  return `"${s}"`;
+}
+
+// --- Rich CSV Export for ATS & Spreadsheet Integration ---
 app.get('/jobs/:id/export.csv', requireAuth, (req, res) => {
   try {
-    const jobId = req.params.id;
-    const job = db.prepare('SELECT title FROM jobs WHERE id = ? AND org_id = ?').get(jobId, req.user.org_id);
+    const job = getOrgJobOrNull(req.params.id, req.user.org_id);
     if (!job) return res.status(404).send('Job not found');
 
-    const rows = db.prepare(`
-      SELECT 
-        c.name as candidate_name,
-        c.email as candidate_email,
-        c.consent_at,
-        i.state,
-        i.started_at,
-        i.ended_at,
-        r.json as report_json
-      FROM interviews i
-      JOIN candidates c ON i.candidate_id = c.id
-      LEFT JOIN reports r ON r.interview_id = i.id
-      WHERE i.job_id = ?
-      ORDER BY i.id DESC
-    `).all(jobId);
+    const { items } = buildFilteredJobExport(job, req.user.org_id, req.query);
 
-    let csv = 'Candidate Name,Email,Status,Consent Given,Recommendation,Top Skills Evaluated,Report Summary\n';
-    for (const r of rows) {
-      let rec = 'N/A';
-      let skillsSummary = '';
-      let summary = '';
-      if (r.report_json) {
-        try {
-          const parsed = JSON.parse(r.report_json);
-          rec = (parsed.recommendation || 'N/A').toUpperCase();
-          summary = (parsed.overall_summary || '').replace(/"/g, '""');
-          skillsSummary = (parsed.skills || []).map(s => `${s.skill}:${s.score}/5`).join(' | ');
-        } catch (e) {}
-      }
+    const headers = [
+      'Rank', 'Candidate Name', 'Email', 'Phone', 'Category', 'Score (/100)',
+      'AI Verdict', 'Manual Decision', 'Reviewer Note', 'Top Skills Evaluated',
+      'Proctor Warnings', 'Disqualification Reason', 'Source', 'Duration (min)',
+      'Started At', 'Completed At', 'Report Summary'
+    ];
+    let csv = '\uFEFF' + headers.join(',') + '\n';
 
-      csv += `"${r.candidate_name}","${r.candidate_email}","${r.state}","${r.consent_at ? 'Yes' : 'No'}","${rec}","${skillsSummary}","${summary}"\n`;
-    }
+    items.forEach((r, idx) => {
+      const skillsSummary = (r.skills || []).map(s => `${s.skill}:${s.score}/5`).join(' | ');
+      const mins = r.duration_seconds !== null ? (r.duration_seconds / 60).toFixed(1) : '';
+      const row = [
+        idx + 1,
+        r.candidate_name || '',
+        r.candidate_email || '',
+        r.candidate_phone || '',
+        (r.category || 'pending').toUpperCase(),
+        typeof r.score === 'number' ? r.score : '',
+        r.verdict || r.state || 'N/A',
+        r.manual_decision || 'Auto',
+        r.reviewer_note || '',
+        skillsSummary,
+        r.proctor_warnings || 0,
+        r.disqualified_reason || '',
+        r.interview_source || r.candidate_source || 'direct',
+        mins,
+        r.started_at || '',
+        r.ended_at || '',
+        r.summary || ''
+      ];
+      csv += row.map(escapeCsvCell).join(',') + '\n';
+    });
 
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="candidates_${job.title.replace(/[^a-z0-9]/gi, '_')}.csv"`);
+    const catSuffix = req.query.category && req.query.category !== 'all' ? `_${String(req.query.category).replace(/[^a-z0-9_]/gi, '')}` : '';
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="candidates_${job.title.replace(/[^a-z0-9]/gi, '_')}${catSuffix}.csv"`);
     res.send(csv);
   } catch (err) {
     res.status(500).send('Export error: ' + err.message);
+  }
+});
+
+// --- Structured JSON Export ---
+app.get('/jobs/:id/export.json', requireAuth, (req, res) => {
+  try {
+    const job = getOrgJobOrNull(req.params.id, req.user.org_id);
+    if (!job) return res.status(404).json({ error: 'Job not found' });
+
+    const { selectedCutoff, borderlineCutoff, items } = buildFilteredJobExport(job, req.user.org_id, req.query);
+    const catSuffix = req.query.category && req.query.category !== 'all' ? `_${String(req.query.category).replace(/[^a-z0-9_]/gi, '')}` : '';
+
+    res.setHeader('Content-Disposition', `attachment; filename="candidates_${job.title.replace(/[^a-z0-9]/gi, '_')}${catSuffix}.json"`);
+    res.json({
+      exported_at: new Date().toISOString(),
+      job: {
+        id: job.id,
+        title: job.title,
+        level: job.level,
+        interview_type: job.interview_type,
+        max_minutes: job.max_minutes,
+        selected_threshold: selectedCutoff,
+        borderline_threshold: borderlineCutoff
+      },
+      total_exported: items.length,
+      candidates: items.map((c, idx) => ({
+        rank: idx + 1,
+        interview_id: c.interview_id,
+        candidate_name: c.candidate_name,
+        candidate_email: c.candidate_email,
+        candidate_phone: c.candidate_phone,
+        category: c.category,
+        score: c.score,
+        verdict: c.verdict,
+        manual_decision: c.manual_decision,
+        reviewer_note: c.reviewer_note,
+        reviewed_by: c.reviewed_by,
+        skills: c.skills,
+        proctor_warnings: c.proctor_warnings || 0,
+        disqualified_reason: c.disqualified_reason || null,
+        duration_seconds: c.duration_seconds,
+        summary: c.summary,
+        started_at: c.started_at,
+        ended_at: c.ended_at
+      }))
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

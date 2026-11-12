@@ -371,6 +371,99 @@
       font-size: 0.8rem;
     }
 
+    /* Customize Panel & Download Menu */
+    .customize-panel {
+      background: var(--surface);
+      border: 1.5px solid var(--accent);
+      border-radius: 10px;
+      padding: 1.15rem 1.35rem;
+      margin-bottom: 1.25rem;
+      display: none;
+    }
+    .customize-panel.open {
+      display: block;
+    }
+    .customize-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-top: 0.75rem;
+    }
+    .customize-box {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.8rem 0.95rem;
+    }
+    .customize-box-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 0.55rem;
+    }
+    .custom-input {
+      width: 100%;
+      padding: 0.35rem 0.6rem;
+      border-radius: 6px;
+      border: 1px solid var(--border-dark);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.78rem;
+    }
+    .custom-check {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.76rem;
+      color: var(--text);
+      cursor: pointer;
+      margin-bottom: 0.35rem;
+    }
+    .download-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .download-menu {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 6px);
+      min-width: 245px;
+      background: var(--surface);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.22);
+      padding: 0.4rem;
+      z-index: 80;
+      display: none;
+    }
+    .download-menu.open {
+      display: block;
+    }
+    .download-menu-item {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      padding: 0.48rem 0.65rem;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      font-size: 0.77rem;
+      font-weight: 500;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: left;
+    }
+    .download-menu-item:hover {
+      background: var(--surface-subtle);
+    }
+    .download-menu-divider {
+      border-top: 1px solid var(--border);
+      margin: 0.35rem 0;
+    }
+
     /* Print / PDF Mode */
     @media print {
       body {
@@ -379,7 +472,7 @@
         font-size: 9pt !important;
       }
 
-      header, .no-print, .btn, .search-container, #print-action-bar {
+      header, .no-print, .btn, .search-container, #print-action-bar, .customize-panel, .print-hidden {
         display: none !important;
       }
 
@@ -440,12 +533,46 @@
       </a>
     </div>
 
-    <div style="display: flex; gap: 0.5rem; align-items: center;">
-      <button class="btn btn-primary btn-sm" onclick="downloadPdfReport()">
-        <i class="bi bi-file-earmark-pdf-fill"></i> Download PDF Report
+    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+      <button type="button" class="btn btn-outline btn-sm" id="btn-toggle-customize" onclick="toggleCustomizePanel()">
+        <i class="bi bi-sliders"></i> Customize
       </button>
-      <button class="btn btn-outline btn-sm" onclick="exportJobCsv()">
-        <i class="bi bi-download"></i> Export CSV
+
+      <div class="download-dropdown">
+        <button type="button" class="btn btn-primary btn-sm" onclick="toggleDownloadMenu(event)">
+          <i class="bi bi-download"></i> Download &amp; Export <i class="bi bi-chevron-down" style="font-size: 0.65rem;"></i>
+        </button>
+        <div id="download-menu-dropdown" class="download-menu" onclick="event.stopPropagation()">
+          <button type="button" class="download-menu-item" onclick="downloadPdfReport('all')">
+            <i class="bi bi-file-earmark-pdf-fill" style="color:#ef4444;"></i> PDF Report (All Sections)
+          </button>
+          <button type="button" class="download-menu-item" onclick="downloadPdfReport('selected')">
+            <i class="bi bi-check-circle-fill" style="color:#10b981;"></i> PDF Report (Selected Only)
+          </button>
+          <button type="button" class="download-menu-item" onclick="downloadPdfReport('shortlisted')">
+            <i class="bi bi-people-fill" style="color:#f59e0b;"></i> PDF Report (Selected + Borderline)
+          </button>
+          <div class="download-menu-divider"></div>
+          <button type="button" class="download-menu-item" onclick="downloadHtmlReport()">
+            <i class="bi bi-filetype-html" style="color:#3b82f6;"></i> Offline HTML Dossier (.html)
+          </button>
+          <button type="button" class="download-menu-item" onclick="exportJobCsv('current')">
+            <i class="bi bi-filetype-csv" style="color:#10b981;"></i> Excel CSV (Current Scope)
+          </button>
+          <button type="button" class="download-menu-item" onclick="exportJobCsv('selected')">
+            <i class="bi bi-file-earmark-spreadsheet-fill" style="color:#059669;"></i> Excel CSV (Selected Only)
+          </button>
+          <button type="button" class="download-menu-item" onclick="exportJobJson()">
+            <i class="bi bi-filetype-json" style="color:#8b5cf6;"></i> Structured JSON (.json)
+          </button>
+        </div>
+      </div>
+
+      <button class="btn btn-outline btn-sm" onclick="exportJobCsv('current')">
+        <i class="bi bi-file-earmark-spreadsheet"></i> CSV
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="toggleResultsTheme()" title="Toggle Light/Dark Theme">
+        <i class="bi bi-moon-stars" id="results-theme-icon"></i>
       </button>
       <button class="btn btn-ghost btn-sm" onclick="refreshResultsPage(this)" title="Refresh Results">
         <i class="bi bi-arrow-clockwise"></i> Refresh
@@ -457,12 +584,13 @@
   <div class="print-only-header" style="padding: 1.5rem 2rem 0 2rem;">
     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
       <div>
-        <h2 style="font-size: 1.4rem; font-weight: 800; margin-bottom: 0.2rem;">RoundOne AI &bull; CANDIDATE ASSESSMENT &amp; RANKING REPORT</h2>
+        <h2 style="font-size: 1.4rem; font-weight: 800; margin-bottom: 0.2rem;" id="print-report-heading">RoundOne AI &bull; CANDIDATE ASSESSMENT &amp; RANKING REPORT</h2>
         <p style="font-size: 0.85rem; color: #555;" id="print-job-title-sub">Official Merit &amp; Evaluation Audit</p>
       </div>
       <div style="text-align: right; font-size: 0.75rem; color: #555;">
         <div><strong>Date:</strong> <span id="print-date"></span></div>
-        <div><strong>Status:</strong> Completed &amp; Verified</div>
+        <div><strong>Cutoffs:</strong> <span id="print-cutoffs-label">Selected &ge; 70 | Review &ge; 50</span></div>
+        <div><strong>Scope:</strong> <span id="print-scope-label">All Candidates</span></div>
       </div>
     </div>
   </div>
@@ -478,22 +606,102 @@
             <span id="job-level-badge" class="badge badge-outline">Mid-Level</span>
             <span id="job-type-badge" class="badge badge-outline">Technical</span>
             <span id="job-duration-badge" class="badge badge-outline"><i class="bi bi-clock"></i> 15m</span>
+            <span id="job-cutoff-badge" class="badge badge-outline">Pass &ge; 70 pts</span>
           </div>
           <h1 id="job-role-title" style="font-size: 1.45rem; font-weight: 800; color: var(--text); letter-spacing: -0.02em;">
             Loading Assessment Round...
           </h1>
           <p id="job-description-meta" style="font-size: 0.775rem; color: var(--text-muted); margin-top: 0.25rem;">
-            Automated AI Candidate Screening &bull; Strict Point-Wise Sorting
+            Automated AI Candidate Screening &bull; Accurate Score-Based Categorization &amp; Custom Thresholds
           </p>
         </div>
 
-        <div style="display: flex; gap: 0.5rem; align-items: center;" class="no-print">
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;" class="no-print">
+          <button class="btn btn-outline" onclick="toggleCustomizePanel()">
+            <i class="bi bi-sliders"></i> Customize
+          </button>
           <button class="btn btn-primary" onclick="downloadPdfReport()">
             <i class="bi bi-file-earmark-pdf-fill"></i> Download PDF Report
           </button>
-          <button class="btn btn-outline" onclick="exportJobCsv()">
+          <button class="btn btn-outline" onclick="downloadHtmlReport()">
+            <i class="bi bi-filetype-html"></i> Download HTML
+          </button>
+          <button class="btn btn-outline" onclick="exportJobCsv('current')">
             <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Collapsible Customization Drawer -->
+    <div id="customize-panel" class="customize-panel no-print">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+        <div>
+          <strong style="font-size: 0.95rem; color: var(--text);"><i class="bi bi-sliders" style="color: var(--accent);"></i> Customize Scoring Cutoffs, View &amp; Downloads</strong>
+          <div style="font-size: 0.73rem; color: var(--text-muted);">Changes update candidate categories, counts, charts, PDF, HTML, CSV, and JSON exports immediately.</div>
+        </div>
+        <div style="display: flex; gap: 0.45rem; align-items: center;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="resetResultsCustomization()">
+            <i class="bi bi-arrow-counterclockwise"></i> Reset
+          </button>
+          <button type="button" class="btn btn-primary btn-sm" id="btn-save-customization" onclick="saveResultsCustomization()">
+            <i class="bi bi-check-lg"></i> Save to Job
+          </button>
+        </div>
+      </div>
+
+      <div class="customize-grid">
+        <div class="customize-box">
+          <div class="customize-box-title">1. Score Cutoffs (/100 pts)</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem;">
+            <div>
+              <label style="font-size: 0.72rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Selected Min (&ge;)</label>
+              <input type="number" min="0" max="100" id="custom-selected-cutoff" class="custom-input" value="70" oninput="onCustomizationChanged()">
+            </div>
+            <div>
+              <label style="font-size: 0.72rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Borderline Min (&ge;)</label>
+              <input type="number" min="0" max="100" id="custom-borderline-cutoff" class="custom-input" value="50" oninput="onCustomizationChanged()">
+            </div>
+          </div>
+          <div style="margin-top: 0.65rem;">
+            <label style="font-size: 0.72rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Sort Order</label>
+            <select id="custom-sort-by" class="custom-input" onchange="onCustomizationChanged()">
+              <option value="score_desc">Score: High &rarr; Low (Merit)</option>
+              <option value="score_asc">Score: Low &rarr; High</option>
+              <option value="name_asc">Candidate Name (A &rarr; Z)</option>
+              <option value="recent">Most Recent Activity</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="customize-box">
+          <div class="customize-box-title">2. Visible Sections</div>
+          <label class="custom-check"><input type="checkbox" id="chk-sec-selected" checked onchange="onCustomizationChanged()"> 1. Selected Candidates</label>
+          <label class="custom-check"><input type="checkbox" id="chk-sec-borderline" checked onchange="onCustomizationChanged()"> 2. Borderline / Review</label>
+          <label class="custom-check"><input type="checkbox" id="chk-sec-rejected" checked onchange="onCustomizationChanged()"> 3. Rejected &amp; Disqualified</label>
+          <label class="custom-check"><input type="checkbox" id="chk-sec-pending" checked onchange="onCustomizationChanged()"> 4. Pending Invitations</label>
+        </div>
+
+        <div class="customize-box">
+          <div class="customize-box-title">3. Candidate Card Fields</div>
+          <label class="custom-check"><input type="checkbox" id="chk-field-skills" checked onchange="onCustomizationChanged()"> Skills Breakdown Chips</label>
+          <label class="custom-check"><input type="checkbox" id="chk-field-summary" checked onchange="onCustomizationChanged()"> AI Summary &amp; Reviewer Notes</label>
+          <label class="custom-check"><input type="checkbox" id="chk-field-contact" checked onchange="onCustomizationChanged()"> Email &amp; WhatsApp Contact</label>
+          <label class="custom-check"><input type="checkbox" id="chk-field-proctor" checked onchange="onCustomizationChanged()"> Proctoring, Duration &amp; Controls</label>
+        </div>
+
+        <div class="customize-box">
+          <div class="customize-box-title">4. Download &amp; Report Branding</div>
+          <label style="font-size: 0.72rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Export / PDF Scope</label>
+          <select id="custom-export-scope" class="custom-input" style="margin-bottom: 0.5rem;" onchange="onCustomizationChanged()">
+            <option value="all">All Visible Candidates</option>
+            <option value="selected">Selected Only</option>
+            <option value="shortlisted">Selected + Borderline Only</option>
+            <option value="rejected">Rejected / Disqualified Only</option>
+            <option value="pending">Pending Only</option>
+          </select>
+          <label style="font-size: 0.72rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Custom Report Title</label>
+          <input type="text" id="custom-report-title" class="custom-input" placeholder="e.g. RoundOne AI • Official Candidate Report" oninput="onCustomizationChanged()">
         </div>
       </div>
     </div>
@@ -676,7 +884,15 @@
       <div id="modal-report-content" style="padding: 1.25rem; overflow-y: auto; flex: 1;">
         <!-- Loaded dynamically -->
       </div>
-      <div style="padding: 0.75rem 1.25rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; background: var(--surface-subtle);">
+      <div style="padding: 0.75rem 1.25rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; background: var(--surface-subtle);">
+        <div style="display: flex; gap: 0.45rem; flex-wrap: wrap;">
+          <button class="btn btn-primary btn-sm" id="btn-modal-download-html" onclick="downloadSingleCandidateHtml()">
+            <i class="bi bi-file-earmark-arrow-down-fill"></i> Download Candidate Report
+          </button>
+          <button class="btn btn-outline btn-sm" id="btn-modal-download-txt" onclick="downloadSingleTranscriptTxt()">
+            <i class="bi bi-filetype-txt"></i> Download Transcript (.txt)
+          </button>
+        </div>
         <button class="btn btn-outline btn-sm" onclick="closeResultsReportModal()">Close</button>
       </div>
     </div>
@@ -690,10 +906,45 @@
 
     let currentJob = null;
     let allCandidates = [];
+    let activeModalReportData = null;
 
-    // Helper: Escape HTML
+    const DEFAULT_RESULTS_CONFIG = {
+      selectedCutoff: 70,
+      borderlineCutoff: 50,
+      sortBy: 'score_desc',
+      showSelected: true,
+      showBorderline: true,
+      showRejected: true,
+      showPending: true,
+      showSkills: true,
+      showSummary: true,
+      showContact: true,
+      showProctor: true,
+      exportScope: 'all',
+      reportTitle: 'RoundOne AI • CANDIDATE ASSESSMENT & RANKING REPORT'
+    };
+
+    let customConfig = { ...DEFAULT_RESULTS_CONFIG };
+
+    // Theme init
+    (function initTheme() {
+      const saved = localStorage.getItem('roundone_theme') || localStorage.getItem('ai_interviewer_theme') || 'light';
+      document.documentElement.setAttribute('data-theme', saved);
+      const icon = document.getElementById('results-theme-icon');
+      if (icon) icon.className = saved === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars';
+    })();
+
+    function toggleResultsTheme() {
+      const cur = document.documentElement.getAttribute('data-theme') || 'light';
+      const next = cur === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('roundone_theme', next);
+      const icon = document.getElementById('results-theme-icon');
+      if (icon) icon.className = next === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars';
+    }
+
     function escapeHtml(str) {
-      if (!str) return '';
+      if (str === null || str === undefined) return '';
       return String(str)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
@@ -702,28 +953,216 @@
         .replace(/'/g, '&#39;');
     }
 
-    // Helper: Categorize candidate
+    function safeJsId(str) {
+      return String(str || '').replace(/[^a-zA-Z0-9_-]/g, '');
+    }
+
+    function getNumericScore(item) {
+      if (item.state === 'disqualified') return 0;
+      const s = item.score;
+      return (s !== null && s !== undefined && s !== '' && Number.isFinite(Number(s))) ? Math.round(Number(s)) : null;
+    }
+
+    // Single accurate categorization helper aligned 1:1 with backend classifyCandidateResult
     function getCandidateCategory(item) {
       if (item.state === 'disqualified') return 'rejected';
 
-      const score = typeof item.score === 'number' ? item.score : null;
-      const verdict = (item.verdict || '').toUpperCase();
+      const manual = String(item.manual_decision || '').toLowerCase();
+      if (manual === 'selected' || manual === 'borderline' || manual === 'rejected') {
+        return manual;
+      }
 
-      if (verdict === 'NOT_RECOMMENDED' || verdict === 'DISQUALIFIED' || verdict.includes('REJECT')) {
+      const score = getNumericScore(item);
+      if (score !== null) {
+        if (score >= customConfig.selectedCutoff) return 'selected';
+        if (score >= customConfig.borderlineCutoff) return 'borderline';
         return 'rejected';
       }
-      if (verdict === 'RECOMMENDED_HIRE' || verdict.includes('HIRE') || verdict === 'SELECTED') {
+
+      const verdict = String(item.verdict || '').toUpperCase().trim();
+      if (
+        verdict === 'NOT_RECOMMENDED' ||
+        verdict === 'DISQUALIFIED' ||
+        verdict === 'DO_NOT_HIRE' ||
+        verdict === 'REJECT' ||
+        verdict.includes('REJECT')
+      ) {
+        return 'rejected';
+      }
+      if (
+        verdict === 'RECOMMENDED_HIRE' ||
+        verdict === 'STRONG_HIRE' ||
+        verdict === 'SELECTED' ||
+        verdict === 'ADVANCE' ||
+        verdict === 'HIRE'
+      ) {
         return 'selected';
       }
-      if (score !== null) {
-        if (score >= 70) return 'selected';
-        if (score < 50) return 'rejected';
-        return 'borderline';
-      }
-      if (verdict === 'POTENTIAL_HIRE' || verdict.includes('CONSIDER')) {
+      if (
+        verdict === 'POTENTIAL_HIRE' ||
+        verdict === 'MAYBE' ||
+        verdict.includes('CONSIDER') ||
+        item.state === 'completed' ||
+        item.state === 'report_ready'
+      ) {
         return 'borderline';
       }
       return 'pending';
+    }
+
+    function syncCustomizationInputsFromState() {
+      const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+      const setChk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = !!v; };
+
+      setVal('custom-selected-cutoff', customConfig.selectedCutoff);
+      setVal('custom-borderline-cutoff', customConfig.borderlineCutoff);
+      setVal('custom-sort-by', customConfig.sortBy);
+      setVal('custom-export-scope', customConfig.exportScope);
+      setVal('custom-report-title', customConfig.reportTitle);
+
+      setChk('chk-sec-selected', customConfig.showSelected);
+      setChk('chk-sec-borderline', customConfig.showBorderline);
+      setChk('chk-sec-rejected', customConfig.showRejected);
+      setChk('chk-sec-pending', customConfig.showPending);
+      setChk('chk-field-skills', customConfig.showSkills);
+      setChk('chk-field-summary', customConfig.showSummary);
+      setChk('chk-field-contact', customConfig.showContact);
+      setChk('chk-field-proctor', customConfig.showProctor);
+    }
+
+    function readCustomizationInputs() {
+      const num = (id, def) => {
+        const v = parseInt(document.getElementById(id)?.value, 10);
+        return Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : def;
+      };
+      const val = (id, def) => document.getElementById(id)?.value || def;
+      const chk = (id, def) => {
+        const el = document.getElementById(id);
+        return el ? !!el.checked : def;
+      };
+
+      const selectedCutoff = num('custom-selected-cutoff', 70);
+      const borderlineCutoff = Math.min(selectedCutoff, num('custom-borderline-cutoff', 50));
+
+      customConfig = {
+        selectedCutoff,
+        borderlineCutoff,
+        sortBy: val('custom-sort-by', 'score_desc'),
+        exportScope: val('custom-export-scope', 'all'),
+        reportTitle: (document.getElementById('custom-report-title')?.value || '').trim() || DEFAULT_RESULTS_CONFIG.reportTitle,
+        showSelected: chk('chk-sec-selected', true),
+        showBorderline: chk('chk-sec-borderline', true),
+        showRejected: chk('chk-sec-rejected', true),
+        showPending: chk('chk-sec-pending', true),
+        showSkills: chk('chk-field-skills', true),
+        showSummary: chk('chk-field-summary', true),
+        showContact: chk('chk-field-contact', true),
+        showProctor: chk('chk-field-proctor', true)
+      };
+
+      const bInput = document.getElementById('custom-borderline-cutoff');
+      if (bInput && Number(bInput.value) !== borderlineCutoff) bInput.value = borderlineCutoff;
+    }
+
+    function toggleCustomizePanel() {
+      const panel = document.getElementById('customize-panel');
+      if (panel) panel.classList.toggle('open');
+    }
+
+    function toggleDownloadMenu(ev) {
+      if (ev) ev.stopPropagation();
+      const menu = document.getElementById('download-menu-dropdown');
+      if (menu) menu.classList.toggle('open');
+    }
+
+    document.addEventListener('click', () => {
+      const menu = document.getElementById('download-menu-dropdown');
+      if (menu) menu.classList.remove('open');
+    });
+
+    function onCustomizationChanged() {
+      readCustomizationInputs();
+      if (jobId) {
+        localStorage.setItem(`results_cfg_${jobId}`, JSON.stringify(customConfig));
+      }
+      renderAllSections();
+    }
+
+    async function saveResultsCustomization() {
+      readCustomizationInputs();
+      if (jobId) {
+        localStorage.setItem(`results_cfg_${jobId}`, JSON.stringify(customConfig));
+      }
+      const btn = document.getElementById('btn-save-customization');
+      const prevHtml = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving...';
+      }
+      try {
+        const res = await fetch(`/jobs/${encodeURIComponent(jobId)}/results-settings`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({
+            selected_threshold: customConfig.selectedCutoff,
+            borderline_threshold: customConfig.borderlineCutoff,
+            results_config: customConfig
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to save customization');
+        if (btn) btn.innerHTML = '<i class="bi bi-check-all"></i> Saved!';
+        setTimeout(() => { if (btn) { btn.innerHTML = prevHtml; btn.disabled = false; } }, 1400);
+      } catch (err) {
+        alert('Could not save settings: ' + err.message);
+        if (btn) { btn.innerHTML = prevHtml; btn.disabled = false; }
+      }
+    }
+
+    function resetResultsCustomization() {
+      customConfig = { ...DEFAULT_RESULTS_CONFIG };
+      if (jobId) localStorage.removeItem(`results_cfg_${jobId}`);
+      syncCustomizationInputsFromState();
+      renderAllSections();
+    }
+
+    async function updateCandidateDecision(interviewId, manualDecision, reviewerNote = null) {
+      try {
+        const res = await fetch(`/interviews/${encodeURIComponent(interviewId)}/decision`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({
+            manual_decision: manualDecision,
+            ...(reviewerNote !== null ? { reviewer_note: reviewerNote } : {})
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to update decision');
+
+        const target = allCandidates.find(c => c.interview_id === interviewId);
+        if (target) {
+          target.manual_decision = data.manual_decision;
+          if (reviewerNote !== null) target.reviewer_note = data.reviewer_note;
+          target.reviewed_by = data.reviewed_by;
+        }
+        renderAllSections();
+      } catch (err) {
+        alert('Update failed: ' + err.message);
+      }
+    }
+
+    async function promptReviewerNote(interviewId) {
+      const target = allCandidates.find(c => c.interview_id === interviewId);
+      const current = target?.reviewer_note || '';
+      const next = prompt('Enter reviewer note for this candidate:', current);
+      if (next === null) return;
+      await updateCandidateDecision(interviewId, target?.manual_decision || 'auto', next);
     }
 
     async function loadJobResults() {
@@ -740,22 +1179,48 @@
       }
 
       try {
-        // Fetch Job Details
-        const jobRes = await fetch(`/jobs/${jobId}`, {
+        const jobRes = await fetch(`/jobs/${encodeURIComponent(jobId)}`, {
           headers: { 'Authorization': `Bearer ${authToken}` }
         });
         if (!jobRes.ok) throw new Error('Failed to load interview details');
         currentJob = await jobRes.json();
 
+        // Hydrate customization from job DB settings -> localStorage overrides
+        let serverCfg = {};
+        if (currentJob.results_config) {
+          try { serverCfg = typeof currentJob.results_config === 'object' ? currentJob.results_config : JSON.parse(currentJob.results_config); } catch {}
+        }
+        let localCfg = {};
+        try { localCfg = JSON.parse(localStorage.getItem(`results_cfg_${jobId}`) || '{}') || {}; } catch {}
+
+        customConfig = {
+          ...DEFAULT_RESULTS_CONFIG,
+          ...serverCfg,
+          ...localCfg,
+          selectedCutoff: Number.isFinite(Number(localCfg.selectedCutoff))
+            ? Number(localCfg.selectedCutoff)
+            : (Number.isFinite(Number(currentJob.selected_threshold)) ? Number(currentJob.selected_threshold) : 70),
+          borderlineCutoff: Number.isFinite(Number(localCfg.borderlineCutoff))
+            ? Number(localCfg.borderlineCutoff)
+            : (Number.isFinite(Number(currentJob.borderline_threshold)) ? Number(currentJob.borderline_threshold) : 50)
+        };
+        if (customConfig.borderlineCutoff > customConfig.selectedCutoff) {
+          customConfig.borderlineCutoff = customConfig.selectedCutoff;
+        }
+        syncCustomizationInputsFromState();
+
+        const levelLabel = currentJob.level
+          ? String(currentJob.level).replace(/^\w/, c => c.toUpperCase())
+          : (currentJob.experience_required || 'Mid-Level');
+
         document.getElementById('job-role-title').textContent = currentJob.title;
-        document.getElementById('job-level-badge').textContent = currentJob.experience_level || 'Mid-Level';
+        document.getElementById('job-level-badge').textContent = levelLabel;
         document.getElementById('job-type-badge').textContent = currentJob.interview_type || 'Technical';
         document.getElementById('job-duration-badge').innerHTML = `<i class="bi bi-clock"></i> ${currentJob.max_minutes || 15}m`;
-        document.getElementById('print-job-title-sub').textContent = `${currentJob.title} — Official Assessment Roster`;
+        document.getElementById('print-job-title-sub').textContent = `${currentJob.title} (${levelLabel}) — Official Assessment Roster`;
         document.getElementById('print-date').textContent = new Date().toLocaleDateString();
 
-        // Fetch Interviews for Job
-        const intvRes = await fetch(`/jobs/${jobId}/interviews`, {
+        const intvRes = await fetch(`/jobs/${encodeURIComponent(jobId)}/interviews`, {
           headers: { 'Authorization': `Bearer ${authToken}` }
         });
         if (!intvRes.ok) throw new Error('Failed to load candidates');
@@ -763,31 +1228,53 @@
 
         renderAllSections();
 
-        // If autoDownloadPdf was requested in query param
         if (autoDownloadPdf) {
-          setTimeout(() => {
-            window.print();
-          }, 600);
+          setTimeout(() => { downloadPdfReport('all'); }, 500);
         }
       } catch (err) {
         alert('Error loading results: ' + err.message);
       }
     }
 
-    function renderAllSections() {
-      const query = (document.getElementById('candidate-search-box')?.value || '').toLowerCase().trim();
+    function sortCandidateList(list) {
+      const mode = customConfig.sortBy || 'score_desc';
+      return [...list].sort((a, b) => {
+        if (mode === 'score_asc') {
+          return (getNumericScore(a) ?? -1) - (getNumericScore(b) ?? -1);
+        }
+        if (mode === 'name_asc') {
+          return String(a.candidate_name || '').localeCompare(String(b.candidate_name || ''));
+        }
+        if (mode === 'recent') {
+          const tA = new Date(a.ended_at || a.started_at || 0).getTime() || 0;
+          const tB = new Date(b.ended_at || b.started_at || 0).getTime() || 0;
+          return tB - tA;
+        }
+        const sA = getNumericScore(a) ?? -1;
+        const sB = getNumericScore(b) ?? -1;
+        if (sB !== sA) return sB - sA;
+        return String(b.interview_id || '').localeCompare(String(a.interview_id || ''));
+      });
+    }
 
-      // Filter by search query
-      const filtered = allCandidates.filter(c => {
+    function getFilteredCandidates() {
+      const query = (document.getElementById('candidate-search-box')?.value || '').toLowerCase().trim();
+      return allCandidates.filter(c => {
         if (!query) return true;
         const name = (c.candidate_name || '').toLowerCase();
         const email = (c.candidate_email || '').toLowerCase();
         const phone = (c.candidate_phone || '').toLowerCase();
+        const note = (c.reviewer_note || '').toLowerCase();
         const skillsStr = (Array.isArray(c.skills) ? c.skills.map(s => s.skill).join(' ') : '').toLowerCase();
-        return name.includes(query) || email.includes(query) || phone.includes(query) || skillsStr.includes(query);
+        return name.includes(query) || email.includes(query) || phone.includes(query) || note.includes(query) || skillsStr.includes(query);
       });
+    }
 
-      // Split into 4 distinct groups
+    function renderAllSections() {
+      const filtered = getFilteredCandidates();
+      const selCutoff = customConfig.selectedCutoff;
+      const brdCutoff = customConfig.borderlineCutoff;
+
       const selected = [];
       const borderline = [];
       const rejected = [];
@@ -801,18 +1288,19 @@
         else pending.push(item);
       });
 
-      // STRICT POINT-WISE SORTING: Highest score to Lowest score
-      selected.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-      borderline.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-      rejected.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+      const sortedSelected = sortCandidateList(selected);
+      const sortedBorderline = sortCandidateList(borderline);
+      const sortedRejected = sortCandidateList(rejected);
 
-      // Update Metric Tiles
-      document.getElementById('metric-total-tested').textContent = allCandidates.length;
+      // Keep counts accurately synced with what is currently displayed
+      const queryActive = Boolean((document.getElementById('candidate-search-box')?.value || '').trim());
+      document.getElementById('metric-total-tested').textContent = queryActive
+        ? `${filtered.length}/${allCandidates.length}`
+        : String(filtered.length);
       document.getElementById('metric-selected-count').textContent = selected.length;
       document.getElementById('metric-borderline-count').textContent = borderline.length;
       document.getElementById('metric-rejected-count').textContent = rejected.length;
 
-      // Badges & Jump Counts
       document.getElementById('badge-count-selected').textContent = `${selected.length} Selected`;
       document.getElementById('badge-count-borderline').textContent = `${borderline.length} Candidates`;
       document.getElementById('badge-count-rejected').textContent = `${rejected.length} Rejected`;
@@ -823,25 +1311,43 @@
       document.getElementById('jump-count-rejected').textContent = rejected.length;
       document.getElementById('jump-count-pending').textContent = pending.length;
 
-      // Calculate Average Score across assessed candidates
-      const assessed = allCandidates.filter(c => typeof c.score === 'number');
+      // Update dynamic cutoff subtitles & header badges
+      const cutoffBadge = document.getElementById('job-cutoff-badge');
+      if (cutoffBadge) cutoffBadge.textContent = `Pass ≥ ${selCutoff} · Review ≥ ${brdCutoff}`;
+
+      const printHeading = document.getElementById('print-report-heading');
+      if (printHeading) printHeading.textContent = customConfig.reportTitle;
+      const printCutoffs = document.getElementById('print-cutoffs-label');
+      if (printCutoffs) printCutoffs.textContent = `Selected ≥ ${selCutoff} pts | Borderline ${brdCutoff}–${Math.max(0, selCutoff - 1)} pts`;
+
+      const selDesc = document.querySelector('#section-selected .section-header div div');
+      if (selDesc) selDesc.textContent = `Score ≥ ${selCutoff} PTS or manual shortlist • Accurate point-wise ranking`;
+      const brdDesc = document.querySelector('#section-borderline .section-header div div');
+      if (brdDesc) brdDesc.textContent = `Moderate performance (Score ${brdCutoff}–${Math.max(0, selCutoff - 1)} PTS) • Secondary evaluation suggested`;
+      const rejDesc = document.querySelector('#section-rejected .section-header div div');
+      if (rejDesc) rejDesc.textContent = `Score < ${brdCutoff} pts or Anti-Cheat Disqualification recorded`;
+
+      const assessed = filtered.map(getNumericScore).filter(s => s !== null);
       if (assessed.length > 0) {
-        const sum = assessed.reduce((acc, c) => acc + c.score, 0);
+        const sum = assessed.reduce((acc, s) => acc + s, 0);
         document.getElementById('metric-avg-score').textContent = (sum / assessed.length).toFixed(1) + ' pts';
       } else {
         document.getElementById('metric-avg-score').textContent = '--';
       }
 
-      // Render Section 1: Selected
-      renderSectionContainer('container-selected-list', selected, 'card-green', 'selected');
+      // Section visibility toggles
+      const setSecVis = (id, visible) => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = visible ? '' : 'none';
+      };
+      setSecVis('section-selected', customConfig.showSelected);
+      setSecVis('section-borderline', customConfig.showBorderline);
+      setSecVis('section-rejected', customConfig.showRejected);
+      setSecVis('section-pending', customConfig.showPending);
 
-      // Render Section 2: Borderline
-      renderSectionContainer('container-borderline-list', borderline, 'card-amber', 'borderline');
-
-      // Render Section 3: Rejected
-      renderSectionContainer('container-rejected-list', rejected, 'card-red', 'rejected');
-
-      // Render Section 4: Pending
+      renderSectionContainer('container-selected-list', sortedSelected, 'card-green', 'selected');
+      renderSectionContainer('container-borderline-list', sortedBorderline, 'card-amber', 'borderline');
+      renderSectionContainer('container-rejected-list', sortedRejected, 'card-red', 'rejected');
       renderPendingContainer('container-pending-list', pending);
     }
 
@@ -851,8 +1357,8 @@
 
       if (list.length === 0) {
         let msg = 'No candidates in this category.';
-        if (type === 'selected') msg = 'No candidates have achieved the recommendation score threshold (>=70 PTS) yet.';
-        if (type === 'borderline') msg = 'No candidates currently under review (50-69 PTS).';
+        if (type === 'selected') msg = `No candidates currently meet the Selected threshold (≥ ${customConfig.selectedCutoff} PTS).`;
+        if (type === 'borderline') msg = `No candidates currently in Borderline range (${customConfig.borderlineCutoff}–${Math.max(0, customConfig.selectedCutoff - 1)} PTS).`;
         if (type === 'rejected') msg = 'No candidates rejected in this round.';
         container.innerHTML = `<div class="empty-section-notice">${msg}</div>`;
         return;
@@ -860,36 +1366,39 @@
 
       container.innerHTML = list.map((item, idx) => {
         const rank = idx + 1;
+        const scoreVal = getNumericScore(item);
+        const safeId = safeJsId(item.interview_id);
         const initials = (item.candidate_name || 'Candidate')
           .split(' ')
+          .filter(Boolean)
           .map(p => p[0])
           .join('')
           .substring(0, 2)
-          .toUpperCase();
+          .toUpperCase() || 'C';
 
         let rankBadge = `<span class="badge" style="background:#10b981; color:#fff; font-weight:800;"><i class="bi bi-trophy-fill" style="color:#fbbf24;"></i> #${rank} Merit Rank</span>`;
         let scoreBadge = `<div style="background:#ecfdf5; border:1.5px solid #a7f3d0; border-radius:8px; padding:0.35rem 0.85rem; text-align:center;">
-          <span style="font-size:1.35rem; font-weight:900; color:#047857;">${item.score ?? 0}<span style="font-size:0.75rem;">/100 PTS</span></span>
-          <div style="font-size:0.62rem; font-weight:700; color:#047857; text-transform:uppercase;">Selected</div>
+          <span style="font-size:1.35rem; font-weight:900; color:#047857;">${scoreVal !== null ? scoreVal : '--'}<span style="font-size:0.75rem;">${scoreVal !== null ? '/100 PTS' : ''}</span></span>
+          <div style="font-size:0.62rem; font-weight:700; color:#047857; text-transform:uppercase;">${item.manual_decision === 'selected' ? 'Selected (Manual)' : 'Selected'}</div>
         </div>`;
 
         if (type === 'borderline') {
           rankBadge = `<span class="badge" style="background:#f59e0b; color:#fff; font-weight:700;">#${rank} Rank</span>`;
           scoreBadge = `<div style="background:#fffbeb; border:1.5px solid #fde68a; border-radius:8px; padding:0.35rem 0.85rem; text-align:center;">
-            <span style="font-size:1.35rem; font-weight:900; color:#b45309;">${item.score ?? 0}<span style="font-size:0.75rem;">/100 PTS</span></span>
-            <div style="font-size:0.62rem; font-weight:700; color:#b45309; text-transform:uppercase;">Borderline</div>
+            <span style="font-size:1.35rem; font-weight:900; color:#b45309;">${scoreVal !== null ? scoreVal : '--'}<span style="font-size:0.75rem;">${scoreVal !== null ? '/100 PTS' : ''}</span></span>
+            <div style="font-size:0.62rem; font-weight:700; color:#b45309; text-transform:uppercase;">${item.manual_decision === 'borderline' ? 'Review (Manual)' : 'Borderline'}</div>
           </div>`;
         } else if (type === 'rejected') {
           rankBadge = `<span class="badge" style="background:#ef4444; color:#fff; font-weight:700;">#${rank} Rank</span>`;
           scoreBadge = `<div style="background:#fef2f2; border:1.5px solid #fecaca; border-radius:8px; padding:0.35rem 0.85rem; text-align:center;">
-            <span style="font-size:1.35rem; font-weight:900; color:#b91c1c;">${item.score ?? 0}<span style="font-size:0.75rem;">/100 PTS</span></span>
-            <div style="font-size:0.62rem; font-weight:700; color:#b91c1c; text-transform:uppercase;">${item.state === 'disqualified' ? 'Disqualified' : 'Rejected'}</div>
+            <span style="font-size:1.35rem; font-weight:900; color:#b91c1c;">${scoreVal !== null ? scoreVal : '--'}<span style="font-size:0.75rem;">${scoreVal !== null ? '/100 PTS' : ''}</span></span>
+            <div style="font-size:0.62rem; font-weight:700; color:#b91c1c; text-transform:uppercase;">${item.state === 'disqualified' ? 'Disqualified' : (item.manual_decision === 'rejected' ? 'Rejected (Manual)' : 'Rejected')}</div>
           </div>`;
         }
 
         let skillsChips = '';
-        if (Array.isArray(item.skills) && item.skills.length > 0) {
-          skillsChips = item.skills.slice(0, 5).map(s => {
+        if (customConfig.showSkills && Array.isArray(item.skills) && item.skills.length > 0) {
+          skillsChips = item.skills.slice(0, 6).map(s => {
             const sc = s.score || 0;
             const color = sc >= 4 ? '#059669' : (sc >= 3 ? '#d97706' : '#dc2626');
             const bg = sc >= 4 ? '#ecfdf5' : (sc >= 3 ? '#fffbeb' : '#fef2f2');
@@ -899,15 +1408,49 @@
         }
 
         let noteHtml = '';
-        if (item.state === 'disqualified') {
-          noteHtml = `<div style="font-size:0.75rem; color:#b91c1c; background:rgba(239,68,68,0.08); padding:0.4rem 0.65rem; border-radius:6px; border-left:3px solid #ef4444;">
-            <strong><i class="bi bi-shield-x"></i> Disqualification Reason:</strong> ${escapeHtml(item.disqualified_reason || 'Anti-cheat policy violation recorded by proctor engine.')}
-          </div>`;
-        } else if (item.summary) {
-          noteHtml = `<div style="font-size:0.75rem; color:var(--text); background:var(--surface-subtle); padding:0.4rem 0.65rem; border-radius:6px; line-height:1.45;">
-            <strong><i class="bi bi-chat-left-quote-fill" style="color:var(--text-muted);"></i> AI Assessment:</strong> ${escapeHtml(item.summary)}
-          </div>`;
+        if (customConfig.showSummary) {
+          if (item.state === 'disqualified') {
+            noteHtml += `<div style="font-size:0.75rem; color:#b91c1c; background:rgba(239,68,68,0.08); padding:0.4rem 0.65rem; border-radius:6px; border-left:3px solid #ef4444;">
+              <strong><i class="bi bi-shield-x"></i> Disqualification Reason:</strong> ${escapeHtml(item.disqualified_reason || 'Anti-cheat policy violation recorded by proctor engine.')}
+            </div>`;
+          } else if (item.summary) {
+            noteHtml += `<div style="font-size:0.75rem; color:var(--text); background:var(--surface-subtle); padding:0.4rem 0.65rem; border-radius:6px; line-height:1.45;">
+              <strong><i class="bi bi-chat-left-quote-fill" style="color:var(--text-muted);"></i> AI Assessment:</strong> ${escapeHtml(item.summary)}
+            </div>`;
+          }
+          if (item.reviewer_note) {
+            noteHtml += `<div style="font-size:0.73rem; color:var(--text); background:var(--accent-light); padding:0.35rem 0.65rem; border-radius:6px; border-left:3px solid var(--accent);">
+              <strong><i class="bi bi-pencil-square"></i> Reviewer Note (${escapeHtml(item.reviewed_by || 'Recruiter')}):</strong> ${escapeHtml(item.reviewer_note)}
+            </div>`;
+          }
         }
+
+        const proctorMeta = customConfig.showProctor
+          ? `<div style="display:flex; gap:0.5rem; flex-wrap:wrap; font-size:0.7rem; color:var(--text-muted);">
+              ${item.duration_seconds ? `<span><i class="bi bi-stopwatch"></i> ${Math.max(1, Math.round(item.duration_seconds / 60))}m</span>` : ''}
+              ${(item.proctor_warnings || 0) > 0 ? `<span style="color:#d97706; font-weight:600;"><i class="bi bi-exclamation-triangle-fill"></i> ${item.proctor_warnings} Proctor Warning(s)</span>` : ''}
+              ${item.dsa_result ? `<span><i class="bi bi-code-slash"></i> Code Lab Evaluated</span>` : ''}
+            </div>`
+          : '';
+
+        const contactHtml = customConfig.showContact
+          ? `<div style="font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.15rem;">
+              ${item.candidate_email && !item.candidate_email.endsWith('@candidate.local') ? `<span><i class="bi bi-envelope"></i> ${escapeHtml(item.candidate_email)}</span>` : ''}
+              ${item.candidate_phone ? `<a href="https://wa.me/${item.candidate_phone.replace(/[^0-9]/g, '')}" target="_blank" style="color:#059669; font-weight:600;"><i class="bi bi-whatsapp"></i> ${escapeHtml(item.candidate_phone)}</a>` : ''}
+            </div>`
+          : '';
+
+        const overrideControls = customConfig.showProctor && item.state !== 'disqualified'
+          ? `<select onchange="updateCandidateDecision('${safeId}', this.value)" title="Customize / override decision" style="padding:0.25rem 0.45rem; border-radius:6px; border:1px solid var(--border-dark); background:var(--surface); color:var(--text); font-size:0.72rem; font-weight:600;">
+              <option value="auto" ${!item.manual_decision ? 'selected' : ''}>Auto (${customConfig.selectedCutoff}/${customConfig.borderlineCutoff})</option>
+              <option value="selected" ${item.manual_decision === 'selected' ? 'selected' : ''}>Move to Selected</option>
+              <option value="borderline" ${item.manual_decision === 'borderline' ? 'selected' : ''}>Move to Review</option>
+              <option value="rejected" ${item.manual_decision === 'rejected' ? 'selected' : ''}>Mark Rejected</option>
+            </select>
+            <button type="button" class="btn btn-outline btn-sm" onclick="promptReviewerNote('${safeId}')" title="Add or edit reviewer note">
+              <i class="bi bi-pencil"></i> Note
+            </button>`
+          : '';
 
         return `
           <div class="result-candidate-card ${cardStyleClass}">
@@ -920,12 +1463,9 @@
                   <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
                     ${rankBadge}
                     <strong style="font-size: 0.95rem; color: var(--text);">${escapeHtml(item.candidate_name)}</strong>
-                    <span class="badge badge-outline" style="font-size: 0.65rem;">${escapeHtml(item.interview_source || 'Direct')}</span>
+                    <span class="badge badge-outline" style="font-size: 0.65rem;">${escapeHtml(item.interview_source || item.candidate_source || 'Direct')}</span>
                   </div>
-                  <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.15rem;">
-                    ${item.candidate_email && !item.candidate_email.endsWith('@candidate.local') ? `<span><i class="bi bi-envelope"></i> ${escapeHtml(item.candidate_email)}</span>` : ''}
-                    ${item.candidate_phone ? `<a href="https://wa.me/${item.candidate_phone.replace(/[^0-9]/g, '')}" target="_blank" style="color:#059669; font-weight:600;"><i class="bi bi-whatsapp"></i> ${escapeHtml(item.candidate_phone)}</a>` : ''}
-                  </div>
+                  ${contactHtml}
                 </div>
               </div>
 
@@ -935,18 +1475,20 @@
             </div>
 
             ${skillsChips ? `<div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.15rem;">${skillsChips}</div>` : ''}
+            ${proctorMeta}
             ${noteHtml}
 
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; border-top: 1px solid var(--border); padding-top: 0.5rem; margin-top: 0.2rem;">
               <span style="font-size: 0.72rem; color: var(--text-muted);">
                 <i class="bi bi-calendar-check"></i> ${item.ended_at ? new Date(item.ended_at).toLocaleString() : (item.started_at ? new Date(item.started_at).toLocaleString() : 'Completed')}
               </span>
-              <div style="display: flex; gap: 0.4rem; align-items: center;" class="no-print">
-                <button class="btn btn-sm btn-primary" onclick="openResultsReportModal('${item.interview_id}')">
-                  <i class="bi bi-file-earmark-text"></i> Full AI Audit Report
+              <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;" class="no-print">
+                ${overrideControls}
+                <button class="btn btn-sm btn-primary" onclick="openResultsReportModal('${safeId}')">
+                  <i class="bi bi-file-earmark-text"></i> Full Audit &amp; Download
                 </button>
-                <a href="/interview.html?token=${item.interview_id}" target="_blank" class="btn btn-outline btn-sm">
-                  <i class="bi bi-play-circle"></i> Simulate Room
+                <a href="/interview.html?token=${safeId}" target="_blank" class="btn btn-outline btn-sm">
+                  <i class="bi bi-play-circle"></i> Room
                 </a>
               </div>
             </div>
@@ -964,13 +1506,15 @@
         return;
       }
 
-      container.innerHTML = list.map((item, idx) => {
+      container.innerHTML = list.map((item) => {
+        const safeId = safeJsId(item.interview_id);
         const initials = (item.candidate_name || 'Candidate')
           .split(' ')
+          .filter(Boolean)
           .map(p => p[0])
           .join('')
           .substring(0, 2)
-          .toUpperCase();
+          .toUpperCase() || 'C';
 
         return `
           <div class="result-candidate-card card-grey">
@@ -981,18 +1525,18 @@
                 </div>
                 <div>
                   <strong style="color: var(--text); font-size: 0.9rem;">${escapeHtml(item.candidate_name)}</strong>
-                  <div style="font-size: 0.725rem; color: var(--text-muted); display: flex; gap: 0.6rem;">
+                  ${customConfig.showContact ? `<div style="font-size: 0.725rem; color: var(--text-muted); display: flex; gap: 0.6rem;">
                     <span>${escapeHtml(item.candidate_email || 'No email')}</span>
                     ${item.candidate_phone ? `<span style="color:#059669; font-weight:600;"><i class="bi bi-whatsapp"></i> ${escapeHtml(item.candidate_phone)}</span>` : ''}
-                  </div>
+                  </div>` : ''}
                 </div>
               </div>
 
               <div style="display: flex; gap: 0.5rem; align-items: center;" class="no-print">
-                <a href="/interview.html?token=${item.interview_id}" target="_blank" class="btn btn-primary btn-sm">
+                <a href="/interview.html?token=${safeId}" target="_blank" class="btn btn-primary btn-sm">
                   <i class="bi bi-play-circle-fill"></i> Test Link
                 </a>
-                <button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText(window.location.origin + '/interview.html?token=${item.interview_id}'); alert('Link copied!');">
+                <button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText(window.location.origin + '/interview.html?token=${safeId}'); alert('Link copied!');">
                   <i class="bi bi-clipboard"></i> Copy Link
                 </button>
               </div>
@@ -1006,8 +1550,108 @@
       renderAllSections();
     }
 
-    function downloadPdfReport() {
+    function downloadPdfReport(scopeOverride = null) {
+      const scope = scopeOverride || customConfig.exportScope || 'all';
+      const menu = document.getElementById('download-menu-dropdown');
+      if (menu) menu.classList.remove('open');
+
+      const secMap = {
+        'section-selected': scope === 'all' || scope === 'selected' || scope === 'shortlisted',
+        'section-borderline': scope === 'all' || scope === 'shortlisted',
+        'section-rejected': scope === 'all' || scope === 'rejected',
+        'section-pending': scope === 'all' || scope === 'pending'
+      };
+
+      const labelMap = {
+        all: 'All Sections',
+        selected: 'Selected Candidates Only',
+        shortlisted: 'Selected + Borderline Candidates',
+        rejected: 'Rejected & Disqualified Only',
+        pending: 'Pending Candidates Only'
+      };
+      const printScopeEl = document.getElementById('print-scope-label');
+      if (printScopeEl) printScopeEl.textContent = labelMap[scope] || 'All Sections';
+
+      Object.entries(secMap).forEach(([id, keep]) => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('print-hidden', !keep);
+      });
+
       window.print();
+
+      setTimeout(() => {
+        Object.keys(secMap).forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.classList.remove('print-hidden');
+        });
+      }, 400);
+    }
+
+    function getScopedCandidatesForExport(scopeOverride = null) {
+      const scope = scopeOverride || customConfig.exportScope || 'all';
+      const filtered = getFilteredCandidates();
+      const tierOrder = { selected: 1, borderline: 2, pending: 3, rejected: 4 };
+      const scoped = filtered.filter(item => {
+        const cat = getCandidateCategory(item);
+        if (scope === 'selected') return cat === 'selected';
+        if (scope === 'shortlisted') return cat === 'selected' || cat === 'borderline';
+        if (scope === 'rejected') return cat === 'rejected';
+        if (scope === 'pending') return cat === 'pending';
+        return true;
+      });
+      return sortCandidateList(scoped).sort((a, b) => {
+        if (customConfig.sortBy === 'score_desc') {
+          const diff = (tierOrder[getCandidateCategory(a)] || 9) - (tierOrder[getCandidateCategory(b)] || 9);
+          if (diff !== 0) return diff;
+          return (getNumericScore(b) ?? -1) - (getNumericScore(a) ?? -1);
+        }
+        return 0;
+      });
+    }
+
+    function triggerBlobDownload(content, mimeType, filename) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadHtmlReport(scopeOverride = null) {
+      const menu = document.getElementById('download-menu-dropdown');
+      if (menu) menu.classList.remove('open');
+
+      const scope = scopeOverride || customConfig.exportScope || 'all';
+      const items = getScopedCandidatesForExport(scope);
+      const jobTitle = currentJob ? currentJob.title : 'Assessment Round';
+      const rowsHtml = items.map((c, idx) => {
+        const cat = getCandidateCategory(c).toUpperCase();
+        const sc = getNumericScore(c);
+        const skills = (c.skills || []).map(s => `${escapeHtml(s.skill)}: ${s.score}/5`).join(', ');
+        return `<tr>
+          <td>#${idx + 1}</td>
+          <td><strong>${escapeHtml(c.candidate_name)}</strong><br><small>${escapeHtml(c.candidate_email || c.candidate_phone || '')}</small></td>
+          <td><span class="cat cat-${cat.toLowerCase()}">${cat}</span></td>
+          <td><strong>${sc !== null ? sc + '/100' : '--'}</strong></td>
+          <td>${skills || '-'}</td>
+          <td>${escapeHtml(c.summary || c.disqualified_reason || '')}${c.reviewer_note ? `<br><em>Note: ${escapeHtml(c.reviewer_note)}</em>` : ''}</td>
+        </tr>`;
+      }).join('');
+
+      const htmlDoc = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${escapeHtml(jobTitle)} — Candidate Report</title>
+<style>body{font-family:system-ui,-apple-system,sans-serif;padding:28px;color:#0f172a;max-width:1100px;margin:0 auto;}h1{margin:0 0 6px;font-size:22px;}.meta{color:#475569;font-size:13px;margin-bottom:18px;}table{width:100%;border-collapse:collapse;font-size:13px;}th,td{border:1px solid #cbd5e1;padding:8px 10px;text-align:left;vertical-align:top;}th{background:#f1f5f9;}.cat{padding:2px 7px;border-radius:4px;font-weight:700;font-size:11px;}.cat-selected{background:#dcfce7;color:#166534;}.cat-borderline{background:#fef3c7;color:#92400e;}.cat-rejected{background:#fee2e2;color:#991b1b;}.cat-pending{background:#e2e8f0;color:#334155;}</style>
+</head><body>
+<h1>${escapeHtml(customConfig.reportTitle)}</h1>
+<div class="meta">Role: <strong>${escapeHtml(jobTitle)}</strong> &middot; Cutoffs: Selected &ge; ${customConfig.selectedCutoff}, Borderline &ge; ${customConfig.borderlineCutoff} &middot; Exported: ${new Date().toLocaleString()} &middot; Candidates: ${items.length}</div>
+<table><thead><tr><th>Rank</th><th>Candidate</th><th>Category</th><th>Score</th><th>Skills</th><th>Summary &amp; Notes</th></tr></thead>
+<tbody>${rowsHtml || '<tr><td colspan="6">No matching candidates in selected scope.</td></tr>'}</tbody></table>
+</body></html>`;
+
+      triggerBlobDownload(htmlDoc, 'text/html;charset=utf-8', `report_${jobTitle.replace(/[^a-z0-9]/gi, '_')}.html`);
     }
 
     window.refreshResultsPage = async function(btnEl) {
@@ -1027,41 +1671,85 @@
       }
     };
 
-    function exportJobCsv() {
+    function buildExportQueryParams(scopeOverride = null) {
+      const scope = scopeOverride === 'current' ? (customConfig.exportScope || 'all') : (scopeOverride || customConfig.exportScope || 'all');
+      const search = (document.getElementById('candidate-search-box')?.value || '').trim();
+      const params = new URLSearchParams({
+        category: scope,
+        selectedCutoff: String(customConfig.selectedCutoff),
+        borderlineCutoff: String(customConfig.borderlineCutoff),
+        sort: customConfig.sortBy || 'score_desc'
+      });
+      if (search) params.set('search', search);
+      return { scope, qs: params.toString() };
+    }
+
+    function exportJobCsv(scopeOverride = 'current') {
       if (!jobId || !authToken) return;
-      window.location.href = `/jobs/${jobId}/export.csv?token=${authToken}`;
-      fetch(`/jobs/${jobId}/export.csv`, {
+      const menu = document.getElementById('download-menu-dropdown');
+      if (menu) menu.classList.remove('open');
+
+      const { scope, qs } = buildExportQueryParams(scopeOverride);
+      fetch(`/jobs/${encodeURIComponent(jobId)}/export.csv?${qs}`, {
         headers: { Authorization: `Bearer ${authToken}` }
       })
-      .then(res => res.blob())
+      .then(res => {
+        if (!res.ok) throw new Error('CSV export failed');
+        return res.blob();
+      })
       .then(blob => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `candidates_${(currentJob ? currentJob.title : 'report').replace(/[^a-z0-9]/gi, '_')}.csv`;
+        const suffix = scope !== 'all' ? `_${scope}` : '';
+        a.download = `candidates_${(currentJob ? currentJob.title : 'report').replace(/[^a-z0-9]/gi, '_')}${suffix}.csv`;
         document.body.appendChild(a);
         a.click();
         a.remove();
-      });
+        window.URL.revokeObjectURL(url);
+      })
+      .catch(err => alert('CSV export error: ' + err.message));
+    }
+
+    function exportJobJson() {
+      if (!jobId || !authToken) return;
+      const menu = document.getElementById('download-menu-dropdown');
+      if (menu) menu.classList.remove('open');
+
+      const { scope, qs } = buildExportQueryParams('current');
+      fetch(`/jobs/${encodeURIComponent(jobId)}/export.json?${qs}`, {
+        headers: { Authorization: `Bearer ${authToken}` }
+      })
+      .then(res => {
+        if (!res.ok) throw new Error('JSON export failed');
+        return res.text();
+      })
+      .then(jsonText => {
+        const suffix = scope !== 'all' ? `_${scope}` : '';
+        triggerBlobDownload(jsonText, 'application/json;charset=utf-8', `candidates_${(currentJob ? currentJob.title : 'report').replace(/[^a-z0-9]/gi, '_')}${suffix}.json`);
+      })
+      .catch(err => alert('JSON export error: ' + err.message));
     }
 
     // Modal report viewer
     async function openResultsReportModal(interviewId) {
       const modal = document.getElementById('results-report-modal');
       const content = document.getElementById('modal-report-content');
+      activeModalReportData = null;
       modal.style.display = 'flex';
       content.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-muted);"><div class="spinner-border spinner-border-sm" role="status"></div> Loading Full Evaluation Report...</div>';
 
       try {
-        const res = await fetch(`/interviews/${interviewId}/report`, {
+        const res = await fetch(`/interviews/${encodeURIComponent(interviewId)}/report`, {
           headers: { 'Authorization': `Bearer ${authToken}` }
         });
         const data = await res.json();
+        activeModalReportData = data;
         const { interview, report, turns } = data;
 
         document.getElementById('modal-candidate-name').textContent = `${interview.candidate_name} — AI Audit`;
 
-        const skillsHtml = (report.skills || []).map(s => `
+        const skillsHtml = ((report && report.skills) || []).map(s => `
           <div style="background:var(--surface-subtle); border:1px solid var(--border); border-radius:6px; padding:0.65rem 0.85rem; margin-bottom:0.5rem;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <strong>${escapeHtml(s.skill)}</strong>
@@ -1071,21 +1759,23 @@
           </div>
         `).join('');
 
+        const scoreDisp = (report && typeof report.overall_score === 'number') ? report.overall_score : (interview.state === 'disqualified' ? 0 : '--');
+
         content.innerHTML = `
           <div style="margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center; background:var(--surface-subtle); padding:0.75rem 1rem; border-radius:8px;">
             <div>
               <div style="font-size:0.75rem; color:var(--text-muted);">Overall AI Verdict</div>
-              <strong style="font-size:1.15rem; color:var(--text);">${escapeHtml(report.candidate_verdict || report.recommendation || 'Evaluated')}</strong>
+              <strong style="font-size:1.15rem; color:var(--text);">${escapeHtml((report && (report.candidate_verdict || report.recommendation)) || interview.state || 'Evaluated')}</strong>
             </div>
             <div style="text-align:right;">
               <div style="font-size:0.75rem; color:var(--text-muted);">Audit Score</div>
-              <strong style="font-size:1.45rem; color:#2563eb;">${report.overall_score || 0}/100</strong>
+              <strong style="font-size:1.45rem; color:#2563eb;">${scoreDisp}${scoreDisp !== '--' ? '/100' : ''}</strong>
             </div>
           </div>
 
           <div style="margin-bottom:1rem;">
             <strong style="font-size:0.85rem; display:block; margin-bottom:0.35rem;">Executive Clarification:</strong>
-            <p style="font-size:0.8rem; line-height:1.5; color:var(--text);">${escapeHtml(report.hiring_clarification || report.summary || 'Assessment completed successfully.')}</p>
+            <p style="font-size:0.8rem; line-height:1.5; color:var(--text);">${escapeHtml((report && (report.hiring_clarification || report.overall_summary || report.summary)) || interview.disqualified_reason || 'Assessment completed successfully.')}</p>
           </div>
 
           <div style="margin-bottom:1rem;">
@@ -1094,15 +1784,43 @@
           </div>
 
           <div>
-            <strong style="font-size:0.85rem; display:block; margin-bottom:0.45rem;">Interview Transcript Summary:</strong>
+            <strong style="font-size:0.85rem; display:block; margin-bottom:0.45rem;">Interview Transcript (${(turns || []).length} turns):</strong>
             <div style="max-height:220px; overflow-y:auto; background:var(--surface-subtle); border-radius:6px; padding:0.75rem; font-size:0.75rem; line-height:1.6;">
-              ${(turns || []).map(t => `<div><strong>${t.role === 'ai' ? 'Interviewer' : interview.candidate_name}:</strong> ${escapeHtml(t.text)}</div>`).join('<div style="margin:0.35rem 0; border-top:1px dashed var(--border);"></div>')}
+              ${(turns || []).map(t => `<div><strong>${t.role === 'ai' ? 'Interviewer' : escapeHtml(interview.candidate_name)}:</strong> ${escapeHtml(t.text)}</div>`).join('<div style="margin:0.35rem 0; border-top:1px dashed var(--border);"></div>') || 'No transcript recorded.'}
             </div>
           </div>
         `;
       } catch (err) {
         content.innerHTML = `<div style="color:#dc2626; padding:1rem;">Failed to load report: ${escapeHtml(err.message)}</div>`;
       }
+    }
+
+    function downloadSingleCandidateHtml() {
+      if (!activeModalReportData?.interview) return;
+      const { interview, report, turns } = activeModalReportData;
+      const doc = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${escapeHtml(interview.candidate_name)} — Evaluation</title>
+<style>body{font-family:system-ui,sans-serif;max-width:850px;margin:28px auto;padding:0 18px;color:#0f172a;line-height:1.55;}h1{margin-bottom:4px;}.box{border:1px solid #cbd5e1;border-radius:8px;padding:14px;margin:12px 0;background:#f8fafc;}.turn{border-bottom:1px dashed #cbd5e1;padding:6px 0;}</style>
+</head><body>
+<h1>${escapeHtml(interview.candidate_name)} — AI Interview Audit</h1>
+<p><strong>Role:</strong> ${escapeHtml(interview.job_title)} &middot; <strong>Email:</strong> ${escapeHtml(interview.candidate_email)} &middot; <strong>Score:</strong> ${report?.overall_score ?? '--'}/100 &middot; <strong>Verdict:</strong> ${escapeHtml(report?.candidate_verdict || interview.state)}</p>
+<div class="box"><strong>Executive Summary</strong><p>${escapeHtml(report?.hiring_clarification || report?.overall_summary || report?.summary || '')}</p></div>
+<div class="box"><strong>Skills Breakdown</strong><ul>${((report?.skills) || []).map(s => `<li><strong>${escapeHtml(s.skill)}:</strong> ${s.score}/5</li>`).join('') || '<li>N/A</li>'}</ul></div>
+<div class="box"><strong>Transcript</strong>${(turns || []).map(t => `<div class="turn"><strong>${t.role === 'ai' ? 'AI Interviewer' : escapeHtml(interview.candidate_name)}:</strong> ${escapeHtml(t.text)}</div>`).join('')}</div>
+</body></html>`;
+      triggerBlobDownload(doc, 'text/html;charset=utf-8', `candidate_${String(interview.candidate_name || 'report').replace(/[^a-z0-9]/gi, '_')}.html`);
+    }
+
+    function downloadSingleTranscriptTxt() {
+      if (!activeModalReportData?.interview) return;
+      const { interview, report, turns } = activeModalReportData;
+      const lines = [
+        `Candidate: ${interview.candidate_name} (${interview.candidate_email})`,
+        `Role: ${interview.job_title}`,
+        `Score: ${report?.overall_score ?? '--'}/100 | Verdict: ${report?.candidate_verdict || interview.state}`,
+        '------------------------------------------------------------',
+        ...(turns || []).map(t => `[${t.role === 'ai' ? 'Interviewer' : interview.candidate_name}] ${t.text}`)
+      ];
+      triggerBlobDownload(lines.join('\n\n'), 'text/plain;charset=utf-8', `transcript_${String(interview.candidate_name || 'candidate').replace(/[^a-z0-9]/gi, '_')}.txt`);
     }
 
     function closeResultsReportModal() {

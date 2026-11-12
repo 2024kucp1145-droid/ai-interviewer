@@ -345,11 +345,98 @@ for (let i = 0; i < 6; i++) {
 }
 assert.strictEqual(lastStatus, 429, 'Excessive failed login attempts must trigger HTTP 429 Too Many Requests lockout');
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PROBLEM 4: Accurate Pipeline Metrics, Custom Thresholds, Overrides & Exports
+// ─────────────────────────────────────────────────────────────────────────────
+console.log('Testing Problem 4: Pipeline Accuracy, Customization & Download Exports...');
+const customJobId = 'job_test_acc_' + Date.now();
+const candIds = [];
+const intIds = [];
+db.prepare(`
+  INSERT INTO jobs (id, org_id, title, jd_text, skills, level, max_minutes, max_questions, interview_type, question_mode, category)
+  VALUES (?, ?, 'Accuracy QA Engineer', 'Automated accuracy test JD', 'JavaScript,SQL', 'senior', 15, 6, 'technical', 'ai_adaptive', 'Software & Tech')
+`).run(customJobId, testOrgId);
+
+const sampleResults = [
+  { name: 'Alice Selected', email: `alice_${Date.now()}@test.com`, score: 76, verdict: 'RECOMMENDED_HIRE', state: 'completed' },
+  { name: 'Bob Potential', email: `bob_${Date.now()}@test.com`, score: 62, verdict: 'POTENTIAL_HIRE', state: 'completed' },
+  { name: 'Charlie Rejected', email: `charlie_${Date.now()}@test.com`, score: 40, verdict: 'NOT_RECOMMENDED', state: 'completed' }
+];
+
+sampleResults.forEach((s, idx) => {
+  const cId = `cand_acc_${Date.now()}_${idx}`;
+  const iId = `int_acc_${Date.now()}_${idx}`;
+  const rId = `rep_acc_${Date.now()}_${idx}`;
+  candIds.push(cId);
+  intIds.push(iId);
+  db.prepare(`INSERT INTO candidates (id, org_id, name, email, source) VALUES (?, ?, ?, ?, 'direct')`).run(cId, testOrgId, s.name, s.email);
+  db.prepare(`INSERT INTO interviews (id, job_id, candidate_id, token_hash, state, started_at, ended_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`).run(iId, customJobId, cId, 'hash_' + iId, s.state);
+  db.prepare(`INSERT INTO reports (id, interview_id, json, model) VALUES (?, ?, ?, 'test')`).run(rId, iId, JSON.stringify({
+    overall_score: s.score,
+    candidate_verdict: s.verdict,
+    recommendation: s.score >= 70 ? 'advance' : (s.score >= 50 ? 'maybe' : 'reject'),
+    overall_summary: `Summary for ${s.name}`,
+    skills: [{ skill: 'JavaScript', score: 4 }]
+  }));
+});
+
+const jobsCheck1 = await fetch(`${baseUrl}/jobs`, { headers: { 'Authorization': `Bearer ${userToken}` } });
+assert.strictEqual(jobsCheck1.status, 200);
+const jobsList1 = await jobsCheck1.json();
+const accJob1 = jobsList1.find(j => j.id === customJobId);
+assert(accJob1, 'Created test job must appear in GET /jobs');
+assert.strictEqual(accJob1.total_candidates, 3);
+assert.strictEqual(accJob1.selected_candidates, 1, 'Only score >= 70 must be Selected');
+assert.strictEqual(accJob1.borderline_candidates, 1, 'POTENTIAL_HIRE with score 62 must be Borderline (NOT Selected)');
+assert.strictEqual(accJob1.rejected_candidates, 1, 'Score 40 must be Rejected');
+
+const customizeRes = await fetch(`${baseUrl}/jobs/${customJobId}/results-settings`, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${userToken}` },
+  body: JSON.stringify({ selected_threshold: 80, borderline_threshold: 55, results_config: { sortBy: 'score_desc' } })
+});
+assert.strictEqual(customizeRes.status, 200, 'PUT /results-settings must succeed');
+
+const jobsCheck2 = await fetch(`${baseUrl}/jobs`, { headers: { 'Authorization': `Bearer ${userToken}` } });
+const accJob2 = (await jobsCheck2.json()).find(j => j.id === customJobId);
+assert.strictEqual(accJob2.selected_candidates, 0, 'With cutoff raised to 80, score 76 drops out of Selected');
+assert.strictEqual(accJob2.borderline_candidates, 2, 'With cutoffs 80/55, both 76 and 62 must be Borderline');
+
+// Manual override Bob Potential (intIds[1]) -> Selected
+const overrideRes = await fetch(`${baseUrl}/interviews/${intIds[1]}/decision`, {
+  method: 'PATCH',
+  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${userToken}` },
+  body: JSON.stringify({ manual_decision: 'selected', reviewer_note: 'Strong system design' })
+});
+assert.strictEqual(overrideRes.status, 200, 'PATCH /interviews/:id/decision must succeed');
+
+const csvRes = await fetch(`${baseUrl}/jobs/${customJobId}/export.csv?category=selected`, {
+  headers: { 'Authorization': `Bearer ${userToken}` }
+});
+assert.strictEqual(csvRes.status, 200, 'CSV export must return 200');
+const csvText = await csvRes.text();
+assert(csvText.includes('Score (/100)'), 'CSV must include Score column');
+assert(csvText.includes('Bob Potential'), 'CSV filtered by selected must include manually selected Bob');
+assert(!csvText.includes('Charlie Rejected'), 'CSV filtered by selected must exclude Charlie');
+
+const jsonExpRes = await fetch(`${baseUrl}/jobs/${customJobId}/export.json?category=selected`, {
+  headers: { 'Authorization': `Bearer ${userToken}` }
+});
+assert.strictEqual(jsonExpRes.status, 200, 'JSON export must return 200');
+const jsonExpData = await jsonExpRes.json();
+assert.strictEqual(jsonExpData.total_exported, 1);
+assert.strictEqual(jsonExpData.candidates[0].candidate_name, 'Bob Potential');
+console.log('   ✓ Problem 4: Pipeline metrics, custom cutoffs, manual override & CSV/JSON exports verified.\n');
+
 // Clean up temporary admin & test rows so database remains clean
 const signupUserRow = db.prepare('SELECT id, org_id FROM users WHERE email = ?').get(signupEmail);
 if (signupUserRow) {
   db.prepare('DELETE FROM users WHERE id = ?').run(signupUserRow.id);
   db.prepare('DELETE FROM organizations WHERE id = ?').run(signupUserRow.org_id);
+}
+db.prepare('DELETE FROM jobs WHERE id = ?').run(customJobId);
+for (const cId of candIds) {
+  db.prepare('DELETE FROM candidates WHERE id = ?').run(cId);
 }
 db.prepare('DELETE FROM users WHERE id IN (?, ?)').run(tempAdminId, testUserId);
 db.prepare('DELETE FROM admin_otps WHERE email = ?').run(tempAdminEmail);
