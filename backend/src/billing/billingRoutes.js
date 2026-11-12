@@ -87,9 +87,9 @@ export function fulfillPaidOrder(orderId, { provider = 'demo', externalRef = nul
 }
 
 /**
- * Verify Stripe-style `t=<ts>,v1=<hex>` webhook signature.
+ * Verify Stripe-style `t=<ts>,v1=<hex>` webhook signature with replay protection.
  */
-function verifyStripeSignature(rawBody, sigHeader, secret) {
+function verifyStripeSignature(rawBody, sigHeader, secret, toleranceSec = 300) {
   if (!sigHeader || !secret || typeof sigHeader !== 'string') return false;
   const pairs = Object.fromEntries(
     sigHeader.split(',').map((part) => {
@@ -97,8 +97,11 @@ function verifyStripeSignature(rawBody, sigHeader, secret) {
       return i > 0 ? [part.slice(0, i).trim(), part.slice(i + 1).trim()] : ['', ''];
     })
   );
-  if (!pairs.t || !pairs.v1) return false;
-  const expected = crypto.createHmac('sha256', secret).update(`${pairs.t}.${rawBody}`).digest('hex');
+  const ts = Number(pairs.t);
+  if (!Number.isFinite(ts) || !pairs.v1) return false;
+  if (Math.abs(Math.floor(Date.now() / 1000) - ts) > toleranceSec) return false;
+
+  const expected = crypto.createHmac('sha256', secret).update(`${ts}.${rawBody}`).digest('hex');
   if (expected.length !== pairs.v1.length) return false;
   return crypto.timingSafeEqual(Buffer.from(expected, 'utf8'), Buffer.from(pairs.v1, 'utf8'));
 }
@@ -414,4 +417,27 @@ billingRouter.post('/webhook/razorpay', (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// ─── GET /billing/checkout ───────────────────────────────────────────────────
+// Clean checkout landing / return page for demo checkout & Stripe success/cancel redirects
+billingRouter.get('/checkout', (req, res) => {
+  const orderId = String(req.query.order || '').replace(/[^a-zA-Z0-9_-]/g, '');
+  const statusParam = String(req.query.status || '').toLowerCase();
+  const order = orderId ? db.prepare('SELECT id, type, plan_id, amount_usd, status FROM billing_orders WHERE id = ?').get(orderId) : null;
+  const isPaid = order?.status === 'paid' || statusParam === 'success';
+  const title = isPaid ? 'Payment Confirmed' : (statusParam === 'cancelled' ? 'Checkout Cancelled' : 'Complete Billing Order');
+  const subtitle = isPaid
+    ? 'Your RoundOne AI credits and subscription benefits are now active.'
+    : (order ? `Order ${order.id} · $${Number(order.amount_usd || 0).toFixed(2)} USD (${order.status})` : 'No active order selected.');
+
+  res.status(200).type('html').send(`<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title} — RoundOne AI</title>
+<style>body{font-family:system-ui,-apple-system,sans-serif;background:#f8fafc;color:#0f172a;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:1rem;}.card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;max-width:460px;width:100%;padding:2rem;box-shadow:0 10px 25px rgba(15,23,42,.06);text-align:center;}.btn{display:inline-block;margin-top:1.25rem;padding:.65rem 1.25rem;border-radius:8px;background:#0f172a;color:#fff;text-decoration:none;font-weight:600;font-size:.875rem;}</style>
+</head><body><div class="card">
+<h2 style="margin:0 0 .5rem;">${title}</h2>
+<p style="color:#475569;font-size:.9rem;margin:0;">${subtitle}</p>
+<a class="btn" href="/#metrics">Return to RoundOne Dashboard</a>
+</div></body></html>`);
 });

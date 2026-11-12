@@ -132,11 +132,35 @@ async function runTests() {
     assert.strictEqual(sqlBad.verdict, 'COMPILE_ERROR');
     assert.ok(sqlBad.error.toLowerCase().includes('no such table'));
 
-    const cppGood = await judgeLeetCodeSolution('1', 'cpp', '#include <iostream>\nint main() { std::cout << "ok"; return 0; }');
+    const cppGood = await judgeLeetCodeSolution('1', 'cpp', `
+      #include <vector>
+      #include <unordered_map>
+      using namespace std;
+      vector<int> twoSum(vector<int>& nums, int target) {
+        unordered_map<int, int> seen;
+        for (int i = 0; i < (int)nums.size(); ++i) {
+          if (seen.count(target - nums[i])) return {seen[target - nums[i]], i};
+          seen[nums[i]] = i;
+        }
+        return {};
+      }
+    `);
     assert.strictEqual(cppGood.verdict, 'ACCEPTED');
+    assert.strictEqual(cppGood.passedCount, 4);
+
+    const cppWrong = await judgeLeetCodeSolution('1', 'cpp', `
+      #include <vector>
+      using namespace std;
+      vector<int> twoSum(vector<int>& nums, int target) {
+        return {99, 99};
+      }
+    `);
+    assert.strictEqual(cppWrong.verdict, 'WRONG_ANSWER');
+    assert.strictEqual(cppWrong.passedCount, 0);
+
     const cppBad = await judgeLeetCodeSolution('1', 'cpp', 'int main() { broken_syntax_here ');
     assert.strictEqual(cppBad.verdict, 'COMPILE_ERROR');
-    console.log('✓ 4. Real SQLite SQL executor & C++ g++ compiler sandbox verified');
+    console.log('✓ 4. Real SQLite SQL executor & C++ g++ test-harness judge (Accepted / Wrong Answer / Compile Error) verified');
 
     // 5. Webhook HMAC utility verification
     const whSecret = 'whsec_test_12345';
@@ -185,6 +209,18 @@ async function runTests() {
     const memberSignup = await memberSignupRes.json();
     assert.strictEqual(memberSignupRes.status, 200, memberSignup.error);
     assert.strictEqual(memberSignup.org.id, orgId, 'Invited user should share the same org_id');
+
+    const meRes = await fetch(`${BASE_URL}/auth/me`, { headers: { Authorization: `Bearer ${memberSignup.token}` } });
+    const meData = await meRes.json();
+    assert.strictEqual(meData.user?.org_role, 'recruiter');
+
+    // Verify SSRF block on cloud metadata endpoint
+    const ssrfRes = await fetch(`${BASE_URL}/org/webhooks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ownerToken}` },
+      body: JSON.stringify({ name: 'SSRF Test', url: 'http://169.254.169.254/latest/meta-data/' })
+    });
+    assert.strictEqual(ssrfRes.status, 400);
 
     // Verify member shows up under /org/team & reviewer cannot manage webhooks if invited as reviewer
     const teamListRes = await fetch(`${BASE_URL}/org/team`, {
@@ -253,7 +289,12 @@ async function runTests() {
     const confirmData = await confirmRes.json();
     assert.strictEqual(confirmRes.status, 200, confirmData.error);
     assert.ok(confirmData.creditsRemaining >= 15);
-    console.log('✓ 8. Billing order creation & idempotent credit fulfillment verified');
+
+    const checkoutPageRes = await fetch(`${BASE_URL}/billing/checkout?order=${orderData.orderId}`);
+    assert.strictEqual(checkoutPageRes.status, 200);
+    const checkoutHtml = await checkoutPageRes.text();
+    assert.ok(checkoutHtml.includes('Payment Confirmed'));
+    console.log('✓ 8. Billing order, checkout landing page & idempotent credit fulfillment verified');
 
     // 9. Proctor Snapshot Upload + Code Draft Autosave + Reload Session Recovery
     const jobRes = await fetch(`${BASE_URL}/jobs`, {

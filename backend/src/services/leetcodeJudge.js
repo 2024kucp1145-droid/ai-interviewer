@@ -684,6 +684,7 @@ async function judgeWithPistonRunner(suite, lang, code, startTime) {
         cases: [],
       };
     }
+
     return {
       verdict: 'ACCEPTED',
       status: 'Accepted',
@@ -708,7 +709,101 @@ async function judgeWithPistonRunner(suite, lang, code, startTime) {
 }
 
 /**
- * Local g++ compilation verification when g++ is installed on host; compiles user C++ with -fsyntax-only or full binary.
+ * Build a C++ test-runner main() when the candidate defines the LeetCode function without main().
+ * Returns null if the problem ID doesn't have a built-in C++ harness.
+ */
+function buildCppHarness(problemId, userCode) {
+  if (userCode.includes('int main')) return null;
+
+  const harnesses = {
+    '1': `
+      static string fmtVec(const vector<int>& v) {
+        string out = "[";
+        for (size_t i = 0; i < v.size(); ++i) { out += (i ? "," : "") + to_string(v[i]); }
+        return out + "]";
+      }
+      int main() {
+        vector<pair<vector<int>, int>> inputs = { {{2,7,11,15}, 9}, {{3,2,4}, 6}, {{3,3}, 6}, {{1,5,8,12,19,23}, 24} };
+        vector<vector<int>> expected = { {0,1}, {1,2}, {0,1}, {1,4} };
+        for (size_t i = 0; i < inputs.size(); ++i) {
+          auto v = inputs[i].first;
+          auto res = twoSum(v, inputs[i].second);
+          sort(res.begin(), res.end());
+          cout << "CASE:" << (i+1) << ":" << (res == expected[i] ? 1 : 0) << ":" << fmtVec(res) << "\\n";
+        }
+        return 0;
+      }
+    `,
+    '20': `
+      int main() {
+        vector<string> inputs = { "()[]{}", "(]", "([{}])", "(((", "" };
+        vector<bool> expected = { true, false, true, false, true };
+        for (size_t i = 0; i < inputs.size(); ++i) {
+          bool res = isValid(inputs[i]);
+          cout << "CASE:" << (i+1) << ":" << (res == expected[i] ? 1 : 0) << ":" << (res ? "true" : "false") << "\\n";
+        }
+        return 0;
+      }
+    `,
+    '21': `
+      static string fmtVec(const vector<int>& v) {
+        string out = "[";
+        for (size_t i = 0; i < v.size(); ++i) { out += (i ? "," : "") + to_string(v[i]); }
+        return out + "]";
+      }
+      int main() {
+        vector<pair<vector<int>, vector<int>>> inputs = { {{1,2,4},{1,3,4}}, {{},{0}}, {{},{}}, {{5,10,15},{2,3,20}} };
+        vector<vector<int>> expected = { {1,1,2,3,4,4}, {0}, {}, {2,3,5,10,15,20} };
+        for (size_t i = 0; i < inputs.size(); ++i) {
+          auto a = inputs[i].first; auto b = inputs[i].second;
+          auto res = mergeTwoLists(a, b);
+          cout << "CASE:" << (i+1) << ":" << (res == expected[i] ? 1 : 0) << ":" << fmtVec(res) << "\\n";
+        }
+        return 0;
+      }
+    `,
+    '53': `
+      int main() {
+        vector<vector<int>> inputs = { {-2,1,-3,4,-1,2,1,-5,4}, {1}, {5,4,-1,7,8}, {-5,-2,-8,-1} };
+        vector<int> expected = { 6, 1, 23, -1 };
+        for (size_t i = 0; i < inputs.size(); ++i) {
+          auto v = inputs[i];
+          int res = maxSubArray(v);
+          cout << "CASE:" << (i+1) << ":" << (res == expected[i] ? 1 : 0) << ":" << res << "\\n";
+        }
+        return 0;
+      }
+    `,
+    '70': `
+      int main() {
+        vector<int> inputs = { 2, 3, 5, 8 };
+        vector<int> expected = { 2, 3, 8, 34 };
+        for (size_t i = 0; i < inputs.size(); ++i) {
+          int res = climbStairs(inputs[i]);
+          cout << "CASE:" << (i+1) << ":" << (res == expected[i] ? 1 : 0) << ":" << res << "\\n";
+        }
+        return 0;
+      }
+    `,
+    '121': `
+      int main() {
+        vector<vector<int>> inputs = { {7,1,5,3,6,4}, {7,6,4,3,1}, {2,4,1}, {1,2,3,4,5} };
+        vector<int> expected = { 5, 0, 2, 4 };
+        for (size_t i = 0; i < inputs.size(); ++i) {
+          auto v = inputs[i];
+          int res = maxProfit(v);
+          cout << "CASE:" << (i+1) << ":" << (res == expected[i] ? 1 : 0) << ":" << res << "\\n";
+        }
+        return 0;
+      }
+    `,
+  };
+
+  return harnesses[String(problemId)] || null;
+}
+
+/**
+ * Local g++ compilation and test execution when g++ is installed on host.
  */
 async function judgeCppLocal(suite, code, startTime) {
   const clean = String(code || '').trim();
@@ -718,8 +813,9 @@ async function judgeCppLocal(suite, code, startTime) {
 
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'roundone-cpp-'));
   const srcPath = path.join(tmpDir, 'solution.cpp');
+  const harnessMain = buildCppHarness(suite.id, clean);
   const wrapped = `#include <bits/stdc++.h>\nusing namespace std;\n${clean}\n` +
-    (clean.includes('int main') ? '' : '\nint main() { return 0; }\n');
+    (clean.includes('int main') ? '' : (harnessMain || '\nint main() { return 0; }\n'));
 
   try {
     fs.writeFileSync(srcPath, wrapped, 'utf8');
@@ -771,6 +867,40 @@ async function judgeCppLocal(suite, code, startTime) {
         memoryMb: '10.0',
         error: (runResult.error || 'Non-zero exit code').slice(0, 800),
         cases: [],
+      };
+    }
+
+    if (harnessMain) {
+      const caseById = new Map();
+      for (const line of runResult.stdout.split('\n')) {
+        const m = /^CASE:(\d+):([01]):(.*)$/.exec(line.trim());
+        if (m) caseById.set(Number(m[1]), { passed: m[2] === '1', actual: m[3] });
+      }
+      const evaluatedCases = suite.cases.map((c) => {
+        const hit = caseById.get(c.id);
+        let parsedActual = hit ? hit.actual : 'No output';
+        try { if (hit) parsedActual = JSON.parse(hit.actual); } catch (_) {}
+        return {
+          id: c.id,
+          type: c.type,
+          passed: Boolean(hit?.passed),
+          input: c.input,
+          expected: c.expected,
+          actual: parsedActual,
+          durationMs: 3,
+        };
+      });
+      const passedCount = evaluatedCases.filter((c) => c.passed).length;
+      const verdict = passedCount === evaluatedCases.length ? 'ACCEPTED' : 'WRONG_ANSWER';
+      return {
+        verdict,
+        status: verdict === 'ACCEPTED' ? 'Accepted' : 'Wrong Answer',
+        passedCount,
+        totalCount: evaluatedCases.length,
+        runtimeMs: Math.max(1, Date.now() - startTime),
+        memoryMb: '8.4',
+        stdout: runResult.stdout,
+        cases: evaluatedCases,
       };
     }
 

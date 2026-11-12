@@ -6,6 +6,16 @@ let currentOrg = null;
 let activeJobId = null;
 let currentReportCandidateId = null;
 let authMode = 'signup'; // 'signup' or 'login'
+const initialUrlParams = new URLSearchParams(window.location.search);
+let pendingTeamInviteToken = initialUrlParams.get('inviteToken') || null;
+const pendingInviteEmail = initialUrlParams.get('email') || '';
+
+function clearInviteQueryParams() {
+  pendingTeamInviteToken = null;
+  if (window.location.search.includes('inviteToken')) {
+    window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+  }
+}
 
 // DOM references
 const jobsListEl = document.getElementById('jobs-list');
@@ -47,6 +57,32 @@ async function checkAuthSession() {
       const data = await res.json();
       currentUser = data.user;
       currentOrg = data.org;
+
+      // If user clicked a team invite link while already signed in, accept it cleanly
+      if (pendingTeamInviteToken) {
+        const tok = pendingTeamInviteToken;
+        clearInviteQueryParams();
+        try {
+          const accRes = await fetch('/org/team/accept', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+            body: JSON.stringify({ inviteToken: tok })
+          });
+          const accData = await accRes.json();
+          if (accRes.ok && accData.token) {
+            authToken = accData.token;
+            localStorage.setItem('roundone_token', authToken);
+            localStorage.setItem('ai_interviewer_token', authToken);
+            const meRes2 = await fetch('/auth/me', { headers: { 'Authorization': `Bearer ${authToken}` } });
+            if (meRes2.ok) {
+              const me2 = await meRes2.json();
+              currentUser = me2.user;
+              currentOrg = me2.org;
+            }
+            alert(`Joined organization workspace cleanly with role: ${accData.orgRole || 'recruiter'}.`);
+          }
+        } catch (_) {}
+      }
 
       // Close auth modal and load dashboard
       if (authModal) authModal.style.display = 'none';
@@ -93,6 +129,15 @@ window.openAuthModal = function() {
   authModal.style.display = 'flex';
   if (!authToken) {
     goToStep(1);
+    if (pendingTeamInviteToken) {
+      toggleAuthMode('signup');
+      const emailInput = document.getElementById('su-email');
+      if (emailInput && pendingInviteEmail && !emailInput.value) {
+        emailInput.value = pendingInviteEmail;
+      }
+      const titleEl = document.getElementById('auth-modal-title');
+      if (titleEl) titleEl.textContent = 'Accept Team Invitation';
+    }
   }
 };
 
@@ -322,10 +367,18 @@ document.getElementById('form-signup').addEventListener('submit', async (e) => {
     const res = await fetch('/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fullName, jobTitle, email, phone, password })
+      body: JSON.stringify({
+        fullName,
+        jobTitle,
+        email,
+        phone,
+        password,
+        ...(pendingTeamInviteToken ? { inviteToken: pendingTeamInviteToken } : {})
+      })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to register account');
+    if (pendingTeamInviteToken) clearInviteQueryParams();
 
     if (data.requiresOtp) {
       beginRecruiterOtpStep({
@@ -5828,7 +5881,13 @@ window.confirmBillingPayment = async function() {
       throw new Error(orderData.error || 'Failed to initialize order');
     }
 
-    // 2. Confirm order payment
+    // Redirect to Stripe Hosted Checkout when configured in production
+    if (orderData.provider === 'stripe' && orderData.checkoutUrl && orderData.checkoutUrl.startsWith('http')) {
+      window.location.href = orderData.checkoutUrl;
+      return;
+    }
+
+    // 2. Confirm order payment (demo checkout fallback)
     const confirmRes = await fetch(`/billing/order/${orderData.orderId}/confirm`, {
       method: 'POST',
       headers: {

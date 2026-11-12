@@ -794,7 +794,7 @@ app.post('/auth/reset-password-verify', (req, res) => {
 
 app.get('/auth/me', requireAuth, (req, res) => {
   try {
-    const user = db.prepare('SELECT id, full_name, email, phone, job_title, role, is_verified, approval_status FROM users WHERE id = ?').get(req.user.id);
+    const user = db.prepare("SELECT id, full_name, email, phone, job_title, role, COALESCE(org_role, role, 'owner') as org_role, is_verified, approval_status FROM users WHERE id = ?").get(req.user.id);
     const org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(req.user.org_id);
     res.json({ user, org });
   } catch (err) {
@@ -3296,6 +3296,29 @@ app.get('/org/webhooks', requireAuth, (req, res) => {
   }
 });
 
+function isSafeWebhookUrl(parsedUrl) {
+  const host = (parsedUrl.hostname || '').toLowerCase();
+  if (!host) return false;
+  // Always block cloud instance metadata endpoints & link-local 169.254.0.0/16
+  if (host === 'metadata.google.internal' || host === 'metadata' || /^169\.254\./.test(host)) {
+    return false;
+  }
+  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_PRIVATE_WEBHOOKS !== '1') {
+    if (
+      host === 'localhost' ||
+      host === '127.0.0.1' ||
+      host === '::1' ||
+      host === '[::1]' ||
+      /^10\./.test(host) ||
+      /^192\.168\./.test(host) ||
+      /^172\.(1[6-9]|2\d|3[0-1])\./.test(host)
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
 app.post('/org/webhooks', requireAuth, (req, res) => {
   try {
     const callerRole = getUserOrgRole(req.user.id);
@@ -3315,6 +3338,9 @@ app.post('/org/webhooks', requireAuth, (req, res) => {
     }
     if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
       return res.status(400).json({ error: 'Webhook URL must use http or https protocol.' });
+    }
+    if (!isSafeWebhookUrl(parsedUrl)) {
+      return res.status(400).json({ error: 'Webhook target host is blocked by SSRF security policy.' });
     }
 
     const webhookId = 'wh_' + crypto.randomUUID();
