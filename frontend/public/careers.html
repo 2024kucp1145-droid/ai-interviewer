@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Careers Portal | RoundOne AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-subtle: #f1f5f9;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.875rem;
+      line-height: 1.55;
+      min-height: 100vh;
+    }
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .hero {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #fff;
+      padding: 2.75rem 1.5rem;
+      text-align: center;
+    }
+    .container {
+      max-width: 980px;
+      margin: 1.75rem auto;
+      padding: 0 1.25rem 3rem;
+    }
+    .search-bar {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.25rem;
+    }
+    .search-bar input {
+      flex: 1;
+      min-width: 220px;
+      padding: 0.65rem 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.875rem;
+      background: var(--surface);
+    }
+    .job-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.35rem;
+      margin-bottom: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.22rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: var(--surface-subtle);
+      color: var(--text-muted);
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.62rem 1.15rem;
+      border-radius: 8px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.84rem;
+      cursor: pointer;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-outline {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.55rem 0.95rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-weight: 600;
+      font-size: 0.82rem;
+      cursor: pointer;
+    }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      z-index: 50;
+    }
+    .modal-card {
+      background: var(--surface);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 440px;
+      padding: 1.5rem;
+      border: 1px solid var(--border);
+      box-shadow: 0 20px 30px rgba(15, 23, 42, 0.2);
+    }
+    .form-group { margin-bottom: 0.9rem; }
+    .form-group label { display: block; font-weight: 600; font-size: 0.78rem; margin-bottom: 0.3rem; }
+    .form-group input {
+      width: 100%;
+      padding: 0.6rem 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div style="display:flex;align-items:center;gap:0.6rem;font-weight:800;font-size:1rem;">
+      <span style="width:30px;height:30px;border-radius:7px;background:#0f172a;color:#fff;display:inline-flex;align-items:center;justify-content:center;">
+        <i class="bi bi-building"></i>
+      </span>
+      <span id="org-header-name">Company Careers</span>
+    </div>
+    <div id="org-header-meta" style="font-size:0.78rem;color:var(--text-muted);">Powered by RoundOne AI</div>
+  </header>
+
+  <section class="hero">
+    <h1 id="hero-title" style="font-size:1.85rem;font-weight:800;letter-spacing:-0.02em;">Open Roles & Instant AI Assessments</h1>
+    <p id="hero-subtitle" style="color:#cbd5e1;max-width:640px;margin:0.5rem auto 0;font-size:0.95rem;">
+      Apply in seconds and begin your structured AI interview right away — anytime, anywhere.
+    </p>
+  </section>
+
+  <main class="container">
+    <div class="search-bar">
+      <input type="text" id="careers-search" placeholder="Filter roles by title, skill, or description..." oninput="renderJobs()">
+    </div>
+    <div id="careers-jobs-list">
+      <div class="job-card" style="justify-content:center;color:var(--text-muted);">Loading open positions...</div>
+    </div>
+  </main>
+
+  <div class="modal-backdrop" id="apply-modal">
+    <div class="modal-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.85rem;">
+        <h3 id="apply-modal-title" style="font-size:1.05rem;font-weight:700;">Start AI Interview</h3>
+        <button class="btn-outline" style="padding:0.25rem 0.55rem;" onclick="closeApplyModal()"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem;">
+        Enter your name and email to generate your private interview room link immediately.
+      </p>
+      <form id="apply-form">
+        <input type="hidden" id="apply-job-id">
+        <div class="form-group">
+          <label for="apply-name">Full Name</label>
+          <input type="text" id="apply-name" required placeholder="Alex Rivera">
+        </div>
+        <div class="form-group">
+          <label for="apply-email">Email Address</label>
+          <input type="email" id="apply-email" required placeholder="alex@example.com">
+        </div>
+        <div id="apply-error" style="display:none;color:#dc2626;font-size:0.78rem;margin-bottom:0.75rem;"></div>
+        <div style="display:flex;justify-content:flex-end;gap:0.5rem;">
+          <button type="button" class="btn-outline" onclick="closeApplyModal()">Cancel</button>
+          <button type="submit" class="btn-primary" id="apply-submit-btn">
+            <i class="bi bi-play-fill"></i> Launch Interview
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let allJobs = [];
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function getOrgParam() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('org')) return params.get('org');
+      const parts = window.location.pathname.split('/').filter(Boolean);
+      if (parts[0] === 'careers' && parts[1]) return decodeURIComponent(parts[1]);
+      return '';
+    }
+
+    function renderJobs() {
+      const list = document.getElementById('careers-jobs-list');
+      const q = (document.getElementById('careers-search')?.value || '').trim().toLowerCase();
+      const filtered = allJobs.filter((j) => {
+        if (!q) return true;
+        return `${j.title} ${j.jd_text || ''} ${j.skills || ''} ${j.experience_required || ''} ${j.level || ''} ${j.category || ''}`
+          .toLowerCase()
+          .includes(q);
+      });
+
+      if (!filtered.length) {
+        list.innerHTML = `<div class="job-card" style="justify-content:center;color:var(--text-muted);">No matching open positions found.</div>`;
+        return;
+      }
+
+      list.innerHTML = filtered.map((job) => {
+        const skills = String(job.skills || '')
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .slice(0, 6);
+        const expText = job.experience_required || job.level || '';
+        const durText = job.max_minutes ? `${Number(job.max_minutes)} min` : '';
+        return `
+          <div class="job-card">
+            <div style="flex:1;min-width:240px;">
+              <h2 style="font-size:1.08rem;font-weight:700;">${escapeHtml(job.title)}</h2>
+              <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin:0.45rem 0;">
+                ${job.category ? `<span class="badge"><i class="bi bi-tag"></i> ${escapeHtml(job.category)}</span>` : ''}
+                ${expText ? `<span class="badge"><i class="bi bi-briefcase"></i> ${escapeHtml(expText)}</span>` : ''}
+                ${durText ? `<span class="badge"><i class="bi bi-clock"></i> ${escapeHtml(durText)}</span>` : ''}
+              </div>
+              <p style="color:var(--text-muted);font-size:0.84rem;">${escapeHtml(job.jd_text || 'Complete an interactive AI-led assessment tailored to this role.')}</p>
+              ${skills.length ? `<div style="display:flex;gap:0.35rem;flex-wrap:wrap;margin-top:0.6rem;">${skills.map((s) => `<span class="badge">${escapeHtml(s)}</span>`).join('')}</div>` : ''}
+            </div>
+            <div>
+              <button class="btn-primary" onclick="openApplyModal('${escapeHtml(job.id)}', '${encodeURIComponent(job.title || 'Role')}')">
+                <i class="bi bi-lightning-charge-fill"></i> Start AI Interview
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    window.openApplyModal = function(jobId, encodedTitle) {
+      document.getElementById('apply-job-id').value = jobId;
+      document.getElementById('apply-modal-title').textContent = `Apply: ${decodeURIComponent(encodedTitle)}`;
+      document.getElementById('apply-error').style.display = 'none';
+      document.getElementById('apply-modal').style.display = 'flex';
+    };
+
+    window.closeApplyModal = function() {
+      document.getElementById('apply-modal').style.display = 'none';
+    };
+
+    document.getElementById('apply-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const jobId = document.getElementById('apply-job-id').value;
+      const candidateName = document.getElementById('apply-name').value.trim();
+      const candidateEmail = document.getElementById('apply-email').value.trim();
+      const errEl = document.getElementById('apply-error');
+      const btn = document.getElementById('apply-submit-btn');
+
+      errEl.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Preparing Room...';
+
+      try {
+        const res = await fetch(`/public/jobs/${encodeURIComponent(jobId)}/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: candidateName, email: candidateEmail, source: 'careers_portal' })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not start interview.');
+        window.location.href = data.interviewUrl || `/interview.html?token=${encodeURIComponent(data.token)}`;
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-play-fill"></i> Launch Interview';
+      }
+    });
+
+    async function loadCareers() {
+      const orgId = getOrgParam();
+      const list = document.getElementById('careers-jobs-list');
+      if (!orgId) {
+        list.innerHTML = `<div class="job-card" style="justify-content:center;color:var(--text-muted);">Missing organization parameter (?org=...).</div>`;
+        return;
+      }
+
+      try {
+        const res = await fetch(`/public/careers/${encodeURIComponent(orgId)}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Careers portal not found.');
+
+        const org = data.organization || {};
+        document.title = `${org.name || 'Company'} Careers | RoundOne AI`;
+        document.getElementById('org-header-name').textContent = org.name || 'Company Careers';
+        document.getElementById('hero-title').textContent = `Join ${org.name || 'Our Team'}`;
+
+        const metaParts = [org.industry, org.company_size, org.country].filter(Boolean);
+        if (org.website) metaParts.push(org.website);
+        if (metaParts.length) {
+          document.getElementById('org-header-meta').textContent = metaParts.join(' • ');
+        }
+
+        allJobs = Array.isArray(data.jobs) ? data.jobs : [];
+        renderJobs();
+      } catch (err) {
+        list.innerHTML = `<div class="job-card" style="justify-content:center;color:#dc2626;">${escapeHtml(err.message)}</div>`;
+      }
+    }
+
+    loadCareers();
+  </script>
+</body>
+</html>

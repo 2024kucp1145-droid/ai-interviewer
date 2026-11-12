@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shared Candidate Scorecard | RoundOne AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-subtle: #f1f5f9;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --accent: #2563eb;
+      --success: #059669;
+      --success-light: #ecfdf5;
+      --warning: #d97706;
+      --warning-light: #fffbeb;
+      --danger: #dc2626;
+      --danger-light: #fef2f2;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.875rem;
+      line-height: 1.55;
+      min-height: 100vh;
+    }
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0.85rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-weight: 800;
+      font-size: 1rem;
+      letter-spacing: -0.02em;
+    }
+    .brand-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 7px;
+      background: #0f172a;
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      max-width: 960px;
+      margin: 1.75rem auto;
+      padding: 0 1.25rem 3rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.35rem;
+      margin-bottom: 1.15rem;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.5rem 0.9rem;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-weight: 600;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .btn:hover { background: var(--surface-subtle); }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+    .badge-pass { background: var(--success-light); color: var(--success); }
+    .badge-hold { background: var(--warning-light); color: var(--warning); }
+    .badge-fail { background: var(--danger-light); color: var(--danger); }
+    .badge-info { background: #eff6ff; color: var(--accent); }
+    .grid-metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 0.85rem;
+      margin-top: 1rem;
+    }
+    .metric-box {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+    }
+    .metric-label { font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.04em; }
+    .metric-val { font-size: 1.35rem; font-weight: 800; margin-top: 0.15rem; }
+    .skill-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.45rem 0;
+      border-bottom: 1px dashed var(--border);
+    }
+    .skill-row:last-child { border-bottom: none; }
+    .bar-track { flex: 1; max-width: 240px; height: 7px; background: var(--surface-subtle); border-radius: 999px; overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--accent); border-radius: 999px; }
+    .turn-item {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 0.9rem;
+      margin-bottom: 0.65rem;
+    }
+    .turn-ai { background: #f8fafc; }
+    .turn-user { background: #ffffff; border-left: 3px solid var(--accent); }
+    pre.code-box {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 0.9rem;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      overflow-x: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      margin-top: 0.5rem;
+    }
+    @media print {
+      header button { display: none !important; }
+      body { background: #fff; }
+      .card { box-shadow: none; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="brand-icon"><i class="bi bi-layers-half"></i></span>
+      <span>RoundOne AI <span style="font-weight:500;color:var(--text-muted);font-size:0.82rem;">&bull; Shared Candidate Scorecard</span></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:0.65rem;">
+      <span id="share-expiry-pill" class="badge badge-info" style="display:none;"></span>
+      <button class="btn" onclick="window.print()"><i class="bi bi-printer"></i> Print / Save PDF</button>
+    </div>
+  </header>
+
+  <main class="container" id="share-main">
+    <div class="card" style="text-align:center;padding:3rem 1.5rem;color:var(--text-muted);">
+      Loading shared candidate assessment...
+    </div>
+  </main>
+
+  <script>
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function verdictBadge(verdict) {
+      const v = String(verdict || '').toLowerCase();
+      if (v.includes('strong') || v === 'pass' || v.includes('hire')) {
+        return `<span class="badge badge-pass"><i class="bi bi-check-circle-fill"></i> ${escapeHtml(verdict)}</span>`;
+      }
+      if (v.includes('hold') || v.includes('borderline')) {
+        return `<span class="badge badge-hold"><i class="bi bi-pause-circle-fill"></i> ${escapeHtml(verdict)}</span>`;
+      }
+      if (!verdict) return `<span class="badge badge-info">Pending Evaluation</span>`;
+      return `<span class="badge badge-fail"><i class="bi bi-x-circle-fill"></i> ${escapeHtml(verdict)}</span>`;
+    }
+
+    async function loadSharedReport() {
+      const main = document.getElementById('share-main');
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('token');
+      if (!token) {
+        main.innerHTML = `<div class="card"><h3>Invalid Share Link</h3><p style="color:var(--text-muted);margin-top:0.35rem;">No share token was provided in the URL.</p></div>`;
+        return;
+      }
+
+      try {
+        const res = await fetch(`/public/share/${encodeURIComponent(token)}`);
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'This shared report link is invalid or has expired.');
+        }
+
+        const expiryEl = document.getElementById('share-expiry-pill');
+        if (expiryEl && data.expiresAt) {
+          expiryEl.style.display = 'inline-flex';
+          expiryEl.innerHTML = `<i class="bi bi-clock"></i> Expires ${escapeHtml(new Date(data.expiresAt).toLocaleDateString())} &bull; Views: ${Number(data.viewCount || 1)}`;
+        }
+
+        const iv = data.interview || {};
+        const rep = data.report || {};
+        const turns = Array.isArray(data.turns) ? data.turns : [];
+
+        // Support array format [{ skill, score, evidence }] from reportRow.json as well as object maps
+        let skillsHtml = '<p style="color:var(--text-muted);">No granular skill scores recorded.</p>';
+        if (Array.isArray(rep.skills) && rep.skills.length) {
+          skillsHtml = rep.skills.map((s) => {
+            const val = Number(s.score) || 0;
+            const pct = Math.max(0, Math.min(100, val <= 5 ? val * 20 : val));
+            return `
+              <div class="skill-row">
+                <span style="font-weight:600;text-transform:capitalize;">${escapeHtml(s.skill || 'Competency')}</span>
+                <div style="display:flex;align-items:center;gap:0.75rem;flex:1;justify-content:flex-end;">
+                  <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+                  <strong style="min-width:42px;text-align:right;">${escapeHtml(val)}${val <= 5 ? '/5' : ''}</strong>
+                </div>
+              </div>
+            `;
+          }).join('');
+        } else if (rep.skills_json && typeof rep.skills_json === 'object' && Object.keys(rep.skills_json).length) {
+          skillsHtml = Object.keys(rep.skills_json).map((k) => {
+            const val = Number(rep.skills_json[k]) || 0;
+            const pct = Math.max(0, Math.min(100, val <= 10 ? val * 10 : val));
+            return `
+              <div class="skill-row">
+                <span style="font-weight:600;text-transform:capitalize;">${escapeHtml(k.replace(/_/g, ' '))}</span>
+                <div style="display:flex;align-items:center;gap:0.75rem;flex:1;justify-content:flex-end;">
+                  <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+                  <strong style="min-width:42px;text-align:right;">${escapeHtml(val)}</strong>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+
+        let transcriptHtml = '<p style="color:var(--text-muted);">No interview transcript turns captured.</p>';
+        if (turns.length) {
+          transcriptHtml = turns.map((t) => {
+            const speakerRole = String(t.role || t.speaker || '').toLowerCase();
+            const isAi = speakerRole === 'ai';
+            return `
+              <div class="turn-item ${isAi ? 'turn-ai' : 'turn-user'}">
+                <div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);margin-bottom:0.2rem;">
+                  ${isAi ? 'AI Interviewer' : escapeHtml(iv.candidate_name || 'Candidate')}
+                </div>
+                <div style="white-space:pre-wrap;">${escapeHtml(t.text || t.message || '')}</div>
+              </div>
+            `;
+          }).join('');
+        }
+
+        const piiNotice = data.hidePii
+          ? `<span class="badge badge-info"><i class="bi bi-shield-lock-fill"></i> Candidate PII Masked</span>`
+          : '';
+
+        const dsaObj = iv.dsa_result && typeof iv.dsa_result === 'object' ? iv.dsa_result : null;
+        const dsaVerdictText = (dsaObj && dsaObj.verdict) || iv.dsa_verdict || '';
+        const dsaRuntimeText = (dsaObj && dsaObj.runtimeMs != null) ? dsaObj.runtimeMs : iv.dsa_runtime_ms;
+        const judgeHtml = iv.code_draft ? `
+          <div class="card">
+            <h3 style="font-size:0.95rem;margin-bottom:0.4rem;">Submitted Code (${escapeHtml((iv.code_lang || 'code').toUpperCase())})</h3>
+            ${dsaVerdictText ? `<p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.5rem;">Automated Judge: <strong>${escapeHtml(dsaVerdictText)}</strong>${dsaRuntimeText != null ? ` (${escapeHtml(dsaRuntimeText)} ms)` : ''}</p>` : ''}
+            <pre class="code-box">${escapeHtml(iv.code_draft)}</pre>
+          </div>
+        ` : '';
+
+        const verdictStr = rep.candidate_verdict || rep.recommendation || rep.verdict || iv.state || 'Evaluated';
+        const summaryStr = rep.hiring_clarification || rep.overall_summary || rep.summary || iv.disqualified_reason || 'No written evaluation summary available.';
+
+        main.innerHTML = `
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
+              <div>
+                <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.35rem;">
+                  <span class="badge badge-info">${escapeHtml(iv.company_name || iv.org_name || 'Hiring Organization')}</span>
+                  ${piiNotice}
+                </div>
+                <h1 style="font-size:1.35rem;font-weight:800;">${escapeHtml(iv.candidate_name || 'Candidate')}</h1>
+                <p style="color:var(--text-muted);margin-top:0.15rem;">
+                  Role: <strong>${escapeHtml(iv.job_title || 'Assessment')}</strong>
+                  ${iv.candidate_email ? ` &bull; ${escapeHtml(iv.candidate_email)}` : ''}
+                </p>
+              </div>
+              <div>${verdictBadge(verdictStr)}</div>
+            </div>
+
+            <div class="grid-metrics">
+              <div class="metric-box">
+                <div class="metric-label">Overall Score</div>
+                <div class="metric-val">${rep.overall_score != null ? escapeHtml(rep.overall_score) + ' / 100' : '--'}</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-label">Status</div>
+                <div class="metric-val" style="font-size:1rem;text-transform:capitalize;">${escapeHtml(iv.state || iv.status || 'completed')}</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-label">Proctor Warnings</div>
+                <div class="metric-val">${Number(iv.proctor_warnings || 0)}</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-label">DSA Verdict</div>
+                <div class="metric-val" style="font-size:1rem;">${escapeHtml(dsaVerdictText || 'N/A')}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 style="font-size:0.95rem;margin-bottom:0.65rem;">Executive Summary & Evaluation</h3>
+            <p style="white-space:pre-wrap;">${escapeHtml(summaryStr)}</p>
+            ${rep.strengths ? `<div style="margin-top:0.85rem;"><strong>Strengths:</strong> <span style="color:var(--text-muted);">${escapeHtml(rep.strengths)}</span></div>` : ''}
+            ${rep.weaknesses ? `<div style="margin-top:0.4rem;"><strong>Areas for Review:</strong> <span style="color:var(--text-muted);">${escapeHtml(rep.weaknesses)}</span></div>` : ''}
+          </div>
+
+          <div class="card">
+            <h3 style="font-size:0.95rem;margin-bottom:0.65rem;">Competency Breakdown</h3>
+            ${skillsHtml}
+          </div>
+
+          ${judgeHtml}
+
+          <div class="card">
+            <h3 style="font-size:0.95rem;margin-bottom:0.75rem;">Interview Transcript (${turns.length} turns)</h3>
+            ${transcriptHtml}
+          </div>
+        `;
+      } catch (err) {
+        main.innerHTML = `
+          <div class="card" style="text-align:center;padding:2.5rem 1.5rem;">
+            <i class="bi bi-shield-exclamation" style="font-size:2rem;color:var(--danger);"></i>
+            <h3 style="margin-top:0.6rem;">Shared Link Unavailable</h3>
+            <p style="color:var(--text-muted);margin-top:0.35rem;">${escapeHtml(err.message)}</p>
+          </div>
+        `;
+      }
+    }
+
+    loadSharedReport();
+  </script>
+</body>
+</html>

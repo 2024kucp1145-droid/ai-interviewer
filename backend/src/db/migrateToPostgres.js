@@ -306,6 +306,26 @@ export async function runMigration(explicitUrl) {
         ON CONFLICT (id) DO NOTHING
       `,
       mapRow: (r) => [r.id, r.interview_id, r.reason, r.image_data, r.created_at]
+    },
+    {
+      name: 'report_shares',
+      sqliteSql: 'SELECT * FROM report_shares',
+      insertSql: `
+        INSERT INTO report_shares (id, interview_id, org_id, token_hash, hide_pii, expires_at, created_by, view_count, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        ON CONFLICT (id) DO UPDATE SET view_count = EXCLUDED.view_count
+      `,
+      mapRow: (r) => [r.id, r.interview_id, r.org_id, r.token_hash, r.hide_pii, r.expires_at, r.created_by, r.view_count, r.created_at]
+    },
+    {
+      name: 'org_custom_problems',
+      sqliteSql: 'SELECT * FROM org_custom_problems',
+      insertSql: `
+        INSERT INTO org_custom_problems (id, org_id, title, difficulty, description, function_name_js, function_name_py, starter_js, starter_py, starter_sql, test_cases_json, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        ON CONFLICT (id) DO NOTHING
+      `,
+      mapRow: (r) => [r.id, r.org_id, r.title, r.difficulty, r.description, r.function_name_js, r.function_name_py, r.starter_js, r.starter_py, r.starter_sql, safeJson(r.test_cases_json), r.created_at]
     }
   ];
 

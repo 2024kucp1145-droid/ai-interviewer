@@ -2593,6 +2593,23 @@ window.inspectInterview = async function(interviewId) {
         </div>
       ` : ''}
 
+      ${Array.isArray(data.code_history) && data.code_history.length > 0 ? (() => {
+        window._adminReplayFrames = data.code_history;
+        const maxIdx = data.code_history.length - 1;
+        const latest = data.code_history[maxIdx];
+        const bursts = data.code_history.filter(f => (f.pasteDelta || 0) >= 120).length;
+        return `
+          <div style="margin-bottom:1.15rem; padding:0.85rem 1rem; border-radius:10px; border:1px solid var(--border); background-color:var(--surface-elevated);">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.5rem;">
+              <strong style="font-size:0.82rem;"><i class="bi bi-film"></i> Keystroke Code Replay (${data.code_history.length} keyframes${bursts ? ` &middot; <span style="color:var(--danger);">${bursts} large paste(s)</span>` : ''})</strong>
+              <span id="admin-replay-meta" style="font-size:0.72rem; color:var(--text-muted);">Frame ${maxIdx + 1}/${data.code_history.length} &middot; ${formatExactClock(latest.t)} &middot; ${(latest.code || '').length} chars</span>
+            </div>
+            <input type="range" min="0" max="${maxIdx}" value="${maxIdx}" style="width:100%; margin-bottom:0.5rem;" oninput="(function(idx){ const f = (window._adminReplayFrames || [])[Number(idx)]; if(!f) return; document.getElementById('admin-replay-code').textContent = f.code || ''; document.getElementById('admin-replay-meta').innerHTML = 'Frame ' + (Number(idx)+1) + '/' + window._adminReplayFrames.length + ' &middot; ' + new Date(f.t).toLocaleTimeString() + ' &middot; ' + (f.code||'').length + ' chars' + ((f.pasteDelta||0)>=120 ? ' &middot; <strong style=color:var(--danger)>Paste +' + f.pasteDelta + ' chars</strong>' : ''); })(this.value)">
+            <pre id="admin-replay-code" style="max-height:220px; overflow:auto; background:#0f172a; color:#e2e8f0; padding:0.7rem; border-radius:8px; font-size:0.74rem; margin:0; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">${escapeHtml(latest.code || '')}</pre>
+          </div>
+        `;
+      })() : ''}
+
       <!-- Admin Decision Override & Session Controls -->
       <div style="margin-bottom: 1.15rem; padding: 0.9rem 1rem; border-radius: 10px; border: 1px solid var(--border); background-color: var(--surface-elevated);">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.65rem;">

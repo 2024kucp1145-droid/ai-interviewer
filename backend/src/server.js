@@ -1437,7 +1437,7 @@ function getOrHydrateInterview(rawToken) {
   let interview = db.prepare(`
     SELECT 
       i.id, i.state, i.started_at, i.expires_at, i.link_timer_minutes,
-      i.disqualified_reason, i.proctor_warnings, i.code_draft, i.code_lang,
+      i.disqualified_reason, i.proctor_warnings, i.code_draft, i.code_lang, i.code_history,
       j.id as job_id, j.title as job_title, j.skills, j.qualifications, j.level, j.max_minutes, j.max_questions,
       j.show_timer, j.auto_submit_timer,
       j.interview_type, j.question_mode, j.terminal_required, j.word_editor_required, j.resume_required,
@@ -1982,6 +1982,28 @@ const handleDeleteCustom = (req, res) => {
 app.delete('/question-bank/custom/:id', requireAuth, handleDeleteCustom);
 app.delete('/api/question-bank/custom/:id', requireAuth, handleDeleteCustom);
 
+function loadCustomProblemMeta(problemRef) {
+  const ref = String(problemRef || '').trim();
+  if (!ref.startsWith('cprob_')) return null;
+  const row = db.prepare('SELECT * FROM org_custom_problems WHERE id = ?').get(ref);
+  if (!row) return null;
+  let cases = [];
+  try { cases = JSON.parse(row.test_cases_json || '[]'); } catch { cases = []; }
+  return {
+    id: row.id,
+    title: row.title,
+    difficulty: row.difficulty || 'Medium',
+    description: row.description,
+    functionName: { js: row.function_name_js || 'solve', py: row.function_name_py || 'solve' },
+    starter: {
+      javascript: row.starter_js || `function ${row.function_name_js || 'solve'}(input) {\n  // TODO: Implement\n  return null;\n}`,
+      python: row.starter_py || `def ${row.function_name_py || 'solve'}(input):\n    # TODO: Implement\n    return None`,
+      sql: row.starter_sql || 'SELECT name, salary FROM employees ORDER BY salary DESC;',
+    },
+    cases,
+  };
+}
+
 // --- Automated LeetCode & Coding Judge Runner Endpoint ---
 app.post('/api/compiler/judge', async (req, res) => {
   try {
@@ -1990,7 +2012,8 @@ app.post('/api/compiler/judge', async (req, res) => {
       return res.status(400).json({ error: 'Please enter code to evaluate against test cases.' });
     }
 
-    const result = await judgeLeetCodeSolution(String(problemId), lang, code);
+    const customSuite = loadCustomProblemMeta(problemId);
+    const result = await judgeLeetCodeSolution(String(problemId), lang, code, customSuite);
 
     // If an interview session token is provided, persist result in the database
     if (token) {
@@ -2284,8 +2307,11 @@ app.get('/i/:token', (req, res) => {
       }
     }
 
+    const customProblem = loadCustomProblemMeta(interview.leetcode_problem);
+
     res.json({
       ...interview,
+      custom_problem: customProblem,
       remainingSeconds,
       code_draft: interview.code_draft || null,
       code_lang: interview.code_lang || 'javascript',
@@ -2645,7 +2671,7 @@ app.post('/i/:token/snapshot', (req, res) => {
   }
 });
 
-// Autosave candidate code editor draft for mid-interview crash/reload recovery
+// Autosave candidate code editor draft + keystroke timeline replay keyframes
 app.post('/i/:token/draft', (req, res) => {
   try {
     const interview = getOrHydrateInterview(req.params.token);
@@ -2653,11 +2679,29 @@ app.post('/i/:token/draft', (req, res) => {
 
     const codeDraft = typeof req.body?.code === 'string' ? req.body.code.slice(0, 100_000) : '';
     const codeLang = String(req.body?.lang || 'javascript').slice(0, 32);
+    const keyframe = req.body?.keyframe && typeof req.body.keyframe === 'object' ? req.body.keyframe : null;
 
-    db.prepare('UPDATE interviews SET code_draft = ?, code_lang = ? WHERE id = ?')
-      .run(codeDraft, codeLang, interview.id);
+    let history = [];
+    try { history = interview.code_history ? JSON.parse(interview.code_history) : []; } catch { history = []; }
+    if (!Array.isArray(history)) history = [];
 
-    res.json({ success: true, savedBytes: codeDraft.length, lang: codeLang });
+    if (keyframe) {
+      history.push({
+        t: Number(keyframe.t) || Date.now(),
+        lang: codeLang,
+        len: codeDraft.length,
+        pasteDelta: Number(keyframe.pasteDelta) || 0,
+        code: codeDraft.slice(0, 20_000),
+      });
+      if (history.length > 60) history = history.slice(-60);
+      db.prepare('UPDATE interviews SET code_draft = ?, code_lang = ?, code_history = ? WHERE id = ?')
+        .run(codeDraft, codeLang, JSON.stringify(history), interview.id);
+    } else {
+      db.prepare('UPDATE interviews SET code_draft = ?, code_lang = ? WHERE id = ?')
+        .run(codeDraft, codeLang, interview.id);
+    }
+
+    res.json({ success: true, savedBytes: codeDraft.length, lang: codeLang, keyframesCount: history.length });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -2696,12 +2740,15 @@ app.get('/interviews/:id/report', requireAuth, (req, res) => {
     const reportRow = db.prepare('SELECT * FROM reports WHERE interview_id = ?').get(interview.id);
     const turns = db.prepare('SELECT idx, role, text, skill, level, created_at FROM turns WHERE interview_id = ? ORDER BY idx ASC').all(interview.id);
     const snapshots = db.prepare('SELECT id, reason, image_data, created_at FROM proctor_snapshots WHERE interview_id = ? ORDER BY created_at DESC LIMIT 20').all(interview.id);
+    let codeHistory = [];
+    try { codeHistory = interview.code_history ? JSON.parse(interview.code_history) : []; } catch { codeHistory = []; }
 
     res.json({
       interview,
       report: reportRow ? JSON.parse(reportRow.json) : null,
       turns,
-      snapshots
+      snapshots,
+      code_history: codeHistory
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -3395,6 +3442,176 @@ app.delete('/org/webhooks/:id', requireAuth, (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// --- Expiring Shareable Candidate Report Links ---
+app.post('/interviews/:id/share', requireAuth, (req, res) => {
+  try {
+    const interview = db.prepare(`
+      SELECT i.id, j.org_id as job_org_id
+      FROM interviews i
+      JOIN jobs j ON i.job_id = j.id
+      WHERE i.id = ? AND (j.org_id = ? OR j.org_id = 'org_default' OR j.org_id IS NULL)
+    `).get(req.params.id, req.user.org_id);
+    if (!interview) return res.status(404).json({ error: 'Interview not found' });
+
+    const expiresHours = Math.min(720, Math.max(1, parseInt(req.body?.expiresHours || '72', 10) || 72));
+    const hidePii = req.body?.hidePii === false ? 0 : 1;
+    const rawToken = 'shr_' + crypto.randomBytes(24).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const shareId = 'sh_' + crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + expiresHours * 3600 * 1000).toISOString();
+
+    db.prepare(`
+      INSERT INTO report_shares (id, interview_id, org_id, token_hash, hide_pii, expires_at, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(shareId, interview.id, req.user.org_id, tokenHash, hidePii, expiresAt, req.user.id);
+
+    const shareUrl = `${req.protocol}://${req.get('host')}/share.html?token=${rawToken}`;
+    res.json({ success: true, shareId, shareUrl, token: rawToken, hidePii: Boolean(hidePii), expiresAt });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/public/share/:shareToken', (req, res) => {
+  try {
+    const tokenHash = crypto.createHash('sha256').update(String(req.params.shareToken || '')).digest('hex');
+    const share = db.prepare(`
+      SELECT * FROM report_shares
+      WHERE token_hash = ? AND datetime(expires_at) > datetime('now')
+    `).get(tokenHash);
+    if (!share) return res.status(404).json({ error: 'Share link is invalid or has expired.' });
+
+    const interview = db.prepare(`
+      SELECT i.*, j.title as job_title, j.skills as job_skills, o.name as company_name,
+             c.name as candidate_name, c.email as candidate_email, c.phone as candidate_phone
+      FROM interviews i
+      JOIN jobs j ON i.job_id = j.id
+      JOIN organizations o ON j.org_id = o.id
+      JOIN candidates c ON i.candidate_id = c.id
+      WHERE i.id = ?
+    `).get(share.interview_id);
+    if (!interview) return res.status(404).json({ error: 'Shared interview not found.' });
+
+    db.prepare('UPDATE report_shares SET view_count = view_count + 1 WHERE id = ?').run(share.id);
+
+    const reportRow = db.prepare('SELECT * FROM reports WHERE interview_id = ?').get(interview.id);
+    const turns = db.prepare('SELECT idx, role, text, skill, level, created_at FROM turns WHERE interview_id = ? ORDER BY idx ASC').all(interview.id);
+
+    const sanitizedInterview = {
+      ...interview,
+      candidate_email: share.hide_pii ? '[Hidden by recruiter]' : interview.candidate_email,
+      candidate_phone: share.hide_pii ? '' : interview.candidate_phone,
+      proctor_logs: interview.proctor_logs ? JSON.parse(interview.proctor_logs) : [],
+      dsa_result: interview.dsa_result ? JSON.parse(interview.dsa_result) : null,
+    };
+
+    res.json({
+      success: true,
+      hidePii: Boolean(share.hide_pii),
+      expiresAt: share.expires_at,
+      viewCount: (share.view_count || 0) + 1,
+      interview: sanitizedInterview,
+      report: reportRow ? JSON.parse(reportRow.json) : null,
+      turns,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Custom Organization Coding & SQL Problem Builder ---
+app.get('/org/problems', requireAuth, (req, res) => {
+  try {
+    const problems = db.prepare('SELECT * FROM org_custom_problems WHERE org_id = ? ORDER BY created_at DESC').all(req.user.org_id);
+    res.json({
+      problems: problems.map((p) => ({
+        ...p,
+        test_cases: (() => { try { return JSON.parse(p.test_cases_json || '[]'); } catch { return []; } })(),
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/org/problems', requireAuth, (req, res) => {
+  try {
+    const callerRole = getUserOrgRole(req.user.id);
+    if (callerRole === 'reviewer') {
+      return res.status(403).json({ error: 'Reviewers cannot author custom problems.' });
+    }
+
+    const title = String(req.body?.title || '').trim().slice(0, 140);
+    const difficulty = ['Easy', 'Medium', 'Hard'].includes(req.body?.difficulty) ? req.body.difficulty : 'Medium';
+    const description = String(req.body?.description || '').trim();
+    const fnJs = String(req.body?.function_name_js || 'solve').replace(/[^a-zA-Z0-9_]/g, '') || 'solve';
+    const fnPy = String(req.body?.function_name_py || 'solve').replace(/[^a-zA-Z0-9_]/g, '') || 'solve';
+    const testCases = Array.isArray(req.body?.test_cases) ? req.body.test_cases : [];
+
+    if (!title || !description) {
+      return res.status(400).json({ error: 'Problem title and description are required.' });
+    }
+    if (testCases.length === 0) {
+      return res.status(400).json({ error: 'At least one test case with input and expected output is required.' });
+    }
+
+    const normalizedCases = testCases.slice(0, 15).map((tc, i) => ({
+      id: i + 1,
+      type: String(tc.type || '').toLowerCase() === 'hidden' ? 'Hidden' : 'Public',
+      input: tc.input && typeof tc.input === 'object' ? tc.input : { arg: tc.input },
+      expected: tc.expected,
+    }));
+
+    const starterJs = String(req.body?.starter_js || '').trim() || `function ${fnJs}(input) {\n  // TODO: Implement\n  return null;\n}`;
+    const starterPy = String(req.body?.starter_py || '').trim() || `def ${fnPy}(input):\n    # TODO: Implement\n    return None`;
+    const starterSql = String(req.body?.starter_sql || '').trim() || 'SELECT name, salary FROM employees ORDER BY salary DESC;';
+
+    const problemId = 'cprob_' + crypto.randomUUID().slice(0, 8);
+    db.prepare(`
+      INSERT INTO org_custom_problems (id, org_id, title, difficulty, description, function_name_js, function_name_py, starter_js, starter_py, starter_sql, test_cases_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(problemId, req.user.org_id, title, difficulty, description, fnJs, fnPy, starterJs, starterPy, starterSql, JSON.stringify(normalizedCases));
+
+    res.json({
+      success: true,
+      problem: { id: problemId, title, difficulty, description, function_name_js: fnJs, function_name_py: fnPy, starter_js: starterJs, starter_py: starterPy, starter_sql: starterSql, test_cases: normalizedCases }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/org/problems/:id', requireAuth, (req, res) => {
+  try {
+    const del = db.prepare('DELETE FROM org_custom_problems WHERE id = ? AND org_id = ?').run(req.params.id, req.user.org_id);
+    if (del.changes === 0) return res.status(404).json({ error: 'Custom problem not found' });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Public Branded Company Careers Portal API ---
+app.get('/public/careers/:orgId', (req, res) => {
+  try {
+    const org = db.prepare('SELECT id, name, website, industry, company_size, country FROM organizations WHERE id = ?').get(req.params.orgId);
+    if (!org) return res.status(404).json({ error: 'Company careers page not found' });
+
+    const jobs = db.prepare(`
+      SELECT id, title, category, purpose, experience_required, skills, qualifications, level, max_minutes, max_questions, jd_text, created_at
+      FROM jobs WHERE org_id = ? ORDER BY created_at DESC
+    `).all(org.id);
+
+    res.json({ success: true, organization: org, jobs });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/careers/:orgId', (req, res) => {
+  res.redirect(`/careers.html?org=${encodeURIComponent(req.params.orgId)}`);
 });
 
 // Serve candidate app or recruiter dashboard fallback for client routes

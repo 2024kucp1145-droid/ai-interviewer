@@ -1151,13 +1151,16 @@
             </div>
           </div>
 
-          <!-- Code Editor Area -->
-          <textarea id="terminal-code-input" class="hr-code-editor" spellcheck="false" placeholder="// Write or implement your solution here...
+          <!-- Code Editor Area with Line Numbers -->
+          <div id="terminal-editor-shell" style="display:flex;flex:1;min-height:240px;background:#0f172a;border-top:1px solid #1e293b;border-bottom:1px solid #1e293b;overflow:hidden;">
+            <pre id="terminal-line-numbers" aria-hidden="true" style="margin:0;padding:0.85rem 0.65rem 0.85rem 0.5rem;min-width:42px;text-align:right;background:#0b1220;color:#64748b;border-right:1px solid #1e293b;font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.82rem;line-height:1.55;user-select:none;overflow:hidden;">1</pre>
+            <textarea id="terminal-code-input" class="hr-code-editor" spellcheck="false" style="flex:1;border:none;outline:none;border-radius:0;padding:0.85rem;font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.82rem;line-height:1.55;background:#0f172a;color:#e2e8f0;resize:none;" placeholder="// Write or implement your solution here... (Tab indents, Ctrl+Enter runs code)
 function solution() {
   console.log('Testing solution execution...');
   return true;
 }
 solution();"></textarea>
+          </div>
 
           <!-- Tabbed Testcase & Output Drawer -->
           <div class="hr-testcase-drawer">

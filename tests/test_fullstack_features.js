@@ -35,6 +35,7 @@ const createdInterviewIds = [];
 
 async function cleanup() {
   for (const ivId of createdInterviewIds) {
+    try { db.prepare('DELETE FROM report_shares WHERE interview_id = ?').run(ivId); } catch (_) {}
     try { db.prepare('DELETE FROM proctor_snapshots WHERE interview_id = ?').run(ivId); } catch (_) {}
     try { db.prepare('DELETE FROM turns WHERE interview_id = ?').run(ivId); } catch (_) {}
     try { db.prepare('DELETE FROM reports WHERE interview_id = ?').run(ivId); } catch (_) {}
@@ -48,6 +49,8 @@ async function cleanup() {
   }
   try { db.prepare("DELETE FROM candidates WHERE email LIKE 'cand_%@test.local'").run(); } catch (_) {}
   for (const orgId of createdOrgIds) {
+    try { db.prepare('DELETE FROM report_shares WHERE org_id = ?').run(orgId); } catch (_) {}
+    try { db.prepare('DELETE FROM org_custom_problems WHERE org_id = ?').run(orgId); } catch (_) {}
     try { db.prepare('DELETE FROM platform_activities WHERE org_id = ?').run(orgId); } catch (_) {}
     try { db.prepare('DELETE FROM webhook_deliveries WHERE org_id = ?').run(orgId); } catch (_) {}
     try { db.prepare('DELETE FROM org_webhooks WHERE org_id = ?').run(orgId); } catch (_) {}
@@ -361,7 +364,119 @@ async function runTests() {
     assert.strictEqual(recruiterSnaps.snapshots.length, 1);
     console.log('✓ 9. Proctor snapshot storage, code draft autosave & session reload recovery verified');
 
-    console.log('\n🎉 ALL 9 FULL-STACK VERIFICATION CHECKS PASSED!');
+    // 10. Keystroke Replay Keyframes + Expiring Shareable Report Links (with PII redaction)
+    const kfRes = await fetch(`${BASE_URL}/i/${candToken}/draft`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lang: 'javascript',
+        code: 'function solve(a, b) { return a + b; }',
+        keyframe: { t: Date.now(), pasteDelta: 140 }
+      })
+    });
+    assert.strictEqual(kfRes.status, 200);
+
+    const repRes = await fetch(`${BASE_URL}/interviews/${ivId}/report`, {
+      headers: { Authorization: `Bearer ${ownerToken}` }
+    });
+    const repData = await repRes.json();
+    assert.strictEqual(repRes.status, 200, repData.error);
+    assert.ok(Array.isArray(repData.code_history) && repData.code_history.length >= 1);
+    assert.strictEqual(repData.code_history[repData.code_history.length - 1].pasteDelta, 140);
+
+    const shareRes = await fetch(`${BASE_URL}/interviews/${ivId}/share`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ownerToken}` },
+      body: JSON.stringify({ hidePii: true, expiresDays: 7 })
+    });
+    const shareData = await shareRes.json();
+    assert.strictEqual(shareRes.status, 200, shareData.error);
+    assert.ok(shareData.token && shareData.shareUrl.includes(shareData.token));
+
+    const pubShareRes = await fetch(`${BASE_URL}/public/share/${shareData.token}`);
+    const pubShareData = await pubShareRes.json();
+    assert.strictEqual(pubShareRes.status, 200, pubShareData.error);
+    assert.strictEqual(pubShareData.hidePii, true);
+    assert.strictEqual(pubShareData.interview.candidate_email, '[Hidden by recruiter]');
+    assert.strictEqual(pubShareData.viewCount, 1);
+    console.log('✓ 10. Code keyframe replay & expiring PII-masked report share links verified');
+
+    // 11. Custom Organization Coding Problem Builder & Automated Judge Execution
+    const createProbRes = await fetch(`${BASE_URL}/org/problems`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ownerToken}` },
+      body: JSON.stringify({
+        title: `Sum Pair Challenge ${RUN_ID}`,
+        difficulty: 'Easy',
+        description: 'Return sum of a and b.',
+        function_name_js: 'sumPair',
+        function_name_py: 'sum_pair',
+        starter_js: 'function sumPair(a, b) { return a + b; }',
+        starter_py: 'def sum_pair(a, b): return a + b',
+        test_cases: [
+          { type: 'public', input: [2, 3], expected: 5 },
+          { type: 'hidden', input: [-4, 10], expected: 6 }
+        ]
+      })
+    });
+    const createProbData = await createProbRes.json();
+    assert.strictEqual(createProbRes.status, 200, createProbData.error);
+    const customProbId = createProbData.problem?.id;
+    assert.ok(customProbId && customProbId.startsWith('cprob_'));
+
+    const judgePassRes = await fetch(`${BASE_URL}/api/compiler/judge`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        problemId: customProbId,
+        lang: 'javascript',
+        code: 'function sumPair(a, b) { return a + b; }'
+      })
+    });
+    const judgePass = await judgePassRes.json();
+    assert.strictEqual(judgePassRes.status, 200, judgePass.error);
+    assert.strictEqual(judgePass.result.verdict, 'ACCEPTED');
+    assert.strictEqual(judgePass.result.passedCount, 2);
+
+    const judgeFailRes = await fetch(`${BASE_URL}/api/compiler/judge`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        problemId: customProbId,
+        lang: 'javascript',
+        code: 'function sumPair(a, b) { return a - b; }'
+      })
+    });
+    const judgeFail = await judgeFailRes.json();
+    assert.strictEqual(judgeFailRes.status, 200);
+    assert.strictEqual(judgeFail.result.verdict, 'WRONG_ANSWER');
+
+    const delProbRes = await fetch(`${BASE_URL}/org/problems/${customProbId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${ownerToken}` }
+    });
+    assert.strictEqual(delProbRes.status, 200);
+    console.log('✓ 11. Custom organization coding problem CRUD & judge verification passed');
+
+    // 12. Public Company Careers Portal API & Standalone HTML Pages
+    const orgIdForCareers = createdOrgIds[createdOrgIds.length - 1];
+    const careersApiRes = await fetch(`${BASE_URL}/public/careers/${orgIdForCareers}`);
+    const careersApiData = await careersApiRes.json();
+    assert.strictEqual(careersApiRes.status, 200, careersApiData.error);
+    assert.ok(careersApiData.organization && careersApiData.organization.id === orgIdForCareers);
+    assert.ok(Array.isArray(careersApiData.jobs) && careersApiData.jobs.some((j) => j.id === jobId));
+
+    const careersRedirectRes = await fetch(`${BASE_URL}/careers/${orgIdForCareers}`, { redirect: 'manual' });
+    assert.strictEqual(careersRedirectRes.status, 302);
+    assert.ok((careersRedirectRes.headers.get('location') || '').includes('/careers.html?org='));
+
+    const shareHtmlRes = await fetch(`${BASE_URL}/share.html`);
+    const careersHtmlRes = await fetch(`${BASE_URL}/careers.html`);
+    assert.strictEqual(shareHtmlRes.status, 200);
+    assert.strictEqual(careersHtmlRes.status, 200);
+    console.log('✓ 12. Public branded careers portal & standalone UI pages verified');
+
+    console.log('\n🎉 ALL 12 FULL-STACK VERIFICATION CHECKS PASSED!');
   } finally {
     await cleanup();
   }

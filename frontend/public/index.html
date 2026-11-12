@@ -1570,6 +1570,9 @@
             </p>
           </div>
           <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <button class="btn btn-outline" onclick="openOrgCareersPage()" style="padding: 0.6rem 1rem; font-size: 0.85rem; font-weight: 600;" title="Open your public branded careers portal &amp; copy URL">
+              <i class="bi bi-globe"></i> Public Careers Page
+            </button>
             <button class="btn btn-outline" onclick="openQuestionBankModal()" style="padding: 0.6rem 1rem; font-size: 0.85rem; font-weight: 600;">
               <i class="bi bi-collection"></i> Question Bank
             </button>
@@ -2234,6 +2237,7 @@
                   <option value="121">LeetCode #121: Best Time to Buy and Sell Stock (Array - Easy)</option>
                   <option value="15">LeetCode #15: 3Sum (Two Pointers, Array - Medium)</option>
                   <option value="200">LeetCode #200: Number of Islands (Graph, BFS/DFS - Medium)</option>
+                  <optgroup id="wiz-custom-problems-optgroup" label="Organization Custom Problems"></optgroup>
                   <option value="custom">Custom Problem (Enter custom LeetCode number or title)</option>
                 </select>
 
@@ -2718,6 +2722,68 @@
             <div style="font-size:0.74rem; font-weight:700; color:var(--text-muted); margin-bottom:0.4rem;">Recent Webhook Deliveries</div>
             <div id="org-webhook-deliveries" style="max-height:140px; overflow-y:auto; font-size:0.74rem; color:var(--text-muted);">No deliveries yet.</div>
           </div>
+        </div>
+      </div>
+
+      <!-- Custom Organization Coding & SQL Problem Builder -->
+      <div class="card" style="margin-top: 1.5rem; padding: 1.5rem;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
+          <div>
+            <h3 style="font-size:1rem; font-weight:700; color:#000;"><i class="bi bi-code-square"></i> Custom Coding &amp; SQL Problem Builder</h3>
+            <p style="font-size:0.775rem; color:var(--text-muted); margin-top:0.2rem;">
+              Author proprietary algorithmic or SQL problems with automated public &amp; hidden test cases. Select them directly inside any job interview round.
+            </p>
+          </div>
+        </div>
+
+        <form id="form-custom-problem" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:0.75rem; margin-bottom:1.25rem; padding:1rem; background:var(--surface-subtle); border:1px solid var(--border); border-radius:var(--radius-sm);">
+          <div>
+            <label style="display:block; font-size:0.72rem; font-weight:700; margin-bottom:0.25rem;">Problem Title</label>
+            <input type="text" id="cp-title" class="form-input" required placeholder="Rate Limiter Token Bucket">
+          </div>
+          <div>
+            <label style="display:block; font-size:0.72rem; font-weight:700; margin-bottom:0.25rem;">Difficulty</label>
+            <select id="cp-difficulty" class="form-input">
+              <option value="Easy">Easy</option>
+              <option value="Medium" selected>Medium</option>
+              <option value="Hard">Hard</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block; font-size:0.72rem; font-weight:700; margin-bottom:0.25rem;">JS Function Name</label>
+            <input type="text" id="cp-fn-js" class="form-input" value="solve" required>
+          </div>
+          <div>
+            <label style="display:block; font-size:0.72rem; font-weight:700; margin-bottom:0.25rem;">Python Function Name</label>
+            <input type="text" id="cp-fn-py" class="form-input" value="solve" required>
+          </div>
+          <div style="grid-column: 1 / -1;">
+            <label style="display:block; font-size:0.72rem; font-weight:700; margin-bottom:0.25rem;">Problem Description</label>
+            <textarea id="cp-desc" class="form-input" rows="2" required placeholder="Given an array of integers nums and integer k, return ..."></textarea>
+          </div>
+          <div>
+            <label style="display:block; font-size:0.72rem; font-weight:700; margin-bottom:0.25rem;">Starter JS Template</label>
+            <textarea id="cp-starter-js" class="form-input" rows="3" style="font-family:monospace; font-size:0.74rem;">function solve(nums, k) {
+  // Write your solution here
+}</textarea>
+          </div>
+          <div>
+            <label style="display:block; font-size:0.72rem; font-weight:700; margin-bottom:0.25rem;">Starter Python Template</label>
+            <textarea id="cp-starter-py" class="form-input" rows="3" style="font-family:monospace; font-size:0.74rem;">def solve(nums, k):
+    # Write your solution here
+    pass</textarea>
+          </div>
+          <div style="grid-column: 1 / -1;">
+            <label style="display:block; font-size:0.72rem; font-weight:700; margin-bottom:0.25rem;">Automated Test Cases (JSON Array of { type: "public"|"hidden", input: [...args], expected: value })</label>
+            <textarea id="cp-testcases" class="form-input" rows="3" style="font-family:monospace; font-size:0.74rem;">[{"type":"public","input":[[1,2,3],3],"expected":6},{"type":"hidden","input":[[5,5],10],"expected":10}]</textarea>
+          </div>
+          <div style="grid-column: 1 / -1; display:flex; justify-content:flex-end;">
+            <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle"></i> Save Custom Problem</button>
+          </div>
+        </form>
+
+        <div id="org-problems-list" style="display:flex; flex-direction:column; gap:0.5rem;">
+          <div style="font-size:0.78rem; color:var(--text-muted);">Loading custom organization problems...</div>
         </div>
       </div>
     </div>

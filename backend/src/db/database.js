@@ -296,6 +296,38 @@ export function initDatabase() {
       FOREIGN KEY (interview_id) REFERENCES interviews(id)
     );
 
+    -- Expiring Shareable Candidate Scorecard Links
+    CREATE TABLE IF NOT EXISTS report_shares (
+      id TEXT PRIMARY KEY,
+      interview_id TEXT NOT NULL,
+      org_id TEXT NOT NULL,
+      token_hash TEXT UNIQUE NOT NULL,
+      hide_pii INTEGER DEFAULT 1,
+      expires_at DATETIME NOT NULL,
+      created_by TEXT,
+      view_count INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (interview_id) REFERENCES interviews(id),
+      FOREIGN KEY (org_id) REFERENCES organizations(id)
+    );
+
+    -- Custom Organization Coding & SQL Problems
+    CREATE TABLE IF NOT EXISTS org_custom_problems (
+      id TEXT PRIMARY KEY,
+      org_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      difficulty TEXT DEFAULT 'Medium',
+      description TEXT NOT NULL,
+      function_name_js TEXT DEFAULT 'solve',
+      function_name_py TEXT DEFAULT 'solve',
+      starter_js TEXT,
+      starter_py TEXT,
+      starter_sql TEXT,
+      test_cases_json TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (org_id) REFERENCES organizations(id)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_interviews_token ON interviews(token_hash);
     CREATE INDEX IF NOT EXISTS idx_turns_interview ON turns(interview_id);
     CREATE INDEX IF NOT EXISTS idx_candidates_org ON candidates(org_id);
@@ -309,6 +341,8 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_org_webhooks_org ON org_webhooks(org_id);
     CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_org ON webhook_deliveries(org_id);
     CREATE INDEX IF NOT EXISTS idx_proctor_snapshots_iv ON proctor_snapshots(interview_id);
+    CREATE INDEX IF NOT EXISTS idx_report_shares_token ON report_shares(token_hash);
+    CREATE INDEX IF NOT EXISTS idx_org_custom_problems_org ON org_custom_problems(org_id);
   `);
 
   // Auto-migration for existing tables
@@ -382,9 +416,10 @@ export function initDatabase() {
   addColumn('users', 'admin_uid', 'TEXT');
   addColumn('users', 'org_role', "TEXT DEFAULT 'owner'");
 
-  // Candidate session recovery (code draft autosave)
+  // Candidate session recovery & keystroke replay
   addColumn('interviews', 'code_draft', 'TEXT');
   addColumn('interviews', 'code_lang', "TEXT DEFAULT 'javascript'");
+  addColumn('interviews', 'code_history', 'TEXT');
 
   try {
     db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_admin_uid ON users(admin_uid) WHERE admin_uid IS NOT NULL');

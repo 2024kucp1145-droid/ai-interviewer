@@ -1579,6 +1579,9 @@ window.editInterview = async function(jobId) {
         }
       }
       const lcSelect = document.getElementById('wiz-leetcode-select');
+      if (!matchedKey && window.orgCustomProblemsMap && window.orgCustomProblemsMap[job.leetcode_problem]) {
+        matchedKey = job.leetcode_problem;
+      }
       if (matchedKey && lcSelect) {
         lcSelect.value = matchedKey;
       } else if (lcSelect) {
@@ -2507,6 +2510,7 @@ window.toggleDsaSection = function() {
   const checked = document.getElementById('wiz-dsa-toggle')?.checked;
   const box = document.getElementById('wiz-dsa-picker-box');
   if (box) box.style.display = checked ? 'block' : 'none';
+  if (checked && typeof loadOrgProblems === 'function') loadOrgProblems();
 };
 
 window.updateLeetCodePreview = function() {
@@ -2515,6 +2519,19 @@ window.updateLeetCodePreview = function() {
   if (!select) return;
 
   const val = select.value;
+  if (val && val.startsWith('cprob_') && window.orgCustomProblemsMap && window.orgCustomProblemsMap[val]) {
+    if (customBox) customBox.style.display = 'none';
+    const cp = window.orgCustomProblemsMap[val];
+    document.getElementById('lc-preview-title').textContent = cp.title || 'Custom Problem';
+    document.getElementById('lc-preview-diff').textContent = cp.difficulty || 'Medium';
+    document.getElementById('lc-preview-desc').textContent = cp.description || '';
+    const pub = (cp.test_cases || []).filter((t) => !t.type || t.type === 'public');
+    document.getElementById('lc-preview-testcases').textContent = pub.length
+      ? pub.map((t) => `Input: ${JSON.stringify(t.input)} -> Expected: ${JSON.stringify(t.expected)}`).join(' | ')
+      : `${(cp.test_cases || []).length} automated test case(s) configured`;
+    return;
+  }
+
   if (val === 'custom') {
     if (customBox) customBox.style.display = 'block';
     const customVal = document.getElementById('wiz-custom-leetcode-input')?.value || 'Custom DSA Challenge';
@@ -2558,7 +2575,9 @@ function updateWizardSummaryReview() {
   let dsaText = 'None attached';
   if (dsaActive) {
     const lcSelect = document.getElementById('wiz-leetcode-select')?.value;
-    if (lcSelect === 'custom') {
+    if (lcSelect && lcSelect.startsWith('cprob_') && window.orgCustomProblemsMap?.[lcSelect]) {
+      dsaText = `${window.orgCustomProblemsMap[lcSelect].title} (Org Custom)`;
+    } else if (lcSelect === 'custom') {
       dsaText = document.getElementById('wiz-custom-leetcode-input')?.value || 'Custom Problem';
     } else {
       dsaText = LEETCODE_CATALOG[lcSelect]?.title || 'LeetCode Problem';
@@ -2642,7 +2661,9 @@ window.handleWizardFinalSubmit = async function(e) {
   let leetcode_problem = '';
   if (document.getElementById('wiz-dsa-toggle').checked) {
     const lcVal = document.getElementById('wiz-leetcode-select').value;
-    if (lcVal === 'custom') {
+    if (lcVal && lcVal.startsWith('cprob_')) {
+      leetcode_problem = lcVal;
+    } else if (lcVal === 'custom') {
       leetcode_problem = document.getElementById('wiz-custom-leetcode-input')?.value.trim() || 'Custom LeetCode Challenge';
     } else {
       leetcode_problem = LEETCODE_CATALOG[lcVal]?.title || 'LeetCode #1: Two Sum';
@@ -4440,6 +4461,7 @@ document.getElementById('btn-erase-candidate').addEventListener('click', async (
 async function loadKeyStatus() {
   if (typeof loadOrgTeam === 'function') loadOrgTeam();
   if (typeof loadOrgWebhooks === 'function') loadOrgWebhooks();
+  if (typeof loadOrgProblems === 'function') loadOrgProblems();
   const statusEl = document.getElementById('key-current-status');
   try {
     const res = await apiRequest('/org/provider-key');
@@ -4653,6 +4675,102 @@ window.deleteOrgWebhook = async function(id) {
   try {
     const res = await apiRequest(`/org/webhooks/${encodeURIComponent(id)}`, { method: 'DELETE' });
     if (res.ok) loadOrgWebhooks();
+  } catch (err) {
+    alert(err.message);
+  }
+};
+
+// --- Public Careers Portal Helper ---
+window.openOrgCareersPage = function() {
+  const orgId = currentOrg?.id || currentUser?.org_id;
+  if (!orgId) return alert('Sign in to an organization first to open its Public Careers Page.');
+  const careersUrl = `${window.location.origin}/careers/${encodeURIComponent(orgId)}`;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(careersUrl).catch(() => {});
+  }
+  window.open(careersUrl, '_blank', 'noopener');
+};
+
+// --- Organization Custom Coding & SQL Problems ---
+window.orgCustomProblems = [];
+window.orgCustomProblemsMap = {};
+
+async function loadOrgProblems() {
+  const listEl = document.getElementById('org-problems-list');
+  const optGroup = document.getElementById('wiz-custom-problems-optgroup');
+  try {
+    const res = await apiRequest('/org/problems');
+    if (!res.ok) return;
+    const { problems } = await res.json();
+    window.orgCustomProblems = Array.isArray(problems) ? problems : [];
+    window.orgCustomProblemsMap = {};
+    window.orgCustomProblems.forEach((p) => { window.orgCustomProblemsMap[p.id] = p; });
+
+    if (optGroup) {
+      optGroup.innerHTML = window.orgCustomProblems
+        .map((p) => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.title)} (${escapeHtml(p.difficulty || 'Medium')} - Custom)</option>`)
+        .join('');
+    }
+
+    if (listEl) {
+      listEl.innerHTML = window.orgCustomProblems.map((p) => `
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:0.75rem; padding:0.65rem 0.85rem; border:1px solid var(--border); border-radius:var(--radius-sm);">
+          <div style="min-width:0; flex:1;">
+            <div style="font-size:0.84rem; font-weight:700;">${escapeHtml(p.title)} <span class="badge badge-neutral" style="font-size:0.68rem;">${escapeHtml(p.difficulty || 'Medium')}</span></div>
+            <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.15rem;">ID: <code>${escapeHtml(p.id)}</code> &middot; ${(p.test_cases || []).length} test case(s) &middot; JS: <code>${escapeHtml(p.function_name_js || 'solve')}</code></div>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm" style="color:#dc2626;" onclick="deleteOrgProblem('${escapeHtml(p.id)}')"><i class="bi bi-trash"></i> Delete</button>
+        </div>
+      `).join('') || '<div style="font-size:0.78rem; color:var(--text-muted);">No custom problems authored yet. Create one above!</div>';
+    }
+  } catch (err) {
+    if (listEl) listEl.innerHTML = `<div style="font-size:0.75rem; color:var(--text-muted);">Error loading custom problems: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+document.getElementById('form-custom-problem')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  let testCases = [];
+  try {
+    testCases = JSON.parse(document.getElementById('cp-testcases')?.value || '[]');
+    if (!Array.isArray(testCases) || testCases.length === 0) {
+      return alert('Please provide a non-empty JSON array of test cases.');
+    }
+  } catch (err) {
+    return alert('Invalid Test Cases JSON: ' + err.message);
+  }
+
+  const payload = {
+    title: document.getElementById('cp-title')?.value.trim(),
+    difficulty: document.getElementById('cp-difficulty')?.value || 'Medium',
+    description: document.getElementById('cp-desc')?.value.trim(),
+    function_name_js: document.getElementById('cp-fn-js')?.value.trim() || 'solve',
+    function_name_py: document.getElementById('cp-fn-py')?.value.trim() || 'solve',
+    starter_js: document.getElementById('cp-starter-js')?.value || '',
+    starter_py: document.getElementById('cp-starter-py')?.value || '',
+    test_cases: testCases
+  };
+
+  try {
+    const res = await apiRequest('/org/problems', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) return alert(data.error || 'Failed to save custom problem.');
+    alert(`Custom problem "${data.problem.title}" saved and added to your Interview Creation wizard!`);
+    e.target.reset();
+    loadOrgProblems();
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
+window.deleteOrgProblem = async function(id) {
+  if (!confirm('Delete this custom coding problem?')) return;
+  try {
+    const res = await apiRequest(`/org/problems/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (res.ok) loadOrgProblems();
   } catch (err) {
     alert(err.message);
   }
@@ -4970,7 +5088,9 @@ window.refreshQuestionsPreview = async function(btnEl) {
   let leetcode = '';
   if (document.getElementById('wiz-dsa-toggle')?.checked) {
     const lcSelect = document.getElementById('wiz-leetcode-select')?.value;
-    if (lcSelect === 'custom') {
+    if (lcSelect && lcSelect.startsWith('cprob_') && window.orgCustomProblemsMap?.[lcSelect]) {
+      leetcode = window.orgCustomProblemsMap[lcSelect].title;
+    } else if (lcSelect === 'custom') {
       leetcode = document.getElementById('wiz-custom-leetcode-input')?.value || 'Custom DSA Problem';
     } else if (typeof LEETCODE_CATALOG !== 'undefined' && LEETCODE_CATALOG[lcSelect]) {
       leetcode = LEETCODE_CATALOG[lcSelect].title;

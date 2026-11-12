@@ -119,7 +119,8 @@ CREATE TABLE IF NOT EXISTS interviews (
   source VARCHAR(64) DEFAULT 'direct',
   dsa_result JSONB,
   code_draft TEXT,
-  code_lang VARCHAR(64) DEFAULT 'javascript'
+  code_lang VARCHAR(64) DEFAULT 'javascript',
+  code_history JSONB
 );
 
 -- 7. Turns (Conversational AI & Candidate Dialogue Exchanges)
@@ -325,6 +326,35 @@ CREATE TABLE IF NOT EXISTS proctor_snapshots (
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 24. Expiring Shareable Candidate Scorecard Links
+CREATE TABLE IF NOT EXISTS report_shares (
+  id VARCHAR(64) PRIMARY KEY,
+  interview_id VARCHAR(64) NOT NULL REFERENCES interviews(id) ON DELETE CASCADE,
+  org_id VARCHAR(64) NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  token_hash VARCHAR(255) UNIQUE NOT NULL,
+  hide_pii INTEGER DEFAULT 1,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_by VARCHAR(64),
+  view_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 25. Custom Organization Coding & SQL Problems
+CREATE TABLE IF NOT EXISTS org_custom_problems (
+  id VARCHAR(64) PRIMARY KEY,
+  org_id VARCHAR(64) NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL,
+  difficulty VARCHAR(64) DEFAULT 'Medium',
+  description TEXT NOT NULL,
+  function_name_js VARCHAR(128) DEFAULT 'solve',
+  function_name_py VARCHAR(128) DEFAULT 'solve',
+  starter_js TEXT,
+  starter_py TEXT,
+  starter_sql TEXT,
+  test_cases_json JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ==============================================================================
 -- Optimized B-Tree Indexes for High Performance Queries
 -- ==============================================================================
@@ -343,3 +373,5 @@ CREATE INDEX IF NOT EXISTS idx_pg_org_team_invites_org ON org_team_invites(org_i
 CREATE INDEX IF NOT EXISTS idx_pg_org_webhooks_org ON org_webhooks(org_id);
 CREATE INDEX IF NOT EXISTS idx_pg_webhook_deliveries_org ON webhook_deliveries(org_id);
 CREATE INDEX IF NOT EXISTS idx_pg_proctor_snapshots_iv ON proctor_snapshots(interview_id);
+CREATE INDEX IF NOT EXISTS idx_pg_report_shares_token ON report_shares(token_hash);
+CREATE INDEX IF NOT EXISTS idx_pg_org_custom_problems_org ON org_custom_problems(org_id);

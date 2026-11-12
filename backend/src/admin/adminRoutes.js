@@ -1588,6 +1588,7 @@ adminRouter.get('/interviews/:id', requireAdmin, (req, res) => {
       interview,
       turns,
       snapshots,
+      code_history: (() => { try { return interview.code_history ? JSON.parse(interview.code_history) : []; } catch { return []; } })(),
       report: reportRow ? JSON.parse(reportRow.json) : null,
       reportMeta: reportRow ? {
         manual_decision: reportRow.manual_decision || null,

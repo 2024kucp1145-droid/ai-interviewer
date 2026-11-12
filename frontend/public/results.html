@@ -884,16 +884,52 @@
       <div id="modal-report-content" style="padding: 1.25rem; overflow-y: auto; flex: 1;">
         <!-- Loaded dynamically -->
       </div>
+      <div id="modal-share-banner" style="display:none; padding: 0.6rem 1.25rem; background: #eff6ff; border-top: 1px solid #bfdbfe; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+        <span style="font-size: 0.78rem; color: #1e40af;"><i class="bi bi-link-45deg"></i> Shareable link (7-day expiry): <a id="modal-share-url-link" href="#" target="_blank" style="font-weight: 700; text-decoration: underline;"></a></span>
+        <button class="btn btn-outline btn-sm" onclick="copyShareReportUrl()"><i class="bi bi-clipboard"></i> Copy</button>
+      </div>
       <div style="padding: 0.75rem 1.25rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; background: var(--surface-subtle);">
-        <div style="display: flex; gap: 0.45rem; flex-wrap: wrap;">
+        <div style="display: flex; gap: 0.45rem; flex-wrap: wrap; align-items: center;">
           <button class="btn btn-primary btn-sm" id="btn-modal-download-html" onclick="downloadSingleCandidateHtml()">
             <i class="bi bi-file-earmark-arrow-down-fill"></i> Download Candidate Report
           </button>
           <button class="btn btn-outline btn-sm" id="btn-modal-download-txt" onclick="downloadSingleTranscriptTxt()">
             <i class="bi bi-filetype-txt"></i> Download Transcript (.txt)
           </button>
+          <button class="btn btn-outline btn-sm" id="btn-modal-share-link" onclick="createShareReportLink()">
+            <i class="bi bi-share-fill"></i> Share Scorecard
+          </button>
+          <label style="display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; color: var(--text-muted); cursor: pointer; margin-left: 0.2rem;">
+            <input type="checkbox" id="share-hide-pii-cb" checked> Mask PII
+          </label>
         </div>
         <button class="btn btn-outline btn-sm" onclick="closeResultsReportModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Candidate Comparison Bar -->
+  <div id="compare-floating-bar" class="no-print" style="display: none; position: fixed; bottom: 1.25rem; left: 50%; transform: translateX(-50%); background: #0f172a; color: #fff; padding: 0.65rem 1.15rem; border-radius: 999px; box-shadow: 0 12px 30px rgba(0,0,0,0.3); z-index: 95; align-items: center; gap: 0.85rem;">
+    <span id="compare-selected-label" style="font-size: 0.8rem; font-weight: 600;">0 candidates selected</span>
+    <button id="btn-open-compare" class="btn btn-primary btn-sm" onclick="openCompareModal()" disabled>
+      <i class="bi bi-columns-gap"></i> Compare (2–4)
+    </button>
+    <button class="btn btn-outline btn-sm" style="color: #cbd5e1; border-color: #334155;" onclick="clearCompareSelection()">Clear</button>
+  </div>
+
+  <!-- Side-by-Side Candidate Comparison Modal -->
+  <div id="compare-candidates-modal" class="no-print" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); z-index: 105; align-items: center; justify-content: center; padding: 1rem;">
+    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 1080px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 45px rgba(0,0,0,0.35);">
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); background: var(--surface-subtle);">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span class="badge badge-dark" style="background:#0f172a; color:#fff;"><i class="bi bi-columns-gap"></i> Candidate Comparison Matrix</span>
+          <strong style="font-size: 0.9rem;" id="compare-modal-subtitle">Side-by-Side Evaluation</strong>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="closeCompareModal()"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <div id="compare-modal-body" style="padding: 1.25rem; overflow: auto;"></div>
+      <div style="padding: 0.75rem 1.25rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; background: var(--surface-subtle);">
+        <button class="btn btn-outline btn-sm" onclick="closeCompareModal()">Close</button>
       </div>
     </div>
   </div>
@@ -907,6 +943,108 @@
     let currentJob = null;
     let allCandidates = [];
     let activeModalReportData = null;
+    const selectedCompareIds = new Set();
+
+    function syncCompareFloatingBar() {
+      const bar = document.getElementById('compare-floating-bar');
+      const label = document.getElementById('compare-selected-label');
+      const btn = document.getElementById('btn-open-compare');
+      if (!bar) return;
+      const count = selectedCompareIds.size;
+      if (count === 0) {
+        bar.style.display = 'none';
+        return;
+      }
+      bar.style.display = 'flex';
+      if (label) label.textContent = `${count} candidate${count === 1 ? '' : 's'} selected`;
+      if (btn) btn.disabled = count < 2 || count > 4;
+    }
+
+    function toggleCompareCandidate(interviewId, checked) {
+      if (checked) {
+        if (selectedCompareIds.size >= 4) {
+          alert('You can compare up to 4 candidates side by side.');
+          const cb = document.querySelector(`.compare-candidate-cb[value="${CSS.escape(interviewId)}"]`);
+          if (cb) cb.checked = false;
+          return;
+        }
+        selectedCompareIds.add(interviewId);
+      } else {
+        selectedCompareIds.delete(interviewId);
+      }
+      syncCompareFloatingBar();
+    }
+
+    function clearCompareSelection() {
+      selectedCompareIds.clear();
+      document.querySelectorAll('.compare-candidate-cb').forEach((el) => { el.checked = false; });
+      syncCompareFloatingBar();
+    }
+
+    function openCompareModal() {
+      const ids = Array.from(selectedCompareIds);
+      if (ids.length < 2) return;
+      const candidates = ids
+        .map((id) => allCandidates.find((c) => safeJsId(c.interview_id) === id || c.interview_id === id))
+        .filter(Boolean);
+      if (candidates.length < 2) return;
+
+      const allSkills = [];
+      candidates.forEach((c) => {
+        (Array.isArray(c.skills) ? c.skills : []).forEach((s) => {
+          if (s && s.skill && !allSkills.includes(s.skill)) allSkills.push(s.skill);
+        });
+      });
+
+      const headerCols = candidates.map((c) => {
+        const sc = getNumericScore(c);
+        return `<th style="min-width:190px;text-align:left;padding:0.75rem;border-bottom:2px solid var(--border);vertical-align:top;">
+          <div style="font-size:0.9rem;font-weight:700;">${escapeHtml(c.candidate_name)}</div>
+          <div style="font-size:0.72rem;color:var(--text-muted);font-weight:500;">${escapeHtml(c.candidate_email || '')}</div>
+          <div style="margin-top:0.35rem;font-size:1rem;font-weight:800;color:var(--accent);">${sc !== null ? `${sc}/100` : '--'}</div>
+        </th>`;
+      }).join('');
+
+      const row = (label, cellsHtml) => `<tr>
+        <td style="padding:0.65rem 0.75rem;font-weight:700;font-size:0.76rem;color:var(--text-muted);border-bottom:1px solid var(--border);background:var(--surface-subtle);min-width:140px;vertical-align:top;">${escapeHtml(label)}</td>
+        ${cellsHtml}
+      </tr>`;
+
+      const verdictCells = candidates.map((c) => `<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border);font-size:0.78rem;font-weight:600;">${escapeHtml(c.verdict || c.state || 'Evaluated')}</td>`).join('');
+      const proctorCells = candidates.map((c) => `<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border);font-size:0.78rem;">${Number(c.proctor_warnings || 0)} warnings${c.disqualified_reason ? `<div style="color:#dc2626;font-size:0.7rem;">${escapeHtml(c.disqualified_reason)}</div>` : ''}</td>`).join('');
+      const dsaCells = candidates.map((c) => `<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border);font-size:0.78rem;">${escapeHtml(c.dsa_verdict || (c.code_lang ? `${c.code_lang} draft` : 'N/A'))}</td>`).join('');
+      const summaryCells = candidates.map((c) => `<td style="padding:0.65rem 0.75rem;border-bottom:1px solid var(--border);font-size:0.75rem;line-height:1.45;vertical-align:top;">${escapeHtml(c.summary || 'No summary recorded.')}</td>`).join('');
+
+      const skillRows = allSkills.map((skillName) => {
+        const cells = candidates.map((c) => {
+          const hit = (Array.isArray(c.skills) ? c.skills : []).find((s) => s.skill === skillName);
+          if (!hit) return `<td style="padding:0.55rem 0.75rem;border-bottom:1px solid var(--border);color:var(--text-muted);font-size:0.75rem;">--</td>`;
+          const val = Number(hit.score) || 0;
+          const color = val >= 4 ? '#059669' : (val >= 3 ? '#d97706' : '#dc2626');
+          return `<td style="padding:0.55rem 0.75rem;border-bottom:1px solid var(--border);font-weight:700;font-size:0.78rem;color:${color};">${val}/5</td>`;
+        }).join('');
+        return row(skillName, cells);
+      }).join('');
+
+      document.getElementById('compare-modal-subtitle').textContent = `Comparing ${candidates.length} Finalists`;
+      document.getElementById('compare-modal-body').innerHTML = `
+        <table style="width:100%;border-collapse:collapse;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <thead><tr><th style="padding:0.75rem;border-bottom:2px solid var(--border);background:var(--surface-subtle);text-align:left;font-size:0.75rem;">Dimension</th>${headerCols}</tr></thead>
+          <tbody>
+            ${row('Verdict / Status', verdictCells)}
+            ${row('Integrity / Proctor', proctorCells)}
+            ${row('Coding / DSA', dsaCells)}
+            ${skillRows}
+            ${row('AI Summary', summaryCells)}
+          </tbody>
+        </table>
+      `;
+      document.getElementById('compare-candidates-modal').style.display = 'flex';
+    }
+
+    function closeCompareModal() {
+      document.getElementById('compare-candidates-modal').style.display = 'none';
+    }
 
     const DEFAULT_RESULTS_CONFIG = {
       selectedCutoff: 70,
@@ -1461,6 +1599,9 @@
                 </div>
                 <div>
                   <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
+                    <label class="no-print" style="display:inline-flex;align-items:center;cursor:pointer;" title="Select to compare side-by-side">
+                      <input type="checkbox" class="compare-candidate-cb" value="${safeId}" ${selectedCompareIds.has(safeId) ? 'checked' : ''} onchange="toggleCompareCandidate('${safeId}', this.checked)">
+                    </label>
                     ${rankBadge}
                     <strong style="font-size: 0.95rem; color: var(--text);">${escapeHtml(item.candidate_name)}</strong>
                     <span class="badge badge-outline" style="font-size: 0.65rem;">${escapeHtml(item.interview_source || item.candidate_source || 'Direct')}</span>
@@ -1736,6 +1877,8 @@
       const modal = document.getElementById('results-report-modal');
       const content = document.getElementById('modal-report-content');
       activeModalReportData = null;
+      const shareBanner = document.getElementById('modal-share-banner');
+      if (shareBanner) shareBanner.style.display = 'none';
       modal.style.display = 'flex';
       content.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-muted);"><div class="spinner-border spinner-border-sm" role="status"></div> Loading Full Evaluation Report...</div>';
 
@@ -1745,7 +1888,7 @@
         });
         const data = await res.json();
         activeModalReportData = data;
-        const { interview, report, turns, snapshots } = data;
+        const { interview, report, turns, snapshots, code_history } = data;
 
         document.getElementById('modal-candidate-name').textContent = `${interview.candidate_name} — AI Audit`;
 
@@ -1803,6 +1946,23 @@
 
           ${snapshotsHtml}
 
+          ${Array.isArray(code_history) && code_history.length > 0 ? (() => {
+            window._resultsReplayFrames = code_history;
+            const maxIdx = code_history.length - 1;
+            const latest = code_history[maxIdx];
+            const bursts = code_history.filter(f => (f.pasteDelta || 0) >= 120).length;
+            return `
+              <div style="border:1px solid var(--border); border-radius:8px; padding:0.75rem; background:var(--surface-subtle);">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.45rem;">
+                  <strong style="font-size:0.85rem;"><i class="bi bi-film"></i> Keystroke Code Replay (${code_history.length} keyframes${bursts ? ` &middot; <span style="color:#dc2626;">${bursts} large paste(s)</span>` : ''})</strong>
+                  <span id="results-replay-meta" style="font-size:0.72rem; color:var(--text-muted);">Frame ${maxIdx + 1}/${code_history.length} &middot; ${new Date(latest.t).toLocaleTimeString()} &middot; ${(latest.code || '').length} chars</span>
+                </div>
+                <input type="range" min="0" max="${maxIdx}" value="${maxIdx}" style="width:100%; margin-bottom:0.45rem;" oninput="updateResultsCodeReplay(this.value)">
+                <pre id="results-replay-code" style="max-height:210px; overflow:auto; background:#0f172a; color:#e2e8f0; padding:0.7rem; border-radius:6px; font-size:0.74rem; margin:0; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">${escapeHtml(latest.code || '')}</pre>
+              </div>
+            `;
+          })() : ''}
+
           <div>
             <strong style="font-size:0.85rem; display:block; margin-bottom:0.45rem;">Interview Transcript (${(turns || []).length} turns):</strong>
             <div style="max-height:220px; overflow-y:auto; background:var(--surface-subtle); border-radius:6px; padding:0.75rem; font-size:0.75rem; line-height:1.6;">
@@ -1841,6 +2001,57 @@
         ...(turns || []).map(t => `[${t.role === 'ai' ? 'Interviewer' : interview.candidate_name}] ${t.text}`)
       ];
       triggerBlobDownload(lines.join('\n\n'), 'text/plain;charset=utf-8', `transcript_${String(interview.candidate_name || 'candidate').replace(/[^a-z0-9]/gi, '_')}.txt`);
+    }
+
+    function updateResultsCodeReplay(idx) {
+      const frames = window._resultsReplayFrames || [];
+      const f = frames[Number(idx)];
+      if (!f) return;
+      const codeEl = document.getElementById('results-replay-code');
+      const metaEl = document.getElementById('results-replay-meta');
+      if (codeEl) codeEl.textContent = f.code || '';
+      if (metaEl) {
+        const pasteNote = (f.pasteDelta || 0) >= 120 ? ` &middot; <strong style="color:#dc2626;">Paste +${f.pasteDelta} chars</strong>` : '';
+        metaEl.innerHTML = `Frame ${Number(idx) + 1}/${frames.length} &middot; ${new Date(f.t).toLocaleTimeString()} &middot; ${(f.code || '').length} chars${pasteNote}`;
+      }
+    }
+
+    async function createShareReportLink() {
+      const ivId = activeModalReportData?.interview?.id;
+      if (!ivId) return;
+      const btn = document.getElementById('btn-modal-share-link');
+      const hidePii = Boolean(document.getElementById('share-hide-pii-cb')?.checked);
+      if (btn) { btn.disabled = true; btn.textContent = 'Generating...'; }
+      try {
+        const res = await fetch(`/interviews/${encodeURIComponent(ivId)}/share`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({ hidePii, expiresDays: 7 })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to generate share link.');
+        const fullUrl = `${window.location.origin}${data.shareUrl}`;
+        const banner = document.getElementById('modal-share-banner');
+        const link = document.getElementById('modal-share-url-link');
+        if (link) {
+          link.href = fullUrl;
+          link.textContent = fullUrl;
+        }
+        if (banner) banner.style.display = 'flex';
+      } catch (err) {
+        alert('Share link failed: ' + err.message);
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-share-fill"></i> Share Scorecard'; }
+      }
+    }
+
+    function copyShareReportUrl() {
+      const url = document.getElementById('modal-share-url-link')?.href;
+      if (!url) return;
+      navigator.clipboard.writeText(url).then(() => alert('Shareable link copied to clipboard.')).catch(() => {});
     }
 
     function closeResultsReportModal() {

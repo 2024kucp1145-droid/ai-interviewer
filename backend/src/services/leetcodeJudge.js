@@ -175,8 +175,10 @@ function deepEqual(a, b) {
 /**
  * Executes and judges candidate code against LeetCode test suite
  */
-export async function judgeLeetCodeSolution(problemId, lang, code) {
-  const suite = LEETCODE_TEST_SUITES[problemId] || LEETCODE_TEST_SUITES['1'];
+export async function judgeLeetCodeSolution(problemId, lang, code, customSuite = null) {
+  const suite = (customSuite && Array.isArray(customSuite.cases) && customSuite.cases.length > 0)
+    ? customSuite
+    : (LEETCODE_TEST_SUITES[problemId] || LEETCODE_TEST_SUITES['1']);
   const startTime = Date.now();
   const normalizedLang = String(lang || 'javascript').toLowerCase();
 

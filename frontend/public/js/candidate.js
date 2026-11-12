@@ -424,6 +424,31 @@ function resolveProblemDetails(probString) {
   if (!probString) return null;
   const pStr = probString.trim();
 
+  // 0. Check organization-defined custom coding/SQL problem attached to interviewData
+  if (interviewData && interviewData.custom_problem &&
+      (pStr === interviewData.custom_problem.id || pStr.includes(interviewData.custom_problem.id))) {
+    const cp = interviewData.custom_problem;
+    const publicCases = Array.isArray(cp.test_cases)
+      ? cp.test_cases.filter((tc) => !tc.type || tc.type === 'public')
+      : [];
+    const tcSummary = publicCases.length
+      ? publicCases.map((tc) => `Input: ${JSON.stringify(tc.input)} | Expected: ${JSON.stringify(tc.expected)}`).join(' || ')
+      : 'Custom organization test cases';
+    return {
+      title: cp.title || 'Custom Coding Challenge',
+      difficulty: cp.difficulty || 'Custom',
+      description: cp.description || 'Solve the custom engineering challenge and verify all test cases.',
+      testcases: tcSummary,
+      templates: {
+        javascript: cp.starter_js || GENERAL_LANGUAGE_TEMPLATES.javascript,
+        python: cp.starter_py || GENERAL_LANGUAGE_TEMPLATES.python,
+        sql: cp.starter_sql || GENERAL_LANGUAGE_TEMPLATES.sql,
+        cpp: GENERAL_LANGUAGE_TEMPLATES.cpp,
+        java: GENERAL_LANGUAGE_TEMPLATES.java
+      }
+    };
+  }
+
   // 1. Check in LEETCODE_CATALOG by ID or Title
   for (const [key, prob] of Object.entries(LEETCODE_CATALOG)) {
     if (
@@ -531,8 +556,19 @@ window.toggleInteractiveToolsManual = function() {
       btnToggleToolsPanel.classList.add('btn-primary');
       btnToggleToolsPanel.classList.remove('btn-outline-secondary');
     }
+    syncTerminalLineNumbers();
   }
 };
+
+function syncTerminalLineNumbers() {
+  const gutter = document.getElementById('terminal-line-numbers');
+  if (!gutter || !terminalCodeInput) return;
+  const lineCount = Math.max(1, (terminalCodeInput.value || '').split('\n').length);
+  const lines = [];
+  for (let i = 1; i <= lineCount; i++) lines.push(String(i));
+  gutter.textContent = lines.join('\n');
+  gutter.scrollTop = terminalCodeInput.scrollTop;
+}
 
 window.updateStarterCodeForLanguage = function(lang, force = false) {
   if (!terminalCodeInput) return;
@@ -556,6 +592,7 @@ window.updateStarterCodeForLanguage = function(lang, force = false) {
   if (newTemplate) {
     if (force || !currentCode || isDefaultTemplate(currentCode)) {
       terminalCodeInput.value = newTemplate;
+      syncTerminalLineNumbers();
     }
   }
 };
@@ -577,30 +614,100 @@ Click "Run Code" to execute.`;
 };
 
 let draftSaveTimer = null;
-function scheduleDraftAutosave() {
+let pendingPasteDelta = 0;
+
+function logPasteBurst(charCount, surfaceLabel) {
+  if (!token || charCount < 120) return;
+  fetch(`/i/${token}/proctor-event`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      type: 'paste_burst',
+      reason: `Large paste detected (${charCount} chars in ${surfaceLabel})`,
+      warningsCount: proctor?.warningsCount || 0
+    })
+  }).catch(() => {});
+}
+
+function scheduleDraftAutosave(flushImmediate = false) {
   if (!token || !terminalCodeInput) return;
   clearTimeout(draftSaveTimer);
+  const delayMs = flushImmediate ? 150 : 1200;
   draftSaveTimer = setTimeout(() => {
     const code = terminalCodeInput.value || '';
     const lang = terminalLangSelect ? terminalLangSelect.value : 'javascript';
+    const pasteDelta = pendingPasteDelta;
+    pendingPasteDelta = 0;
     fetch(`/i/${token}/draft`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, lang })
+      body: JSON.stringify({
+        code,
+        lang,
+        keyframe: { t: Date.now(), pasteDelta }
+      })
     }).catch(() => {});
-  }, 1200);
+  }, delayMs);
 }
 
 if (terminalCodeInput) {
-  terminalCodeInput.addEventListener('input', scheduleDraftAutosave);
+  terminalCodeInput.addEventListener('input', () => {
+    syncTerminalLineNumbers();
+    scheduleDraftAutosave();
+  });
+  terminalCodeInput.addEventListener('scroll', () => {
+    const gutter = document.getElementById('terminal-line-numbers');
+    if (gutter) gutter.scrollTop = terminalCodeInput.scrollTop;
+  });
+  terminalCodeInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = terminalCodeInput.selectionStart;
+      const end = terminalCodeInput.selectionEnd;
+      const val = terminalCodeInput.value;
+      terminalCodeInput.value = val.slice(0, start) + '  ' + val.slice(end);
+      terminalCodeInput.selectionStart = terminalCodeInput.selectionEnd = start + 2;
+      syncTerminalLineNumbers();
+      scheduleDraftAutosave();
+    } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      if (interviewData && interviewData.leetcode_problem) {
+        window.runLeetCodeJudge();
+      } else {
+        window.runSandboxCode();
+      }
+    }
+  });
+  terminalCodeInput.addEventListener('paste', (e) => {
+    const pasted = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+    if (pasted.length >= 120) {
+      pendingPasteDelta += pasted.length;
+      logPasteBurst(pasted.length, 'code editor');
+      scheduleDraftAutosave(true);
+    }
+  });
+  syncTerminalLineNumbers();
+}
+
+if (candidateAnswerBox) {
+  candidateAnswerBox.addEventListener('paste', (e) => {
+    const pasted = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+    if (pasted.length >= 120) {
+      logPasteBurst(pasted.length, 'answer box');
+    }
+  });
 }
 // Interactive Terminal Functions
 window.lastJudgeResult = null;
 
 // Determine active LeetCode Problem ID from interviewData or code heuristics
 function resolveActiveProblemId(code, lang) {
+  if (interviewData && interviewData.custom_problem && interviewData.custom_problem.id) {
+    return interviewData.custom_problem.id;
+  }
   if (interviewData && interviewData.leetcode_problem) {
     const pStr = interviewData.leetcode_problem;
+    if (pStr.startsWith('cprob_')) return pStr;
     for (const key of Object.keys(LEETCODE_CATALOG)) {
       if (pStr.includes(`#${key}:`) || pStr.includes(`#${key} `) || pStr.includes(LEETCODE_CATALOG[key].title)) {
         return key;
@@ -635,7 +742,9 @@ window.runLeetCodeJudge = async function() {
   }
 
   const problemId = resolveActiveProblemId(code, lang);
-  const probInfo = LEETCODE_CATALOG[problemId] || LEETCODE_CATALOG['1'];
+  const probInfo = (interviewData && interviewData.custom_problem && problemId === interviewData.custom_problem.id)
+    ? resolveProblemDetails(problemId)
+    : (LEETCODE_CATALOG[problemId] || LEETCODE_CATALOG['1']);
 
   terminalConsoleOutput.innerHTML = `
     <div style="color: #60a5fa; font-family: monospace;">
@@ -1045,6 +1154,7 @@ async function loadInterviewData() {
     }
     if (interviewData.code_draft && terminalCodeInput) {
       terminalCodeInput.value = interviewData.code_draft;
+      syncTerminalLineNumbers();
     }
 
     // If already disqualified
