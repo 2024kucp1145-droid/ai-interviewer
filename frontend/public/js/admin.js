@@ -617,6 +617,44 @@ window.switchDashboardTab = function(tabName) {
   if (tabName === 'settings') loadPlatformSettings();
 };
 
+function updateLastSyncBadge() {
+  const el = document.getElementById('admin-sync-time');
+  if (!el) return;
+  el.textContent = `Synced ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+}
+
+window.syncAllAdminData = async function() {
+  loadAllDashboardData();
+  updateLastSyncBadge();
+  showToast('Dashboard data synced.', 'info');
+};
+
+window.resetActivityTreeFilters = function() {
+  const searchEl = document.getElementById('tree-search-input');
+  const stateEl = document.getElementById('tree-state-filter');
+  if (searchEl) searchEl.value = '';
+  if (stateEl) stateEl.value = '';
+  renderActivityTree();
+};
+
+// Quick '/' shortcut focuses the active tab's search field
+document.addEventListener('keydown', (e) => {
+  if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+  const tag = (document.activeElement?.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+  const searchMap = {
+    activities: 'tree-search-input',
+    users: 'search-users-input',
+    interviews: 'interviews-search-input'
+  };
+  const targetId = searchMap[currentTab];
+  const target = targetId ? document.getElementById(targetId) : null;
+  if (target) {
+    e.preventDefault();
+    target.focus();
+  }
+});
+
 function loadAllDashboardData() {
   // Prioritize visible overview + activity folders/stream first for snappy startup
   Promise.allSettled([
@@ -852,6 +890,7 @@ async function loadDashboardStats(isSilent = false) {
     if (seatsTextEl) {
       seatsTextEl.textContent = `Active Admins: ${s.admins.occupied} (Unlimited Access)`;
     }
+    updateLastSyncBadge();
   } catch (err) {
     if (!isSilent) console.error('Failed to load stats:', err);
   }

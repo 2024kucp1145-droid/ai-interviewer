@@ -26,6 +26,8 @@
       --warning-subtle: rgba(245, 158, 11, 0.12);
       --danger: #ef4444;
       --danger-subtle: rgba(239, 68, 68, 0.12);
+      --info: #38bdf8;
+      --info-subtle: rgba(14, 165, 233, 0.14);
       --mono: 'JetBrains Mono', monospace;
     }
 
@@ -48,6 +50,8 @@
       --warning-subtle: #fef3c7;
       --danger: #dc2626;
       --danger-subtle: #fee2e2;
+      --info: #0284c7;
+      --info-subtle: #e0f2fe;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -409,9 +413,20 @@
       background-color: var(--surface);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 1.25rem;
+      padding: 1.2rem;
       position: relative;
       overflow: hidden;
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .kpi-card.is-clickable {
+      cursor: pointer;
+    }
+
+    .kpi-card.is-clickable:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(79, 70, 229, 0.14);
     }
 
     .kpi-card-header {
@@ -546,6 +561,12 @@
       background-color: var(--primary-subtle);
       color: var(--primary);
       border: 1px solid rgba(99, 102, 241, 0.25);
+    }
+
+    .badge-info {
+      background-color: var(--info-subtle);
+      color: var(--info);
+      border: 1px solid rgba(14, 165, 233, 0.25);
     }
 
     .badge-neutral {
@@ -775,7 +796,7 @@
     }
 
     .company-box-card {
-      background: linear-gradient(180deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.96));
+      background-color: var(--surface);
       border: 1px solid var(--border);
       border-radius: 12px;
       overflow: hidden;
@@ -785,14 +806,14 @@
     }
 
     .company-box-card:hover {
-      border-color: rgba(99, 102, 241, 0.55);
-      box-shadow: 0 8px 24px rgba(2, 6, 23, 0.35);
+      border-color: var(--primary);
+      box-shadow: 0 8px 22px rgba(79, 70, 229, 0.12);
     }
 
     .company-box-card.is-open {
       grid-column: 1 / -1;
-      border-color: rgba(99, 102, 241, 0.7);
-      box-shadow: 0 12px 30px rgba(2, 6, 23, 0.45);
+      border-color: var(--primary);
+      box-shadow: 0 12px 28px rgba(79, 70, 229, 0.16);
     }
 
     .company-box-head {
@@ -839,7 +860,7 @@
     .company-box-body {
       border-top: 1px solid var(--border);
       padding: 1rem 1.05rem 1.1rem;
-      background-color: rgba(15, 23, 42, 0.45);
+      background-color: var(--bg);
       display: flex;
       flex-direction: column;
       gap: 0.9rem;
@@ -852,22 +873,22 @@
     }
 
     .interview-box-card {
-      background-color: var(--surface-elevated);
+      background-color: var(--surface);
       border: 1px solid var(--border);
-      border-left: 3px solid #0ea5e9;
+      border-left: 3px solid var(--info);
       border-radius: 10px;
       overflow: hidden;
       transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
 
     .interview-box-card:hover {
-      border-color: rgba(14, 165, 233, 0.65);
+      border-color: var(--info);
     }
 
     .interview-box-card.is-open {
       grid-column: 1 / -1;
-      border-color: rgba(14, 165, 233, 0.8);
-      box-shadow: 0 8px 22px rgba(2, 6, 23, 0.35);
+      border-color: var(--info);
+      box-shadow: 0 8px 22px rgba(14, 165, 233, 0.15);
     }
 
     .interview-box-head {
@@ -882,7 +903,7 @@
     .interview-box-body {
       border-top: 1px solid var(--border);
       padding: 0.85rem 0.95rem;
-      background-color: rgba(15, 23, 42, 0.35);
+      background-color: var(--surface-elevated);
       display: flex;
       flex-direction: column;
       gap: 0.65rem;
@@ -895,8 +916,8 @@
     }
 
     .box-stat-pill {
-      background-color: rgba(15, 23, 42, 0.55);
-      border: 1px solid rgba(148, 163, 184, 0.16);
+      background-color: var(--surface-elevated);
+      border: 1px solid var(--border);
       border-radius: 8px;
       padding: 0.4rem 0.55rem;
       display: flex;
@@ -919,10 +940,10 @@
       font-weight: 600;
     }
 
-    .box-stat-pill.tone-success .stat-num { color: #34d399; }
-    .box-stat-pill.tone-warning .stat-num { color: #fbbf24; }
-    .box-stat-pill.tone-danger .stat-num { color: #f87171; }
-    .box-stat-pill.tone-info .stat-num { color: #38bdf8; }
+    .box-stat-pill.tone-success .stat-num { color: var(--success); }
+    .box-stat-pill.tone-warning .stat-num { color: var(--warning); }
+    .box-stat-pill.tone-danger .stat-num { color: var(--danger); }
+    .box-stat-pill.tone-info .stat-num { color: var(--info); }
 
     .timing-strip {
       display: flex;
@@ -937,8 +958,8 @@
       gap: 0.3rem;
       font-size: 0.7rem;
       color: var(--text-muted);
-      background-color: rgba(15, 23, 42, 0.55);
-      border: 1px solid rgba(148, 163, 184, 0.16);
+      background-color: var(--surface-elevated);
+      border: 1px solid var(--border);
       border-radius: 6px;
       padding: 0.22rem 0.5rem;
     }
@@ -1019,9 +1040,9 @@
       border-color: var(--primary);
     }
 
-    .quick-action-pill.tone-warning { border-color: rgba(245, 158, 11, 0.45); background: rgba(245, 158, 11, 0.1); color: #fcd34d; }
-    .quick-action-pill.tone-danger { border-color: rgba(239, 68, 68, 0.45); background: rgba(239, 68, 68, 0.1); color: #fca5a5; }
-    .quick-action-pill.tone-info { border-color: rgba(14, 165, 233, 0.45); background: rgba(14, 165, 233, 0.1); color: #7dd3fc; }
+    .quick-action-pill.tone-warning { border-color: rgba(245, 158, 11, 0.45); background: var(--warning-subtle); color: var(--warning); }
+    .quick-action-pill.tone-danger { border-color: rgba(239, 68, 68, 0.45); background: var(--danger-subtle); color: var(--danger); }
+    .quick-action-pill.tone-info { border-color: rgba(14, 165, 233, 0.45); background: var(--info-subtle); color: var(--info); }
 
     .bento-analytics-grid {
       display: grid;
@@ -1229,9 +1250,49 @@
       animation: slideIn 0.2s ease;
     }
 
+    [data-theme="light"] .code-box {
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+
     @keyframes slideIn {
       from { transform: translateX(100%); opacity: 0; }
       to { transform: translateX(0); opacity: 1; }
+    }
+
+    @media (max-width: 768px) {
+      .header-inner {
+        padding: 0.7rem 1rem;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+      }
+      .header-meta {
+        flex-wrap: wrap;
+        gap: 0.45rem;
+      }
+      .brand-subtitle {
+        display: none;
+      }
+      .dashboard-container {
+        padding: 1rem;
+      }
+      .bento-analytics-grid,
+      .company-boxes-grid,
+      .interview-boxes-grid {
+        grid-template-columns: 1fr;
+      }
+      .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+      }
+      .kpi-value {
+        font-size: 1.45rem;
+      }
+      #tree-search-input,
+      #interviews-search-input,
+      #search-users-input {
+        width: 100% !important;
+      }
     }
   </style>
 </head>
@@ -1261,7 +1322,13 @@
         </button>
 
         <!-- Logged In Controls -->
-        <div id="auth-controls" style="display: none; align-items: center; gap: 0.75rem;">
+        <div id="auth-controls" style="display: none; align-items: center; gap: 0.55rem; flex-wrap: wrap;">
+          <span id="admin-last-sync" class="admin-pill" style="font-size: 0.7rem; color: var(--text-muted);" title="Auto-refreshes every 15 seconds (Press / to search)">
+            <i class="bi bi-arrow-repeat"></i> <span id="admin-sync-time">Live</span>
+          </span>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="syncAllAdminData()" title="Sync all tabs immediately">
+            <i class="bi bi-arrow-clockwise"></i> Sync All
+          </button>
           <span id="admin-user-badge" class="admin-pill">
             <i class="bi bi-person-badge"></i> <strong id="admin-name">Admin</strong>
           </span>
@@ -1447,25 +1514,25 @@
     <!-- Navigation Tabs -->
     <div class="nav-tabs">
       <button class="nav-tab-btn active" onclick="switchDashboardTab('overview')">
-        <i class="bi bi-speedometer2"></i> Live Overview
+        <i class="bi bi-speedometer2"></i> Overview
       </button>
       <button class="nav-tab-btn" onclick="switchDashboardTab('activities')">
-        <i class="bi bi-folder2-open"></i> Activity Folders &amp; Stream <span id="activities-badge" class="badge badge-neutral" style="margin-left: 0.3rem;">0</span>
+        <i class="bi bi-building"></i> Company Boxes &amp; Activity <span id="activities-badge" class="badge badge-neutral" style="margin-left: 0.3rem;">0</span>
       </button>
       <button class="nav-tab-btn" onclick="switchDashboardTab('users')">
-        <i class="bi bi-people-fill"></i> Recruiters &amp; Approvals <span id="pending-users-badge" class="badge badge-warning" style="display:none; margin-left: 0.3rem;">0 Pending</span>
+        <i class="bi bi-people-fill"></i> Recruiters <span id="pending-users-badge" class="badge badge-warning" style="display:none; margin-left: 0.3rem;">0 Pending</span>
       </button>
       <button class="nav-tab-btn" onclick="switchDashboardTab('interviews')">
-        <i class="bi bi-camera-video-fill"></i> Global Interviews
+        <i class="bi bi-camera-video-fill"></i> All Interviews
       </button>
       <button class="nav-tab-btn" onclick="switchDashboardTab('orders')">
-        <i class="bi bi-credit-card-2-front-fill"></i> Orders &amp; Subscriptions
+        <i class="bi bi-credit-card-2-front-fill"></i> Billing &amp; Orders
       </button>
       <button class="nav-tab-btn" onclick="switchDashboardTab('invites')">
-        <i class="bi bi-shield-fill-check"></i> Admin Team &amp; IDs
+        <i class="bi bi-shield-fill-check"></i> Admin Team
       </button>
       <button class="nav-tab-btn" onclick="switchDashboardTab('settings')">
-        <i class="bi bi-sliders"></i> Governance Settings
+        <i class="bi bi-sliders"></i> Settings
       </button>
     </div>
 
@@ -1475,7 +1542,7 @@
       <div id="overview-quick-actions" class="quick-actions-strip" style="display: none;"></div>
 
       <div class="kpi-grid">
-        <div class="kpi-card">
+        <div class="kpi-card is-clickable" onclick="switchDashboardTab('users')" title="Open Recruiters directory">
           <div class="kpi-card-header">
             <span class="kpi-label">Registered Recruiters</span>
             <i class="bi bi-person-lines-fill kpi-icon"></i>
@@ -1484,25 +1551,25 @@
           <div id="kpi-users-sub" class="kpi-subtext">0 Pending &middot; 0 Approved</div>
         </div>
 
-        <div class="kpi-card">
+        <div class="kpi-card is-clickable" onclick="switchDashboardTab('activities'); setActivityViewMode('tree');" title="Open Company Boxes">
           <div class="kpi-card-header">
             <span class="kpi-label">Active Organizations</span>
             <i class="bi bi-building kpi-icon"></i>
           </div>
           <div id="kpi-total-orgs" class="kpi-value">0</div>
-          <div class="kpi-subtext">Companies using platform</div>
+          <div class="kpi-subtext">Click to open company boxes</div>
         </div>
 
-        <div class="kpi-card">
+        <div class="kpi-card is-clickable" onclick="switchDashboardTab('activities'); toggleAllOrgFolders(true);" title="Expand all company interview boxes">
           <div class="kpi-card-header">
-            <span class="kpi-label">Jobs Created</span>
+            <span class="kpi-label">Jobs / Rounds Created</span>
             <i class="bi bi-briefcase-fill kpi-icon"></i>
           </div>
           <div id="kpi-total-jobs" class="kpi-value">0</div>
-          <div class="kpi-subtext">Active screening roles</div>
+          <div class="kpi-subtext">Active screening rounds</div>
         </div>
 
-        <div class="kpi-card">
+        <div class="kpi-card is-clickable" onclick="switchDashboardTab('interviews')" title="Open All Interviews table">
           <div class="kpi-card-header">
             <span class="kpi-label">Candidate Sessions</span>
             <i class="bi bi-person-video2 kpi-icon"></i>
@@ -1511,7 +1578,7 @@
           <div id="kpi-interviews-sub" class="kpi-subtext">0 Completed &middot; 0 Live</div>
         </div>
 
-        <div class="kpi-card">
+        <div class="kpi-card is-clickable" onclick="switchDashboardTab('interviews')" title="View session completion status">
           <div class="kpi-card-header">
             <span class="kpi-label">Completion Rate</span>
             <i class="bi bi-funnel-fill kpi-icon" style="color: var(--success);"></i>
@@ -1520,7 +1587,7 @@
           <div id="kpi-completion-sub" class="kpi-subtext">0 attempted &rarr; 0 finished</div>
         </div>
 
-        <div class="kpi-card">
+        <div class="kpi-card is-clickable" onclick="switchDashboardTab('interviews')" title="View candidate scores">
           <div class="kpi-card-header">
             <span class="kpi-label">Platform Avg Score</span>
             <i class="bi bi-award-fill kpi-icon" style="color: var(--primary);"></i>
@@ -1529,7 +1596,7 @@
           <div class="kpi-subtext">Across evaluated interviews</div>
         </div>
 
-        <div class="kpi-card">
+        <div class="kpi-card is-clickable" onclick="switchDashboardTab('orders')" title="Open Billing & Orders">
           <div class="kpi-card-header">
             <span class="kpi-label">AI Token Spend</span>
             <i class="bi bi-cpu kpi-icon"></i>
@@ -1538,13 +1605,13 @@
           <div id="kpi-tokens-sub" class="kpi-subtext">0 Total Tokens</div>
         </div>
 
-        <div class="kpi-card">
+        <div class="kpi-card is-clickable" onclick="switchDashboardTab('activities'); setActivityViewMode('stream');" title="Open Live Event Stream">
           <div class="kpi-card-header">
             <span class="kpi-label">Today's Activities</span>
             <i class="bi bi-activity kpi-icon"></i>
           </div>
           <div id="kpi-today-events" class="kpi-value">0</div>
-          <div class="kpi-subtext">Platform audit events</div>
+          <div class="kpi-subtext">Click for live event stream</div>
         </div>
       </div>
 
@@ -1611,7 +1678,7 @@
             <div class="card-title">
               <i class="bi bi-broadcast" style="color: var(--primary);"></i> Live Event Pulse
             </div>
-            <button class="btn btn-secondary btn-sm" onclick="switchDashboardTab('activities')">View Full Stream</button>
+            <button class="btn btn-secondary btn-sm" onclick="switchDashboardTab('activities'); setActivityViewMode('stream');">View Full Stream</button>
           </div>
           <div class="card-body" id="overview-recent-activities-list">
             <p style="color: var(--text-muted); font-size: 0.8rem;">Listening for live platform events...</p>
@@ -1626,11 +1693,11 @@
         <div class="card-header" style="flex-wrap: wrap; gap: 0.75rem;">
           <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
             <div class="card-title">
-              <i class="bi bi-folder2-open"></i> Interviewer Activity Explorer
+              <i class="bi bi-building"></i> Company Activity Boxes
             </div>
             <div class="view-pill-group">
               <button type="button" id="btn-view-tree" class="view-pill active" onclick="setActivityViewMode('tree')">
-                <i class="bi bi-diagram-3-fill"></i> Folder Hierarchy
+                <i class="bi bi-grid-3x3-gap-fill"></i> Company Boxes
               </button>
               <button type="button" id="btn-view-stream" class="view-pill" onclick="setActivityViewMode('stream')">
                 <i class="bi bi-broadcast"></i> Live Stream
@@ -1652,10 +1719,13 @@
                 <option value="created">Invited / Pending</option>
               </select>
               <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAllOrgFolders(true)" title="Open all company boxes">
-                <i class="bi bi-arrows-expand"></i> Expand Orgs
+                <i class="bi bi-arrows-expand"></i> Open All
               </button>
-              <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAllOrgFolders(false)" title="Collapse all boxes">
-                <i class="bi bi-arrows-collapse"></i> Collapse
+              <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAllOrgFolders(false)" title="Close all company boxes">
+                <i class="bi bi-arrows-collapse"></i> Close All
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="resetActivityTreeFilters()" title="Clear search &amp; filters">
+                <i class="bi bi-x-circle"></i> Reset
               </button>
               <button type="button" class="btn btn-secondary btn-sm" onclick="exportActivityTreeCsv()" title="Export company & candidate activity summary as CSV">
                 <i class="bi bi-download"></i> Export CSV
@@ -1805,7 +1875,7 @@
 
     <!-- TAB: ORDERS & SUBSCRIPTIONS -->
     <div id="tab-content-orders" style="display: none;">
-      <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 1.5rem;">
+      <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin-bottom: 1.5rem;">
         <div class="kpi-card">
           <div class="kpi-card-header"><span class="kpi-label">Total Revenue</span><i class="bi bi-currency-dollar kpi-icon"></i></div>
           <div id="kpi-orders-revenue" class="kpi-value">$0.00</div>
