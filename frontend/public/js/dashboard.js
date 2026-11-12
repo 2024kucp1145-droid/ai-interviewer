@@ -1796,7 +1796,10 @@ window.detectBestDomainFromStep3 = function() {
 window.loadQBankCatalog = async function(force = false) {
   if (qbankCatalogData && !force) return qbankCatalogData;
   try {
-    const res = await apiRequest('/question-bank/catalog');
+    let res = await apiRequest('/question-bank/catalog');
+    if (!res.ok) {
+      res = await apiRequest('/api/question-bank/catalog');
+    }
     if (res.ok) {
       qbankCatalogData = await res.json();
       renderCompanyPills();
@@ -1810,7 +1813,10 @@ window.loadQBankCatalog = async function(force = false) {
 
 window.loadQBankCustom = async function(force = false) {
   try {
-    const res = await apiRequest('/question-bank/custom');
+    let res = await apiRequest('/question-bank/custom');
+    if (!res.ok) {
+      res = await apiRequest('/api/question-bank/custom');
+    }
     if (res.ok) {
       const data = await res.json();
       qbankCustomData = data.questions || [];

@@ -1529,7 +1529,8 @@ app.post('/api/questions/preview', (req, res) => {
 });
 
 // --- Question Bank: Curated Company-Wise Catalog & Org Custom Bank ---
-app.get('/api/question-bank/catalog', (req, res) => {
+// Supports both /question-bank and /api/question-bank paths
+const handleGetCatalog = (req, res) => {
   try {
     const { field = 'all', company = 'all', search = '' } = req.query;
     const questions = getCatalogQuestions({ field, company, search });
@@ -1543,9 +1544,11 @@ app.get('/api/question-bank/catalog', (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+};
+app.get('/question-bank/catalog', handleGetCatalog);
+app.get('/api/question-bank/catalog', handleGetCatalog);
 
-app.get('/api/question-bank/custom', requireAuth, (req, res) => {
+const handleGetCustom = (req, res) => {
   try {
     const orgId = req.user.org_id;
     const rows = db.prepare(`
@@ -1555,9 +1558,11 @@ app.get('/api/question-bank/custom', requireAuth, (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+};
+app.get('/question-bank/custom', requireAuth, handleGetCustom);
+app.get('/api/question-bank/custom', requireAuth, handleGetCustom);
 
-app.post('/api/question-bank/custom', requireAuth, (req, res) => {
+const handlePostCustom = (req, res) => {
   try {
     const orgId = req.user.org_id;
     const { question, skill = '', category = '', difficulty = 'Medium', expected_answer = '', company_tag = '' } = req.body;
@@ -1575,9 +1580,11 @@ app.post('/api/question-bank/custom', requireAuth, (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+};
+app.post('/question-bank/custom', requireAuth, handlePostCustom);
+app.post('/api/question-bank/custom', requireAuth, handlePostCustom);
 
-app.delete('/api/question-bank/custom/:id', requireAuth, (req, res) => {
+const handleDeleteCustom = (req, res) => {
   try {
     const orgId = req.user.org_id;
     const { id } = req.params;
@@ -1589,7 +1596,9 @@ app.delete('/api/question-bank/custom/:id', requireAuth, (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+};
+app.delete('/question-bank/custom/:id', requireAuth, handleDeleteCustom);
+app.delete('/api/question-bank/custom/:id', requireAuth, handleDeleteCustom);
 
 // --- Automated LeetCode & Coding Judge Runner Endpoint ---
 app.post('/api/compiler/judge', async (req, res) => {
