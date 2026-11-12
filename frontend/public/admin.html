@@ -8,50 +8,66 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #09090b;
-      --surface: #121215;
-      --surface-elevated: #18181b;
-      --surface-subtle: #202024;
-      --border: #27272a;
-      --border-bright: #3f3f46;
-      --text: #f4f4f5;
-      --text-muted: #a1a1aa;
-      --text-subtle: #71717a;
-      --primary: #6366f1;
-      --primary-hover: #4f46e5;
-      --primary-subtle: rgba(99, 102, 241, 0.12);
+      --bg: #0b1120;
+      --surface: #131c2e;
+      --surface-elevated: #1a253b;
+      --surface-subtle: #24324d;
+      --border: #243047;
+      --border-bright: #334361;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+      --primary: #465fff;
+      --primary-hover: #3c50e0;
+      --primary-subtle: rgba(70, 95, 255, 0.14);
       --success: #10b981;
-      --success-subtle: rgba(16, 185, 129, 0.12);
+      --success-subtle: rgba(16, 185, 129, 0.14);
       --warning: #f59e0b;
-      --warning-subtle: rgba(245, 158, 11, 0.12);
+      --warning-subtle: rgba(245, 158, 11, 0.14);
       --danger: #ef4444;
-      --danger-subtle: rgba(239, 68, 68, 0.12);
+      --danger-subtle: rgba(239, 68, 68, 0.14);
       --info: #38bdf8;
-      --info-subtle: rgba(14, 165, 233, 0.14);
+      --info-subtle: rgba(56, 189, 248, 0.14);
+      --sidebar-bg: #111827;
+      --sidebar-border: #1f2937;
+      --sidebar-text: #cbd5e1;
+      --sidebar-muted: #64748b;
+      --sidebar-hover: rgba(255, 255, 255, 0.06);
+      --sidebar-active-bg: rgba(70, 95, 255, 0.16);
+      --sidebar-active-text: #ffffff;
+      --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
       --mono: 'JetBrains Mono', monospace;
     }
 
     [data-theme="light"] {
-      --bg: #f8fafc;
+      --bg: #f1f5f9;
       --surface: #ffffff;
-      --surface-elevated: #f1f5f9;
+      --surface-elevated: #f8fafc;
       --surface-subtle: #e2e8f0;
-      --border: #cbd5e1;
-      --border-bright: #94a3b8;
-      --text: #0f172a;
-      --text-muted: #475569;
-      --text-subtle: #64748b;
-      --primary: #4f46e5;
-      --primary-hover: #4338ca;
-      --primary-subtle: #e0e7ff;
-      --success: #059669;
-      --success-subtle: #d1fae5;
-      --warning: #d97706;
-      --warning-subtle: #fef3c7;
-      --danger: #dc2626;
-      --danger-subtle: #fee2e2;
+      --border: #e2e8f0;
+      --border-bright: #cbd5e1;
+      --text: #101828;
+      --text-muted: #475467;
+      --text-subtle: #667085;
+      --primary: #465fff;
+      --primary-hover: #3c50e0;
+      --primary-subtle: #ecf3ff;
+      --success: #039855;
+      --success-subtle: #ecfdf3;
+      --warning: #dc6803;
+      --warning-subtle: #fffaeb;
+      --danger: #d92d20;
+      --danger-subtle: #fef3f2;
       --info: #0284c7;
-      --info-subtle: #e0f2fe;
+      --info-subtle: #f0f9ff;
+      --sidebar-bg: #ffffff;
+      --sidebar-border: #e2e8f0;
+      --sidebar-text: #344054;
+      --sidebar-muted: #98a2b3;
+      --sidebar-hover: #f8fafc;
+      --sidebar-active-bg: #ecf3ff;
+      --sidebar-active-text: #465fff;
+      --card-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -68,19 +84,20 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Top Navigation Header */
+    /* Top Navigation Header (TailAdmin AppBar) */
     header {
       background-color: var(--surface);
       border-bottom: 1px solid var(--border);
       position: sticky;
       top: 0;
-      z-index: 50;
+      z-index: 60;
+      box-shadow: var(--card-shadow);
     }
 
     .header-inner {
-      max-width: 1400px;
+      max-width: 100%;
       margin: 0 auto;
-      padding: 0.75rem 1.5rem;
+      padding: 0.72rem 1.35rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -355,67 +372,220 @@
       color: var(--text-muted);
     }
 
-    /* Main Dashboard Layout */
+    /* TailAdmin App Shell & Sidebar Layout */
     .dashboard-container {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 1.5rem;
       width: 100%;
       flex: 1;
+      display: flex;
+      min-height: calc(100vh - 58px);
+      position: relative;
     }
 
-    .nav-tabs {
+    .ta-sidebar {
+      width: 268px;
+      flex-shrink: 0;
+      background-color: var(--sidebar-bg);
+      border-right: 1px solid var(--sidebar-border);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 1.1rem 0.9rem;
+      position: sticky;
+      top: 57px;
+      height: calc(100vh - 57px);
+      overflow-y: auto;
+      transition: width 0.2s ease, transform 0.22s ease;
+      z-index: 55;
+    }
+
+    .dashboard-container.sidebar-collapsed .ta-sidebar {
+      width: 0;
+      padding: 0;
+      border-right: none;
+      overflow: hidden;
+    }
+
+    .ta-sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 1.15rem;
+    }
+
+    .ta-nav-group-title {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--sidebar-muted);
+      padding: 0 0.7rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .ta-nav-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.22rem;
+    }
+
+    .nav-tab-btn,
+    .ta-nav-item {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 1.5rem;
-      overflow-x: auto;
-      padding-bottom: 0.25rem;
-    }
-
-    .nav-tab-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.65rem 1.1rem;
+      justify-content: space-between;
+      gap: 0.6rem;
+      width: 100%;
+      padding: 0.62rem 0.78rem;
       font-size: 0.8125rem;
       font-weight: 600;
-      color: var(--text-muted);
-      border: none;
+      color: var(--sidebar-text);
+      border: 1px solid transparent;
       background: none;
-      border-radius: 8px;
+      border-radius: 9px;
       cursor: pointer;
       transition: all 0.15s ease;
       white-space: nowrap;
+      text-align: left;
+      font-family: inherit;
     }
 
-    .nav-tab-btn:hover {
+    .ta-nav-item-left {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.65rem;
+      min-width: 0;
+    }
+
+    .ta-nav-item-left i {
+      font-size: 1rem;
+      opacity: 0.88;
+      flex-shrink: 0;
+    }
+
+    .nav-tab-btn:hover,
+    .ta-nav-item:hover {
       color: var(--text);
+      background-color: var(--sidebar-hover);
+    }
+
+    .nav-tab-btn.active,
+    .ta-nav-item.active {
+      color: var(--sidebar-active-text);
+      background-color: var(--sidebar-active-bg);
+      border-color: rgba(70, 95, 255, 0.25);
+    }
+
+    .nav-tab-btn.active i,
+    .ta-nav-item.active i {
+      color: var(--primary);
+      opacity: 1;
+    }
+
+    .ta-sidebar-footer {
+      margin-top: 1.5rem;
+      padding: 0.85rem;
       background-color: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
     }
 
-    .nav-tab-btn.active {
-      color: #fff;
-      background-color: var(--primary);
-      box-shadow: 0 3px 12px rgba(99, 102, 241, 0.3);
+    .ta-main {
+      flex: 1;
+      min-width: 0;
+      padding: 1.5rem 1.75rem 2.5rem;
+      max-width: 1460px;
+      margin: 0 auto;
     }
 
-    /* Metric Cards Grid */
+    .ta-page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.35rem;
+    }
+
+    .ta-page-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: var(--text);
+      line-height: 1.25;
+    }
+
+    .ta-page-subtitle {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+
+    .ta-breadcrumb-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .ta-breadcrumb-pill strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .ta-sidebar-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.6);
+      backdrop-filter: blur(2px);
+      z-index: 52;
+    }
+
+    .btn-sidebar-toggle {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      border: 1px solid var(--border);
+      background-color: var(--surface-elevated);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 1.05rem;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .btn-sidebar-toggle:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* Metric Cards Grid (TailAdmin KPIs) */
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.05rem;
       margin-bottom: 1.5rem;
     }
 
     .kpi-card {
       background-color: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.2rem;
+      border-radius: 14px;
+      padding: 1.25rem;
       position: relative;
       overflow: hidden;
+      box-shadow: var(--card-shadow);
       transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
     }
 
@@ -426,14 +596,14 @@
     .kpi-card.is-clickable:hover {
       border-color: var(--primary);
       transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(79, 70, 229, 0.14);
+      box-shadow: 0 10px 24px rgba(70, 95, 255, 0.12);
     }
 
     .kpi-card-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 0.75rem;
+      margin-bottom: 0.85rem;
     }
 
     .kpi-label {
@@ -444,8 +614,23 @@
       letter-spacing: 0.04em;
     }
 
+    .kpi-icon-well {
+      width: 42px;
+      height: 42px;
+      border-radius: 11px;
+      background-color: var(--primary-subtle);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .kpi-icon-well.tone-success { background-color: var(--success-subtle); }
+    .kpi-icon-well.tone-info { background-color: var(--info-subtle); }
+    .kpi-icon-well.tone-warning { background-color: var(--warning-subtle); }
+
     .kpi-icon {
-      font-size: 1.25rem;
+      font-size: 1.18rem;
       color: var(--primary);
     }
 
@@ -453,12 +638,12 @@
       font-size: 1.85rem;
       font-weight: 800;
       letter-spacing: -0.03em;
-      line-height: 1;
+      line-height: 1.05;
       margin-bottom: 0.35rem;
     }
 
     .kpi-subtext {
-      font-size: 0.72rem;
+      font-size: 0.74rem;
       color: var(--text-subtle);
     }
 
@@ -466,9 +651,10 @@
     .card {
       background-color: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: 14px;
       overflow: hidden;
       margin-bottom: 1.5rem;
+      box-shadow: var(--card-shadow);
     }
 
     .card-header {
@@ -1260,9 +1446,35 @@
       to { transform: translateX(0); opacity: 1; }
     }
 
+    @media (max-width: 960px) {
+      .ta-sidebar {
+        position: fixed;
+        top: 57px;
+        left: 0;
+        bottom: 0;
+        height: calc(100vh - 57px);
+        transform: translateX(-100%);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+      }
+      .dashboard-container.sidebar-mobile-open .ta-sidebar {
+        transform: translateX(0);
+      }
+      .dashboard-container.sidebar-mobile-open .ta-sidebar-backdrop {
+        display: block;
+      }
+      .dashboard-container.sidebar-collapsed .ta-sidebar {
+        width: 268px;
+        padding: 1.1rem 0.9rem;
+        border-right: 1px solid var(--sidebar-border);
+      }
+      .ta-main {
+        padding: 1.15rem;
+      }
+    }
+
     @media (max-width: 768px) {
       .header-inner {
-        padding: 0.7rem 1rem;
+        padding: 0.65rem 1rem;
         flex-wrap: wrap;
         gap: 0.65rem;
       }
@@ -1273,8 +1485,8 @@
       .brand-subtitle {
         display: none;
       }
-      .dashboard-container {
-        padding: 1rem;
+      .ta-main {
+        padding: 0.9rem;
       }
       .bento-analytics-grid,
       .company-boxes-grid,
@@ -1298,16 +1510,19 @@
 </head>
 <body>
 
-  <!-- Top Global Header -->
+  <!-- Top Global Header (TailAdmin AppBar) -->
   <header>
     <div class="header-inner">
       <div class="brand-group">
+        <button id="btn-sidebar-toggle" type="button" class="btn-sidebar-toggle" onclick="toggleAdminSidebar()" title="Toggle Navigation Sidebar" aria-label="Toggle Navigation Sidebar">
+          <i class="bi bi-layout-sidebar-inset"></i>
+        </button>
         <div class="brand-badge">
           <i class="bi bi-shield-lock-fill"></i> SUPERADMIN
         </div>
         <div>
           <span class="brand-title">RoundOne AI Platform Ops</span>
-          <span class="brand-subtitle">Restricted Administrative Operations &amp; Recruiter Monitoring</span>
+          <span class="brand-subtitle">TailAdmin Workspace &middot; Recruiter &amp; Company Operations</span>
         </div>
       </div>
 
@@ -1510,31 +1725,85 @@
   <!-- 2. MAIN PLATFORM OPERATIONS DASHBOARD (When Authenticated) -->
   <!-- ========================================================================= -->
   <div id="dashboard-view" class="dashboard-container" style="display: none;">
-    
-    <!-- Navigation Tabs -->
-    <div class="nav-tabs">
-      <button class="nav-tab-btn active" onclick="switchDashboardTab('overview')">
-        <i class="bi bi-speedometer2"></i> Overview
-      </button>
-      <button class="nav-tab-btn" onclick="switchDashboardTab('activities')">
-        <i class="bi bi-building"></i> Company Boxes &amp; Activity <span id="activities-badge" class="badge badge-neutral" style="margin-left: 0.3rem;">0</span>
-      </button>
-      <button class="nav-tab-btn" onclick="switchDashboardTab('users')">
-        <i class="bi bi-people-fill"></i> Recruiters <span id="pending-users-badge" class="badge badge-warning" style="display:none; margin-left: 0.3rem;">0 Pending</span>
-      </button>
-      <button class="nav-tab-btn" onclick="switchDashboardTab('interviews')">
-        <i class="bi bi-camera-video-fill"></i> All Interviews
-      </button>
-      <button class="nav-tab-btn" onclick="switchDashboardTab('orders')">
-        <i class="bi bi-credit-card-2-front-fill"></i> Billing &amp; Orders
-      </button>
-      <button class="nav-tab-btn" onclick="switchDashboardTab('invites')">
-        <i class="bi bi-shield-fill-check"></i> Admin Team
-      </button>
-      <button class="nav-tab-btn" onclick="switchDashboardTab('settings')">
-        <i class="bi bi-sliders"></i> Settings
-      </button>
-    </div>
+    <div id="ta-sidebar-backdrop" class="ta-sidebar-backdrop" onclick="closeMobileSidebar()"></div>
+
+    <!-- TailAdmin Left Sidebar -->
+    <aside id="ta-sidebar" class="ta-sidebar" aria-label="Admin Navigation">
+      <div class="ta-sidebar-nav">
+        <div>
+          <div class="ta-nav-group-title">Menu</div>
+          <div class="ta-nav-list">
+            <button type="button" class="nav-tab-btn ta-nav-item active" data-tab="overview" onclick="switchDashboardTab('overview')">
+              <span class="ta-nav-item-left"><i class="bi bi-grid-1x2-fill"></i> <span>Overview</span></span>
+            </button>
+            <button type="button" id="nav-boxes-btn" class="nav-tab-btn ta-nav-item" data-tab="activities" data-view="tree" onclick="switchDashboardTab('activities'); setActivityViewMode('tree');">
+              <span class="ta-nav-item-left"><i class="bi bi-building"></i> <span>Company Boxes</span></span>
+              <span id="activities-badge" class="badge badge-neutral">0</span>
+            </button>
+            <button type="button" id="nav-stream-btn" class="nav-tab-btn ta-nav-item" data-tab="activities" data-view="stream" onclick="switchDashboardTab('activities'); setActivityViewMode('stream');">
+              <span class="ta-nav-item-left"><i class="bi bi-activity"></i> <span>Live Stream</span></span>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <div class="ta-nav-group-title">Operations</div>
+          <div class="ta-nav-list">
+            <button type="button" class="nav-tab-btn ta-nav-item" data-tab="users" onclick="switchDashboardTab('users')">
+              <span class="ta-nav-item-left"><i class="bi bi-people-fill"></i> <span>Recruiters</span></span>
+              <span id="pending-users-badge" class="badge badge-warning" style="display:none;">0 Pending</span>
+            </button>
+            <button type="button" class="nav-tab-btn ta-nav-item" data-tab="interviews" onclick="switchDashboardTab('interviews')">
+              <span class="ta-nav-item-left"><i class="bi bi-camera-video-fill"></i> <span>All Interviews</span></span>
+            </button>
+            <button type="button" class="nav-tab-btn ta-nav-item" data-tab="orders" onclick="switchDashboardTab('orders')">
+              <span class="ta-nav-item-left"><i class="bi bi-credit-card-2-front-fill"></i> <span>Billing &amp; Orders</span></span>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <div class="ta-nav-group-title">System</div>
+          <div class="ta-nav-list">
+            <button type="button" class="nav-tab-btn ta-nav-item" data-tab="invites" onclick="switchDashboardTab('invites')">
+              <span class="ta-nav-item-left"><i class="bi bi-shield-fill-check"></i> <span>Admin Team</span></span>
+            </button>
+            <button type="button" class="nav-tab-btn ta-nav-item" data-tab="settings" onclick="switchDashboardTab('settings')">
+              <span class="ta-nav-item-left"><i class="bi bi-sliders"></i> <span>Settings</span></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="ta-sidebar-footer">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem;">
+          <span style="font-size:0.74rem; font-weight:700; color:var(--text);">RoundOne Ops</span>
+          <span class="badge badge-success" style="font-size:0.65rem;">Live 15s</span>
+        </div>
+        <p style="font-size:0.71rem; color:var(--text-muted); line-height:1.4;">
+          Press <kbd style="padding:0.08rem 0.35rem; border:1px solid var(--border); border-radius:4px; background:var(--surface);">/</kbd> inside any table or folder view to focus search.
+        </p>
+        <button type="button" class="btn btn-secondary btn-sm" style="width:100%; justify-content:center;" onclick="syncAllAdminData()">
+          <i class="bi bi-arrow-clockwise"></i> Sync Now
+        </button>
+      </div>
+    </aside>
+
+    <!-- TailAdmin Main Workspace -->
+    <main class="ta-main">
+      <!-- Page Title & Breadcrumb Bar -->
+      <div class="ta-page-header">
+        <div>
+          <h1 id="ta-page-title" class="ta-page-title">Platform Overview</h1>
+          <p id="ta-page-subtitle" class="ta-page-subtitle">Executive KPIs, candidate pipeline funnel, score distribution &amp; top active companies</p>
+        </div>
+        <div class="ta-breadcrumb-pill">
+          <i class="bi bi-house-door"></i>
+          <span>Admin</span>
+          <i class="bi bi-chevron-right" style="font-size:0.65rem;"></i>
+          <strong id="ta-breadcrumb-current">Overview</strong>
+        </div>
+      </div>
 
     <!-- TAB 1: LIVE OVERVIEW & KPIS -->
     <div id="tab-content-overview">
@@ -1545,7 +1814,7 @@
         <div class="kpi-card is-clickable" onclick="switchDashboardTab('users')" title="Open Recruiters directory">
           <div class="kpi-card-header">
             <span class="kpi-label">Registered Recruiters</span>
-            <i class="bi bi-person-lines-fill kpi-icon"></i>
+            <span class="kpi-icon-well"><i class="bi bi-person-lines-fill kpi-icon"></i></span>
           </div>
           <div id="kpi-total-users" class="kpi-value">0</div>
           <div id="kpi-users-sub" class="kpi-subtext">0 Pending &middot; 0 Approved</div>
@@ -1554,7 +1823,7 @@
         <div class="kpi-card is-clickable" onclick="switchDashboardTab('activities'); setActivityViewMode('tree');" title="Open Company Boxes">
           <div class="kpi-card-header">
             <span class="kpi-label">Active Organizations</span>
-            <i class="bi bi-building kpi-icon"></i>
+            <span class="kpi-icon-well tone-info"><i class="bi bi-building kpi-icon" style="color: var(--info);"></i></span>
           </div>
           <div id="kpi-total-orgs" class="kpi-value">0</div>
           <div class="kpi-subtext">Click to open company boxes</div>
@@ -1563,7 +1832,7 @@
         <div class="kpi-card is-clickable" onclick="switchDashboardTab('activities'); toggleAllOrgFolders(true);" title="Expand all company interview boxes">
           <div class="kpi-card-header">
             <span class="kpi-label">Jobs / Rounds Created</span>
-            <i class="bi bi-briefcase-fill kpi-icon"></i>
+            <span class="kpi-icon-well"><i class="bi bi-briefcase-fill kpi-icon"></i></span>
           </div>
           <div id="kpi-total-jobs" class="kpi-value">0</div>
           <div class="kpi-subtext">Active screening rounds</div>
@@ -1572,7 +1841,7 @@
         <div class="kpi-card is-clickable" onclick="switchDashboardTab('interviews')" title="Open All Interviews table">
           <div class="kpi-card-header">
             <span class="kpi-label">Candidate Sessions</span>
-            <i class="bi bi-person-video2 kpi-icon"></i>
+            <span class="kpi-icon-well tone-info"><i class="bi bi-person-video2 kpi-icon" style="color: var(--info);"></i></span>
           </div>
           <div id="kpi-total-interviews" class="kpi-value">0</div>
           <div id="kpi-interviews-sub" class="kpi-subtext">0 Completed &middot; 0 Live</div>
@@ -1581,7 +1850,7 @@
         <div class="kpi-card is-clickable" onclick="switchDashboardTab('interviews')" title="View session completion status">
           <div class="kpi-card-header">
             <span class="kpi-label">Completion Rate</span>
-            <i class="bi bi-funnel-fill kpi-icon" style="color: var(--success);"></i>
+            <span class="kpi-icon-well tone-success"><i class="bi bi-funnel-fill kpi-icon" style="color: var(--success);"></i></span>
           </div>
           <div id="kpi-completion-rate" class="kpi-value">0%</div>
           <div id="kpi-completion-sub" class="kpi-subtext">0 attempted &rarr; 0 finished</div>
@@ -1590,7 +1859,7 @@
         <div class="kpi-card is-clickable" onclick="switchDashboardTab('interviews')" title="View candidate scores">
           <div class="kpi-card-header">
             <span class="kpi-label">Platform Avg Score</span>
-            <i class="bi bi-award-fill kpi-icon" style="color: var(--primary);"></i>
+            <span class="kpi-icon-well"><i class="bi bi-award-fill kpi-icon" style="color: var(--primary);"></i></span>
           </div>
           <div id="kpi-avg-score" class="kpi-value">&mdash;</div>
           <div class="kpi-subtext">Across evaluated interviews</div>
@@ -1599,7 +1868,7 @@
         <div class="kpi-card is-clickable" onclick="switchDashboardTab('orders')" title="Open Billing & Orders">
           <div class="kpi-card-header">
             <span class="kpi-label">AI Token Spend</span>
-            <i class="bi bi-cpu kpi-icon"></i>
+            <span class="kpi-icon-well tone-warning"><i class="bi bi-cpu kpi-icon" style="color: var(--warning);"></i></span>
           </div>
           <div id="kpi-token-cost" class="kpi-value">₹0</div>
           <div id="kpi-tokens-sub" class="kpi-subtext">0 Total Tokens</div>
@@ -1608,7 +1877,7 @@
         <div class="kpi-card is-clickable" onclick="switchDashboardTab('activities'); setActivityViewMode('stream');" title="Open Live Event Stream">
           <div class="kpi-card-header">
             <span class="kpi-label">Today's Activities</span>
-            <i class="bi bi-activity kpi-icon"></i>
+            <span class="kpi-icon-well tone-success"><i class="bi bi-activity kpi-icon" style="color: var(--success);"></i></span>
           </div>
           <div id="kpi-today-events" class="kpi-value">0</div>
           <div class="kpi-subtext">Click for live event stream</div>
@@ -2130,6 +2399,7 @@
       </div>
     </div>
 
+    </main>
   </div>
 
   <!-- ========================================================================= -->

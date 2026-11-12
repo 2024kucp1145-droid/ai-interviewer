@@ -160,18 +160,26 @@ async function verifyAdminSession() {
 
 function showAuthView() {
   if (authView) authView.style.display = 'block';
-  if (dashboardView) dashboardView.style.display = 'none';
+  if (dashboardView) {
+    dashboardView.style.display = 'none';
+    dashboardView.classList.remove('sidebar-mobile-open');
+  }
   if (authControls) authControls.style.display = 'none';
+  const sidebarToggle = document.getElementById('btn-sidebar-toggle');
+  if (sidebarToggle) sidebarToggle.style.display = 'none';
 }
 
 function showDashboardView() {
   if (authView) authView.style.display = 'none';
-  if (dashboardView) dashboardView.style.display = 'block';
+  if (dashboardView) dashboardView.style.display = 'flex';
   if (authControls) authControls.style.display = 'flex';
+  const sidebarToggle = document.getElementById('btn-sidebar-toggle');
+  if (sidebarToggle) sidebarToggle.style.display = 'inline-flex';
   if (adminNameEl && currentAdmin) {
     const uidPart = currentAdmin.admin_uid ? ` (${currentAdmin.admin_uid})` : '';
     adminNameEl.textContent = `${currentAdmin.full_name || currentAdmin.email}${uidPart}`;
   }
+  updateTailAdminChrome(currentTab);
 }
 
 function setupPolling() {
@@ -590,6 +598,92 @@ function logoutAdmin(isSilent = false) {
 // DASHBOARD NAVIGATION & TABS
 // ─────────────────────────────────────────────────────────────────────────────
 
+const TA_PAGE_META = {
+  overview: {
+    title: 'Platform Overview',
+    subtitle: 'Executive KPIs, candidate pipeline funnel, score distribution & top active companies',
+    crumb: 'Overview'
+  },
+  activities_tree: {
+    title: 'Company Boxes & Interview Hierarchy',
+    subtitle: 'Open any company box to inspect rounds, recruiters, candidate timings & statuses',
+    crumb: 'Company Boxes'
+  },
+  activities_stream: {
+    title: 'Live Activity Stream',
+    subtitle: 'Real-time platform events across recruiters, interviews & evaluations',
+    crumb: 'Live Stream'
+  },
+  users: {
+    title: 'Recruiters & Organizations',
+    subtitle: 'Approve accounts, manage company quotas, credits & workspace status',
+    crumb: 'Recruiters'
+  },
+  interviews: {
+    title: 'All Candidate Interviews',
+    subtitle: 'Search sessions, filter by score band, inspect transcripts & export CSV',
+    crumb: 'All Interviews'
+  },
+  orders: {
+    title: 'Billing & Credit Orders',
+    subtitle: 'Track credit purchases, AI token spend & organization payments',
+    crumb: 'Billing & Orders'
+  },
+  invites: {
+    title: 'Admin Team & Seat Invites',
+    subtitle: 'Manage authorized platform superadmins & access codes',
+    crumb: 'Admin Team'
+  },
+  settings: {
+    title: 'Platform Governance & Integrations',
+    subtitle: 'Configure signup rules, SMTP mail delivery & PostgreSQL database engine',
+    crumb: 'Settings'
+  }
+};
+
+function updateTailAdminChrome(tabName) {
+  const buttons = document.querySelectorAll('.nav-tab-btn');
+  buttons.forEach(btn => {
+    const btnTab = btn.getAttribute('data-tab');
+    const btnView = btn.getAttribute('data-view');
+    let isActive = false;
+    if (btnTab) {
+      if (btnTab === 'activities' && tabName === 'activities') {
+        isActive = !btnView || btnView === activityViewMode;
+      } else {
+        isActive = btnTab === tabName;
+      }
+    } else {
+      isActive = Boolean(btn.getAttribute('onclick')?.includes(tabName));
+    }
+    btn.classList.toggle('active', isActive);
+  });
+
+  const metaKey = tabName === 'activities'
+    ? (activityViewMode === 'stream' ? 'activities_stream' : 'activities_tree')
+    : tabName;
+  const meta = TA_PAGE_META[metaKey] || TA_PAGE_META.overview;
+  const titleEl = document.getElementById('ta-page-title');
+  const subtitleEl = document.getElementById('ta-page-subtitle');
+  const crumbEl = document.getElementById('ta-breadcrumb-current');
+  if (titleEl) titleEl.textContent = meta.title;
+  if (subtitleEl) subtitleEl.textContent = meta.subtitle;
+  if (crumbEl) crumbEl.textContent = meta.crumb;
+}
+
+window.toggleAdminSidebar = function() {
+  if (!dashboardView) return;
+  if (window.innerWidth <= 960) {
+    dashboardView.classList.toggle('sidebar-mobile-open');
+  } else {
+    dashboardView.classList.toggle('sidebar-collapsed');
+  }
+};
+
+window.closeMobileSidebar = function() {
+  if (dashboardView) dashboardView.classList.remove('sidebar-mobile-open');
+};
+
 window.switchDashboardTab = function(tabName) {
   currentTab = tabName;
   const tabs = ['overview', 'activities', 'users', 'interviews', 'orders', 'invites', 'settings'];
@@ -599,14 +693,8 @@ window.switchDashboardTab = function(tabName) {
     if (content) content.style.display = (t === tabName) ? 'block' : 'none';
   });
 
-  const buttons = document.querySelectorAll('.nav-tab-btn');
-  buttons.forEach(btn => {
-    if (btn.getAttribute('onclick')?.includes(tabName)) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
-  });
+  updateTailAdminChrome(tabName);
+  closeMobileSidebar();
 
   if (tabName === 'overview') loadDashboardStats();
   if (tabName === 'activities') refreshActiveActivitiesView();
@@ -978,6 +1066,7 @@ window.setActivityViewMode = function(mode) {
   if (treeContainer) treeContainer.style.display = isTree ? 'flex' : 'none';
   if (streamContainer) streamContainer.style.display = isTree ? 'none' : 'flex';
 
+  updateTailAdminChrome(currentTab);
   refreshActiveActivitiesView();
 };
 
