@@ -2398,31 +2398,226 @@
     <!-- TAB 2: Candidate Pipeline & Interview Results Hub -->
     <div id="tab-candidates" class="tab-pane" style="display: none;">
 
-      <!-- INTERVIEW ASSESSMENT ROUNDS (RESULTS HUB BLOCKS) -->
-      <div class="card" style="margin-bottom: 1.5rem;">
-        <div class="card-title">
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <i class="bi bi-grid-fill" style="color: #2563eb; font-size: 1.1rem;"></i>
-            <div>
-              <strong style="font-size: 0.95rem; color: var(--text);">Candidate Pipeline &amp; Interview Results Hub</strong>
-              <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">Select any interview assessment round to view categorized candidate results, rankings &amp; PDF reports</div>
-            </div>
-          </div>
-          <div style="display: flex; gap: 0.35rem; align-items: center;">
-            <button class="btn btn-outline btn-sm" onclick="switchTab('jobs')">
-              <i class="bi bi-plus-circle"></i> New Interview Round
-            </button>
-            <button class="btn btn-ghost btn-sm" onclick="window.refreshDashboard(this)" title="Refresh Blocks &amp; Results">
-              <i class="bi bi-arrow-clockwise"></i> Refresh
-            </button>
-          </div>
+      <!-- Subtab Navigation Bar -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
+        <div style="display: flex; gap: 0.4rem; background: var(--surface-subtle); padding: 0.3rem; border-radius: 8px; border: 1px solid var(--border);">
+          <button type="button" class="nav-btn active" id="btn-pipeline-subtab-roster" onclick="switchPipelineSubtab('roster')" style="font-size: 0.8rem; font-weight: 700; border-radius: 6px;">
+            <i class="bi bi-people-fill"></i> Candidate Roster &amp; Scores
+          </button>
+          <button type="button" class="nav-btn" id="btn-pipeline-subtab-rounds" onclick="switchPipelineSubtab('rounds')" style="font-size: 0.8rem; font-weight: 700; border-radius: 6px;">
+            <i class="bi bi-grid-fill"></i> Interview Rounds Hub (<span id="pipeline-rounds-count">0</span>)
+          </button>
+          <button type="button" class="nav-btn" id="btn-pipeline-subtab-invite" onclick="switchPipelineSubtab('invite')" style="font-size: 0.8rem; font-weight: 700; border-radius: 6px;">
+            <i class="bi bi-person-plus-fill"></i> Send Invite &amp; Resume
+          </button>
         </div>
 
-        <!-- Dynamic Grid of Interview Blocks -->
-        <div id="interview-blocks-grid" class="interview-blocks-grid">
-          <div style="grid-column: 1 / -1; padding: 2rem; text-align: center; color: var(--text-muted);">
-            <div class="spinner-border spinner-border-sm" role="status"></div> Loading interview assessment rounds...
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <button class="btn btn-outline btn-sm" onclick="exportCandidatesCsv()" title="Export filtered candidates as CSV">
+            <i class="bi bi-download"></i> Export CSV
+          </button>
+          <button class="btn btn-ghost btn-sm" onclick="window.refreshPipelineData(this)" title="Refresh Candidate Pipeline">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- SUBTAB 1: Candidate Roster & Scores (Default Active) -->
+      <div id="pipeline-subtab-roster" class="pipeline-subtab-pane">
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <div class="card-title" style="flex-wrap: wrap; gap: 0.75rem;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span class="badge badge-dark" style="background: #2563eb; color: #fff; font-size: 0.7rem;"><i class="bi bi-trophy-fill" style="color: #fbbf24;"></i> Results Hub</span>
+                <strong id="active-round-title" style="font-size: 1rem; color: var(--text);">All Candidates &amp; Interview Sessions</strong>
+              </div>
+              <div id="active-round-stats" style="font-size: 0.73rem; color: var(--text-muted); margin-top: 0.2rem;">
+                Sorted point-wise: <strong style="color: #059669;">Selected (Top + Green)</strong> &bull; <strong style="color: #dc2626;">Rejected (Bottom + Red)</strong>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+              <!-- View Mode Toggle -->
+              <div style="display: inline-flex; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 6px; padding: 0.15rem;">
+                <button id="view-mode-cards-btn" class="btn btn-ghost btn-sm active" style="font-size: 0.72rem; padding: 0.25rem 0.55rem; border-radius: 4px;" onclick="setCandidateViewMode('cards')">
+                  <i class="bi bi-card-list"></i> Merit Cards
+                </button>
+                <button id="view-mode-table-btn" class="btn btn-ghost btn-sm" style="font-size: 0.72rem; padding: 0.25rem 0.55rem; border-radius: 4px;" onclick="setCandidateViewMode('table')">
+                  <i class="bi bi-table"></i> Table View
+                </button>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="switchPipelineSubtab('invite')">
+                <i class="bi bi-person-plus-fill"></i> Invite Candidate
+              </button>
+            </div>
           </div>
+
+          <!-- Filter & Search Toolbar -->
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; padding: 0.75rem 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-top: 0.5rem; margin-bottom: 0.75rem;">
+            <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
+              <button class="roster-filter-btn active" id="filter-btn-all" onclick="filterCandidateRoster('all')">
+                All (<span id="roster-count-all">0</span>)
+              </button>
+              <button class="roster-filter-btn" id="filter-btn-selected" onclick="filterCandidateRoster('selected')">
+                <span style="color: #10b981;"><i class="bi bi-check-circle-fill"></i> Selected (Green)</span> (<span id="roster-count-selected">0</span>)
+              </button>
+              <button class="roster-filter-btn" id="filter-btn-borderline" onclick="filterCandidateRoster('borderline')">
+                <span style="color: #f59e0b;"><i class="bi bi-exclamation-circle-fill"></i> Borderline</span> (<span id="roster-count-borderline">0</span>)
+              </button>
+              <button class="roster-filter-btn" id="filter-btn-rejected" onclick="filterCandidateRoster('rejected')">
+                <span style="color: #ef4444;"><i class="bi bi-x-circle-fill"></i> Rejected (Red)</span> (<span id="roster-count-rejected">0</span>)
+              </button>
+              <button class="roster-filter-btn" id="filter-btn-pending" onclick="filterCandidateRoster('pending')">
+                <span style="color: #64748b;"><i class="bi bi-clock-history"></i> Pending Link</span> (<span id="roster-count-pending">0</span>)
+              </button>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; max-width: 320px; min-width: 200px;">
+              <div style="position: relative; width: 100%;">
+                <i class="bi bi-search" style="position: absolute; left: 0.65rem; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: var(--text-muted);"></i>
+                <input type="text" id="roster-search-input" placeholder="Search candidate, email, or role..." style="padding-left: 1.85rem; padding-top: 0.35rem; padding-bottom: 0.35rem; font-size: 0.75rem; margin: 0; width: 100%; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text);" oninput="applyCandidateFilters()">
+              </div>
+            </div>
+          </div>
+
+          <!-- Ranked Candidate Cards Container -->
+          <div id="candidates-roster-cards" class="candidate-roster-cards">
+            <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+              <div class="spinner-border spinner-border-sm" role="status"></div> Loading candidates...
+            </div>
+          </div>
+
+          <!-- Classic Candidate Table (visible when table mode is chosen) -->
+          <div id="candidates-roster-table" style="display: none; overflow-x: auto; margin-top: 0.5rem;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="border-bottom: 1.5px solid var(--border); text-align: left; font-size: 0.75rem; color: var(--text-muted);">
+                  <th style="padding: 0.6rem 0.5rem;">Rank &amp; Candidate</th>
+                  <th style="padding: 0.6rem 0.5rem;">Role</th>
+                  <th style="padding: 0.6rem 0.5rem;">Score (Points)</th>
+                  <th style="padding: 0.6rem 0.5rem;">Status / Verdict</th>
+                  <th style="padding: 0.6rem 0.5rem;">Source</th>
+                  <th style="padding: 0.6rem 0.5rem;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="interviews-table-body">
+                <tr><td colspan="6" style="text-align: center; color: var(--text-muted); font-size: 0.775rem; padding: 2rem;">Loading candidates...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUBTAB 2: Interview Rounds Hub (Blocks View) -->
+      <div id="pipeline-subtab-rounds" class="pipeline-subtab-pane" style="display: none;">
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <div class="card-title">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <i class="bi bi-grid-fill" style="color: #2563eb; font-size: 1.1rem;"></i>
+              <div>
+                <strong style="font-size: 0.95rem; color: var(--text);">Configured Interview Assessment Rounds</strong>
+                <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">Click any interview block to open its candidate results or copy direct candidate share link</div>
+              </div>
+            </div>
+            <div style="display: flex; gap: 0.35rem; align-items: center;">
+              <button class="btn btn-outline btn-sm" onclick="switchTab('jobs')">
+                <i class="bi bi-plus-circle"></i> New Interview Round
+              </button>
+            </div>
+          </div>
+
+          <!-- Dynamic Grid of Interview Blocks -->
+          <div id="interview-blocks-grid" class="interview-blocks-grid">
+            <div style="grid-column: 1 / -1; padding: 2rem; text-align: center; color: var(--text-muted);">
+              <div class="spinner-border spinner-border-sm" role="status"></div> Loading interview assessment rounds...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUBTAB 3: Send Candidate Invite & Drag-and-Drop Resume -->
+      <div id="pipeline-subtab-invite" class="pipeline-subtab-pane" style="display: none;">
+        <div class="card" id="card-invite-candidate">
+          <div class="card-title">
+            <span><i class="bi bi-send-fill" style="color: #2563eb;"></i> Send Timed Interview Link to Candidate</span>
+            <span class="badge badge-dark">Secure 128-bit Link</span>
+          </div>
+
+          <!-- Drag & Drop Resume PDF/DOCX Parser -->
+          <div id="resume-dropzone" class="resume-dropzone" ondragover="handleResumeDragOver(event)" ondragleave="handleResumeDragLeave(event)" ondrop="handleResumeDrop(event)" style="border: 2px dashed var(--border); border-radius: 8px; margin-bottom: 1.25rem; cursor: pointer; transition: all 0.2s ease;">
+            <input type="file" id="resume-file-input" accept=".pdf,.docx,.txt" style="display: none;" onchange="handleResumeFileSelect(this.files)">
+            <div style="text-align: center; padding: 1.5rem 1rem;" onclick="document.getElementById('resume-file-input').click()">
+              <div id="dropzone-idle-state">
+                <i class="bi bi-file-earmark-pdf" style="font-size: 2.2rem; color: var(--text-muted); display: block; margin-bottom: 0.45rem;"></i>
+                <strong style="color: var(--text); font-size: 0.875rem; display: block;">
+                  Drag &amp; Drop Candidate Resume (PDF / DOCX) here, or <span style="text-decoration: underline; color: #2563eb;">click to browse</span>
+                </strong>
+                <p style="color: var(--text-muted); font-size: 0.72rem; margin-top: 0.25rem; margin-bottom: 0;">
+                  AI extracts Candidate Name, Email, Skills, Experience &amp; Projects automatically
+                </p>
+              </div>
+              <div id="dropzone-loading-state" style="display: none; padding: 0.5rem 0;">
+                <div class="spinner-border spinner-border-sm" role="status" style="width: 1.5rem; height: 1.5rem; border-width: 2px; color: var(--text); display: inline-block; margin-bottom: 0.35rem;"></div>
+                <strong style="color: var(--text); font-size: 0.85rem; display: block;">Analyzing Resume with AI...</strong>
+                <p style="color: var(--text-muted); font-size: 0.72rem; margin-top: 0.2rem; margin-bottom: 0;">Parsing technical skills, verified experience, and project claims...</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Parsed Resume Confirmation & Skills Pill Box (shown after parse) -->
+          <div id="resume-parsed-card" style="display: none; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 6px; padding: 0.85rem 1rem; margin-bottom: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <span class="badge badge-dark"><i class="bi bi-check-circle-fill"></i> Resume Parsed</span>
+                <strong id="parsed-candidate-name-badge" style="font-size: 0.85rem; color: var(--text);">Alex Morgan</strong>
+                <span id="parsed-experience-badge" class="badge badge-outline">3-5 Yrs Exp</span>
+              </div>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="clearParsedResume()" style="font-size: 0.72rem; padding: 0.2rem 0.5rem;">
+                <i class="bi bi-x-lg"></i> Clear
+              </button>
+            </div>
+            <div id="parsed-skills-pills" style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.5rem;"></div>
+            <p id="parsed-summary-snippet" style="font-size: 0.75rem; color: var(--text-muted); margin: 0; line-height: 1.4;"></p>
+          </div>
+
+          <form id="form-invite" class="grid-2">
+            <div>
+              <label style="font-size: 0.785rem; font-weight: 600; display: block; margin-bottom: 0.3rem;">Select Interview Assessment Round</label>
+              <select id="invite-job-id" required style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font-size: 0.8rem;"></select>
+            </div>
+            <div>
+              <label style="font-size: 0.785rem; font-weight: 600; display: block; margin-bottom: 0.3rem;">Candidate Full Name</label>
+              <input type="text" id="invite-name" placeholder="John Doe" required style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font-size: 0.8rem;">
+            </div>
+            <div>
+              <label style="font-size: 0.785rem; font-weight: 600; display: block; margin-bottom: 0.3rem;">Candidate Email Address</label>
+              <input type="email" id="invite-email" placeholder="john.doe@example.com" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font-size: 0.8rem;">
+            </div>
+            <div>
+              <label style="font-size: 0.785rem; font-weight: 600; display: block; margin-bottom: 0.3rem;">WhatsApp / Mobile Number (Optional)</label>
+              <input type="tel" id="invite-phone" placeholder="+91 98765 43210" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font-size: 0.8rem;">
+            </div>
+            <div>
+              <label style="font-size: 0.785rem; font-weight: 600; display: block; margin-bottom: 0.3rem;">Link Expiration Window (Minutes)</label>
+              <input type="number" id="invite-timer-minutes" value="60" min="5" max="10080" style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font-size: 0.8rem;">
+            </div>
+            <div>
+              <label style="font-size: 0.785rem; font-weight: 600; display: block; margin-bottom: 0.3rem;">Candidate Dispatch Notification</label>
+              <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" id="invite-send-notification" checked style="width: auto;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);">Send automated email with interview guidelines</span>
+              </div>
+            </div>
+            <div style="grid-column: 1 / -1;">
+              <label style="font-size: 0.785rem; font-weight: 600; display: block; margin-bottom: 0.3rem;">Resume Extracted Notes / Background (Optional)</label>
+              <textarea id="invite-resume" rows="3" placeholder="Paste resume summary or key skills here..." style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font-size: 0.8rem;"></textarea>
+            </div>
+            <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
+              <button type="submit" class="btn" style="padding: 0.6rem 1.25rem; font-weight: 700;">
+                <i class="bi bi-send-fill"></i> Generate &amp; Dispatch Interview Link
+              </button>
+            </div>
+          </form>
         </div>
       </div>
 

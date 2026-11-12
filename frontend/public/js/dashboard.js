@@ -661,20 +661,31 @@ document.getElementById('form-company').addEventListener('submit', async (e) => 
 // --- Tab Switching ---
 window.switchTab = function(tabName) {
   document.querySelectorAll('.tab-pane').forEach(el => el.style.display = 'none');
-  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+  const mainNav = document.getElementById('main-nav-tabs');
+  if (mainNav) {
+    mainNav.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+  }
 
   const tab = document.getElementById(`tab-${tabName}`);
   if (tab) tab.style.display = 'block';
 
-  const buttons = document.querySelectorAll('.nav-btn');
-  if (tabName === 'jobs') buttons[0]?.classList.add('active');
-  if (tabName === 'candidates') buttons[1]?.classList.add('active');
-  if (tabName === 'keys') buttons[2]?.classList.add('active');
-  if (tabName === 'metrics') buttons[3]?.classList.add('active');
-  if (tabName === 'leadmagnet') buttons[4]?.classList.add('active');
+  if (mainNav) {
+    const buttons = mainNav.querySelectorAll('.nav-btn');
+    if (tabName === 'jobs') buttons[0]?.classList.add('active');
+    if (tabName === 'candidates') buttons[1]?.classList.add('active');
+    if (tabName === 'keys') buttons[2]?.classList.add('active');
+    if (tabName === 'metrics') buttons[3]?.classList.add('active');
+    if (tabName === 'leadmagnet') buttons[4]?.classList.add('active');
+  }
 
   if (tabName === 'jobs') loadJobs();
-  if (tabName === 'candidates') { loadJobs(); loadInterviews(); }
+  if (tabName === 'candidates') {
+    loadJobs();
+    loadInterviews();
+    if (typeof switchPipelineSubtab === 'function') {
+      switchPipelineSubtab('roster');
+    }
+  }
   if (tabName === 'keys') loadKeyStatus();
   if (tabName === 'metrics') loadMetrics();
 };
@@ -3331,7 +3342,7 @@ window.renderInterviewBlocks = function() {
     const avgScoreDisplay = (job.avg_score !== null && job.avg_score !== undefined) ? `${job.avg_score} pts` : '--';
 
     return `
-      <div class="interview-round-block ${isActive ? 'active' : ''}" onclick="window.location.href='/results.html?jobId=${job.id}'">
+      <div class="interview-round-block ${isActive ? 'active' : ''}" onclick="selectInterviewRoundBlock('${job.id}')">
         <div>
           <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.45rem;">
             <strong style="font-size: 0.95rem; color: var(--text); line-height: 1.3;">${escapeHtml(job.title)}</strong>
@@ -3370,13 +3381,16 @@ window.renderInterviewBlocks = function() {
             <strong style="color: var(--text); font-size: 0.85rem;">${avgScoreDisplay}</strong>
           </div>
 
-          <!-- Direct Actions: Download PDF & Open Dedicated 4-Section Page -->
+          <!-- Direct Actions: Download PDF, Roster in Dashboard & Dedicated Full Page -->
           <div style="display: flex; gap: 0.45rem; align-items: center; margin-top: 0.2rem;">
             <button type="button" class="btn btn-outline btn-sm" onclick="event.stopPropagation(); window.open('/results.html?jobId=${job.id}&downloadPdf=1', '_blank')" title="Download complete PDF candidate report" style="padding: 0.35rem 0.65rem;">
-              <i class="bi bi-file-earmark-pdf-fill" style="color: #ef4444;"></i> PDF Report
+              <i class="bi bi-file-earmark-pdf-fill" style="color: #ef4444;"></i> PDF
             </button>
-            <a href="/results.html?jobId=${job.id}" class="btn btn-primary btn-sm" onclick="event.stopPropagation();" style="flex: 1; justify-content: center; text-decoration: none; font-weight: 700;">
-              <i class="bi bi-grid-fill"></i> View Results (4 Sections) &rarr;
+            <button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation(); selectInterviewRoundBlock('${job.id}')" style="flex: 1; justify-content: center; font-weight: 700;">
+              <i class="bi bi-people-fill"></i> View Roster &rarr;
+            </button>
+            <a href="/results.html?jobId=${job.id}" target="_blank" class="btn btn-ghost btn-sm" onclick="event.stopPropagation();" title="Open full 4-section results page" style="padding: 0.35rem 0.6rem;">
+              <i class="bi bi-box-arrow-up-right"></i>
             </a>
           </div>
         </div>
@@ -3389,7 +3403,9 @@ window.renderInterviewBlocks = function() {
 window.selectInterviewRoundBlock = function(jobId) {
   activeJobId = jobId;
   if (inviteJobSelect) inviteJobSelect.value = jobId;
-  window.location.href = `/results.html?jobId=${jobId}`;
+  // Switch to the Roster subtab and load candidates for this job
+  switchPipelineSubtab('roster');
+  loadInterviews();
 };
 
 // 3. View Mode Switch (Merit Cards vs Table)
@@ -3734,29 +3750,55 @@ window.applyCandidateFilters = function() {
   }).join('');
 };
 
-// 6. Load Interviews for the Active Job Round
+// 6. Load Interviews for the Active Job Round (or all organization responses if no job specified)
 async function loadInterviews() {
   const jobId = (inviteJobSelect && inviteJobSelect.value) ? inviteJobSelect.value : activeJobId;
-  if (!jobId) {
-    const titleEl = document.getElementById('active-round-title');
-    if (titleEl) titleEl.textContent = 'Select an Interview Round';
-    return;
-  }
-
-  // Update title banner with active job title
-  const activeJob = allLoadedJobs.find(j => j.id === jobId);
   const titleEl = document.getElementById('active-round-title');
   const statsEl = document.getElementById('active-round-stats');
-  if (titleEl) {
-    titleEl.textContent = activeJob ? activeJob.title : 'Interview Assessment Round';
-  }
-  if (statsEl) {
-    statsEl.innerHTML = `Sorted point-wise: <strong style="color:#059669;">Selected (Top + Green)</strong> &bull; <strong style="color:#dc2626;">Rejected (Bottom + Red)</strong>`;
+  const roundsCountEl = document.getElementById('pipeline-rounds-count');
+
+  if (roundsCountEl && allLoadedJobs) {
+    roundsCountEl.textContent = allLoadedJobs.length;
   }
 
   try {
-    const res = await apiRequest(`/jobs/${jobId}/interviews`);
-    const list = await res.json();
+    let list = [];
+    if (jobId) {
+      const activeJob = allLoadedJobs.find(j => j.id === jobId);
+      if (titleEl) {
+        titleEl.textContent = activeJob ? activeJob.title : 'Interview Assessment Round';
+      }
+      const res = await apiRequest(`/jobs/${jobId}/interviews`);
+      list = await res.json();
+    } else {
+      if (titleEl) {
+        titleEl.textContent = 'All Candidates & Interview Sessions';
+      }
+      const res = await apiRequest('/org/responses');
+      const orgResponses = await res.json();
+      list = (orgResponses || []).map(r => ({
+        interview_id: r.interview_id,
+        state: r.state,
+        started_at: r.started_at,
+        ended_at: r.ended_at,
+        candidate_name: r.candidate_name,
+        candidate_email: r.candidate_email,
+        candidate_phone: r.candidate_phone,
+        job_title: r.job_title,
+        job_id: r.job_id,
+        candidate_source: r.source || 'Direct Link',
+        report_id: r.report_id,
+        score: r.report?.overall_score ?? (r.state === 'disqualified' ? 0 : null),
+        verdict: r.report?.candidate_verdict || r.report?.recommendation || null,
+        summary: r.report?.hiring_clarification || r.report?.summary || '',
+        skills: Array.isArray(r.report?.skills) ? r.report.skills : []
+      }));
+    }
+
+    if (statsEl) {
+      statsEl.innerHTML = `Sorted point-wise: <strong style="color:#059669;">Selected (Top + Green)</strong> &bull; <strong style="color:#dc2626;">Rejected (Bottom + Red)</strong>`;
+    }
+
     currentRosterCandidates = Array.isArray(list) ? list : [];
     if (typeof applyCandidateFilters === 'function') {
       applyCandidateFilters();
@@ -3765,6 +3807,40 @@ async function loadInterviews() {
     console.error('Load interviews error:', err);
   }
 }
+
+// Subtab switcher for Candidate Pipeline
+window.switchPipelineSubtab = function(subtabName) {
+  const panes = ['roster', 'rounds', 'invite'];
+  panes.forEach(name => {
+    const pane = document.getElementById(`pipeline-subtab-name`);
+    const paneEl = document.getElementById(`pipeline-subtab-${name}`);
+    const btnEl = document.getElementById(`btn-pipeline-subtab-${name}`);
+    if (paneEl) paneEl.style.display = (name === subtabName) ? 'block' : 'none';
+    if (btnEl) btnEl.classList.toggle('active', name === subtabName);
+  });
+
+  if (subtabName === 'roster') {
+    loadInterviews();
+  } else if (subtabName === 'rounds') {
+    renderInterviewBlocks();
+  }
+};
+
+window.refreshPipelineData = async function(btnEl) {
+  let icon = null;
+  if (btnEl) {
+    icon = btnEl.querySelector('i');
+    if (icon) icon.classList.add('spinning');
+    btnEl.disabled = true;
+  }
+  try {
+    await loadJobs();
+    await loadInterviews();
+  } finally {
+    if (icon) icon.classList.remove('spinning');
+    if (btnEl) btnEl.disabled = false;
+  }
+};
 
 window.loadInterviews = loadInterviews;
 
