@@ -139,6 +139,14 @@ try {
   assert(Array.isArray(treeData.organizations), 'activity-tree must include organizations array');
   assert(Array.isArray(treeData.directActivities), 'activity-tree must include directActivities array');
   assert(Array.isArray(treeData.feedbacks), 'activity-tree must include feedbacks array');
+  for (const org of treeData.organizations) {
+    assert(org.summary && org.summary.successfulCount !== undefined, 'org.summary must expose successfulCount');
+    assert(org.summary.attemptedCount !== undefined, 'org.summary must expose attemptedCount');
+    for (const job of org.jobs || []) {
+      assert(job.summary && job.summary.successfulCount !== undefined, 'job.summary must expose successfulCount');
+      assert(job.summary.attemptedCount !== undefined, 'job.summary must expose attemptedCount');
+    }
+  }
 
   console.log('   ✓ Name + Unique ID -> linked Email OTP, /activity-tree & multi-admin portal access PASSED\n');
 

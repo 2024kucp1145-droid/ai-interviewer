@@ -766,6 +766,231 @@
       margin-bottom: 0.25rem;
     }
 
+    /* Company & Interview Boxes Grid */
+    .company-boxes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+      gap: 0.9rem;
+      width: 100%;
+    }
+
+    .company-box-card {
+      background: linear-gradient(180deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.96));
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .company-box-card:hover {
+      border-color: rgba(99, 102, 241, 0.55);
+      box-shadow: 0 8px 24px rgba(2, 6, 23, 0.35);
+    }
+
+    .company-box-card.is-open {
+      grid-column: 1 / -1;
+      border-color: rgba(99, 102, 241, 0.7);
+      box-shadow: 0 12px 30px rgba(2, 6, 23, 0.45);
+    }
+
+    .company-box-head {
+      padding: 0.95rem 1.05rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+      user-select: none;
+    }
+
+    .company-box-head-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .company-box-identity {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .company-box-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+    }
+
+    .company-box-meta {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+
+    .company-box-body {
+      border-top: 1px solid var(--border);
+      padding: 1rem 1.05rem 1.1rem;
+      background-color: rgba(15, 23, 42, 0.45);
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+    }
+
+    .interview-boxes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(305px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .interview-box-card {
+      background-color: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-left: 3px solid #0ea5e9;
+      border-radius: 10px;
+      overflow: hidden;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .interview-box-card:hover {
+      border-color: rgba(14, 165, 233, 0.65);
+    }
+
+    .interview-box-card.is-open {
+      grid-column: 1 / -1;
+      border-color: rgba(14, 165, 233, 0.8);
+      box-shadow: 0 8px 22px rgba(2, 6, 23, 0.35);
+    }
+
+    .interview-box-head {
+      padding: 0.85rem 0.95rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      user-select: none;
+    }
+
+    .interview-box-body {
+      border-top: 1px solid var(--border);
+      padding: 0.85rem 0.95rem;
+      background-color: rgba(15, 23, 42, 0.35);
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .box-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+      gap: 0.45rem;
+    }
+
+    .box-stat-pill {
+      background-color: rgba(15, 23, 42, 0.55);
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      border-radius: 8px;
+      padding: 0.4rem 0.55rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.08rem;
+    }
+
+    .box-stat-pill .stat-num {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.2;
+    }
+
+    .box-stat-pill .stat-lbl {
+      font-size: 0.64rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .box-stat-pill.tone-success .stat-num { color: #34d399; }
+    .box-stat-pill.tone-warning .stat-num { color: #fbbf24; }
+    .box-stat-pill.tone-danger .stat-num { color: #f87171; }
+    .box-stat-pill.tone-info .stat-num { color: #38bdf8; }
+
+    .timing-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      align-items: center;
+    }
+
+    .timing-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      background-color: rgba(15, 23, 42, 0.55);
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      border-radius: 6px;
+      padding: 0.22rem 0.5rem;
+    }
+
+    .timing-chip strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .section-subhead {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 0.45rem;
+      flex-wrap: wrap;
+    }
+
+    .candidate-timing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 0.45rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .candidate-timing-tile {
+      background-color: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.45rem 0.6rem;
+      font-size: 0.72rem;
+    }
+
+    .candidate-timing-tile .t-label {
+      font-size: 0.64rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+
+    .candidate-timing-tile .t-val {
+      color: var(--text);
+      font-weight: 600;
+      margin-top: 0.12rem;
+    }
+
     /* Modal */
     .modal-backdrop {
       position: fixed;

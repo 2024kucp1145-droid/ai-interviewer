@@ -893,19 +893,43 @@ function renderInterviewFolderNode(intv) {
     : '<div style="font-size: 0.75rem; color: var(--text-muted);">No timeline events logged for this session yet.</div>';
 
   const bodyHtml = `
+    <div class="candidate-timing-grid">
+      <div class="candidate-timing-tile">
+        <div class="t-label"><i class="bi bi-envelope-check"></i> Invited / Created</div>
+        <div class="t-val">${formatExactClock(intv.invited_at)}</div>
+      </div>
+      <div class="candidate-timing-tile">
+        <div class="t-label"><i class="bi bi-play-circle"></i> Started At</div>
+        <div class="t-val">${formatExactClock(intv.started_at)}</div>
+      </div>
+      <div class="candidate-timing-tile">
+        <div class="t-label"><i class="bi bi-stop-circle"></i> Ended At</div>
+        <div class="t-val">${formatExactClock(intv.ended_at)}</div>
+      </div>
+      <div class="candidate-timing-tile">
+        <div class="t-label"><i class="bi bi-stopwatch"></i> Exact Duration</div>
+        <div class="t-val">${formatDurationExact(intv.duration_seconds)}${intv.link_timer_minutes ? ` <span style="color:var(--text-muted);font-weight:400;">/ ${intv.link_timer_minutes}m limit</span>` : ''}</div>
+      </div>
+      <div class="candidate-timing-tile">
+        <div class="t-label"><i class="bi bi-calendar-x"></i> Link Expires</div>
+        <div class="t-val">${formatExactClock(intv.expires_at)}</div>
+      </div>
+    </div>
+
     <div class="folder-detail-grid">
       <div class="folder-detail-card">
         <div class="folder-detail-label">Candidate &amp; Session</div>
         <div><strong>Name:</strong> ${escapeHtml(intv.candidate_name || 'N/A')}</div>
         <div><strong>Email:</strong> ${escapeHtml(intv.candidate_email || 'N/A')}</div>
         <div><strong>Phone:</strong> ${escapeHtml(intv.candidate_phone || 'N/A')}</div>
-        <div><strong>Source:</strong> ${escapeHtml(intv.candidate_source || 'direct')} &middot; <strong>Channel:</strong> ${escapeHtml(intv.dispatch_channel || 'email')}</div>
-        <div><strong>Duration:</strong> ${intv.duration_seconds ? `${Math.round(intv.duration_seconds / 60)}m (${intv.duration_seconds}s)` : 'N/A'} &middot; <strong>Consent:</strong> ${intv.consent_at ? formatTimeAgo(intv.consent_at) : 'Pending'}</div>
+        <div><strong>Source:</strong> ${escapeHtml(intv.candidate_source || 'direct')} &middot; <strong>Channel:</strong> ${escapeHtml(intv.dispatch_channel || 'email')} (${escapeHtml(intv.dispatch_status || 'created')})</div>
+        <div><strong>Consent:</strong> ${intv.consent_at ? `${formatExactClock(intv.consent_at)} (${formatTimeAgo(intv.consent_at)})` : 'Pending'}</div>
       </div>
 
       <div class="folder-detail-card">
-        <div class="folder-detail-label">AI Evaluation &amp; Usage</div>
-        <div><strong>Score:</strong> ${intv.score !== null && intv.score !== undefined ? `${intv.score}/100` : 'Pending'} &middot; <strong>Verdict:</strong> ${escapeHtml(intv.verdict || intv.recommendation || 'N/A')}</div>
+        <div class="folder-detail-label">AI Evaluation &amp; Outcome</div>
+        <div><strong>Score:</strong> ${intv.score !== null && intv.score !== undefined ? `${intv.score}/100` : 'Pending'} &middot; <strong>Outcome:</strong> ${getOutcomeBadgeHtml(intv.outcome_category)}</div>
+        <div><strong>Verdict:</strong> ${escapeHtml(intv.verdict || intv.recommendation || 'N/A')}</div>
         <div><strong>Turns:</strong> ${intv.turns_count || 0} &middot; <strong>Tokens:</strong> ${(intv.tokens_used || 0).toLocaleString()} &middot; <strong>Cost:</strong> &#8377;${Number(intv.est_cost || 0).toFixed(2)}</div>
         ${intv.overall_summary ? `<div style="margin-top: 0.3rem; color: var(--text-muted);">${escapeHtml(intv.overall_summary)}</div>` : ''}
         ${intv.hiring_clarification ? `<div style="margin-top: 0.25rem; color: var(--text-muted);"><strong>Note:</strong> ${escapeHtml(intv.hiring_clarification)}</div>` : ''}
@@ -945,8 +969,8 @@ function renderInterviewFolderNode(intv) {
     icon: 'bi-person-video3',
     iconBg: 'rgba(16, 185, 129, 0.14)',
     iconColor: '#10b981',
-    titleHtml: `${escapeHtml(intv.candidate_name || 'Candidate')} ${getInterviewStateBadge(intv.state)}`,
-    subtitleHtml: `${escapeHtml(intv.candidate_email || '')} &middot; ID: <span class="code-font">${escapeHtml(intv.id)}</span> &middot; ${formatTimeAgo(intv.started_at || intv.ended_at)}`,
+    titleHtml: `${escapeHtml(intv.candidate_name || 'Candidate')} ${getInterviewStateBadge(intv.state)} ${getOutcomeBadgeHtml(intv.outcome_category)}`,
+    subtitleHtml: `${escapeHtml(intv.candidate_email || '')} &middot; Started: ${formatExactClock(intv.started_at)} &middot; Ended: ${formatExactClock(intv.ended_at)} &middot; Duration: ${formatDurationExact(intv.duration_seconds)}`,
     chipsHtml: `
       ${intv.score !== null && intv.score !== undefined ? `<span class="badge badge-primary">Score: ${intv.score}/100</span>` : ''}
       <span class="badge badge-info">${intv.turns_count || 0} Q&amp;A</span>
@@ -961,49 +985,137 @@ function renderInterviewFolderNode(intv) {
   });
 }
 
-function renderJobFolderNode(job, searchTerm, stateFilter) {
-  const jobMatchesSelf = matchesTreeSearch(searchTerm, job.title, job.category, job.skills, job.purpose);
+function formatExactClock(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString(undefined, {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function formatDurationExact(seconds) {
+  if (seconds === null || seconds === undefined || !Number.isFinite(Number(seconds))) return '—';
+  const total = Math.max(0, Math.round(Number(seconds)));
+  const mins = Math.floor(total / 60);
+  const secs = total % 60;
+  return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+}
+
+function getOutcomeBadgeHtml(outcomeCategory) {
+  const key = String(outcomeCategory || 'pending').toLowerCase();
+  if (key === 'selected') return '<span class="badge badge-success"><i class="bi bi-check-circle-fill"></i> Successful</span>';
+  if (key === 'borderline') return '<span class="badge badge-warning"><i class="bi bi-hourglass-split"></i> Review</span>';
+  if (key === 'rejected') return '<span class="badge badge-danger"><i class="bi bi-x-circle-fill"></i> Rejected</span>';
+  if (key === 'disqualified') return '<span class="badge badge-danger"><i class="bi bi-shield-exclamation"></i> Disqualified</span>';
+  return '<span class="badge badge-info"><i class="bi bi-clock"></i> Pending</span>';
+}
+
+function renderBoxStatsRow(stats) {
+  return `
+    <div class="box-stat-grid">
+      ${stats.map(st => `
+        <div class="box-stat-pill ${st.tone ? `tone-${st.tone}` : ''}">
+          <span class="stat-num">${escapeHtml(String(st.value ?? 0))}</span>
+          <span class="stat-lbl">${escapeHtml(st.label)}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderJobFolderNode(job, searchTerm, stateFilter, fallbackInterviewer = '') {
+  const jobMatchesSelf = matchesTreeSearch(searchTerm, job.title, job.category, job.skills, job.purpose, job.created_by_name);
   const filteredInterviews = (job.interviews || []).filter(intv => {
     if (stateFilter && String(intv.state || '').toLowerCase() !== stateFilter) return false;
     if (jobMatchesSelf) return true;
-    return matchesTreeSearch(searchTerm, intv.candidate_name, intv.candidate_email, intv.id, intv.verdict);
+    return matchesTreeSearch(searchTerm, intv.candidate_name, intv.candidate_email, intv.id, intv.verdict, intv.outcome_category);
   });
 
   if (searchTerm && !jobMatchesSelf && filteredInterviews.length === 0) return '';
   if (stateFilter && filteredInterviews.length === 0) return '';
 
+  const folderId = sanitizeFolderKey(`job_${job.id}`);
+  const isOpen = expandedFolderIds.has(folderId);
+  const s = job.summary || {};
+  const totalCands = s.totalCandidates ?? (job.interviews || []).length;
+  const attempted = s.attemptedCount ?? (job.interviews || []).filter(i => i.attempted).length;
+  const successful = s.successfulCount ?? (job.interviews || []).filter(i => i.outcome_category === 'selected').length;
+  const borderline = s.borderlineCount ?? (job.interviews || []).filter(i => i.outcome_category === 'borderline').length;
+  const rejectedAll = (s.rejectedCount || 0) + (s.disqualifiedCount || 0);
+  const avgScore = s.avgScore !== null && s.avgScore !== undefined ? `${s.avgScore}/100` : '—';
+  const interviewerName = job.created_by_name || fallbackInterviewer || 'Organization Recruiter';
   const skillsStr = Array.isArray(job.skills) ? job.skills.join(', ') : (job.skills || '');
-  const bodyHtml = `
-    <div class="folder-detail-grid" style="margin-bottom: 0.65rem;">
-      <div class="folder-detail-card">
-        <div class="folder-detail-label">Job Configuration</div>
-        <div><strong>Level:</strong> ${escapeHtml(job.level || 'N/A')} &middot; <strong>Exp:</strong> ${escapeHtml(job.experience_required || 'N/A')}</div>
-        <div><strong>Limits:</strong> ${job.max_minutes || 0} mins / ${job.max_questions || 0} Qs &middot; <strong>Custom Qs:</strong> ${job.custom_questions_count || 0}</div>
-        <div><strong>Tools:</strong> ${job.terminal_required ? 'Terminal ' : ''}${job.word_editor_required ? 'Editor ' : ''}${job.resume_required ? 'Resume ' : ''}${job.auto_submit_timer ? 'Auto-Submit' : ''}</div>
+
+  const statsHtml = renderBoxStatsRow([
+    { label: 'Candidates', value: totalCands },
+    { label: 'Attempted', value: attempted, tone: 'info' },
+    { label: 'Successful', value: successful, tone: 'success' },
+    { label: 'Review / Rej', value: `${borderline} / ${rejectedAll}`, tone: rejectedAll > 0 ? 'danger' : (borderline > 0 ? 'warning' : '') },
+    { label: 'Avg Score', value: avgScore, tone: 'info' }
+  ]);
+
+  const bodyHtml = isOpen ? `
+    <div class="interview-box-body">
+      <div class="folder-detail-grid" style="margin-top: 0;">
+        <div class="folder-detail-card">
+          <div class="folder-detail-label">Interview Round Configuration</div>
+          <div><strong>Conducted / Created By:</strong> ${escapeHtml(interviewerName)}${job.created_by_email ? ` (${escapeHtml(job.created_by_email)})` : ''}</div>
+          <div><strong>Level:</strong> ${escapeHtml(job.level || 'N/A')} &middot; <strong>Exp:</strong> ${escapeHtml(job.experience_required || 'N/A')}</div>
+          <div><strong>Duration Limit:</strong> ${job.max_minutes || 0} mins / ${job.max_questions || 0} Qs &middot; <strong>Custom Qs:</strong> ${job.custom_questions_count || 0}</div>
+          <div><strong>Cutoffs:</strong> Selected &ge; ${job.selected_threshold ?? 70}% &middot; Borderline &ge; ${job.borderline_threshold ?? 50}%</div>
+        </div>
+        <div class="folder-detail-card">
+          <div class="folder-detail-label">Skills, Tools &amp; Round Timing</div>
+          <div><strong>Skills:</strong> ${escapeHtml(skillsStr || 'Not specified')}</div>
+          <div><strong>Tools:</strong> ${job.terminal_required ? 'Terminal ' : ''}${job.word_editor_required ? 'Editor ' : ''}${job.resume_required ? 'Resume ' : ''}${job.auto_submit_timer ? 'Auto-Submit' : 'Standard'}</div>
+          <div><strong>Created:</strong> ${formatExactClock(job.created_at)} &middot; <strong>Last Session:</strong> ${s.lastActivityAt ? formatExactClock(s.lastActivityAt) : '—'}</div>
+          ${job.purpose ? `<div style="margin-top: 0.25rem; color: var(--text-muted);">${escapeHtml(job.purpose)}</div>` : ''}
+        </div>
       </div>
-      <div class="folder-detail-card">
-        <div class="folder-detail-label">Skills &amp; Purpose</div>
-        <div><strong>Skills:</strong> ${escapeHtml(skillsStr || 'Not specified')}</div>
-        ${job.purpose ? `<div style="margin-top: 0.25rem; color: var(--text-muted);">${escapeHtml(job.purpose)}</div>` : ''}
+      <div class="section-subhead" style="margin-top: 0.25rem; margin-bottom: 0;">
+        <span><i class="bi bi-people-fill"></i> Candidates in "${escapeHtml(job.title || 'Interview')}" (${filteredInterviews.length})</span>
+        <span>Pending: ${s.pendingCount || 0} &middot; Live: ${s.liveCount || 0} &middot; Cost: &#8377;${Number(s.totalCostInr || 0).toFixed(2)}</span>
+      </div>
+      <div class="folder-tree">
+        ${filteredInterviews.length
+          ? filteredInterviews.map(renderInterviewFolderNode).join('')
+          : '<div style="font-size: 0.76rem; color: var(--text-muted); padding: 0.35rem 0;">No candidate interviews in this round match the active filter.</div>'}
       </div>
     </div>
-    ${filteredInterviews.length
-      ? filteredInterviews.map(renderInterviewFolderNode).join('')
-      : '<div style="font-size: 0.76rem; color: var(--text-muted); padding: 0.35rem 0;">No candidate interviews in this job role match the active filter.</div>'
-    }
-  `;
+  ` : '';
 
-  return renderFolderWrapper({
-    id: `job_${job.id}`,
-    levelClass: 'level-job',
-    icon: 'bi-briefcase-fill',
-    iconBg: 'rgba(14, 165, 233, 0.14)',
-    iconColor: '#0ea5e9',
-    titleHtml: `${escapeHtml(job.title || 'Untitled Role')} <span class="badge badge-info">${escapeHtml(job.category || 'General')}</span>`,
-    subtitleHtml: `Created ${formatTimeAgo(job.created_at)} &middot; ${job.summary?.completedCount || 0} completed &middot; ${job.summary?.liveCount || 0} live`,
-    chipsHtml: `<span class="badge badge-primary">${filteredInterviews.length} Interviews</span>`,
-    bodyHtml
-  });
+  return `
+    <div class="interview-box-card ${isOpen ? 'is-open' : ''}">
+      <div class="interview-box-head" onclick="toggleFolderNode('${folderId}')">
+        <div class="company-box-head-top">
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 0.92rem; font-weight: 700; color: var(--text); display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+              <i class="bi bi-briefcase-fill" style="color:#0ea5e9;"></i>
+              <span>${escapeHtml(job.title || 'Untitled Interview')}</span>
+              <span class="badge badge-info">${escapeHtml(job.category || 'General')}</span>
+            </div>
+            <div style="font-size: 0.73rem; color: var(--text-muted); margin-top: 0.18rem;">
+              Taken by: <strong>${escapeHtml(interviewerName)}</strong> &middot; ${job.max_minutes || 0}m limit &middot; ${escapeHtml(job.level || 'Standard')}
+            </div>
+          </div>
+          <span class="badge ${isOpen ? 'badge-primary' : 'badge-info'}">
+            <i class="bi bi-${isOpen ? 'chevron-up' : 'box-arrow-in-right'}"></i> ${isOpen ? 'Opened' : 'Open Candidates'}
+          </span>
+        </div>
+        ${statsHtml}
+        <div class="timing-strip">
+          <span class="timing-chip"><i class="bi bi-calendar-plus"></i> Created: <strong>${formatExactClock(job.created_at)}</strong></span>
+          <span class="timing-chip"><i class="bi bi-clock-history"></i> Last Session: <strong>${s.lastActivityAt ? `${formatExactClock(s.lastActivityAt)} (${formatTimeAgo(s.lastActivityAt)})` : 'None yet'}</strong></span>
+        </div>
+      </div>
+      ${bodyHtml}
+    </div>
+  `;
 }
 
 function renderRecruitersSubFolder(org, recruiters) {
@@ -1014,7 +1126,7 @@ function renderRecruitersSubFolder(org, recruiters) {
     iconBg: 'rgba(139, 92, 246, 0.15)',
     iconColor: '#8b5cf6',
     titleHtml: `${escapeHtml(rec.full_name || rec.email)} <span class="badge badge-${rec.approval_status === 'suspended' ? 'danger' : (rec.approval_status === 'pending' ? 'warning' : 'success')}">${escapeHtml(rec.approval_status || 'approved')}</span>`,
-    subtitleHtml: `${escapeHtml(rec.email)}${rec.job_title ? ` &middot; ${escapeHtml(rec.job_title)}` : ''}${rec.last_login_at ? ` &middot; Last login ${formatTimeAgo(rec.last_login_at)}` : ''}`,
+    subtitleHtml: `${escapeHtml(rec.email)}${rec.job_title ? ` &middot; ${escapeHtml(rec.job_title)}` : ''} &middot; Last login: ${rec.last_login_at ? `${formatExactClock(rec.last_login_at)} (${formatTimeAgo(rec.last_login_at)})` : 'Never'}`,
     chipsHtml: `<span class="badge badge-info">${rec.activityCount || 0} Actions</span>`,
     actionsHtml: `
       <button type="button" class="btn btn-secondary btn-sm" onclick="manageUserFromTree('${sanitizeFolderKey(rec.id)}')">
@@ -1024,7 +1136,8 @@ function renderRecruitersSubFolder(org, recruiters) {
     bodyHtml: `
       <div class="folder-detail-card" style="margin-bottom: 0.5rem;">
         <div class="folder-detail-label">Interviewer / Recruiter Details</div>
-        <div><strong>Role:</strong> ${escapeHtml(rec.role || 'recruiter')} &middot; <strong>Verified:</strong> ${rec.is_verified ? 'Yes' : 'No'} &middot; <strong>Phone:</strong> ${escapeHtml(rec.phone || 'N/A')}</div>
+        <div><strong>Role:</strong> ${escapeHtml(rec.role || 'recruiter')} &middot; <strong>Verified:</strong> ${rec.is_verified ? 'Yes' : 'No'} &middot; <strong>Joined:</strong> ${formatExactClock(rec.created_at)}</div>
+        <div><strong>Phone:</strong> ${escapeHtml(rec.phone || 'N/A')}</div>
         ${rec.admin_notes ? `<div style="margin-top: 0.25rem; color: var(--text-muted);"><strong>Admin Notes:</strong> ${escapeHtml(rec.admin_notes)}</div>` : ''}
       </div>
       <div class="activity-feed">
@@ -1041,7 +1154,7 @@ function renderRecruitersSubFolder(org, recruiters) {
     icon: 'bi-people-fill',
     iconBg: 'rgba(139, 92, 246, 0.14)',
     iconColor: '#8b5cf6',
-    titleHtml: `Interviewers &amp; Recruiters`,
+    titleHtml: `Interviewers &amp; Team Activity Log`,
     subtitleHtml: `${recruiters.length} team member(s) managing interviews under ${escapeHtml(org.name || 'this company')}`,
     chipsHtml: `<span class="badge badge-primary">${recruiters.length} Members</span>`,
     bodyHtml
@@ -1053,36 +1166,37 @@ function renderOrgFolderNode(org, searchTerm, stateFilter) {
   const matchingRecruiters = (org.recruiters || []).filter(r =>
     !searchTerm || orgMatchesSelf || matchesTreeSearch(searchTerm, r.full_name, r.email, r.job_title)
   );
+  const teamLabel = (org.recruiters || [])
+    .map(r => r.full_name || r.email)
+    .filter(Boolean)
+    .slice(0, 3)
+    .join(', ');
+
   const renderedJobs = (org.jobs || [])
-    .map(job => renderJobFolderNode(job, orgMatchesSelf ? '' : searchTerm, stateFilter))
+    .map(job => renderJobFolderNode(job, orgMatchesSelf ? '' : searchTerm, stateFilter, teamLabel))
     .filter(Boolean);
 
   if (stateFilter && renderedJobs.length === 0) return '';
   if (searchTerm && !orgMatchesSelf && matchingRecruiters.length === 0 && renderedJobs.length === 0) return '';
 
+  const folderId = sanitizeFolderKey(`org_${org.id}`);
+  const isOpen = expandedFolderIds.has(folderId);
   const s = org.summary || {};
-  const subParts = [];
 
+  const companyStatsHtml = renderBoxStatsRow([
+    { label: 'Interviews Taken', value: s.jobCount || 0 },
+    { label: 'Candidates', value: s.totalCandidates ?? s.interviewCount ?? 0 },
+    { label: 'Attempted', value: s.attemptedCount ?? ((s.completedCount || 0) + (s.liveCount || 0) + (s.disqualifiedCount || 0)), tone: 'info' },
+    { label: 'Successful', value: s.successfulCount || 0, tone: 'success' },
+    { label: 'Avg Score', value: s.avgScore !== null && s.avgScore !== undefined ? `${s.avgScore}%` : '—', tone: 'info' }
+  ]);
+
+  const secondaryFolders = [];
   if (matchingRecruiters.length > 0) {
-    subParts.push(renderRecruitersSubFolder(org, matchingRecruiters));
+    secondaryFolders.push(renderRecruitersSubFolder(org, matchingRecruiters));
   }
-
-  if (renderedJobs.length > 0) {
-    subParts.push(renderFolderWrapper({
-      id: `org_jobs_${org.id}`,
-      levelClass: 'level-sub',
-      icon: 'bi-folder-fill',
-      iconBg: 'rgba(14, 165, 233, 0.14)',
-      iconColor: '#0ea5e9',
-      titleHtml: `Job Roles &amp; Candidate Interviews`,
-      subtitleHtml: `${renderedJobs.length} job folder(s) &middot; ${s.completedCount || 0} completed &middot; ${s.liveCount || 0} live`,
-      chipsHtml: `<span class="badge badge-info">${renderedJobs.length} Jobs</span>`,
-      bodyHtml: renderedJobs.join('')
-    }));
-  }
-
   if ((org.activities || []).length > 0) {
-    subParts.push(renderFolderWrapper({
+    secondaryFolders.push(renderFolderWrapper({
       id: `org_acts_${org.id}`,
       levelClass: 'level-sub',
       icon: 'bi-activity',
@@ -1094,9 +1208,8 @@ function renderOrgFolderNode(org, searchTerm, stateFilter) {
       bodyHtml: `<div class="activity-feed">${org.activities.map(a => renderActivityItem(a, true)).join('')}</div>`
     }));
   }
-
   if ((org.orders || []).length > 0) {
-    subParts.push(renderFolderWrapper({
+    secondaryFolders.push(renderFolderWrapper({
       id: `org_orders_${org.id}`,
       levelClass: 'level-sub',
       icon: 'bi-receipt',
@@ -1109,14 +1222,13 @@ function renderOrgFolderNode(org, searchTerm, stateFilter) {
         <div class="folder-detail-card">
           <strong>${escapeHtml(o.plan || 'Plan')}</strong> &middot; ${o.credits || 0} credits &middot; &#8377;${Number(o.amount_inr || 0).toFixed(2)} &middot;
           <span class="badge badge-${o.status === 'paid' ? 'success' : 'warning'}">${escapeHtml(o.status || 'created')}</span> &middot;
-          <span style="color:var(--text-muted);">${formatTimeAgo(o.created_at)}</span>
+          <span style="color:var(--text-muted);">${formatExactClock(o.created_at)} (${formatTimeAgo(o.created_at)})</span>
         </div>
       `).join('')
     }));
   }
-
   if ((org.feedbacks || []).length > 0) {
-    subParts.push(renderFolderWrapper({
+    secondaryFolders.push(renderFolderWrapper({
       id: `org_fb_${org.id}`,
       levelClass: 'level-sub',
       icon: 'bi-chat-heart-fill',
@@ -1127,51 +1239,109 @@ function renderOrgFolderNode(org, searchTerm, stateFilter) {
       chipsHtml: `<span class="badge badge-primary">${org.feedbacks.length} Feedbacks</span>`,
       bodyHtml: org.feedbacks.map(f => `
         <div class="folder-detail-card">
-          <div><strong>${escapeHtml(f.name || f.email || 'User')}</strong> ${f.rating ? `(${f.rating}/5)` : ''} &middot; <span class="badge badge-info">${escapeHtml(f.category || 'general')}</span> &middot; ${formatTimeAgo(f.created_at)}</div>
+          <div><strong>${escapeHtml(f.name || f.email || 'User')}</strong> ${f.rating ? `(${f.rating}/5)` : ''} &middot; <span class="badge badge-info">${escapeHtml(f.category || 'general')}</span> &middot; ${formatExactClock(f.created_at)}</div>
           <div style="margin-top: 0.25rem; color: var(--text-muted);">${escapeHtml(f.message || '')}</div>
         </div>
       `).join('')
     }));
   }
 
-  const orgDetailsHeader = `
-    <div class="folder-detail-grid" style="margin-bottom: 0.65rem;">
-      <div class="folder-detail-card">
-        <div class="folder-detail-label">Organization Profile</div>
-        <div><strong>Industry:</strong> ${escapeHtml(org.industry || 'N/A')} &middot; <strong>Size:</strong> ${escapeHtml(org.company_size || 'N/A')}</div>
-        <div><strong>Country:</strong> ${escapeHtml(org.country || 'N/A')} &middot; <strong>Website:</strong> ${escapeHtml(org.website || 'N/A')}</div>
+  const bodyHtml = isOpen ? `
+    <div class="company-box-body">
+      <div class="folder-detail-grid" style="margin-top: 0;">
+        <div class="folder-detail-card">
+          <div class="folder-detail-label">Company Information</div>
+          <div><strong>Company:</strong> ${escapeHtml(org.name || 'Unnamed Company')} &middot; <strong>ID:</strong> <span class="code-font">${escapeHtml(org.id)}</span></div>
+          <div><strong>Industry:</strong> ${escapeHtml(org.industry || 'N/A')} &middot; <strong>Size:</strong> ${escapeHtml(org.company_size || 'N/A')} &middot; <strong>Country:</strong> ${escapeHtml(org.country || 'N/A')}</div>
+          <div><strong>Website:</strong> ${escapeHtml(org.website || 'N/A')}</div>
+          <div><strong>Created:</strong> ${formatExactClock(org.created_at)} &middot; <strong>Last Active:</strong> ${s.lastActiveAt ? formatExactClock(s.lastActiveAt) : 'N/A'}</div>
+        </div>
+        <div class="folder-detail-card">
+          <div class="folder-detail-label">Plan, Credits &amp; Outcomes Summary</div>
+          <div><strong>Plan:</strong> ${escapeHtml(org.plan || 'free_trial')} &middot; <strong>Credits Left:</strong> ${org.included_interviews ?? 0}</div>
+          <div><strong>Successful:</strong> <span style="color:#34d399;font-weight:700;">${s.successfulCount || 0}</span> &middot; <strong>Review:</strong> ${s.borderlineCount || 0} &middot; <strong>Rejected/Disq:</strong> ${(s.rejectedCount || 0) + (s.disqualifiedCount || 0)} &middot; <strong>Pending:</strong> ${s.pendingCount || 0}</div>
+          <div><strong>Live Now:</strong> ${s.liveCount || 0} &middot; <strong>Tokens:</strong> ${(s.totalTokens || 0).toLocaleString()} &middot; <strong>AI Cost:</strong> &#8377;${Number(s.totalCostInr || 0).toFixed(2)}</div>
+        </div>
       </div>
-      <div class="folder-detail-card">
-        <div class="folder-detail-label">Plan &amp; Consumption</div>
-        <div><strong>Plan:</strong> ${escapeHtml(org.plan || 'free_trial')} &middot; <strong>Remaining Credits:</strong> ${org.included_interviews ?? 0}</div>
-        <div><strong>Tokens Used:</strong> ${(s.totalTokens || 0).toLocaleString()} &middot; <strong>Est AI Cost:</strong> &#8377;${Number(s.totalCostInr || 0).toFixed(2)}</div>
+
+      ${(org.recruiters || []).length ? `
+        <div>
+          <div class="section-subhead">
+            <span><i class="bi bi-person-check-fill"></i> Interviewers / Recruiters Taking Interviews (${org.recruiters.length})</span>
+          </div>
+          <div class="timing-strip">
+            ${org.recruiters.map(rec => `
+              <span class="timing-chip" style="padding:0.3rem 0.6rem;">
+                <i class="bi bi-person-badge" style="color:#8b5cf6;"></i>
+                <strong>${escapeHtml(rec.full_name || rec.email)}</strong>
+                <span>(${escapeHtml(rec.job_title || rec.role || 'Recruiter')} &middot; Last login ${rec.last_login_at ? formatTimeAgo(rec.last_login_at) : 'N/A'})</span>
+                <button type="button" class="btn btn-secondary btn-sm" style="padding:0.1rem 0.4rem;font-size:0.65rem;" onclick="event.stopPropagation(); manageUserFromTree('${sanitizeFolderKey(rec.id)}')">Manage</button>
+              </span>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      <div>
+        <div class="section-subhead">
+          <span><i class="bi bi-grid-3x3-gap-fill" style="color:#0ea5e9;"></i> Interviews Conducted by ${escapeHtml(org.name || 'This Company')} (${renderedJobs.length} Boxes)</span>
+          <span>Click any interview box below to inspect every candidate&apos;s exact timing &amp; score</span>
+        </div>
+        ${renderedJobs.length
+          ? `<div class="interview-boxes-grid">${renderedJobs.join('')}</div>`
+          : '<div class="folder-detail-card" style="color:var(--text-muted);">No interview rounds created under this company yet.</div>'}
       </div>
+
+      ${secondaryFolders.length ? `
+        <div class="folder-tree">
+          ${secondaryFolders.join('')}
+        </div>
+      ` : ''}
+    </div>
+  ` : '';
+
+  return `
+    <div class="company-box-card ${isOpen ? 'is-open' : ''}">
+      <div class="company-box-head" onclick="toggleFolderNode('${folderId}')">
+        <div class="company-box-head-top">
+          <div class="company-box-identity">
+            <div class="folder-icon" style="background: rgba(99, 102, 241, 0.16); color: #818cf8; width:36px; height:36px; font-size:1.05rem;">
+              <i class="bi bi-building-fill"></i>
+            </div>
+            <div style="min-width:0;">
+              <div class="company-box-title">
+                <span>${escapeHtml(org.name || 'Unnamed Company')}</span>
+                <span class="badge badge-primary">${escapeHtml(org.plan || 'free_trial')}</span>
+                ${(s.liveCount || 0) > 0 ? `<span class="badge badge-warning">${s.liveCount} Live</span>` : ''}
+              </div>
+              <div class="company-box-meta">
+                ${org.industry ? `${escapeHtml(org.industry)} &middot; ` : ''}${teamLabel ? `Team: ${escapeHtml(teamLabel)}` : `${s.recruiterCount || 0} Recruiter(s)`}
+              </div>
+            </div>
+          </div>
+          <span class="badge ${isOpen ? 'badge-primary' : 'badge-info'}" style="font-size:0.74rem; padding:0.32rem 0.65rem;">
+            <i class="bi bi-${isOpen ? 'chevron-up' : 'folder2-open'}"></i> ${isOpen ? 'Close Company Box' : 'Open Company Box'}
+          </span>
+        </div>
+
+        ${companyStatsHtml}
+
+        <div class="timing-strip">
+          <span class="timing-chip"><i class="bi bi-clock-history"></i> Last Active: <strong>${s.lastActiveAt ? `${formatExactClock(s.lastActiveAt)} (${formatTimeAgo(s.lastActiveAt)})` : 'N/A'}</strong></span>
+          <span class="timing-chip"><i class="bi bi-calendar3"></i> Joined: <strong>${formatExactClock(org.created_at)}</strong></span>
+          <span class="timing-chip"><i class="bi bi-ticket-perforated"></i> Credits: <strong>${org.included_interviews ?? 0}</strong></span>
+        </div>
+      </div>
+      ${bodyHtml}
     </div>
   `;
-
-  return renderFolderWrapper({
-    id: `org_${org.id}`,
-    levelClass: 'level-org',
-    icon: 'bi-folder-fill',
-    iconBg: 'rgba(99, 102, 241, 0.15)',
-    iconColor: '#818cf8',
-    titleHtml: `${escapeHtml(org.name || 'Unnamed Company')} <span class="badge badge-primary">${escapeHtml(org.plan || 'free_trial')}</span>`,
-    subtitleHtml: `${s.recruiterCount || 0} Interviewer(s) &middot; ${s.jobCount || 0} Job(s) &middot; ${s.interviewCount || 0} Interview(s) &middot; Last Active: ${s.lastActiveAt ? formatTimeAgo(s.lastActiveAt) : 'N/A'}`,
-    chipsHtml: `
-      <span class="badge badge-success">${s.completedCount || 0} Done</span>
-      ${(s.liveCount || 0) > 0 ? `<span class="badge badge-warning">${s.liveCount} Live</span>` : ''}
-      ${(s.disqualifiedCount || 0) > 0 ? `<span class="badge badge-danger">${s.disqualifiedCount} Disq</span>` : ''}
-      <span class="badge badge-info">${s.activityCount || 0} Events</span>
-    `,
-    bodyHtml: orgDetailsHeader + (subParts.join('') || '<div style="font-size:0.76rem; color:var(--text-muted);">No sub-folders recorded yet.</div>')
-  });
 }
 
 window.renderActivityTree = function() {
   const container = document.getElementById('activity-tree-container');
   if (!container) return;
   if (!cachedActivityTree) {
-    container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding: 2rem;">Loading hierarchical activity folders...</p>';
+    container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding: 2rem;">Loading company activity boxes...</p>';
     return;
   }
 
@@ -1224,13 +1394,20 @@ window.renderActivityTree = function() {
     }
   }
 
-  const allNodes = [...orgHtml, ...directHtml];
-  if (allNodes.length === 0) {
-    container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding: 2rem;">No interviewer folders match the current search or status filter.</p>';
+  if (orgHtml.length === 0 && directHtml.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding: 2rem;">No company boxes match the current search or status filter.</p>';
     return;
   }
 
-  container.innerHTML = allNodes.join('');
+  const parts = [];
+  if (orgHtml.length > 0) {
+    parts.push(`<div class="company-boxes-grid">${orgHtml.join('')}</div>`);
+  }
+  if (directHtml.length > 0) {
+    parts.push(`<div class="folder-tree" style="margin-top: 0.85rem;">${directHtml.join('')}</div>`);
+  }
+
+  container.innerHTML = parts.join('');
 };
 
 window.loadActivityStream = async function(isSilent = false) {

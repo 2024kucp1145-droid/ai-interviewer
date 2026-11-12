@@ -792,6 +792,7 @@ function buildInterviewerActivityTree() {
   const jobRows = db.prepare(`
     SELECT id, org_id, title, category, skills, experience_required, level, purpose,
            max_minutes, max_questions, custom_questions, assessment_rules,
+           selected_threshold, borderline_threshold,
            terminal_required, word_editor_required, resume_required, show_timer, auto_submit_timer, created_at
     FROM jobs
     ORDER BY created_at DESC
@@ -800,12 +801,13 @@ function buildInterviewerActivityTree() {
   const interviewRows = db.prepare(`
     SELECT
       i.id, i.job_id, i.candidate_id, i.state, i.started_at, i.ended_at, i.expires_at,
-      i.proctor_warnings, i.disqualified_reason, i.proctor_logs,
+      i.link_timer_minutes, i.proctor_warnings, i.disqualified_reason, i.proctor_logs,
       i.dispatch_channel, i.dispatch_status, i.source, i.dsa_result,
       j.org_id as job_org_id,
       c.name as candidate_name, c.email as candidate_email, c.phone as candidate_phone,
       c.resume_text, c.consent_at, c.source as candidate_source, c.created_at as candidate_created_at,
-      r.json as report_json, r.model as report_model, r.reviewed_by, r.reviewer_note,
+      r.json as report_json, r.model as report_model, r.manual_decision, r.created_at as report_created_at,
+      r.reviewed_by, r.reviewer_note,
       (SELECT COUNT(*) FROM turns t WHERE t.interview_id = i.id) as turns_count,
       (SELECT COALESCE(SUM(u.input_tokens + u.output_tokens), 0) FROM usage_events u WHERE u.interview_id = i.id) as tokens_used,
       (SELECT COALESCE(SUM(u.est_cost), 0) FROM usage_events u WHERE u.interview_id = i.id) as est_cost
@@ -860,11 +862,56 @@ function buildInterviewerActivityTree() {
         activityCount: 0,
         orderCount: 0,
         feedbackCount: 0,
+        attemptedCount: 0,
+        successfulCount: 0,
+        borderlineCount: 0,
+        rejectedCount: 0,
+        pendingCount: 0,
+        avgScore: null,
         totalTokens: 0,
         totalCostInr: 0,
         lastActiveAt: org.created_at || null
       }
     });
+  }
+
+  function classifyInterviewOutcome(row, report, selectedCutoff = 70, borderlineCutoff = 50) {
+    if (row.state === 'disqualified') return 'disqualified';
+    if (row.manual_decision && ['selected', 'borderline', 'rejected'].includes(row.manual_decision)) {
+      return row.manual_decision;
+    }
+    const score = report?.overall_score;
+    if (typeof score === 'number' && Number.isFinite(score)) {
+      if (score >= selectedCutoff) return 'selected';
+      if (score >= borderlineCutoff) return 'borderline';
+      return 'rejected';
+    }
+    if (row.state === 'completed' || row.state === 'report_ready') {
+      const rec = String(report?.recommendation || report?.candidate_verdict || '').toLowerCase();
+      if (rec.includes('not ') || rec.includes('no hire') || rec.includes('reject')) return 'rejected';
+      if (rec.includes('borderline') || rec.includes('review') || rec.includes('hold')) return 'borderline';
+      if (rec.includes('strong hire') || rec.includes('select') || /\bhire\b/.test(rec)) return 'selected';
+    }
+    return 'pending';
+  }
+
+  function createSummaryBase(lastTs = null) {
+    return {
+      interviewCount: 0,
+      totalCandidates: 0,
+      attemptedCount: 0,
+      completedCount: 0,
+      successfulCount: 0,
+      borderlineCount: 0,
+      rejectedCount: 0,
+      liveCount: 0,
+      disqualifiedCount: 0,
+      pendingCount: 0,
+      avgScore: null,
+      totalTokens: 0,
+      totalCostInr: 0,
+      lastActivityAt: lastTs || null
+    };
   }
 
   function ensureOrgNode(orgId, fallbackName = 'Organization Workspace') {
@@ -888,15 +935,10 @@ function buildInterviewerActivityTree() {
         summary: {
           recruiterCount: 0,
           jobCount: 0,
-          interviewCount: 0,
-          completedCount: 0,
-          liveCount: 0,
-          disqualifiedCount: 0,
+          ...createSummaryBase(null),
           activityCount: 0,
           orderCount: 0,
           feedbackCount: 0,
-          totalTokens: 0,
-          totalCostInr: 0,
           lastActiveAt: null
         }
       });
@@ -909,6 +951,23 @@ function buildInterviewerActivityTree() {
     if (!orgNode.summary.lastActiveAt || new Date(ts) > new Date(orgNode.summary.lastActiveAt)) {
       orgNode.summary.lastActiveAt = ts;
     }
+  }
+
+  function bumpJobLatest(jobNode, ts) {
+    if (!jobNode || !ts) return;
+    if (!jobNode.summary.lastActivityAt || new Date(ts) > new Date(jobNode.summary.lastActivityAt)) {
+      jobNode.summary.lastActivityAt = ts;
+    }
+  }
+
+  const orgScoreAccum = new Map();
+  const jobScoreAccum = new Map();
+  function recordScore(accumMap, key, score) {
+    if (typeof score !== 'number' || !Number.isFinite(score) || !key) return;
+    const prev = accumMap.get(key) || { sum: 0, count: 0 };
+    prev.sum += score;
+    prev.count += 1;
+    accumMap.set(key, prev);
   }
 
   for (const u of userRows) {
@@ -945,19 +1004,18 @@ function buildInterviewerActivityTree() {
       max_questions: j.max_questions,
       custom_questions_count: Array.isArray(customQs) ? customQs.length : 0,
       assessment_rules: j.assessment_rules,
+      selected_threshold: j.selected_threshold ?? 70,
+      borderline_threshold: j.borderline_threshold ?? 50,
       terminal_required: Boolean(j.terminal_required),
       word_editor_required: Boolean(j.word_editor_required),
       resume_required: Boolean(j.resume_required),
       show_timer: Boolean(j.show_timer),
       auto_submit_timer: Boolean(j.auto_submit_timer),
       created_at: j.created_at,
+      created_by_name: null,
+      created_by_email: null,
       interviews: [],
-      summary: {
-        interviewCount: 0,
-        completedCount: 0,
-        liveCount: 0,
-        disqualifiedCount: 0
-      }
+      summary: createSummaryBase(j.created_at)
     };
     jobMap.set(j.id, jobNode);
     const orgNode = ensureOrgNode(j.org_id);
@@ -973,6 +1031,16 @@ function buildInterviewerActivityTree() {
     const report = safeJsonParse(row.report_json, null);
     const proctorLogs = safeJsonParse(row.proctor_logs, []);
     const dsaResult = safeJsonParse(row.dsa_result, row.dsa_result);
+    const jobNode = jobMap.get(row.job_id);
+    const selectedCutoff = jobNode?.selected_threshold ?? 70;
+    const borderlineCutoff = jobNode?.borderline_threshold ?? 50;
+    const outcomeCategory = classifyInterviewOutcome(row, report, selectedCutoff, borderlineCutoff);
+    const attempted = Boolean(
+      row.started_at ||
+      row.ended_at ||
+      ['in_progress', 'completed', 'report_ready', 'disqualified'].includes(row.state)
+    );
+
     let durationSeconds = null;
     if (row.started_at && row.ended_at) {
       const diff = Math.round((new Date(row.ended_at) - new Date(row.started_at)) / 1000);
@@ -989,11 +1057,17 @@ function buildInterviewerActivityTree() {
       candidate_phone: row.candidate_phone,
       candidate_source: row.candidate_source || row.source || 'direct',
       resume_text: row.resume_text || '',
+      invited_at: row.candidate_created_at || null,
       consent_at: row.consent_at,
       state: row.state,
+      attempted,
+      outcome_category: outcomeCategory,
+      manual_decision: row.manual_decision || null,
       started_at: row.started_at,
       ended_at: row.ended_at,
       expires_at: row.expires_at,
+      report_created_at: row.report_created_at || null,
+      link_timer_minutes: row.link_timer_minutes || null,
       duration_seconds: durationSeconds,
       dispatch_channel: row.dispatch_channel || 'link',
       dispatch_status: row.dispatch_status || 'created',
@@ -1022,31 +1096,57 @@ function buildInterviewerActivityTree() {
       emailToOrgId.set(candEmail, row.job_org_id);
     }
 
-    const jobNode = jobMap.get(row.job_id);
+    function applyToSummary(summaryObj) {
+      summaryObj.interviewCount += 1;
+      summaryObj.totalCandidates += 1;
+      summaryObj.totalTokens += intvNode.tokens_used;
+      summaryObj.totalCostInr += intvNode.est_cost;
+      if (attempted) summaryObj.attemptedCount += 1;
+      if (row.state === 'completed' || row.state === 'report_ready') summaryObj.completedCount += 1;
+      else if (row.state === 'in_progress') summaryObj.liveCount += 1;
+      else if (row.state === 'disqualified') summaryObj.disqualifiedCount += 1;
+      else summaryObj.pendingCount += 1;
+
+      if (outcomeCategory === 'selected') summaryObj.successfulCount += 1;
+      else if (outcomeCategory === 'borderline') summaryObj.borderlineCount += 1;
+      else if (outcomeCategory === 'rejected') summaryObj.rejectedCount += 1;
+    }
+
     if (jobNode) {
       jobNode.interviews.push(intvNode);
-      jobNode.summary.interviewCount += 1;
-      if (row.state === 'completed' || row.state === 'report_ready') jobNode.summary.completedCount += 1;
-      else if (row.state === 'in_progress') jobNode.summary.liveCount += 1;
-      else if (row.state === 'disqualified') jobNode.summary.disqualifiedCount += 1;
+      applyToSummary(jobNode.summary);
+      recordScore(jobScoreAccum, jobNode.id, intvNode.score);
+      bumpJobLatest(jobNode, row.ended_at || row.started_at || row.candidate_created_at);
     }
 
     const orgNode = ensureOrgNode(row.job_org_id);
     if (orgNode) {
-      orgNode.summary.interviewCount += 1;
-      orgNode.summary.totalTokens += intvNode.tokens_used;
-      orgNode.summary.totalCostInr += intvNode.est_cost;
-      if (row.state === 'completed' || row.state === 'report_ready') orgNode.summary.completedCount += 1;
-      else if (row.state === 'in_progress') orgNode.summary.liveCount += 1;
-      else if (row.state === 'disqualified') orgNode.summary.disqualifiedCount += 1;
+      applyToSummary(orgNode.summary);
+      recordScore(orgScoreAccum, orgNode.id, intvNode.score);
       bumpLatest(orgNode, row.ended_at || row.started_at || row.candidate_created_at);
     }
+  }
+
+  for (const jobNode of jobMap.values()) {
+    const acc = jobScoreAccum.get(jobNode.id);
+    if (acc && acc.count > 0) jobNode.summary.avgScore = Math.round(acc.sum / acc.count);
+  }
+  for (const orgNode of orgMap.values()) {
+    const acc = orgScoreAccum.get(orgNode.id);
+    if (acc && acc.count > 0) orgNode.summary.avgScore = Math.round(acc.sum / acc.count);
   }
 
   const directActivities = [];
   for (const act of activityRows) {
     if (act.entity_type === 'interview' && act.entity_id && interviewMap.has(act.entity_id)) {
       interviewMap.get(act.entity_id).activities.push(act);
+    }
+    if (act.entity_type === 'job' && act.entity_id && jobMap.has(act.entity_id)) {
+      const targetJob = jobMap.get(act.entity_id);
+      if (!targetJob.created_by_name && (act.actor_name || act.actor_email)) {
+        targetJob.created_by_name = act.actor_name || act.actor_email;
+        targetJob.created_by_email = act.actor_email || null;
+      }
     }
     const actorEmail = (act.actor_email || '').toLowerCase().trim();
     const recNode = (act.actor_id && userByIdMap.get(act.actor_id)) || (actorEmail && userByEmailMap.get(actorEmail));
