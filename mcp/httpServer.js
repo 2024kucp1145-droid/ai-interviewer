@@ -15,25 +15,147 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 
 export function startHttpBridge(server, port = 3005) {
   const app = express();
-  app.use(cors());
+  app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['*']
+  }));
+
+  // Diagnostic request logger for Claude Connectors
+  app.use((req, res, next) => {
+    console.log(`[MCP HTTP ${req.method}] ${req.url} - Headers:`, {
+      accept: req.headers.accept,
+      host: req.headers.host,
+      'user-agent': req.headers['user-agent']
+    });
+    next();
+  });
+
   app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+  // Helper to dynamically derive base URL
+  function getBaseUrl(req) {
+    const proto = req.headers['x-forwarded-proto'] || (req.socket.encrypted ? 'https' : 'http');
+    const host = req.headers['x-forwarded-host'] || req.headers.host || `localhost:${port}`;
+    return `${proto}://${host}`;
+  }
+
+  // --- RFC 8414 & RFC 7591: Claude.ai OAuth 2.1 & Dynamic Client Registration Suite ---
+  const oauthMetadataHandler = (req, res) => {
+    const base = getBaseUrl(req);
+    res.json({
+      issuer: base,
+      authorization_endpoint: `${base}/oauth/authorize`,
+      token_endpoint: `${base}/oauth/token`,
+      registration_endpoint: `${base}/oauth/register`,
+      jwks_uri: `${base}/oauth/jwks`,
+      response_types_supported: ['code'],
+      grant_types_supported: ['authorization_code', 'refresh_token'],
+      code_challenge_methods_supported: ['S256', 'plain'],
+      token_endpoint_auth_methods_supported: ['none', 'client_secret_basic', 'client_secret_post'],
+      scopes_supported: ['mcp', 'tools', 'read', 'write']
+    });
+  };
+
+  app.get([
+    '/.well-known/oauth-authorization-server',
+    '/.well-known/openid-configuration',
+    '/.well-known/oauth-authorization-server/mcp',
+    '/.well-known/oauth-authorization-server/sse',
+    '/mcp/.well-known/oauth-authorization-server',
+    '/sse/.well-known/oauth-authorization-server'
+  ], oauthMetadataHandler);
+
+  // RFC 7591: Dynamic Client Registration
+  app.post(['/oauth/register', '/mcp/oauth/register', '/register'], (req, res) => {
+    const base = getBaseUrl(req);
+    const body = req.body || {};
+    const clientId = `claude_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const clientSecret = `sec_${Math.random().toString(36).substring(2, 16)}`;
+    
+    console.log('[MCP OAuth] Dynamic Client Registration received from Claude:', body);
+    
+    res.status(201).json({
+      client_id: clientId,
+      client_secret: clientSecret,
+      client_id_issued_at: Math.floor(Date.now() / 1000),
+      client_name: body.client_name || 'Claude Web Connector',
+      redirect_uris: body.redirect_uris || ['https://claude.ai/api/mcp/auth_callback'],
+      grant_types: ['authorization_code', 'refresh_token'],
+      response_types: ['code'],
+      token_endpoint_auth_method: 'none'
+    });
+  });
+
+  // OAuth Authorization Endpoint
+  app.get(['/oauth/authorize', '/mcp/oauth/authorize'], (req, res) => {
+    const { redirect_uri, state, code_challenge, client_id } = req.query;
+    console.log('[MCP OAuth] Authorization request from Claude:', { redirect_uri, state, client_id });
+
+    if (!redirect_uri) {
+      return res.status(400).send('Missing redirect_uri');
+    }
+
+    // Auto-approve and redirect back to Claude callback with auth code
+    const authCode = `auth_code_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    try {
+      const redirectUrl = new URL(redirect_uri);
+      redirectUrl.searchParams.set('code', authCode);
+      if (state) {
+        redirectUrl.searchParams.set('state', state);
+      }
+      console.log('[MCP OAuth] Auto-approving & redirecting back to Claude:', redirectUrl.toString());
+      res.redirect(redirectUrl.toString());
+    } catch (urlErr) {
+      console.error('[MCP OAuth] Invalid redirect URL:', redirect_uri);
+      res.status(400).send('Invalid redirect_uri format');
+    }
+  });
+
+  // OAuth Token Endpoint
+  app.post(['/oauth/token', '/mcp/oauth/token'], (req, res) => {
+    console.log('[MCP OAuth] Token exchange request from Claude');
+    res.json({
+      access_token: `mcp_token_${Date.now()}_${Math.random().toString(36).substring(2, 12)}`,
+      token_type: 'Bearer',
+      expires_in: 86400 * 30, // 30 days
+      refresh_token: `mcp_refresh_${Date.now()}`
+    });
+  });
+
+  // JWKS Endpoint
+  app.get(['/oauth/jwks', '/mcp/oauth/jwks'], (req, res) => {
+    res.json({ keys: [] });
+  });
 
   // Track active SSE transports by sessionId
   const sseTransports = new Map();
 
-  // 1. Health Probe
-  app.get('/health', (req, res) => {
+  // 1. Health Probe & Info
+  app.get(['/', '/health'], (req, res, next) => {
+    if (req.path === '/' && req.headers.accept && req.headers.accept.includes('text/event-stream')) {
+      return next();
+    }
     res.json({
       status: 'ok',
       service: 'roundone-mcp-server',
       version: '1.0.0',
       active_sse_sessions: sseTransports.size,
+      endpoints: {
+        mcp: '/mcp',
+        sse: '/sse',
+        message: '/message',
+        tools: '/tools',
+        openapi: '/openapi.json'
+      },
       timestamp: new Date().toISOString()
     });
   });
 
   // 2. Standard MCP Server-Sent Events (SSE) Stream
-  app.get('/sse', async (req, res) => {
+  // Accepts GET on /mcp, /sse, or / (if Accept: text/event-stream)
+  app.get(['/sse', '/mcp', '/'], async (req, res) => {
     try {
       const transport = new SSEServerTransport('/message', res);
       sseTransports.set(transport.sessionId, transport);
@@ -52,7 +174,8 @@ export function startHttpBridge(server, port = 3005) {
   });
 
   // 3. MCP JSON-RPC Message Receiver
-  app.post('/message', async (req, res) => {
+  // Accepts POST on /message or /mcp with ?sessionId=...
+  app.post(['/message', '/mcp'], async (req, res) => {
     try {
       const sessionId = req.query.sessionId;
       if (!sessionId || !sseTransports.has(sessionId)) {
