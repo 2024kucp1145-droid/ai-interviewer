@@ -26,8 +26,12 @@ export function startHttpBridge(server, port = 3005) {
     console.log(`[MCP HTTP ${req.method}] ${req.url} - Headers:`, {
       accept: req.headers.accept,
       host: req.headers.host,
+      'content-type': req.headers['content-type'],
       'user-agent': req.headers['user-agent']
     });
+    if (req.method === 'POST') {
+      console.log(`[MCP HTTP POST BODY] ${req.url}:`, JSON.stringify(req.body));
+    }
     next();
   });
 
@@ -173,22 +177,120 @@ export function startHttpBridge(server, port = 3005) {
     }
   });
 
-  // 3. MCP JSON-RPC Message Receiver
-  // Accepts POST on /message or /mcp with ?sessionId=...
-  app.post(['/message', '/mcp'], async (req, res) => {
+  // 3. MCP JSON-RPC Message Receiver & Stateless HTTP Dispatcher
+  // Handles:
+  // - Stateful SSE postMessage: POST /message or /mcp?sessionId=...
+  // - Stateless Direct JSON-RPC: POST /mcp or / (Claude Web Connectors, agents, curl)
+  async function dispatchJsonRpc(message) {
+    if (!message || typeof message !== 'object') {
+      return { jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error: invalid JSON-RPC object' } };
+    }
+    const { jsonrpc, id, method, params } = message;
+
+    // Handle notifications (no id, no response needed)
+    if (id === undefined && method) {
+      console.log(`[MCP Notification] Received: ${method}`);
+      return null;
+    }
+
+    // Spec: initialize
+    if (method === 'initialize') {
+      return {
+        jsonrpc: '2.0',
+        id: id !== undefined ? id : null,
+        result: {
+          protocolVersion: params?.protocolVersion || '2024-11-05',
+          capabilities: {
+            tools: { listChanged: true },
+            prompts: { listChanged: true },
+            resources: { listChanged: true }
+          },
+          serverInfo: {
+            name: 'roundone-ai',
+            version: '1.0.0',
+            description: 'RoundOne AI Autonomous Interviewer & 4,111+ LeetCode DSA Code Judge Engine'
+          }
+        }
+      };
+    }
+
+    // Spec: ping
+    if (method === 'ping') {
+      return { jsonrpc: '2.0', id: id !== undefined ? id : null, result: {} };
+    }
+
+    const handler = server.server._requestHandlers?.get(method);
+    if (!handler) {
+      console.warn(`[MCP JSON-RPC] Unhandled method: "${method}"`);
+      return {
+        jsonrpc: '2.0',
+        id: id !== undefined ? id : null,
+        error: { code: -32601, message: `Method "${method}" not supported.` }
+      };
+    }
+
     try {
-      const sessionId = req.query.sessionId;
-      if (!sessionId || !sseTransports.has(sessionId)) {
-        return res.status(404).json({ error: 'Active MCP SSE session not found or expired.' });
-      }
-      const transport = sseTransports.get(sessionId);
-      await transport.handlePostMessage(req, res);
+      const result = await handler({ method, params: params || {} });
+      return {
+        jsonrpc: '2.0',
+        id: id !== undefined ? id : null,
+        result
+      };
     } catch (err) {
-      console.error('[MCP HTTP] Message handling error:', err);
-      if (!res.headersSent) {
-        res.status(500).json({ error: err.message });
+      console.error(`[MCP JSON-RPC] Handler error for "${method}":`, err);
+      return {
+        jsonrpc: '2.0',
+        id: id !== undefined ? id : null,
+        error: { code: -32603, message: err.message || 'Internal error' }
+      };
+    }
+  }
+
+  app.post(['/message', '/mcp', '/'], async (req, res) => {
+    const sessionId = req.query.sessionId;
+
+    // Mode A: Route to active SSE transport if sessionId matches
+    if (sessionId && sseTransports.has(sessionId)) {
+      try {
+        const transport = sseTransports.get(sessionId);
+        await transport.handlePostMessage(req, res);
+        return;
+      } catch (err) {
+        console.error('[MCP HTTP] SSE PostMessage error:', err);
+        if (!res.headersSent) res.status(500).json({ error: err.message });
+        return;
       }
     }
+
+    // Mode B: Direct Stateless JSON-RPC MCP request (e.g. Claude Web Connector)
+    if (req.body && (req.body.jsonrpc === '2.0' || req.body.method || Array.isArray(req.body))) {
+      try {
+        if (Array.isArray(req.body)) {
+          const results = [];
+          for (const item of req.body) {
+            const r = await dispatchJsonRpc(item);
+            if (r) results.push(r);
+          }
+          return res.json(results);
+        } else {
+          const result = await dispatchJsonRpc(req.body);
+          if (result) return res.json(result);
+          return res.status(204).end();
+        }
+      } catch (rpcErr) {
+        console.error('[MCP HTTP] JSON-RPC dispatch error:', rpcErr);
+        return res.status(500).json({
+          jsonrpc: '2.0',
+          id: req.body?.id || null,
+          error: { code: -32603, message: rpcErr.message }
+        });
+      }
+    }
+
+    // Neither SSE sessionId nor JSON-RPC body matched
+    return res.status(400).json({
+      error: 'Invalid MCP request. Expected JSON-RPC 2.0 payload or active ?sessionId=.'
+    });
   });
 
   // 4. GET /tools: Simple JSON Tool Directory
