@@ -188,17 +188,22 @@ function showDashboardView() {
 
 function setupPolling() {
   if (activityPollInterval) clearInterval(activityPollInterval);
-  // Auto-poll activities every 15 seconds when on overview or activities tab
+  // Auto-poll live data every 12 seconds for real-time transactions, users, and activities
   activityPollInterval = setInterval(() => {
-    if (adminToken && (currentTab === 'overview' || currentTab === 'activities')) {
+    if (!adminToken) return;
+    if (currentTab === 'overview' || currentTab === 'activities') {
       loadDashboardStats(true);
       if (currentTab === 'activities' && activityViewMode === 'tree') {
         loadActivityTree(true);
       } else {
         loadActivityStream(true);
       }
+    } else if (currentTab === 'orders') {
+      loadOrdersDirectory();
+    } else if (currentTab === 'users') {
+      loadRecruitersDirectory();
     }
-  }, 15000);
+  }, 12000);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2405,8 +2410,18 @@ window.renderUsersTable = function() {
         </td>
         <td>${statusBadge}</td>
         <td>
-          <strong style="color:var(--primary); font-size:0.95rem;">${u.org_credits || 0}</strong>
-          <span style="font-size:0.7rem; color:var(--text-subtle); display:block; text-transform:uppercase;">${u.org_plan || 'free_trial'}</span>
+          <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+            <strong style="color:var(--primary); font-size:0.95rem;">${u.org_credits || 0} Credits</strong>
+            <span class="badge badge-primary" style="font-size:0.62rem; text-transform:uppercase;">${escapeHtml(u.org_plan || 'free_trial')}</span>
+          </div>
+          <div style="font-size:0.72rem; color:var(--success); font-weight:700; margin-top:0.2rem;">
+            <i class="bi bi-cash-stack"></i> $${parseFloat(u.total_spent_usd || 0).toFixed(2)} (${u.paid_orders || 0} paid)
+          </div>
+          ${u.latest_order_status && u.latest_order_status !== 'paid' ? `
+            <div style="font-size:0.68rem; color:var(--warning); margin-top:0.15rem; font-weight:600;">
+              <i class="bi bi-hourglass-split"></i> Order: ${escapeHtml(u.latest_order_status.toUpperCase())}
+            </div>
+          ` : ''}
         </td>
         <td>
           <span style="font-size:0.8rem;">${u.total_jobs || 0} Jobs</span>
@@ -3206,7 +3221,9 @@ window.markOrderPaid = async function(orderId) {
 
     showToast(data.message, 'success');
     loadOrdersDirectory();
+    loadRecruitersDirectory();
     loadDashboardStats(true);
+    if (typeof loadActivityTree === 'function') loadActivityTree(true);
   } catch (err) {
     showToast(err.message, 'danger');
   }
@@ -3410,6 +3427,7 @@ window.loadPlatformSettings = async function() {
     setChk('pay-enable-bank', payStatus.enableBankTransfer !== false);
     setChk('pay-enable-card', payStatus.enableCard !== false);
     setChk('pay-enable-razorpay', payStatus.enableRazorpay !== false);
+    setChk('pay-auto-approve', s.payment_auto_approve !== undefined ? s.payment_auto_approve !== '0' : payStatus.autoApprovePayments !== false);
     setVal('pay-upi-id', s.merchant_upi_id ?? payStatus.upiId ?? '');
     setVal('pay-upi-name', s.merchant_upi_name ?? payStatus.upiName ?? 'RoundOne AI');
     setVal('pay-usd-inr', s.usd_to_inr_rate ?? String(payStatus.usdToInrRate || 85));
@@ -3544,6 +3562,7 @@ window.savePaymentControlSettings = async function() {
           payment_enable_bank_transfer: getC('pay-enable-bank'),
           payment_enable_card: getC('pay-enable-card'),
           payment_enable_razorpay: getC('pay-enable-razorpay'),
+          payment_auto_approve: getC('pay-auto-approve') ? '1' : '0',
           merchant_upi_id: getV('pay-upi-id'),
           merchant_upi_name: getV('pay-upi-name') || 'RoundOne AI',
           usd_to_inr_rate: getV('pay-usd-inr') || '85',

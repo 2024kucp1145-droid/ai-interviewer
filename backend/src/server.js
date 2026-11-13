@@ -29,6 +29,14 @@ import { DOMAIN_FIELDS, TOP_COMPANIES, COMPANY_QUESTION_CATALOG, getCatalogQuest
 import { billingRouter } from './billing/billingRoutes.js';
 import { dispatchCandidateNotification, buildInterviewRulesText } from './services/dispatchService.js';
 import { judgeLeetCodeSolution } from './services/leetcodeJudge.js';
+import {
+  ensureBuiltInLeetCodeSeeded,
+  getLeetCodeTopics,
+  listLeetCodeProblems,
+  getLeetCodeProblem,
+  syncPublicLeetCodeBank,
+  importLeetCodeDataset
+} from './services/leetcodeCatalogService.js';
 import { generateNeuralAudio, NEURAL_VOICES } from './services/neuralTtsService.js';
 import { adminRouter } from './admin/adminRoutes.js';
 import { logActivity } from './services/activityService.js';
@@ -49,8 +57,9 @@ validateVaultSecret();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Initialize DB schema
+// Initialize DB schema & seed LeetCode problem catalog
 initDatabase();
+ensureBuiltInLeetCodeSeeded();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -1034,7 +1043,12 @@ app.post('/jobs', requireAuth, (req, res) => {
       compiler_languages = 'javascript,python,sql',
       category = 'Software & Tech',
       show_timer = 1,
-      auto_submit_timer = 1
+      auto_submit_timer = 1,
+      dsa_time_limit_ms = 2000,
+      dsa_memory_limit_mb = 256,
+      dsa_question_mode = 'solve',
+      dsa_questions_count = 1,
+      dsa_blind_mode = 1
     } = req.body;
 
     if (!title || !jd_text) {
@@ -1069,9 +1083,9 @@ app.post('/jobs', requireAuth, (req, res) => {
         id, org_id, title, jd_text, skills, qualifications, level, max_minutes, max_questions,
         interview_type, question_mode, custom_questions, terminal_required, word_editor_required, resume_required,
         purpose, experience_required, assessment_rules, leetcode_problem, compiler_languages, category,
-        show_timer, auto_submit_timer
+        show_timer, auto_submit_timer, dsa_time_limit_ms, dsa_memory_limit_mb, dsa_question_mode, dsa_questions_count, dsa_blind_mode
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       jobId, 
       req.user.org_id, 
@@ -1091,11 +1105,16 @@ app.post('/jobs', requireAuth, (req, res) => {
       purpose,
       experience_required,
       assessment_rules ? assessment_rules.trim() : '',
-      leetcode_problem ? leetcode_problem.trim() : '',
+      leetcode_problem ? String(leetcode_problem).trim() : '',
       compiler_languages,
       category || 'Software & Tech',
       show_timer ? 1 : 0,
-      auto_submit_timer ? 1 : 0
+      auto_submit_timer ? 1 : 0,
+      Math.min(15000, Math.max(200, parseInt(dsa_time_limit_ms, 10) || 2000)),
+      Math.min(1024, Math.max(16, parseInt(dsa_memory_limit_mb, 10) || 256)),
+      dsa_question_mode === 'fix_bug' ? 'fix_bug' : 'solve',
+      Math.min(20, Math.max(1, parseInt(dsa_questions_count, 10) || 1)),
+      dsa_blind_mode === 0 || dsa_blind_mode === false ? 0 : 1
     );
 
     const created = db.prepare('SELECT * FROM jobs WHERE id = ?').get(jobId);
@@ -1418,7 +1437,12 @@ app.put('/jobs/:id', requireAuth, (req, res) => {
       compiler_languages = 'javascript,python,sql',
       category = 'Software & Tech',
       show_timer = 1,
-      auto_submit_timer = 1
+      auto_submit_timer = 1,
+      dsa_time_limit_ms = 2000,
+      dsa_memory_limit_mb = 256,
+      dsa_question_mode = 'solve',
+      dsa_questions_count = 1,
+      dsa_blind_mode = 1
     } = req.body;
 
     if (!title) {
@@ -1447,7 +1471,12 @@ app.put('/jobs/:id', requireAuth, (req, res) => {
         compiler_languages = ?,
         category = ?,
         show_timer = ?,
-        auto_submit_timer = ?
+        auto_submit_timer = ?,
+        dsa_time_limit_ms = ?,
+        dsa_memory_limit_mb = ?,
+        dsa_question_mode = ?,
+        dsa_questions_count = ?,
+        dsa_blind_mode = ?
       WHERE id = ? AND org_id = ?
     `).run(
       title.trim(),
@@ -1466,11 +1495,16 @@ app.put('/jobs/:id', requireAuth, (req, res) => {
       purpose,
       experience_required,
       assessment_rules ? assessment_rules.trim() : '',
-      leetcode_problem ? leetcode_problem.trim() : '',
+      leetcode_problem ? String(leetcode_problem).trim() : '',
       compiler_languages,
       category || existing.category || 'Software & Tech',
       show_timer !== undefined ? (show_timer ? 1 : 0) : (existing.show_timer ?? 1),
       auto_submit_timer !== undefined ? (auto_submit_timer ? 1 : 0) : (existing.auto_submit_timer ?? 1),
+      req.body.dsa_time_limit_ms !== undefined ? Math.min(15000, Math.max(200, parseInt(dsa_time_limit_ms, 10) || 2000)) : (existing.dsa_time_limit_ms || 2000),
+      req.body.dsa_memory_limit_mb !== undefined ? Math.min(1024, Math.max(16, parseInt(dsa_memory_limit_mb, 10) || 256)) : (existing.dsa_memory_limit_mb || 256),
+      req.body.dsa_question_mode !== undefined ? (dsa_question_mode === 'fix_bug' ? 'fix_bug' : 'solve') : (existing.dsa_question_mode || 'solve'),
+      req.body.dsa_questions_count !== undefined ? Math.min(20, Math.max(1, parseInt(dsa_questions_count, 10) || 1)) : (existing.dsa_questions_count || 1),
+      req.body.dsa_blind_mode !== undefined ? (dsa_blind_mode ? 1 : 0) : (existing.dsa_blind_mode ?? 1),
       jobId,
       req.user.org_id
     );
@@ -1562,6 +1596,7 @@ function hydrateInterviewFromToken(decoded, rawToken) {
         j.show_timer, j.auto_submit_timer,
         j.interview_type, j.question_mode, j.terminal_required, j.word_editor_required, j.resume_required,
         j.purpose, j.experience_required, j.assessment_rules, j.leetcode_problem, j.compiler_languages,
+        j.dsa_time_limit_ms, j.dsa_memory_limit_mb, j.dsa_question_mode, j.dsa_questions_count, j.dsa_blind_mode,
         j.org_id, c.id as candidate_id, c.name as candidate_name, c.email as candidate_email, c.resume_text,
         o.name as company_name
       FROM interviews i
@@ -1589,6 +1624,7 @@ function getOrHydrateInterview(rawToken) {
       j.show_timer, j.auto_submit_timer,
       j.interview_type, j.question_mode, j.terminal_required, j.word_editor_required, j.resume_required,
       j.purpose, j.experience_required, j.assessment_rules, j.leetcode_problem, j.compiler_languages,
+      j.dsa_time_limit_ms, j.dsa_memory_limit_mb, j.dsa_question_mode, j.dsa_questions_count, j.dsa_blind_mode,
       j.org_id, c.id as candidate_id, c.name as candidate_name, c.email as candidate_email, c.resume_text,
       o.name as company_name
     FROM interviews i
@@ -2151,41 +2187,145 @@ function loadCustomProblemMeta(problemRef) {
   };
 }
 
+// --- LeetCode 3,500+ Topic Catalog & Importer Endpoints (NO hints, NO company tags) ---
+app.get('/api/leetcode/topics', (req, res) => {
+  try {
+    res.json(getLeetCodeTopics());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/leetcode/problems', (req, res) => {
+  try {
+    const { search = '', topic = '', difficulty = '', page = 1, limit = 30 } = req.query;
+    res.json(listLeetCodeProblems({ search, topic, difficulty, page, limit }));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/leetcode/problems/:id', (req, res) => {
+  try {
+    const prob = getLeetCodeProblem(req.params.id, { includeTests: false });
+    if (!prob) return res.status(404).json({ error: 'Problem not found' });
+    res.json(prob);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/leetcode/sync', requireAuth, async (req, res) => {
+  try {
+    const { source = 'full', limit = 4200, items = null } = req.body || {};
+    if (Array.isArray(items) && items.length > 0) {
+      const result = importLeetCodeDataset(items, 'recruiter_json_import');
+      ensureBuiltInLeetCodeSeeded();
+      return res.json({ success: true, ...result });
+    }
+    const result = await syncPublicLeetCodeBank({ source, limit });
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to sync LeetCode catalog' });
+  }
+});
+
 // --- Automated LeetCode & Coding Judge Runner Endpoint ---
 app.post('/api/compiler/judge', async (req, res) => {
   try {
     const { problemId = '1', lang = 'javascript', code = '', token = '' } = req.body;
     if (!code || !code.trim()) {
-      return res.status(400).json({ error: 'Please enter code to evaluate against test cases.' });
+      return res.status(400).json({ error: 'Please submit non-empty code.' });
     }
 
     const customSuite = loadCustomProblemMeta(problemId);
-    const result = await judgeLeetCodeSolution(String(problemId), lang, code, customSuite);
+    const catalogMeta = !customSuite ? getLeetCodeProblem(String(problemId), { includeTests: false }) : null;
 
-    // If an interview session token is provided, persist result in the database
+    let interview = null;
+    let timeLimitMs = Number(req.body.timeLimitMs) || catalogMeta?.time_limit_ms || 2000;
+    let memoryLimitMb = Number(req.body.memoryLimitMb) || catalogMeta?.memory_limit_mb || 256;
+    let questionMode = req.body.mode || 'solve';
+    let blindMode = false;
+
     if (token) {
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+      interview = db.prepare(`
+        SELECT i.id, i.dsa_result, j.dsa_time_limit_ms, j.dsa_memory_limit_mb, j.dsa_question_mode, j.dsa_blind_mode
+        FROM interviews i
+        LEFT JOIN jobs j ON i.job_id = j.id
+        WHERE i.token_hash = ? OR i.id = ?
+      `).get(tokenHash, token);
+      if (interview) {
+        if (interview.dsa_time_limit_ms) timeLimitMs = Number(interview.dsa_time_limit_ms);
+        if (interview.dsa_memory_limit_mb) memoryLimitMb = Number(interview.dsa_memory_limit_mb);
+        if (interview.dsa_question_mode) questionMode = interview.dsa_question_mode;
+        blindMode = interview.dsa_blind_mode !== 0;
+      }
+    }
+
+    const result = await judgeLeetCodeSolution(String(problemId), lang, code, customSuite, { timeLimitMs, memoryLimitMb });
+    const problemTitle = customSuite?.title || (catalogMeta ? `#${catalogMeta.frontend_id}: ${catalogMeta.title}` : `LeetCode #${problemId}`);
+
+    // If an interview session token is provided, persist full evaluation & performance metrics in database
+    if (interview) {
       try {
-        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-        const interview = db.prepare('SELECT id FROM interviews WHERE token_hash = ? OR id = ?').get(tokenHash, token);
-        if (interview) {
-          const dsaSummary = {
-            problemId,
-            lang,
-            verdict: result.verdict,
-            passedCount: result.passedCount,
-            totalCount: result.totalCount,
-            runtimeMs: result.runtimeMs,
-            memoryMb: result.memoryMb,
-            timestamp: new Date().toISOString()
-          };
-          db.prepare('UPDATE interviews SET dsa_result = ? WHERE id = ?').run(JSON.stringify(dsaSummary), interview.id);
+        let existingDsa = {};
+        if (interview.dsa_result) {
+          try { existingDsa = JSON.parse(interview.dsa_result) || {}; } catch {}
         }
+        const submissions = { ...(existingDsa.submissions || {}) };
+        const entry = {
+          problemId: String(problemId),
+          problemTitle,
+          lang,
+          mode: questionMode,
+          verdict: result.verdict,
+          status: result.status,
+          passedCount: result.passedCount,
+          totalCount: result.totalCount,
+          runtimeMs: result.runtimeMs,
+          timeLimitMs: result.timeLimitMs || timeLimitMs,
+          memoryMb: result.memoryMb,
+          memoryLimitMb: result.memoryLimitMb || memoryLimitMb,
+          code: code.slice(0, 12000),
+          error: result.error ? String(result.error).slice(0, 800) : null,
+          timestamp: new Date().toISOString()
+        };
+        submissions[String(problemId)] = entry;
+
+        const subList = Object.values(submissions);
+        const totalPassed = subList.reduce((acc, s) => acc + (Number(s.passedCount) || 0), 0);
+        const totalCases = subList.reduce((acc, s) => acc + (Number(s.totalCount) || 0), 0);
+        const dsaSummary = {
+          ...entry,
+          passedCount: subList.length > 1 ? totalPassed : entry.passedCount,
+          totalCount: subList.length > 1 ? totalCases : entry.totalCount,
+          verdict: subList.length > 1
+            ? (subList.every(s => s.verdict === 'ACCEPTED') ? 'ACCEPTED' : entry.verdict)
+            : entry.verdict,
+          submissions
+        };
+
+        db.prepare('UPDATE interviews SET dsa_result = ?, code_draft = ?, code_lang = ? WHERE id = ?')
+          .run(JSON.stringify(dsaSummary), code.slice(0, 15000), lang, interview.id);
       } catch (saveErr) {
         console.warn('[Judge] Failed to save dsa_result to interview:', saveErr.message);
       }
     }
 
-    res.json({ success: true, result });
+    if (blindMode) {
+      return res.json({
+        success: true,
+        blindMode: true,
+        stored: true,
+        problemId: String(problemId),
+        lang,
+        timestamp: new Date().toISOString(),
+        message: 'Solution received & evaluated securely on the server. Performance metrics and test results have been stored for your interviewer.'
+      });
+    }
+
+    res.json({ success: true, blindMode: false, result });
   } catch (err) {
     console.error('[Judge Error]:', err);
     res.status(500).json({ error: err.message || 'Judge execution failed' });
@@ -2455,10 +2595,20 @@ app.get('/i/:token', (req, res) => {
     }
 
     const customProblem = loadCustomProblemMeta(interview.leetcode_problem);
+    const probIds = String(interview.leetcode_problem || '')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+    const maxDsaCount = Math.min(20, Math.max(1, Number(interview.dsa_questions_count) || probIds.length || 1));
+    const selectedIds = probIds.slice(0, maxDsaCount);
+    const leetcodeProblems = selectedIds
+      .map(pid => pid.startsWith('cprob_') ? loadCustomProblemMeta(pid) : getLeetCodeProblem(pid, { includeTests: false }))
+      .filter(Boolean);
 
     res.json({
       ...interview,
       custom_problem: customProblem,
+      leetcode_problems: leetcodeProblems,
       remainingSeconds,
       code_draft: interview.code_draft || null,
       code_lang: interview.code_lang || 'javascript',
@@ -2615,6 +2765,42 @@ app.post('/i/:token/finish', async (req, res) => {
 
     const interview = getOrHydrateInterview(rawToken);
     if (!interview) return res.status(404).json({ error: 'Invalid token' });
+
+    // Auto-evaluate candidate code draft on server if candidate didn't click submit before finishing
+    try {
+      const ivRow = db.prepare('SELECT dsa_result, code_draft, code_lang FROM interviews WHERE id = ?').get(interview.id);
+      const finalCode = (req.body && req.body.code_draft) || ivRow?.code_draft || interview.code_draft || '';
+      const finalLang = (req.body && req.body.code_lang) || ivRow?.code_lang || interview.code_lang || 'javascript';
+      const primaryProbId = String(interview.leetcode_problem || '').split(',').map(s => s.trim()).filter(Boolean)[0];
+      if (!ivRow?.dsa_result && primaryProbId && finalCode.trim().length > 10) {
+        const customSuite = loadCustomProblemMeta(primaryProbId);
+        const autoRes = await judgeLeetCodeSolution(primaryProbId, finalLang, finalCode, customSuite, {
+          timeLimitMs: interview.dsa_time_limit_ms || 2000,
+          memoryLimitMb: interview.dsa_memory_limit_mb || 256
+        });
+        const meta = !customSuite ? getLeetCodeProblem(primaryProbId, { includeTests: false }) : null;
+        const summary = {
+          problemId: primaryProbId,
+          problemTitle: customSuite?.title || (meta ? `#${meta.frontend_id}: ${meta.title}` : `LeetCode #${primaryProbId}`),
+          lang: finalLang,
+          mode: interview.dsa_question_mode || 'solve',
+          verdict: autoRes.verdict,
+          status: autoRes.status,
+          passedCount: autoRes.passedCount,
+          totalCount: autoRes.totalCount,
+          runtimeMs: autoRes.runtimeMs,
+          timeLimitMs: autoRes.timeLimitMs || interview.dsa_time_limit_ms || 2000,
+          memoryMb: autoRes.memoryMb,
+          memoryLimitMb: autoRes.memoryLimitMb || interview.dsa_memory_limit_mb || 256,
+          code: finalCode.slice(0, 12000),
+          error: autoRes.error || null,
+          timestamp: new Date().toISOString()
+        };
+        db.prepare('UPDATE interviews SET dsa_result = ? WHERE id = ?').run(JSON.stringify(summary), interview.id);
+      }
+    } catch (autoEvalErr) {
+      console.warn('[Finish Auto-Judge] Notice:', autoEvalErr.message);
+    }
 
     db.prepare(`UPDATE interviews SET state = 'completed', ended_at = CURRENT_TIMESTAMP WHERE id = ?`).run(interview.id);
 

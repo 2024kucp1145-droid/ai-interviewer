@@ -273,11 +273,13 @@
         const dsaObj = iv.dsa_result && typeof iv.dsa_result === 'object' ? iv.dsa_result : null;
         const dsaVerdictText = (dsaObj && dsaObj.verdict) || iv.dsa_verdict || '';
         const dsaRuntimeText = (dsaObj && dsaObj.runtimeMs != null) ? dsaObj.runtimeMs : iv.dsa_runtime_ms;
-        const judgeHtml = iv.code_draft ? `
+        const dsaMemoryText = dsaObj && dsaObj.memoryMb != null ? `${dsaObj.memoryMb} MB / ${dsaObj.memoryLimitMb || 256} MB` : '';
+        const dsaTestsText = dsaObj && dsaObj.totalCount ? ` &middot; ${dsaObj.passedCount ?? 0}/${dsaObj.totalCount} Tests` : '';
+        const judgeHtml = (iv.code_draft || dsaObj) ? `
           <div class="card">
-            <h3 style="font-size:0.95rem;margin-bottom:0.4rem;">Submitted Code (${escapeHtml((iv.code_lang || 'code').toUpperCase())})</h3>
-            ${dsaVerdictText ? `<p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.5rem;">Automated Judge: <strong>${escapeHtml(dsaVerdictText)}</strong>${dsaRuntimeText != null ? ` (${escapeHtml(dsaRuntimeText)} ms)` : ''}</p>` : ''}
-            <pre class="code-box">${escapeHtml(iv.code_draft)}</pre>
+            <h3 style="font-size:0.95rem;margin-bottom:0.4rem;">Submitted Code (${escapeHtml(((dsaObj && dsaObj.lang) || iv.code_lang || 'code').toUpperCase())})</h3>
+            ${dsaVerdictText ? `<p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.5rem;">Server Judge: <strong>${escapeHtml(dsaVerdictText)}</strong>${dsaTestsText}${dsaRuntimeText != null ? ` &middot; ${escapeHtml(dsaRuntimeText)}ms/${dsaObj?.timeLimitMs || 2000}ms` : ''}${dsaMemoryText ? ` &middot; ${escapeHtml(dsaMemoryText)}` : ''}</p>` : ''}
+            ${(iv.code_draft || dsaObj?.code) ? `<pre class="code-box">${escapeHtml(iv.code_draft || dsaObj?.code)}</pre>` : ''}
           </div>
         ` : '';
 

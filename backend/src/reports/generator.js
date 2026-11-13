@@ -256,13 +256,18 @@ ${transcriptFormatted}
       const dsaData = JSON.parse(interview.dsa_result);
       validatedReport.dsa_evaluation = {
         problem_id: dsaData.problemId,
+        problem_title: dsaData.problemTitle || `Problem #${dsaData.problemId}`,
         language: dsaData.lang,
+        question_mode: dsaData.mode || 'solve',
         verdict: dsaData.verdict,
         passed_tests: dsaData.passedCount,
         total_tests: dsaData.totalCount,
         runtime_ms: dsaData.runtimeMs,
+        time_limit_ms: dsaData.timeLimitMs || 2000,
         memory_mb: dsaData.memoryMb,
-        summary: `LeetCode Problem #${dsaData.problemId}: ${dsaData.verdict} (${dsaData.passedCount}/${dsaData.totalCount} Test Cases Passed)`
+        memory_limit_mb: dsaData.memoryLimitMb || 256,
+        submissions: dsaData.submissions || null,
+        summary: `${dsaData.problemTitle || `LeetCode #${dsaData.problemId}`}: ${dsaData.verdict} (${dsaData.passedCount}/${dsaData.totalCount} Passed · ${dsaData.runtimeMs}ms/${dsaData.timeLimitMs || 2000}ms · ${dsaData.memoryMb}MB/${dsaData.memoryLimitMb || 256}MB)`
       };
 
       if (dsaData.verdict === 'ACCEPTED') {
@@ -271,7 +276,7 @@ ${transcriptFormatted}
             skill: 'Data Structures & Algorithms (DSA)',
             score: 5,
             confidence: 'high',
-            evidence: [{ quote: `Passed ${dsaData.passedCount}/${dsaData.totalCount} automated hidden test cases for LeetCode Problem #${dsaData.problemId}`, turn: 0, verified_in_transcript: true }],
+            evidence: [{ quote: `Passed ${dsaData.passedCount}/${dsaData.totalCount} server test cases (${dsaData.runtimeMs}ms / ${dsaData.memoryMb}MB) for ${dsaData.problemTitle || `Problem #${dsaData.problemId}`}`, turn: 0, verified_in_transcript: true }],
             gaps: []
           });
         }

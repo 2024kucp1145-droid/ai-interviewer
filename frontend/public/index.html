@@ -1518,6 +1518,537 @@
       animation: spin 0.75s linear infinite !important;
       display: inline-block !important;
     }
+
+    /* ============================================================
+       BOLT.NEW INSPIRED MODERN HERO & SANDBOX SHOWCASE
+       ============================================================ */
+    .btn-pulse-trial {
+      background: linear-gradient(135deg, #2563eb, #7c3aed) !important;
+      color: #ffffff !important;
+      border: none !important;
+      font-weight: 700 !important;
+      padding: 0.42rem 0.95rem !important;
+      border-radius: 8px !important;
+      box-shadow: 0 0 16px rgba(124, 58, 237, 0.35);
+      animation: trialPulse 2.4s infinite;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s ease;
+    }
+    .btn-pulse-trial:hover {
+      opacity: 0.94;
+      transform: translateY(-1px);
+      box-shadow: 0 0 22px rgba(124, 58, 237, 0.55);
+    }
+    @keyframes trialPulse {
+      0% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.5); }
+      70% { box-shadow: 0 0 0 10px rgba(124, 58, 237, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0); }
+    }
+
+    .bolt-hero-wrapper {
+      background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.12) 0%, rgba(15, 23, 42, 0.02) 65%), var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 2.75rem 2rem 2.25rem;
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 12px 35px -8px rgba(0, 0, 0, 0.06);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    [data-theme="dark"] .bolt-hero-wrapper {
+      background: radial-gradient(circle at 50% -10%, rgba(99, 102, 241, 0.25) 0%, rgba(15, 23, 42, 0.85) 60%), #0b0f19;
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 45px -15px rgba(0, 0, 0, 0.65);
+    }
+    .bolt-hero-wrapper.bolt-hero-compact {
+      display: none !important;
+    }
+
+    .bolt-ambient-glow {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.5;
+    }
+    .bolt-glow-1 {
+      top: -80px;
+      left: 15%;
+      width: 340px;
+      height: 340px;
+      background: rgba(56, 189, 248, 0.22);
+    }
+    .bolt-glow-2 {
+      top: -60px;
+      right: 15%;
+      width: 360px;
+      height: 360px;
+      background: rgba(168, 85, 247, 0.22);
+    }
+
+    .bolt-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      padding: 0.35rem 0.95rem;
+      border-radius: 9999px;
+      background: rgba(37, 99, 235, 0.08);
+      border: 1px solid rgba(37, 99, 235, 0.25);
+      color: #2563eb;
+      font-size: 0.775rem;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+      transition: all 0.2s ease;
+    }
+    .bolt-pill:hover {
+      background: rgba(37, 99, 235, 0.14);
+      transform: translateY(-1px);
+    }
+    [data-theme="dark"] .bolt-pill {
+      background: rgba(99, 102, 241, 0.15);
+      border-color: rgba(129, 140, 248, 0.35);
+      color: #a5b4fc;
+    }
+    .bolt-pill-badge {
+      background: #2563eb;
+      color: #ffffff;
+      font-size: 0.625rem;
+      font-weight: 800;
+      padding: 0.15rem 0.45rem;
+      border-radius: 9999px;
+      letter-spacing: 0.05em;
+    }
+
+    .bolt-title {
+      font-size: 2.35rem;
+      font-weight: 800;
+      line-height: 1.18;
+      letter-spacing: -0.035em;
+      color: var(--text);
+      margin-bottom: 0.85rem;
+      max-width: 860px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    @media (max-width: 768px) {
+      .bolt-title { font-size: 1.75rem; }
+    }
+
+    .bolt-gradient-text {
+      background: linear-gradient(135deg, #2563eb 0%, #7c3aed 50%, #db2777 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: inline-block;
+    }
+    [data-theme="dark"] .bolt-gradient-text {
+      background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .bolt-subhead {
+      font-size: 0.925rem;
+      color: var(--text-muted);
+      max-width: 750px;
+      margin: 0 auto 1.75rem;
+      line-height: 1.6;
+    }
+
+    /* Prompt Box */
+    .bolt-prompt-container {
+      max-width: 760px;
+      margin: 0 auto 2.25rem;
+      position: relative;
+      z-index: 5;
+    }
+    .bolt-prompt-box {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(99, 102, 241, 0.08);
+      border-radius: 14px;
+      padding: 0.45rem 0.55rem 0.45rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      transition: all 0.2s ease;
+    }
+    [data-theme="dark"] .bolt-prompt-box {
+      background: rgba(15, 23, 42, 0.75);
+      border-color: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(129, 140, 248, 0.2);
+    }
+    .bolt-prompt-box:focus-within {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15), 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+    .bolt-prompt-icon {
+      color: #7c3aed;
+      font-size: 1.15rem;
+      flex-shrink: 0;
+    }
+    .bolt-prompt-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-size: 0.875rem;
+      font-family: inherit;
+      padding: 0.35rem 0;
+    }
+    .bolt-prompt-btn {
+      padding: 0.55rem 1.15rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      white-space: nowrap;
+      flex-shrink: 0;
+      background: linear-gradient(135deg, #2563eb, #6366f1);
+      border: none;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+      cursor: pointer;
+    }
+    .bolt-prompt-btn:hover {
+      opacity: 0.95;
+      transform: translateY(-1px);
+    }
+    .bolt-prompt-chips {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      margin-top: 0.9rem;
+    }
+    .bolt-chip {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 0.72rem;
+      font-weight: 500;
+      padding: 0.28rem 0.7rem;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .bolt-chip:hover {
+      background: var(--accent-light);
+      border-color: #93c5fd;
+      color: #1d4ed8;
+      transform: translateY(-1px);
+    }
+
+    /* Sandbox Card */
+    .bolt-sandbox-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.08);
+      margin-bottom: 2.25rem;
+      position: relative;
+      z-index: 3;
+    }
+    [data-theme="dark"] .bolt-sandbox-card {
+      background: #0f172a;
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+    }
+    .bolt-sandbox-header {
+      background: var(--surface-subtle);
+      border-bottom: 1px solid var(--border);
+      padding: 0.65rem 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.775rem;
+    }
+    [data-theme="dark"] .bolt-sandbox-header {
+      background: #111a2e;
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    .bolt-window-dots {
+      display: inline-flex;
+      gap: 5px;
+      margin-right: 0.4rem;
+    }
+    .bolt-window-dots span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .pulse-green-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      display: inline-block;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulseDot 1.5s infinite;
+    }
+    @keyframes pulseDot {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    .bolt-sandbox-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      min-height: 420px;
+    }
+    @media (max-width: 960px) {
+      .bolt-sandbox-grid { grid-template-columns: 1fr; }
+    }
+    .bolt-sandbox-left {
+      padding: 1.25rem;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      background: var(--surface);
+    }
+    [data-theme="dark"] .bolt-sandbox-left {
+      border-color: rgba(255, 255, 255, 0.08);
+      background: #0f172a;
+    }
+    .bolt-interviewer-card {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.85rem;
+    }
+    [data-theme="dark"] .bolt-interviewer-card {
+      background: rgba(30, 41, 59, 0.45);
+      border-color: rgba(255, 255, 255, 0.06);
+    }
+    .bolt-avatar-glow {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
+    }
+    .voice-wave-container {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      height: 22px;
+    }
+    .voice-wave-bar {
+      width: 3px;
+      height: 100%;
+      background: #6366f1;
+      border-radius: 2px;
+      animation: soundWave 1.2s ease-in-out infinite alternate;
+    }
+    .voice-wave-bar:nth-child(2) { animation-delay: 0.2s; height: 65%; background: #818cf8; }
+    .voice-wave-bar:nth-child(3) { animation-delay: 0.4s; height: 90%; background: #38bdf8; }
+    .voice-wave-bar:nth-child(4) { animation-delay: 0.15s; height: 45%; background: #818cf8; }
+    .voice-wave-bar:nth-child(5) { animation-delay: 0.35s; height: 80%; background: #6366f1; }
+    @keyframes soundWave {
+      0% { transform: scaleY(0.2); }
+      100% { transform: scaleY(1); }
+    }
+    .bolt-dialogue-bubble {
+      margin-top: 0.4rem;
+      font-size: 0.775rem;
+      line-height: 1.5;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.65rem 0.8rem;
+    }
+    [data-theme="dark"] .bolt-dialogue-bubble {
+      background: #0b0f19;
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    .bolt-candidate-telemetry-box {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.85rem;
+    }
+    [data-theme="dark"] .bolt-candidate-telemetry-box {
+      background: rgba(30, 41, 59, 0.45);
+      border-color: rgba(255, 255, 255, 0.06);
+    }
+    .bolt-telemetry-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-bottom: 0.6rem;
+    }
+    .bolt-telemetry-tag {
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 0.18rem 0.5rem;
+      border-radius: 6px;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      color: #059669;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .bolt-candidate-transcript {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.55rem 0.7rem;
+    }
+    [data-theme="dark"] .bolt-candidate-transcript {
+      background: #0b0f19;
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    .bolt-quick-perks {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: auto;
+    }
+    .bolt-perk {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    /* Sandbox Right: Code IDE */
+    .bolt-sandbox-right {
+      display: flex;
+      flex-direction: column;
+      background: #0d1117;
+      border-top-right-radius: 12px;
+      border-bottom-right-radius: 12px;
+      overflow: hidden;
+    }
+    .bolt-code-editor-header {
+      background: #161b22;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 0.55rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .bolt-run-btn {
+      font-weight: 700;
+      font-size: 0.75rem;
+      padding: 0.35rem 0.8rem;
+      border-radius: 6px;
+      background: #10b981;
+      border: none;
+      color: #ffffff;
+      cursor: pointer;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+      transition: all 0.15s ease;
+    }
+    .bolt-run-btn:hover {
+      background: #059669;
+      transform: translateY(-1px);
+    }
+    .bolt-code-area-wrap {
+      flex: 1;
+      position: relative;
+      min-height: 240px;
+    }
+    .bolt-code-textarea {
+      width: 100%;
+      height: 100%;
+      min-height: 240px;
+      background: #0d1117;
+      color: #c9d1d9;
+      border: none;
+      outline: none;
+      padding: 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.775rem;
+      line-height: 1.6;
+      resize: vertical;
+    }
+    .bolt-output-console {
+      background: #090d16;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 0.85rem 1rem;
+      min-height: 100px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    /* Bento Features */
+    .bolt-features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+      position: relative;
+      z-index: 3;
+    }
+    .bolt-feat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      transition: all 0.2s ease;
+    }
+    .bolt-feat-card:hover {
+      border-color: #6366f1;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+    }
+    [data-theme="dark"] .bolt-feat-card {
+      background: rgba(15, 23, 42, 0.55);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    [data-theme="dark"] .bolt-feat-card:hover {
+      background: rgba(15, 23, 42, 0.9);
+      border-color: rgba(129, 140, 248, 0.4);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+    }
+    .bolt-feat-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      margin-bottom: 0.85rem;
+    }
+
+    /* Bottom Banner */
+    .bolt-bottom-banner {
+      background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
+      border: 1px solid rgba(129, 140, 248, 0.25);
+      border-radius: 14px;
+      padding: 1.5rem 1.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 3;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
   </style>
   <script src="/js/theme.js"></script>
 </head>
@@ -1554,6 +2085,11 @@
     </nav>
 
     <div class="header-user">
+      <!-- Free Trial Header CTA Button -->
+      <button class="btn btn-primary btn-sm btn-pulse-trial" id="btn-header-trial" onclick="handleStartTrialClick()" title="Claim your 10 free AI technical interviews">
+        <i class="bi bi-gift-fill"></i> Free Trial (10 Free Qs)
+      </button>
+
       <!-- Right Top Window Trigger for Candidate Responses & AI Clarification -->
       <button class="btn btn-sm btn-responses-top" id="btn-top-responses" onclick="openResponsesDrawer()">
         <i class="bi bi-chat-square-quote-fill"></i> Responses & Scores
@@ -1573,7 +2109,265 @@
   <main>
     <!-- TAB 1: Roles, Skills & Start Hiring -->
     <div id="tab-jobs" class="tab-pane">
-      
+
+      <!-- Recruiter Greeting / Quick Launch Bar (Shown when authenticated) -->
+      <div id="bolt-recruiter-welcome" style="display: none; align-items: center; justify-content: space-between; padding: 0.85rem 1.25rem; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 1.25rem; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #2563eb, #7c3aed); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem;">
+            <i class="bi bi-stars"></i>
+          </div>
+          <div>
+            <div style="font-size: 0.85rem; font-weight: 700; color: var(--text);">
+              Welcome back, <span id="recruiter-welcome-name">Recruiter</span>!
+            </div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);">
+              You have <strong id="recruiter-welcome-credits" style="color: #059669;">10</strong> AI technical interview credits remaining. Ready to screen candidates?
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <button class="btn btn-outline btn-sm" onclick="openQuestionBankModal()"><i class="bi bi-collection"></i> 4,111+ LeetCode Qs</button>
+          <button class="btn btn-sm" onclick="startInterviewCreationWizard()"><i class="bi bi-plus-lg"></i> Create New Interview</button>
+        </div>
+      </div>
+
+      <!-- BOLT.NEW STYLE HERO SHOWCASE (Inspiring, Interactive, Free Trial Focused) -->
+      <div id="bolt-hero-showcase" class="bolt-hero-wrapper">
+        <!-- Ambient Glowing Background Accents -->
+        <div class="bolt-ambient-glow bolt-glow-1"></div>
+        <div class="bolt-ambient-glow bolt-glow-2"></div>
+
+        <!-- Hero Content Center -->
+        <div style="text-align: center; position: relative; z-index: 2;">
+          <!-- Pill Badge -->
+          <div class="bolt-pill" onclick="handleStartTrialClick()" style="cursor: pointer;">
+            <span class="bolt-pill-badge">FREE TRIAL</span>
+            <span>🎁 10 Free AI Interviews Included • No Credit Card Required</span>
+            <i class="bi bi-arrow-right" style="font-size: 0.75rem;"></i>
+          </div>
+
+          <!-- Main Title -->
+          <h1 class="bolt-title">
+            Hire Top 1% Engineers with<br>
+            <span class="bolt-gradient-text">Autonomous AI Voice &amp; Live Coding</span>
+          </h1>
+
+          <!-- Subtitle -->
+          <p class="bolt-subhead">
+            Conduct realistic voice technical screenings with an AI engineering lead, assess real-time code execution across our <strong>4,111+ LeetCode DSA Problem Bank</strong>, defeat cheating with keystroke telemetry, and receive instant 0–100 objective evaluation rubrics.
+          </p>
+
+          <!-- Bolt.new-style Interactive Prompt Bar -->
+          <div class="bolt-prompt-container">
+            <div class="bolt-prompt-box">
+              <i class="bi bi-sparkles bolt-prompt-icon"></i>
+              <input type="text" id="bolt-prompt-input" class="bolt-prompt-input" placeholder="What role or technical round do you want to conduct? (e.g. Senior Full-Stack Engineer, LeetCode Hard DP...)" onkeydown="if(event.key==='Enter') handleBoltPromptSubmit()">
+              <button type="button" class="btn btn-primary bolt-prompt-btn" onclick="handleBoltPromptSubmit()">
+                <span>Launch Sandbox</span>
+                <i class="bi bi-arrow-right"></i>
+              </button>
+            </div>
+            <!-- Quick Chips -->
+            <div class="bolt-prompt-chips">
+              <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; margin-right: 0.2rem;">Try popular roles:</span>
+              <button type="button" class="bolt-chip" onclick="handleBoltChipClick('Full-Stack Engineer (React + Node.js)')">⚡ Full-Stack (React/Node)</button>
+              <button type="button" class="bolt-chip" onclick="handleBoltChipClick('Python &amp; Machine Learning Engineer')">🐍 Python &amp; AI/ML</button>
+              <button type="button" class="bolt-chip" onclick="handleBoltChipClick('Java Enterprise Systems Architect')">☕ Java Enterprise</button>
+              <button type="button" class="bolt-chip" onclick="handleBoltChipClick('LeetCode DSA Live Coding')">🧠 LeetCode DSA Live</button>
+              <button type="button" class="bolt-chip" onclick="handleBoltChipClick('DevOps &amp; Cloud Infrastructure')">☁️ DevOps &amp; Cloud</button>
+              <button type="button" class="bolt-chip" onclick="openQuestionBankModal()">📚 4,111+ LeetCode Bank</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Live Candidate Room & Code Runner Sandbox (Split View) -->
+        <div class="bolt-sandbox-card">
+          <div class="bolt-sandbox-header">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <span class="bolt-window-dots">
+                <span style="background: #ef4444;"></span>
+                <span style="background: #eab308;"></span>
+                <span style="background: #22c55e;"></span>
+              </span>
+              <span style="font-weight: 700; color: var(--text);">Interactive Live Interview &amp; Code Sandbox</span>
+              <span class="badge" style="background: rgba(37,99,235,0.1); color: #2563eb; border: 1px solid rgba(37,99,235,0.2); font-size: 0.65rem;">LeetCode #1: Two Sum</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge" style="background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid rgba(16,185,129,0.2); font-size: 0.65rem; display: inline-flex; align-items: center; gap: 4px;">
+                <span class="pulse-green-dot"></span> Live Voice Connected
+              </span>
+              <button class="btn btn-outline btn-xs" onclick="resetSandboxCode()" title="Reset code"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
+              <button class="btn btn-primary btn-xs" onclick="handleStartTrialClick()"><i class="bi bi-gift-fill"></i> Get 10 Free Rounds</button>
+            </div>
+          </div>
+
+          <div class="bolt-sandbox-grid">
+            <!-- Left Pane: AI Voice Interviewer & Telemetry Mockup -->
+            <div class="bolt-sandbox-left">
+              <!-- AI Avatar Card -->
+              <div class="bolt-interviewer-card">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.6rem;">
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div class="bolt-avatar-glow">
+                      <i class="bi bi-robot"></i>
+                    </div>
+                    <div>
+                      <div style="font-size: 0.8rem; font-weight: 700; color: var(--text);">AI Tech Lead (Alex)</div>
+                      <div style="font-size: 0.68rem; color: var(--text-muted);">Autonomous Audio Screening Agent</div>
+                    </div>
+                  </div>
+                  <div class="voice-wave-container" title="Audio waveform streaming">
+                    <span class="voice-wave-bar"></span>
+                    <span class="voice-wave-bar"></span>
+                    <span class="voice-wave-bar"></span>
+                    <span class="voice-wave-bar"></span>
+                    <span class="voice-wave-bar"></span>
+                  </div>
+                </div>
+
+                <div class="bolt-dialogue-bubble">
+                  <i class="bi bi-quote" style="opacity: 0.4;"></i>
+                  <span>"Welcome! Today we'll solve <strong>Two Sum</strong>. Could you first explain your algorithmic strategy before coding? Aim for <code>O(n)</code> linear time using a Hash Map rather than <code>O(n²)</code> brute force."</span>
+                </div>
+              </div>
+
+              <!-- Candidate Video & Anti-Cheating Telemetry -->
+              <div class="bolt-candidate-telemetry-box">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                  <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Anti-Cheat Telemetry</span>
+                  <span class="badge" style="background: rgba(16,185,129,0.12); color: #059669; font-size: 0.65rem;">Integrity: 100%</span>
+                </div>
+                <div class="bolt-telemetry-chips">
+                  <span class="bolt-telemetry-tag"><i class="bi bi-camera-video-fill" style="color: #10b981;"></i> Video Verified</span>
+                  <span class="bolt-telemetry-tag"><i class="bi bi-eye-fill" style="color: #10b981;"></i> Tab Focused</span>
+                  <span class="bolt-telemetry-tag"><i class="bi bi-clipboard-check-fill" style="color: #10b981;"></i> 0 Copy-Paste</span>
+                  <span class="bolt-telemetry-tag"><i class="bi bi-mic-fill" style="color: #10b981;"></i> Clear Mic</span>
+                </div>
+                <div class="bolt-candidate-transcript">
+                  <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.2rem;">Candidate Voice Transcript:</div>
+                  <div style="font-size: 0.72rem; color: var(--text); font-style: italic;">"I'll iterate through nums with a single pass. For each element, I'll calculate complement = target - nums[i] and query the Map in O(1)..."</div>
+                </div>
+              </div>
+
+              <!-- Quick Feature Bullet points -->
+              <div class="bolt-quick-perks">
+                <div class="bolt-perk"><i class="bi bi-check2-circle" style="color: #10b981;"></i> Sub-second conversational voice latency</div>
+                <div class="bolt-perk"><i class="bi bi-check2-circle" style="color: #10b981;"></i> Keystroke timeline recorded for recruiter review</div>
+                <div class="bolt-perk"><i class="bi bi-check2-circle" style="color: #10b981;"></i> 0–100 rubric generated automatically</div>
+              </div>
+            </div>
+
+            <!-- Right Pane: Live In-Browser Code IDE & Runner -->
+            <div class="bolt-sandbox-right">
+              <div class="bolt-code-editor-header">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <i class="bi bi-file-earmark-code" style="color: #60a5fa;"></i>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #e2e8f0; font-weight: 600;">solution.js</span>
+                  <span style="font-size: 0.68rem; color: #94a3b8;">(JavaScript / Node.js)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                  <button type="button" class="btn btn-sm btn-success bolt-run-btn" id="btn-run-sandbox" onclick="runDemoSandboxCode()" title="Run test cases live">
+                    <i class="bi bi-play-fill"></i> Run Test Cases (Click to Test)
+                  </button>
+                </div>
+              </div>
+
+              <!-- Code Textarea -->
+              <div class="bolt-code-area-wrap">
+                <textarea id="sandbox-code-editor" class="bolt-code-textarea" spellcheck="false">/**
+ * LeetCode #1: Two Sum
+ * Time Limit: 2.0s | Memory Limit: 256MB
+ * @param {number[]} nums
+ * @param {number} target
+ * @return {number[]}
+ */
+function twoSum(nums, target) {
+  const map = new Map();
+  for (let i = 0; i < nums.length; i++) {
+    const complement = target - nums[i];
+    if (map.has(complement)) {
+      return [map.get(complement), i];
+    }
+    map.set(nums[i], i);
+  }
+  return [];
+}</textarea>
+              </div>
+
+              <!-- Output Console -->
+              <div id="sandbox-output-console" class="bolt-output-console">
+                <div style="color: #94a3b8; font-size: 0.72rem; font-family: 'JetBrains Mono', monospace;">
+                  💡 Click <strong>"Run Test Cases"</strong> above to see our sandboxed compiler execute the solution against LeetCode test suites live.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bento Grid: 4 Core Platform Superpowers -->
+        <div class="bolt-features-grid">
+          <!-- Card 1 -->
+          <div class="bolt-feat-card">
+            <div class="bolt-feat-icon" style="background: rgba(37,99,235,0.1); color: #2563eb;">
+              <i class="bi bi-mic-fill"></i>
+            </div>
+            <h4 style="font-size: 0.88rem; font-weight: 700; color: var(--text); margin-bottom: 0.35rem;">Conversational Voice AI</h4>
+            <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.5;">
+              Speaks naturally with sub-second latency. Probes algorithmic complexity (O(n log n) vs O(n)), questions edge cases, and adjusts dynamically to candidate responses.
+            </p>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="bolt-feat-card">
+            <div class="bolt-feat-icon" style="background: rgba(124,58,237,0.1); color: #7c3aed;">
+              <i class="bi bi-collection-fill"></i>
+            </div>
+            <h4 style="font-size: 0.88rem; font-weight: 700; color: var(--text); margin-bottom: 0.35rem;">4,111+ LeetCode DSA Bank</h4>
+            <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.5;">
+              Select from thousands of curated DSA challenges across DP, Graphs, Arrays, and Trees. Complete with automated multi-language test execution and memory tracking.
+            </p>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="bolt-feat-card">
+            <div class="bolt-feat-icon" style="background: rgba(16,185,129,0.1); color: #059669;">
+              <i class="bi bi-shield-check"></i>
+            </div>
+            <h4 style="font-size: 0.88rem; font-weight: 700; color: var(--text); margin-bottom: 0.35rem;">Anti-Cheat &amp; Telemetry</h4>
+            <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.5;">
+              Full keystroke playback, browser focus tracking, copy-paste telemetry, and camera proctoring ensure total integrity and zero AI assistance during screening.
+            </p>
+          </div>
+
+          <!-- Card 4 -->
+          <div class="bolt-feat-card">
+            <div class="bolt-feat-icon" style="background: rgba(234,88,12,0.1); color: #ea580c;">
+              <i class="bi bi-graph-up-arrow"></i>
+            </div>
+            <h4 style="font-size: 0.88rem; font-weight: 700; color: var(--text); margin-bottom: 0.35rem;">0–100 Objective Rubrics</h4>
+            <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.5;">
+              Consistent, unbiased evaluation across Code Quality, Problem Solving, and System Design. Instant PDF exports and candidate rank lists in your recruiter pipeline.
+            </p>
+          </div>
+        </div>
+
+        <!-- Bottom Callout Footer Banner -->
+        <div class="bolt-bottom-banner">
+          <div>
+            <div style="font-size: 1rem; font-weight: 800; color: #ffffff;">Automate Technical Screening in 60 Seconds</div>
+            <div style="font-size: 0.75rem; color: #cbd5e1; margin-top: 0.2rem;">🎁 Sign up today and get <strong>10 Free AI Technical Interviews</strong> credited instantly to your workspace.</div>
+          </div>
+          <div style="display: flex; gap: 0.6rem; align-items: center;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="openQuestionBankModal()" style="border-color: rgba(255,255,255,0.25); color: #ffffff;">
+              <i class="bi bi-collection"></i> Explore 4,111+ Questions
+            </button>
+            <button type="button" class="btn btn-primary btn-sm btn-pulse-trial" onclick="handleStartTrialClick()">
+              <i class="bi bi-gift-fill"></i> Claim 10 Free Interviews
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- SUB-VIEW 1: Clean Interview Dashboard (Default View) -->
       <div id="view-interview-dashboard">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
@@ -2239,9 +3033,73 @@
               </div>
 
               <div id="wiz-dsa-picker-box">
-                <label>Select LeetCode Problem Number / Topic:</label>
-                <select id="wiz-leetcode-select" onchange="updateLeetCodePreview()">
-                  <option value="1">LeetCode #1: Two Sum (Array, Hash Map - Easy)</option>
+                <!-- LeetCode Execution Constraints & Mode Controls -->
+                <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.65rem; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem; margin-bottom: 0.75rem;">
+                  <div>
+                    <label style="font-size: 0.7rem;">Coding Mode:</label>
+                    <select id="wiz-dsa-mode" onchange="updateLeetCodePreview()" style="font-size: 0.78rem;">
+                      <option value="solve">Complete Solution (LeetCode)</option>
+                      <option value="fix_bug">Fix Error / Buggy Code</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style="font-size: 0.7rem;">How Many Coding Qs:</label>
+                    <input type="number" id="wiz-dsa-count" min="1" max="10" value="1" oninput="renderSelectedLeetCodeChips()" style="width: 100%; padding: 0.42rem 0.5rem; font-size: 0.8rem; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text);">
+                  </div>
+                  <div>
+                    <label style="font-size: 0.7rem;">Time Limit (ms):</label>
+                    <input type="number" id="wiz-dsa-time-limit" min="200" max="15000" step="100" value="2000" oninput="updateLeetCodePreview()" style="width: 100%; padding: 0.42rem 0.5rem; font-size: 0.8rem; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text);">
+                  </div>
+                  <div>
+                    <label style="font-size: 0.7rem;">Memory Limit (MB):</label>
+                    <input type="number" id="wiz-dsa-memory-limit" min="16" max="1024" step="16" value="256" oninput="updateLeetCodePreview()" style="width: 100%; padding: 0.42rem 0.5rem; font-size: 0.8rem; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text);">
+                  </div>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 0.75rem; margin-bottom: 0.75rem;">
+                  <span style="font-size: 0.72rem; color: var(--text);">
+                    <i class="bi bi-shield-lock-fill"></i> <strong>Blind Server Grading:</strong> Execute code on server, hide pass/fail verdict from candidate, and store performance metrics for reviewer.
+                  </span>
+                  <input type="checkbox" id="wiz-dsa-blind-mode" checked style="width: auto; margin: 0;">
+                </div>
+
+                <!-- Selected Problems Pills -->
+                <div style="margin-bottom: 0.65rem;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                    <label style="margin: 0; font-size: 0.75rem;">Selected Coding Questions (<span id="lc-selected-count">1</span>):</label>
+                    <div style="display: flex; gap: 0.4rem;">
+                      <button type="button" class="btn btn-sm btn-outline" onclick="syncLeetCodeCatalogFromUi(this)" style="font-size: 0.7rem; padding: 0.2rem 0.55rem;">
+                        <i class="bi bi-cloud-download"></i> Sync 4,000+ Problems
+                      </button>
+                    </div>
+                  </div>
+                  <div id="lc-selected-chips" style="display: flex; flex-wrap: wrap; gap: 0.4rem; min-height: 28px; padding: 0.35rem; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 6px;"></div>
+                </div>
+
+                <!-- LeetCode Topic Catalog Browser (NO Hints, NO Company Tags) -->
+                <div style="border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; background: var(--surface); margin-bottom: 0.75rem;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+                    <span style="font-size: 0.76rem; font-weight: 700; color: var(--text);">
+                      <i class="bi bi-code-slash"></i> LeetCode Topic Catalog (<span id="lc-catalog-total">Loading...</span>)
+                    </span>
+                    <div style="display: flex; gap: 0.4rem; flex: 1; max-width: 440px;">
+                      <input type="text" id="lc-catalog-search" placeholder="Search # or title (e.g. Two Sum, 146, DP)..." oninput="debouncedLoadLeetCodeCatalog()" style="flex: 1; margin: 0; padding: 0.32rem 0.55rem; font-size: 0.75rem;">
+                      <select id="lc-catalog-diff" onchange="loadLeetCodeCatalog(1)" style="width: 110px; margin: 0; padding: 0.32rem 0.45rem; font-size: 0.75rem;">
+                        <option value="">All Diff</option>
+                        <option value="Easy">Easy</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Hard">Hard</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div id="lc-topic-pills" style="display: flex; gap: 0.35rem; overflow-x: auto; padding-bottom: 0.45rem; margin-bottom: 0.45rem; border-bottom: 1px solid var(--border);"></div>
+                  <div id="lc-catalog-list" style="max-height: 210px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.35rem;"></div>
+                  <div id="lc-catalog-pagination" style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; font-size: 0.72rem; color: var(--text-muted);"></div>
+                </div>
+
+                <label style="font-size: 0.74rem;">Quick Select / Organization Custom Problem:</label>
+                <select id="wiz-leetcode-select" onchange="selectQuickLeetCodeOption()">
+                  <option value="1">LeetCode #1: Two Sum (Array, Hash Table - Easy)</option>
                   <option value="20">LeetCode #20: Valid Parentheses (Stack, String - Easy)</option>
                   <option value="21">LeetCode #21: Merge Two Sorted Lists (Linked List - Easy)</option>
                   <option value="53">LeetCode #53: Maximum Subarray (Array, Dynamic Programming - Medium)</option>
@@ -2260,12 +3118,16 @@
                   <input type="text" id="wiz-custom-leetcode-input" placeholder="e.g. #146 LRU Cache or #42 Trapping Rain Water" oninput="updateCustomLeetCodeText()">
                 </div>
 
-                <!-- Problem Preview Card -->
+                <!-- Problem Preview Card (No Hints, No Company Tags) -->
                 <div id="leetcode-preview-card" class="leetcode-card">
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
                     <strong style="color: #000; font-size: 0.825rem;" id="lc-preview-title">LeetCode #1: Two Sum</strong>
-                    <span class="badge badge-dark" id="lc-preview-diff">Easy</span>
+                    <div style="display: flex; align-items: center; gap: 0.35rem;">
+                      <span class="badge badge-outline" id="lc-preview-limits" style="font-size: 0.65rem;">2000ms · 256MB</span>
+                      <span class="badge badge-dark" id="lc-preview-diff">Easy</span>
+                    </div>
                   </div>
+                  <div id="lc-preview-topics" style="display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.4rem;"></div>
                   <p style="font-size: 0.75rem; color: #18181b; line-height: 1.45; margin-bottom: 0.5rem;" id="lc-preview-desc">
                     Given an array of integers <code>nums</code> and an integer <code>target</code>, return indices of the two numbers such that they add up to <code>target</code>.
                   </p>
@@ -3160,13 +4022,32 @@
             <div id="pay-upi-body" style="background:var(--surface-subtle); border:1px solid var(--border); border-radius:8px; padding:0.9rem; text-align:center; margin-bottom:0.85rem;">
               <div style="font-size:0.78rem; color:var(--text-muted);">Click below to generate your UPI QR code &amp; exact INR total.</div>
             </div>
-            <div id="pay-upi-utr-box" style="display:none; margin-bottom:0.85rem;">
-              <label style="font-size:0.74rem; font-weight:700;">12-Digit UPI UTR / Transaction Reference ID</label>
-              <div style="display:flex; gap:0.4rem; margin-top:0.25rem;">
+            
+            <div id="pay-upi-detector-box" style="display:none; margin-bottom:0.85rem;">
+              <div style="display:flex; align-items:center; justify-content:center; gap:0.4rem; padding:0.45rem 0.75rem; border-radius:6px; background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; font-size:0.75rem; font-weight:600; margin-bottom:0.6rem;">
+                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#2563eb; animation: blink 1.2s infinite;"></span>
+                <span>Auto-Detect Active: Listening for your UPI transfer...</span>
+              </div>
+              <button type="button" class="btn btn-dark btn-sm" id="btn-upi-auto-detect" onclick="triggerAutoDetectPayment()" style="width:100%; font-weight:700; font-size:0.82rem; padding:0.5rem;">
+                <i class="bi bi-lightning-charge-fill" style="color:#f59e0b;"></i> I Have Paid — Auto-Detect &amp; Unlock Credits
+              </button>
+            </div>
+
+            <div id="pay-upi-utr-box" style="display:none; margin-bottom:0.85rem; padding-top:0.5rem; border-top:1px dashed var(--border);">
+              <label style="font-size:0.74rem; font-weight:700; display:block; margin-bottom:0.25rem;">
+                Or enter 12-Digit UPI UTR / Transaction Reference ID:
+              </label>
+              <div style="display:flex; gap:0.4rem;">
                 <input type="text" id="pay-upi-utr" class="form-input" placeholder="e.g. 431298765432" maxlength="40" style="flex:1;">
-                <button type="button" class="btn btn-primary btn-sm" onclick="submitDirectUtrPayment('upi_direct')">Submit UTR</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="submitDirectUtrPayment('upi_direct')">
+                  Verify &amp; Credit
+                </button>
+              </div>
+              <div style="font-size:0.68rem; color:var(--text-muted); margin-top:0.25rem;">
+                <i class="bi bi-shield-check"></i> Instant auto-verification enabled. Credits reflect in your balance immediately.
               </div>
             </div>
+
             <div style="display:flex; gap:0.5rem;">
               <button class="btn btn-outline" style="flex:1;" onclick="closeBillingModal()">Cancel</button>
               <button class="btn" style="flex:2;" id="pay-upi-btn" onclick="startUpiCheckout()">
@@ -3180,13 +4061,32 @@
             <div id="pay-bank-body" style="background:var(--surface-subtle); border:1px solid var(--border); border-radius:8px; padding:0.9rem; font-size:0.78rem; margin-bottom:0.85rem;">
               Click below to lock your order total and display bank transfer details.
             </div>
-            <div id="pay-bank-utr-box" style="display:none; margin-bottom:0.85rem;">
-              <label style="font-size:0.74rem; font-weight:700;">Bank Transfer Reference / UTR Number</label>
-              <div style="display:flex; gap:0.4rem; margin-top:0.25rem;">
+
+            <div id="pay-bank-detector-box" style="display:none; margin-bottom:0.85rem;">
+              <div style="display:flex; align-items:center; justify-content:center; gap:0.4rem; padding:0.45rem 0.75rem; border-radius:6px; background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; font-size:0.75rem; font-weight:600; margin-bottom:0.6rem;">
+                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#2563eb; animation: blink 1.2s infinite;"></span>
+                <span>Auto-Detect Active: Waiting for bank settlement...</span>
+              </div>
+              <button type="button" class="btn btn-dark btn-sm" id="btn-bank-auto-detect" onclick="triggerAutoDetectPayment()" style="width:100%; font-weight:700; font-size:0.82rem; padding:0.5rem;">
+                <i class="bi bi-lightning-charge-fill" style="color:#f59e0b;"></i> I Have Transferred — Auto-Detect &amp; Unlock Credits
+              </button>
+            </div>
+
+            <div id="pay-bank-utr-box" style="display:none; margin-bottom:0.85rem; padding-top:0.5rem; border-top:1px dashed var(--border);">
+              <label style="font-size:0.74rem; font-weight:700; display:block; margin-bottom:0.25rem;">
+                Bank Transfer Reference / UTR Number:
+              </label>
+              <div style="display:flex; gap:0.4rem;">
                 <input type="text" id="pay-bank-utr" class="form-input" placeholder="IMPS / NEFT / Wire Ref ID" maxlength="40" style="flex:1;">
-                <button type="button" class="btn btn-primary btn-sm" onclick="submitDirectUtrPayment('bank_transfer')">Submit Reference</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="submitDirectUtrPayment('bank_transfer')">
+                  Verify &amp; Credit
+                </button>
+              </div>
+              <div style="font-size:0.68rem; color:var(--text-muted); margin-top:0.25rem;">
+                <i class="bi bi-shield-check"></i> Instant auto-verification enabled. Credits reflect in your balance immediately.
               </div>
             </div>
+
             <div style="display:flex; gap:0.5rem;">
               <button class="btn btn-outline" style="flex:1;" onclick="closeBillingModal()">Cancel</button>
               <button class="btn" style="flex:2;" id="pay-bank-btn" onclick="startBankCheckout()">
@@ -3201,13 +4101,24 @@
 
     <!-- ONBOARDING MODAL: Multi-Step Customer Sign-In & Verification -->
     <div id="auth-modal" class="modal-overlay" style="display: none;">
-      <div class="modal-content">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <div class="modal-content" style="max-width: 520px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
           <div style="display: flex; align-items: center; gap: 0.4rem;">
-            <i class="bi bi-lock-fill" style="font-size: 0.95rem;"></i>
-            <span style="font-size: 0.9rem; font-weight: 700; color: #000;" id="auth-modal-title">Employer Sign In</span>
+            <i class="bi bi-shield-lock-fill" style="font-size: 0.95rem; color: #2563eb;"></i>
+            <span style="font-size: 0.95rem; font-weight: 700; color: var(--text);" id="auth-modal-title">Employer Sign In</span>
           </div>
-          <button class="btn btn-ghost btn-sm" onclick="closeAuthModal()"><i class="bi bi-x-lg"></i></button>
+          <button class="btn btn-ghost btn-sm" onclick="closeAuthModal()" title="Close (Esc)"><i class="bi bi-x-lg"></i></button>
+        </div>
+
+        <!-- Free Trial Banner -->
+        <div style="background: linear-gradient(135deg, rgba(37,99,235,0.08), rgba(124,58,237,0.1)); border: 1px solid rgba(99,102,241,0.25); border-radius: 8px; padding: 0.65rem 0.85rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.6rem;">
+          <div style="width: 28px; height: 28px; border-radius: 50%; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0;">
+            <i class="bi bi-gift-fill"></i>
+          </div>
+          <div>
+            <div style="font-weight: 700; font-size: 0.8rem; color: var(--text);">Claim 10 Free AI Interviews</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);">Instant access on registration • Zero credit card required • Instant setup</div>
+          </div>
         </div>
 
         <!-- Wizard Steps Bar (Hidden for simplified direct login) -->
@@ -3763,7 +4674,7 @@
             <div>
               <h3 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--text);">Universal Question Bank</h3>
               <p style="margin: 0; font-size: 0.75rem; color: var(--text-muted);">
-                5 Top Companies × 3 Top Questions across 8 Core Domains &amp; Your Organization's Custom Library
+                4,111+ LeetCode Topic Problems (No Hints / No Company Tags) &amp; 120 Curated Domain Interview Questions
               </p>
             </div>
           </div>

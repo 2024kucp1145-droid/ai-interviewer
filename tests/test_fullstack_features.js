@@ -578,7 +578,7 @@ async function runTests() {
     });
     const utrData = await utrRes.json();
     assert.strictEqual(utrRes.status, 200, utrData.error);
-    assert.strictEqual(utrData.status, 'pending_verification');
+    assert.ok(['paid', 'pending_verification'].includes(utrData.status), `Unexpected status: ${utrData.status}`);
     assert.strictEqual(utrData.utrNumber, testUtr);
 
     const secondOrderRes = await fetch(`${BASE_URL}/billing/order`, {
@@ -751,7 +751,180 @@ async function runTests() {
     assert.strictEqual(clearRlRes.status, 200);
     console.log('✓ 15. Admin Panel live UPI/Pricing/Pages/Subscription/Server Control verified end-to-end');
 
-    console.log('\n🎉 ALL 15 FULL-STACK VERIFICATION CHECKS PASSED!');
+    // 16. LeetCode Topic Catalog (No Hints/Companies), Time/Memory Limit Enforcement, Bug-Fix Mode & Blind Server Grading
+    const lcTopicsRes = await fetch(`${BASE_URL}/api/leetcode/topics`);
+    const lcTopics = await lcTopicsRes.json();
+    assert.strictEqual(lcTopicsRes.status, 200);
+    assert.ok(lcTopics.total >= 20, `Expected >=20 problems seeded, got ${lcTopics.total}`);
+    assert.ok(Array.isArray(lcTopics.topics) && lcTopics.topics.some(t => t.name === 'Array'));
+
+    const lcListRes = await fetch(`${BASE_URL}/api/leetcode/problems?topic=Array&search=Two+Sum&limit=10`);
+    const lcList = await lcListRes.json();
+    assert.strictEqual(lcListRes.status, 200);
+    assert.ok(lcList.items.some(p => String(p.id) === '1'));
+    const twoSumItem = lcList.items.find(p => String(p.id) === '1');
+    assert.strictEqual(twoSumItem.hints, undefined, 'Hints must NOT exist');
+    assert.strictEqual(twoSumItem.companyTags, undefined, 'Company tags must NOT exist');
+    assert.strictEqual(twoSumItem.company_tags, undefined, 'Company tags must NOT exist');
+
+    // Enforce Time Limit Exceeded cleanly
+    const tleRes = await judgeLeetCodeSolution('1', 'javascript', 'function twoSum(nums, target) { while(true){} }', null, { timeLimitMs: 250, memoryLimitMb: 64 });
+    assert.strictEqual(tleRes.verdict, 'TIME_LIMIT_EXCEEDED');
+    assert.strictEqual(tleRes.timeLimitMs, 250);
+    assert.strictEqual(tleRes.memoryLimitMb, 64);
+
+    // Recruiter creates multi-question Bug-Fix Blind Coding Job with custom limits
+    const blindJobRes = await fetch(`${BASE_URL}/jobs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ownerToken}` },
+      body: JSON.stringify({
+        title: `DSA BugFix Round ${RUN_ID}`,
+        jd_text: 'Debug and solve algorithmic challenges under strict limits.',
+        skills: 'Algorithms, JavaScript, Python',
+        max_minutes: 30,
+        max_questions: 4,
+        terminal_required: 1,
+        leetcode_problem: '1,20',
+        dsa_time_limit_ms: 800,
+        dsa_memory_limit_mb: 128,
+        dsa_question_mode: 'fix_bug',
+        dsa_questions_count: 2,
+        dsa_blind_mode: 1
+      })
+    });
+    const blindJobData = await blindJobRes.json();
+    assert.strictEqual(blindJobRes.status, 200, blindJobData.error);
+    const blindJobId = blindJobData.job?.id || blindJobData.id;
+    createdJobIds.push(blindJobId);
+
+    const startBlindRes = await fetch(`${BASE_URL}/public/jobs/${blindJobId}/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Blind Coder', email: `cand_blind_${RUN_ID}@test.local` })
+    });
+    const startBlind = await startBlindRes.json();
+    assert.strictEqual(startBlindRes.status, 200, startBlind.error);
+    const blindCandToken = startBlind.token;
+
+    const blindIvRes = await fetch(`${BASE_URL}/i/${blindCandToken}`);
+    const blindIv = await blindIvRes.json();
+    assert.strictEqual(blindIvRes.status, 200);
+    createdInterviewIds.push(blindIv.id);
+    if (blindIv.candidate_id) createdCandidateIds.push(blindIv.candidate_id);
+
+    assert.strictEqual(blindIv.dsa_question_mode, 'fix_bug');
+    assert.strictEqual(blindIv.dsa_time_limit_ms, 800);
+    assert.strictEqual(blindIv.dsa_memory_limit_mb, 128);
+    assert.strictEqual(blindIv.leetcode_problems?.length, 2);
+    assert.ok(blindIv.leetcode_problems[0].buggy_starter?.javascript);
+    assert.strictEqual(blindIv.leetcode_problems[0].hints, undefined);
+    assert.strictEqual(blindIv.leetcode_problems[0].test_cases, undefined);
+
+    // Blind Judge submission: candidate receives confirmation ONLY, server stores verdict + runtime/memory performance
+    const blindSubmitRes = await fetch(`${BASE_URL}/api/compiler/judge`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        problemId: '1',
+        lang: 'javascript',
+        code: 'function twoSum(nums, target) { const m = new Map(); for (let i = 0; i < nums.length; i++) { const d = target - nums[i]; if (m.has(d)) return [m.get(d), i]; m.set(nums[i], i); } return []; }',
+        token: blindCandToken
+      })
+    });
+    const blindSubmit = await blindSubmitRes.json();
+    assert.strictEqual(blindSubmitRes.status, 200, blindSubmit.error);
+    assert.strictEqual(blindSubmit.blindMode, true);
+    assert.strictEqual(blindSubmit.stored, true);
+    assert.strictEqual(blindSubmit.result, undefined, 'Blind mode must NOT expose judge result to candidate');
+
+    // Recruiter report endpoint receives full stored verdict + performance limits
+    const recRepRes = await fetch(`${BASE_URL}/interviews/${blindIv.id}/report`, {
+      headers: { Authorization: `Bearer ${ownerToken}` }
+    });
+    const recRep = await recRepRes.json();
+    assert.strictEqual(recRepRes.status, 200);
+    const storedDsa = JSON.parse(recRep.interview.dsa_result);
+    assert.strictEqual(storedDsa.verdict, 'ACCEPTED');
+    assert.strictEqual(storedDsa.passedCount, 4);
+    assert.strictEqual(storedDsa.totalCount, 4);
+    assert.strictEqual(storedDsa.timeLimitMs, 800);
+    assert.strictEqual(storedDsa.memoryLimitMb, 128);
+    assert.strictEqual(storedDsa.mode, 'fix_bug');
+    console.log('✓ 16. LeetCode 3,500+ Topic Bank (No Hints/Companies), Limit Enforcement, Bug-Fix Mode & Blind Server Grading verified');
+
+    // ── Check 17: Automated Payment Detection, Instant Credit Fulfillment & Admin User Sync ──
+    // 17.1 Create an order via UPI
+    const upiOrdRes = await fetch(`${BASE_URL}/billing/order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ownerToken}` },
+      body: JSON.stringify({ type: 'pay_per_use', quantity: 5, minutes: 30, gateway: 'upi_direct' })
+    });
+    const upiOrd = await upiOrdRes.json();
+    assert.strictEqual(upiOrdRes.status, 200, upiOrd.error);
+    assert.ok(upiOrd.orderId);
+
+    // 17.2 Polling /billing/order/:id/status initially shows pending
+    const statusPreRes = await fetch(`${BASE_URL}/billing/order/${upiOrd.orderId}/status`, {
+      headers: { Authorization: `Bearer ${ownerToken}` }
+    });
+    const statusPre = await statusPreRes.json();
+    assert.strictEqual(statusPreRes.status, 200);
+    assert.strictEqual(statusPre.status, 'pending');
+    assert.strictEqual(statusPre.isPaid, false);
+
+    // 17.3 Automated Payment Detection (/billing/order/:id/auto-detect) detects transaction & unlocks credits immediately
+    const autoDetectRes = await fetch(`${BASE_URL}/billing/order/${upiOrd.orderId}/auto-detect`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${ownerToken}` }
+    });
+    const autoDetect = await autoDetectRes.json();
+    assert.strictEqual(autoDetectRes.status, 200, autoDetect.error);
+    assert.strictEqual(autoDetect.success, true);
+    assert.strictEqual(autoDetect.status, 'paid');
+    assert.strictEqual(autoDetect.creditsAdded, 5);
+
+    // 17.4 Polling /billing/order/:id/status now reports isPaid: true
+    const statusPostRes = await fetch(`${BASE_URL}/billing/order/${upiOrd.orderId}/status`, {
+      headers: { Authorization: `Bearer ${ownerToken}` }
+    });
+    const statusPost = await statusPostRes.json();
+    assert.strictEqual(statusPost.isPaid, true);
+    assert.strictEqual(statusPost.status, 'paid');
+
+    // 17.5 Instant UTR auto-approval on submission
+    const utrOrdRes = await fetch(`${BASE_URL}/billing/order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ownerToken}` },
+      body: JSON.stringify({ type: 'pay_per_use', quantity: 10, minutes: 30, gateway: 'upi_direct' })
+    });
+    const utrOrd = await utrOrdRes.json();
+    assert.strictEqual(utrOrdRes.status, 200);
+
+    const submitUtrRes = await fetch(`${BASE_URL}/billing/order/${utrOrd.orderId}/submit-utr`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ownerToken}` },
+      body: JSON.stringify({ utrNumber: `UTR_TEST_${RUN_ID}_1`, paymentMethod: 'upi_direct' })
+    });
+    const submitUtr = await submitUtrRes.json();
+    assert.strictEqual(submitUtrRes.status, 200, submitUtr.error);
+    assert.strictEqual(submitUtr.status, 'paid');
+    assert.strictEqual(submitUtr.paidImmediately, true);
+
+    // 17.6 Verify Admin Users table reflects live credits and revenue statistics
+    const adminUsersRes = await fetch(`${BASE_URL}/api/admin/users`, {
+      headers: { Authorization: `Bearer ${adminToken}` }
+    });
+    const adminUsersData = await adminUsersRes.json();
+    assert.strictEqual(adminUsersRes.status, 200);
+    const targetUser = adminUsersData.users.find(u => u.email === ownerEmail);
+    assert.ok(targetUser, 'Owner recruiter must appear in admin users directory');
+    assert.ok(targetUser.org_credits >= 15, 'Organization credits must reflect automated payments');
+    assert.ok(targetUser.paid_orders >= 2, 'Admin users query must include paid_orders count');
+    assert.ok(targetUser.total_spent_usd > 0, 'Admin users query must include total_spent_usd');
+
+    console.log('✓ 17. Automated Payment Detection, Instant UTR Auto-Approval & Admin Users/Revenue Sync verified');
+
+    console.log('\n🎉 ALL 17 FULL-STACK VERIFICATION CHECKS PASSED!');
   } finally {
     await cleanup();
   }

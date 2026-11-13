@@ -1563,11 +1563,20 @@
           }
         }
 
+        const dsaSummary = (() => {
+          if (!item.dsa_result) return '';
+          let d = item.dsa_result;
+          if (typeof d === 'string') { try { d = JSON.parse(d); } catch { d = null; } }
+          if (!d || typeof d !== 'object') return `<span><i class="bi bi-code-slash"></i> Code Evaluated</span>`;
+          const col = d.verdict === 'ACCEPTED' ? '#16a34a' : (d.verdict === 'TIME_LIMIT_EXCEEDED' || d.verdict === 'MEMORY_LIMIT_EXCEEDED' ? '#d97706' : '#dc2626');
+          return `<span style="color:${col}; font-weight:700;"><i class="bi bi-cpu-fill"></i> ${escapeHtml(d.verdict || 'Evaluated')} (${d.passedCount ?? 0}/${d.totalCount ?? 0}) &middot; ${d.runtimeMs ?? 0}ms/${d.timeLimitMs || 2000}ms &middot; ${d.memoryMb ?? 0}MB/${d.memoryLimitMb || 256}MB</span>`;
+        })();
+
         const proctorMeta = customConfig.showProctor
           ? `<div style="display:flex; gap:0.5rem; flex-wrap:wrap; font-size:0.7rem; color:var(--text-muted);">
               ${item.duration_seconds ? `<span><i class="bi bi-stopwatch"></i> ${Math.max(1, Math.round(item.duration_seconds / 60))}m</span>` : ''}
               ${(item.proctor_warnings || 0) > 0 ? `<span style="color:#d97706; font-weight:600;"><i class="bi bi-exclamation-triangle-fill"></i> ${item.proctor_warnings} Proctor Warning(s)</span>` : ''}
-              ${item.dsa_result ? `<span><i class="bi bi-code-slash"></i> Code Lab Evaluated</span>` : ''}
+              ${dsaSummary}
             </div>`
           : '';
 
@@ -1920,6 +1929,59 @@
           </div>
         `).join('');
 
+        const dsaPerfHtml = (() => {
+          let d = null;
+          if (interview.dsa_result) {
+            if (typeof interview.dsa_result === 'string') { try { d = JSON.parse(interview.dsa_result); } catch {} }
+            else if (typeof interview.dsa_result === 'object') d = interview.dsa_result;
+          }
+          if (!d && report?.dsa_evaluation) {
+            const de = report.dsa_evaluation;
+            d = {
+              problemId: de.problem_id,
+              problemTitle: de.problem_title || `Problem #${de.problem_id}`,
+              lang: de.language,
+              mode: de.question_mode,
+              verdict: de.verdict,
+              passedCount: de.passed_tests,
+              totalCount: de.total_tests,
+              runtimeMs: de.runtime_ms,
+              timeLimitMs: de.time_limit_ms,
+              memoryMb: de.memory_mb,
+              memoryLimitMb: de.memory_limit_mb,
+              submissions: de.submissions
+            };
+          }
+          if (!d) return '';
+          const ok = d.verdict === 'ACCEPTED';
+          const isLim = d.verdict === 'TIME_LIMIT_EXCEEDED' || d.verdict === 'MEMORY_LIMIT_EXCEEDED';
+          const col = ok ? '#16a34a' : (isLim ? '#d97706' : '#dc2626');
+          const bg = ok ? '#f0fdf4' : (isLim ? '#fffbeb' : '#fef2f2');
+          const bd = ok ? '#86efac' : (isLim ? '#fcd34d' : '#fca5a5');
+          const subsHtml = d.submissions ? Object.values(d.submissions).map(s => `
+            <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.4rem; background:#fff; border:1px solid ${bd}; padding:0.35rem 0.6rem; border-radius:4px; font-size:0.74rem; margin-top:0.35rem;">
+              <span><strong>${escapeHtml(s.problemTitle || `Problem #${s.problemId}`)}</strong> (${escapeHtml((s.lang || '').toUpperCase())})</span>
+              <span><strong>${escapeHtml(s.verdict)}</strong> &middot; ${s.passedCount ?? 0}/${s.totalCount ?? 0} &middot; ${s.runtimeMs ?? 0}ms/${s.timeLimitMs || 2000}ms &middot; ${s.memoryMb ?? 0}MB/${s.memoryLimitMb || 256}MB</span>
+            </div>
+          `).join('') : '';
+          return `
+            <div style="background:${bg}; border:1.5px solid ${bd}; border-radius:8px; padding:0.85rem 1rem; margin-bottom:1rem;">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.45rem;">
+                <strong style="font-size:0.85rem; color:${col};"><i class="bi bi-cpu-fill"></i> Server Code Evaluation: ${escapeHtml(d.problemTitle || `Problem #${d.problemId || ''}`)}</strong>
+                <span class="badge" style="background:${col}; color:#fff; font-size:0.72rem; font-weight:700;">${escapeHtml(d.verdict || 'EVALUATED')} (${d.passedCount ?? 0}/${d.totalCount ?? 0} Tests Passed)</span>
+              </div>
+              <div style="display:flex; gap:1.25rem; flex-wrap:wrap; font-size:0.76rem; color:var(--text);">
+                <span><strong>Mode:</strong> ${d.mode === 'fix_bug' ? 'Fix Buggy Code' : 'Complete Solution'}</span>
+                <span><strong>Language:</strong> ${escapeHtml((d.lang || 'code').toUpperCase())}</span>
+                <span><strong>Runtime:</strong> ${d.runtimeMs ?? 0} ms / ${d.timeLimitMs || 2000} ms limit</span>
+                <span><strong>Memory:</strong> ${d.memoryMb ?? '0.00'} MB / ${d.memoryLimitMb || 256} MB limit</span>
+              </div>
+              ${subsHtml}
+              ${d.error ? `<div style="margin-top:0.45rem; font-size:0.72rem; color:#dc2626; font-family:monospace;">Error: ${escapeHtml(d.error)}</div>` : ''}
+            </div>
+          `;
+        })();
+
         const scoreDisp = (report && typeof report.overall_score === 'number') ? report.overall_score : (interview.state === 'disqualified' ? 0 : '--');
 
         content.innerHTML = `
@@ -1933,6 +1995,8 @@
               <strong style="font-size:1.45rem; color:#2563eb;">${scoreDisp}${scoreDisp !== '--' ? '/100' : ''}</strong>
             </div>
           </div>
+
+          ${dsaPerfHtml}
 
           <div style="margin-bottom:1rem;">
             <strong style="font-size:0.85rem; display:block; margin-bottom:0.35rem;">Executive Clarification:</strong>

@@ -352,6 +352,28 @@ export function initDatabase() {
       FOREIGN KEY (org_id) REFERENCES organizations(id)
     );
 
+    -- LeetCode Coding Bank (Topic-tagged, NO hints, NO company tags)
+    CREATE TABLE IF NOT EXISTS leetcode_problems (
+      id TEXT PRIMARY KEY,
+      frontend_id INTEGER NOT NULL,
+      slug TEXT UNIQUE NOT NULL,
+      title TEXT NOT NULL,
+      difficulty TEXT DEFAULT 'Medium',
+      topics_json TEXT DEFAULT '[]',
+      category TEXT DEFAULT 'Algorithms',
+      description TEXT NOT NULL,
+      constraints TEXT DEFAULT '',
+      examples_json TEXT DEFAULT '[]',
+      starter_json TEXT DEFAULT '{}',
+      buggy_starter_json TEXT DEFAULT '{}',
+      test_cases_json TEXT DEFAULT '[]',
+      function_name_json TEXT DEFAULT '{}',
+      time_limit_ms INTEGER DEFAULT 2000,
+      memory_limit_mb INTEGER DEFAULT 256,
+      source TEXT DEFAULT 'builtin',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE INDEX IF NOT EXISTS idx_interviews_token ON interviews(token_hash);
     CREATE INDEX IF NOT EXISTS idx_turns_interview ON turns(interview_id);
     CREATE INDEX IF NOT EXISTS idx_candidates_org ON candidates(org_id);
@@ -367,6 +389,8 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_proctor_snapshots_iv ON proctor_snapshots(interview_id);
     CREATE INDEX IF NOT EXISTS idx_report_shares_token ON report_shares(token_hash);
     CREATE INDEX IF NOT EXISTS idx_org_custom_problems_org ON org_custom_problems(org_id);
+    CREATE INDEX IF NOT EXISTS idx_leetcode_frontend_id ON leetcode_problems(frontend_id);
+    CREATE INDEX IF NOT EXISTS idx_leetcode_difficulty ON leetcode_problems(difficulty);
   `);
 
   // Auto-migration for existing tables
@@ -438,6 +462,11 @@ export function initDatabase() {
 
   // Automated LeetCode Judge & Coding Sandbox Results
   addColumn('interviews', 'dsa_result', 'TEXT');
+  addColumn('jobs', 'dsa_time_limit_ms', 'INTEGER DEFAULT 2000');
+  addColumn('jobs', 'dsa_memory_limit_mb', 'INTEGER DEFAULT 256');
+  addColumn('jobs', 'dsa_question_mode', "TEXT DEFAULT 'solve'");
+  addColumn('jobs', 'dsa_questions_count', 'INTEGER DEFAULT 1');
+  addColumn('jobs', 'dsa_blind_mode', 'INTEGER DEFAULT 1');
 
   // Results & Merit Ranking Customization
   addColumn('jobs', 'selected_threshold', 'INTEGER DEFAULT 70');

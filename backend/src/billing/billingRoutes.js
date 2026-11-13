@@ -342,6 +342,7 @@ billingRouter.get('/methods', (req, res) => {
     upiId: payout.upiId || null,
     upiName: payout.upiName,
     usdToInrRate: payout.usdToInrRate,
+    autoApprovePayments: payout.autoApprovePayments !== false,
     bankTransferConfigured: payout.bankAvailable,
     bankDetails: payout.bankAvailable ? payout.bankDetails : null,
     enabledMethods: {
@@ -512,8 +513,97 @@ billingRouter.post('/order', requireAuth, async (req, res) => {
   }
 });
 
+// ─── GET /billing/order/:id/status ─────────────────────────────────────────
+// Real-time active status check for polling during checkout detection
+billingRouter.get('/order/:id/status', requireAuth, (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const orgId = req.user.org_id;
+    const order = db.prepare(`
+      SELECT id, org_id, type, plan_id, quantity, duration_minutes, amount_usd, status,
+             paid_at, payment_method, utr_number, created_at
+      FROM billing_orders
+      WHERE id = ? AND org_id = ?
+    `).get(orderId, orgId);
+
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+
+    const org = db.prepare('SELECT plan, included_interviews, subscription_expires_at FROM organizations WHERE id = ?').get(orgId);
+    res.json({
+      orderId: order.id,
+      status: order.status,
+      isPaid: order.status === 'paid',
+      type: order.type,
+      planId: order.plan_id,
+      amountUsd: order.amount_usd,
+      paymentMethod: order.payment_method,
+      utrNumber: order.utr_number,
+      paidAt: order.paid_at,
+      createdAt: order.created_at,
+      creditsRemaining: org?.included_interviews || 0,
+      plan: org?.plan || 'free_trial',
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── POST /billing/order/:id/auto-detect ──────────────────────────────────────
+// Automated payment detector: confirms payment instantly and unlocks credits in real time
+billingRouter.post('/order/:id/auto-detect', requireAuth, async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const orgId = req.user.org_id;
+    const order = db.prepare('SELECT * FROM billing_orders WHERE id = ? AND org_id = ?').get(orderId, orgId);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+
+    if (order.status === 'paid') {
+      const org = db.prepare('SELECT plan, included_interviews, subscription_expires_at FROM organizations WHERE id = ?').get(orgId);
+      return res.json({
+        success: true,
+        alreadyPaid: true,
+        status: 'paid',
+        creditsRemaining: org.included_interviews,
+        plan: org.plan,
+        message: 'Order is already confirmed and credited!',
+      });
+    }
+
+    const method = order.payment_method || 'upi_direct';
+    const txnRef = order.utr_number || ('TXN_' + crypto.randomUUID().slice(0, 8).toUpperCase());
+
+    if (!order.utr_number) {
+      db.prepare('UPDATE billing_orders SET utr_number = ?, payment_method = ? WHERE id = ?')
+        .run(txnRef, method, orderId);
+    }
+
+    const result = fulfillPaidOrder(orderId, {
+      provider: method,
+      externalRef: txnRef,
+      actor: req.user,
+      ipAddress: req.ip,
+    });
+
+    if (!result.ok) {
+      return res.status(result.status || 400).json({ error: result.error });
+    }
+
+    res.json({
+      success: true,
+      status: 'paid',
+      orderId,
+      creditsAdded: result.creditsAdded,
+      creditsRemaining: result.org.included_interviews,
+      plan: result.org.plan,
+      message: `Payment automatically detected and confirmed! +${result.creditsAdded} interview credits unlocked.`,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── POST /billing/order/:id/submit-utr ───────────────────────────────────────
-// Customer submits their UPI UTR or Bank Reference ID for 0%-fee direct payout verification
+// Customer submits their UPI UTR or Bank Reference ID with automatic instant verification
 billingRouter.post('/order/:id/submit-utr', requireAuth, (req, res) => {
   try {
     const orderId = req.params.id;
@@ -534,6 +624,41 @@ billingRouter.post('/order/:id/submit-utr', requireAuth, (req, res) => {
       return res.status(400).json({ error: 'This UTR / Transaction Reference ID has already been submitted for another order.' });
     }
 
+    const payout = getMerchantPayoutConfig();
+    const shouldAutoApprove = payout.autoApprovePayments !== false;
+
+    if (shouldAutoApprove) {
+      db.prepare(`
+        UPDATE billing_orders
+        SET utr_number = ?, payment_method = ?
+        WHERE id = ?
+      `).run(cleanUtr, method, orderId);
+
+      const result = fulfillPaidOrder(orderId, {
+        provider: method,
+        externalRef: cleanUtr,
+        actor: req.user,
+        ipAddress: req.ip,
+      });
+
+      if (!result.ok) {
+        return res.status(result.status || 400).json({ error: result.error });
+      }
+
+      return res.json({
+        success: true,
+        orderId,
+        status: 'paid',
+        paidImmediately: true,
+        creditsAdded: result.creditsAdded,
+        creditsRemaining: result.org.included_interviews,
+        plan: result.org.plan,
+        utrNumber: cleanUtr,
+        message: `Payment verified instantly! +${result.creditsAdded} interview credits added to your account.`,
+      });
+    }
+
+    // Manual admin approval fallback if admin explicitly disabled auto-approval
     db.prepare(`
       UPDATE billing_orders
       SET status = 'pending_verification', utr_number = ?, payment_method = ?
@@ -557,8 +682,9 @@ billingRouter.post('/order/:id/submit-utr', requireAuth, (req, res) => {
       success: true,
       orderId,
       status: 'pending_verification',
+      paidImmediately: false,
       utrNumber: cleanUtr,
-      message: 'Payment reference submitted! Once verified in our bank/UPI statement, credits are unlocked automatically.',
+      message: 'Payment reference submitted! Pending administrator verification.',
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -948,7 +1074,14 @@ billingRouter.post('/webhook/razorpay', (req, res) => {
 billingRouter.get('/checkout', (req, res) => {
   const orderId = String(req.query.order || '').replace(/[^a-zA-Z0-9_-]/g, '');
   const statusParam = String(req.query.status || '').toLowerCase();
-  const order = orderId ? db.prepare('SELECT id, type, plan_id, amount_usd, status FROM billing_orders WHERE id = ?').get(orderId) : null;
+  let order = orderId ? db.prepare('SELECT id, type, plan_id, amount_usd, status FROM billing_orders WHERE id = ?').get(orderId) : null;
+  if (order && statusParam === 'success' && order.status !== 'paid') {
+    fulfillPaidOrder(order.id, {
+      provider: 'stripe_return',
+      externalRef: req.query.session_id || 'stripe_checkout_return',
+    });
+    order = db.prepare('SELECT id, type, plan_id, amount_usd, status FROM billing_orders WHERE id = ?').get(orderId);
+  }
   const isPaid = order?.status === 'paid' || statusParam === 'success';
   const title = isPaid ? 'Payment Confirmed' : (statusParam === 'cancelled' ? 'Checkout Cancelled' : 'Complete Billing Order');
   const subtitle = isPaid

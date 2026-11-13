@@ -63,6 +63,7 @@ export function getEffectivePaymentConfig() {
   const enableUpiDirect = flagEnabled('payment_enable_upi_direct', true);
   const enableBankTransfer = flagEnabled('payment_enable_bank_transfer', true);
   const enableRazorpay = flagEnabled('payment_enable_razorpay', true);
+  const autoApprovePayments = flagEnabled('payment_auto_approve', true);
 
   return {
     upiId,
@@ -80,6 +81,7 @@ export function getEffectivePaymentConfig() {
     enableUpiDirect,
     enableBankTransfer,
     enableRazorpay,
+    autoApprovePayments,
     stripeConfigured: enableCard && Boolean(stripeSecretKey),
     razorpayConfigured: enableRazorpay && Boolean(razorpayKeyId && razorpayKeySecret),
     upiDirectConfigured: enableUpiDirect && Boolean(upiId),

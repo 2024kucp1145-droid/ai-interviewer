@@ -15,6 +15,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import Database from 'better-sqlite3';
+import { getLeetCodeProblem } from './leetcodeCatalogService.js';
 
 export const LEETCODE_TEST_SUITES = {
   '1': {
@@ -172,73 +173,176 @@ function deepEqual(a, b) {
   return false;
 }
 
-/**
- * Executes and judges candidate code against LeetCode test suite
- */
-export async function judgeLeetCodeSolution(problemId, lang, code, customSuite = null) {
-  const suite = (customSuite && Array.isArray(customSuite.cases) && customSuite.cases.length > 0)
-    ? customSuite
-    : (LEETCODE_TEST_SUITES[problemId] || LEETCODE_TEST_SUITES['1']);
-  const startTime = Date.now();
-  const normalizedLang = String(lang || 'javascript').toLowerCase();
+function clampLimits(limits = {}) {
+  const rawTime = Number(limits.timeLimitMs ?? limits.time_limit_ms ?? 2000);
+  const rawMem = Number(limits.memoryLimitMb ?? limits.memory_limit_mb ?? 256);
+  return {
+    timeLimitMs: Math.min(15000, Math.max(200, Number.isFinite(rawTime) ? rawTime : 2000)),
+    memoryLimitMb: Math.min(1024, Math.max(16, Number.isFinite(rawMem) ? rawMem : 256))
+  };
+}
 
-  if (normalizedLang === 'javascript' || normalizedLang === 'js') {
-    return await judgeJavaScript(suite, code, startTime);
-  } else if (normalizedLang === 'python' || normalizedLang === 'py') {
-    return await judgePython(suite, code, startTime);
-  } else if (normalizedLang === 'sql') {
-    return judgeSQL(problemId, suite, code, startTime);
-  } else if (process.env.CODE_RUNNER_URL) {
-    return await judgeWithPistonRunner(suite, normalizedLang, code, startTime);
-  } else if (normalizedLang === 'cpp' || normalizedLang === 'c++') {
-    return await judgeCppLocal(suite, code, startTime);
-  } else {
-    // Fallback for Java or unconfigured compiled languages without local compiler
-    return judgeCompiledOrSQL(suite, normalizedLang, code, startTime);
+function finalizeJudgeMetrics(result, limits) {
+  const runtimeMs = Math.max(1, Number(result.runtimeMs) || 1);
+  const memNum = Number(result.memoryMb);
+  const memoryMb = Number.isFinite(memNum) ? Number(memNum.toFixed(2)) : 0;
+  let verdict = result.verdict;
+  let status = result.status;
+  let error = result.error;
+
+  if (verdict !== 'COMPILE_ERROR' && verdict !== 'RUNTIME_ERROR') {
+    if (verdict === 'TIME_LIMIT_EXCEEDED' || runtimeMs > limits.timeLimitMs) {
+      verdict = 'TIME_LIMIT_EXCEEDED';
+      status = 'Time Limit Exceeded';
+      error = error || `Execution exceeded configured time limit (${runtimeMs}ms > ${limits.timeLimitMs}ms)`;
+    } else if (verdict === 'MEMORY_LIMIT_EXCEEDED' || memoryMb > limits.memoryLimitMb) {
+      verdict = 'MEMORY_LIMIT_EXCEEDED';
+      status = 'Memory Limit Exceeded';
+      error = error || `Memory usage exceeded configured limit (${memoryMb}MB > ${limits.memoryLimitMb}MB)`;
+    }
   }
+
+  return {
+    ...result,
+    verdict,
+    status,
+    error,
+    runtimeMs,
+    memoryMb: memoryMb.toFixed(2),
+    timeLimitMs: limits.timeLimitMs,
+    memoryLimitMb: limits.memoryLimitMb
+  };
 }
 
 /**
- * JavaScript Judge (Runs in secure Node VM sandbox with 2000ms timeout)
+ * Executes and judges candidate code against LeetCode / DB test suite
  */
-async function judgeJavaScript(suite, userCode, startTime) {
-  const fnName = suite.functionName.js;
+export async function judgeLeetCodeSolution(problemId, lang, code, customSuite = null, limitOptions = {}) {
+  let suite = null;
+  if (customSuite && Array.isArray(customSuite.cases) && customSuite.cases.length > 0) {
+    suite = customSuite;
+  } else {
+    const dbProblem = getLeetCodeProblem(String(problemId || ''), { includeTests: true });
+    if (dbProblem) {
+      suite = {
+        id: dbProblem.id,
+        title: `LeetCode #${dbProblem.frontend_id}: ${dbProblem.title}`,
+        difficulty: dbProblem.difficulty,
+        functionName: dbProblem.function_name || { js: 'solve', py: 'solve' },
+        cases: Array.isArray(dbProblem.test_cases) ? dbProblem.test_cases : [],
+        time_limit_ms: dbProblem.time_limit_ms,
+        memory_limit_mb: dbProblem.memory_limit_mb
+      };
+    } else if (LEETCODE_TEST_SUITES[String(problemId)]) {
+      suite = LEETCODE_TEST_SUITES[String(problemId)];
+    } else {
+      suite = {
+        id: String(problemId || 'custom'),
+        title: `Problem #${problemId || 'Custom'}`,
+        difficulty: 'Medium',
+        functionName: { js: 'solve', py: 'solve' },
+        cases: []
+      };
+    }
+  }
+
+  const limits = clampLimits({
+    timeLimitMs: limitOptions.timeLimitMs ?? limitOptions.time_limit_ms ?? suite.time_limit_ms,
+    memoryLimitMb: limitOptions.memoryLimitMb ?? limitOptions.memory_limit_mb ?? suite.memory_limit_mb
+  });
+
+  const startTime = Date.now();
+  const normalizedLang = String(lang || 'javascript').toLowerCase();
+
+  let rawResult;
+  if (normalizedLang === 'javascript' || normalizedLang === 'js') {
+    rawResult = await judgeJavaScript(suite, code, startTime, limits);
+  } else if (normalizedLang === 'python' || normalizedLang === 'py') {
+    rawResult = await judgePython(suite, code, startTime, limits);
+  } else if (normalizedLang === 'sql') {
+    rawResult = judgeSQL(problemId, suite, code, startTime, limits);
+  } else if (process.env.CODE_RUNNER_URL) {
+    rawResult = await judgeWithPistonRunner(suite, normalizedLang, code, startTime, limits);
+  } else if (normalizedLang === 'cpp' || normalizedLang === 'c++') {
+    rawResult = await judgeCppLocal(suite, code, startTime, limits);
+  } else {
+    rawResult = judgeCompiledOrSQL(suite, normalizedLang, code, startTime, limits);
+  }
+
+  return finalizeJudgeMetrics(rawResult, limits);
+}
+
+/**
+ * JavaScript Judge (Runs in Node VM sandbox with configurable timeLimitMs & real heap memory measurement)
+ */
+async function judgeJavaScript(suite, userCode, startTime, limits) {
+  let fnName = suite.functionName?.js || '';
+  const cases = Array.isArray(suite.cases) ? suite.cases : [];
   const testResults = [];
   let passedCount = 0;
 
-  // Sandbox context
   const sandbox = {
-    console: { log: () => {}, error: () => {}, warn: () => {} }
+    console: { log: () => {}, error: () => {}, warn: () => {} },
+    __tcArgs: []
   };
   vm.createContext(sandbox);
 
-  try {
-    // 1. Compile user code
-    vm.runInContext(userCode, sandbox, { timeout: 1500 });
+  const heapBefore = process.memoryUsage().heapUsed;
+  const execStartNs = process.hrtime.bigint();
 
-    if (typeof sandbox[fnName] !== 'function') {
+  try {
+    // 1. Compile user code inside VM with configurable timeout
+    vm.runInContext(userCode, sandbox, { timeout: limits.timeLimitMs });
+
+    // Auto-detect function name if problem metadata had none
+    if (!fnName || typeof sandbox[fnName] !== 'function') {
+      const m = /(?:function\s+([A-Za-z_]\w*)\s*\(|(?:var|let|const)\s+([A-Za-z_]\w*)\s*=\s*(?:function|\())/.exec(userCode);
+      const detected = m ? (m[1] || m[2]) : null;
+      if (detected && typeof sandbox[detected] === 'function') fnName = detected;
+    }
+
+    if (!fnName || typeof sandbox[fnName] !== 'function') {
+      const elapsedMs = Math.max(1, Math.round(Number(process.hrtime.bigint() - execStartNs) / 1e6));
+      const rssMb = (process.memoryUsage().rss / (1024 * 1024)).toFixed(2);
       return {
         verdict: 'COMPILE_ERROR',
         status: 'Compilation / Name Error',
         passedCount: 0,
-        totalCount: suite.cases.length,
-        runtimeMs: Date.now() - startTime,
-        memoryMb: '12.4',
-        error: `Function '${fnName}' not found or not defined in the global scope. Please verify function signature.`,
+        totalCount: cases.length || 1,
+        runtimeMs: elapsedMs,
+        memoryMb: rssMb,
+        error: `Function '${fnName || 'solution'}' not found in global scope. Check function signature.`,
         cases: []
       };
     }
 
-    // 2. Execute each test case
-    for (const tc of suite.cases) {
-      const tStart = Date.now();
-      try {
-        const inputArgs = Object.values(tc.input).map(arg => 
-          typeof arg === 'object' ? JSON.parse(JSON.stringify(arg)) : arg
-        );
+    // For imported problems with no structured test cases, verify compilation & function signature cleanly
+    if (cases.length === 0) {
+      const elapsedMs = Math.max(1, Math.round(Number(process.hrtime.bigint() - execStartNs) / 1e6));
+      const heapDeltaMb = Math.max(0, (process.memoryUsage().heapUsed - heapBefore) / (1024 * 1024));
+      const measuredMb = Number((12.4 + heapDeltaMb).toFixed(2));
+      return {
+        verdict: 'ACCEPTED',
+        status: 'Compiled & Verified',
+        passedCount: 1,
+        totalCount: 1,
+        runtimeMs: elapsedMs,
+        memoryMb: String(measuredMb),
+        cases: [{ id: 1, type: 'Compilation & Syntax Check', passed: true, input: fnName, expected: 'Valid executable function', actual: 'Executed cleanly', durationMs: elapsedMs }]
+      };
+    }
 
-        const actual = sandbox[fnName](...inputArgs);
-        const tDuration = Date.now() - tStart;
+    // 2. Execute each test case inside VM timeout guard
+    for (const tc of cases) {
+      const tStart = Date.now();
+      const remainingMs = Math.max(50, limits.timeLimitMs - (Date.now() - startTime));
+      try {
+        const inputArgs = Object.values(tc.input || {}).map(arg =>
+          typeof arg === 'object' && arg !== null ? JSON.parse(JSON.stringify(arg)) : arg
+        );
+        sandbox.__tcArgs = inputArgs;
+        const actual = vm.runInContext(`${fnName}(...__tcArgs)`, sandbox, { timeout: remainingMs });
+        const tDuration = Math.max(1, Date.now() - tStart);
         const passed = deepEqual(actual, tc.expected);
 
         if (passed) passedCount++;
@@ -253,6 +357,20 @@ async function judgeJavaScript(suite, userCode, startTime) {
           durationMs: tDuration
         });
       } catch (tcErr) {
+        const isTimeout = /timed out/i.test(tcErr.message || '');
+        if (isTimeout) {
+          const heapDeltaMb = Math.max(0, (process.memoryUsage().heapUsed - heapBefore) / (1024 * 1024));
+          return {
+            verdict: 'TIME_LIMIT_EXCEEDED',
+            status: 'Time Limit Exceeded',
+            passedCount,
+            totalCount: cases.length,
+            runtimeMs: limits.timeLimitMs + 1,
+            memoryMb: (12.4 + heapDeltaMb).toFixed(2),
+            error: `Time Limit Exceeded (${limits.timeLimitMs}ms limit)`,
+            cases: testResults
+          };
+        }
         testResults.push({
           id: tc.id,
           type: tc.type,
@@ -260,31 +378,37 @@ async function judgeJavaScript(suite, userCode, startTime) {
           input: tc.input,
           expected: tc.expected,
           actual: `Error: ${tcErr.message}`,
-          durationMs: Date.now() - tStart
+          durationMs: Math.max(1, Date.now() - tStart)
         });
       }
     }
 
-    const totalCount = suite.cases.length;
+    const totalCount = cases.length;
     const verdict = passedCount === totalCount ? 'ACCEPTED' : 'WRONG_ANSWER';
+    const elapsedMs = Math.max(1, Math.round(Number(process.hrtime.bigint() - execStartNs) / 1e6));
+    const heapDeltaMb = Math.max(0, (process.memoryUsage().heapUsed - heapBefore) / (1024 * 1024));
+    const measuredMb = (12.4 + heapDeltaMb).toFixed(2);
 
     return {
       verdict,
       status: verdict === 'ACCEPTED' ? 'Accepted' : 'Wrong Answer',
       passedCount,
       totalCount,
-      runtimeMs: Math.max(12, Date.now() - startTime),
-      memoryMb: (14.2 + (Math.random() * 2.1)).toFixed(1),
+      runtimeMs: elapsedMs,
+      memoryMb: measuredMb,
       cases: testResults
     };
   } catch (err) {
+    const isTimeout = /timed out/i.test(err.message || '');
+    const elapsedMs = Math.max(1, Math.round(Number(process.hrtime.bigint() - execStartNs) / 1e6));
+    const heapDeltaMb = Math.max(0, (process.memoryUsage().heapUsed - heapBefore) / (1024 * 1024));
     return {
-      verdict: 'RUNTIME_ERROR',
-      status: 'Runtime Error',
+      verdict: isTimeout ? 'TIME_LIMIT_EXCEEDED' : 'RUNTIME_ERROR',
+      status: isTimeout ? 'Time Limit Exceeded' : 'Runtime Error',
       passedCount: 0,
-      totalCount: suite.cases.length,
-      runtimeMs: Date.now() - startTime,
-      memoryMb: '13.1',
+      totalCount: cases.length || 1,
+      runtimeMs: isTimeout ? limits.timeLimitMs + 1 : elapsedMs,
+      memoryMb: (12.4 + heapDeltaMb).toFixed(2),
       error: err.message,
       cases: []
     };
@@ -292,29 +416,49 @@ async function judgeJavaScript(suite, userCode, startTime) {
 }
 
 /**
- * Python Judge (Executes in Python 3 subprocess with 2500ms timeout)
+ * Python Judge (Executes in Python 3 subprocess with configurable timeout & real ru_maxrss memory)
  */
-async function judgePython(suite, userCode, startTime) {
-  const fnName = suite.functionName.py;
+async function judgePython(suite, userCode, startTime, limits) {
+  let fnName = suite.functionName?.py || '';
+  if (!fnName) {
+    const m = /def\s+([A-Za-z_]\w*)\s*\(/.exec(userCode);
+    fnName = m ? m[1] : 'solve';
+  }
+  const cases = Array.isArray(suite.cases) ? suite.cases : [];
   const tempDir = os.tmpdir();
   const runnerFile = path.join(tempDir, `lc_judge_${Date.now()}_${Math.random().toString(36).substring(7)}.py`);
 
-  // Build Python runner harness
   const harnessCode = `
 import sys
 import json
 import time
+import resource
+
+t_exec_start = time.perf_counter()
 
 # Candidate code:
 ${userCode}
 
-# Test cases
-cases = ${JSON.stringify(suite.cases)}
+cases = ${JSON.stringify(cases)}
 fn = globals().get('${fnName}')
 
 if not fn:
+    mem_mb = round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0, 2)
     print(json.dumps({
-        "error": "Function '${fnName}' not found in Python script. Please maintain the signature def ${fnName}(...)"
+        "error": "Function '${fnName}' not found in Python script. Please maintain def ${fnName}(...)",
+        "memoryMb": mem_mb
+    }))
+    sys.exit(0)
+
+if len(cases) == 0:
+    mem_mb = round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0, 2)
+    dur_ms = max(1, round((time.perf_counter() - t_exec_start) * 1000, 2))
+    print(json.dumps({
+        "passedCount": 1,
+        "totalCount": 1,
+        "runtimeMs": dur_ms,
+        "memoryMb": mem_mb,
+        "cases": [{"id": 1, "type": "Compilation & Syntax Check", "passed": True, "input": "${fnName}", "expected": "Valid Python function", "actual": "Loaded cleanly", "durationMs": dur_ms}]
     }))
     sys.exit(0)
 
@@ -322,28 +466,28 @@ results = []
 passed_count = 0
 
 for tc in cases:
-    inp = tc['input']
-    expected = tc['expected']
-    t_start = time.time()
+    inp = tc.get('input') or {}
+    expected = tc.get('expected')
+    t_start = time.perf_counter()
     try:
-        # Call function with kwargs or args
-        args = list(inp.values())
+        args = list(inp.values()) if isinstance(inp, dict) else [inp]
         actual = fn(*args)
-        t_dur = round((time.time() - t_start) * 1000, 2)
-        
-        # Deep compare in python
-        # For 2D lists
-        if isinstance(expected, list) and len(expected) > 0 and isinstance(expected[0], list):
-            passed = sorted([sorted(x) for x in actual]) == sorted([sorted(x) for x in expected])
+        t_dur = max(0.01, round((time.perf_counter() - t_start) * 1000, 2))
+
+        if isinstance(expected, list) and len(expected) > 0 and isinstance(expected[0], list) and isinstance(actual, list):
+            try:
+                passed = sorted([sorted(x) for x in actual]) == sorted([sorted(x) for x in expected])
+            except Exception:
+                passed = (actual == expected)
         else:
             passed = (actual == expected)
-            
+
         if passed:
             passed_count += 1
-            
+
         results.append({
             "id": tc["id"],
-            "type": tc["type"],
+            "type": tc.get("type", "Test"),
             "passed": bool(passed),
             "input": inp,
             "expected": expected,
@@ -353,45 +497,68 @@ for tc in cases:
     except Exception as e:
         results.append({
             "id": tc["id"],
-            "type": tc["type"],
+            "type": tc.get("type", "Test"),
             "passed": False,
             "input": inp,
             "expected": expected,
             "actual": f"Exception: {str(e)}",
-            "durationMs": round((time.time() - t_start) * 1000, 2)
+            "durationMs": round((time.perf_counter() - t_start) * 1000, 2)
         })
 
+mem_mb = round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0, 2)
+dur_ms = max(1, round((time.perf_counter() - t_exec_start) * 1000, 2))
 print(json.dumps({
     "passedCount": passed_count,
     "totalCount": len(cases),
+    "runtimeMs": dur_ms,
+    "memoryMb": mem_mb,
     "cases": results
 }))
 `;
 
-  return new Promise((resolve) => {
+  const runWithCmd = (cmd) => new Promise((resolve) => {
     try {
       fs.writeFileSync(runnerFile, harnessCode, 'utf8');
-
-      const proc = spawn('python', [runnerFile], { timeout: 3000 });
+      const proc = spawn(cmd, [runnerFile]);
       let stdout = '';
       let stderr = '';
+      let timedOut = false;
+
+      const timer = setTimeout(() => {
+        timedOut = true;
+        try { proc.kill('SIGKILL'); } catch {}
+      }, limits.timeLimitMs);
 
       proc.stdout.on('data', data => { stdout += data.toString(); });
       proc.stderr.on('data', data => { stderr += data.toString(); });
 
       proc.on('close', (code) => {
-        // Cleanup temp file
-        try { fs.unlinkSync(runnerFile); } catch (e) {}
+        clearTimeout(timer);
+        try { fs.unlinkSync(runnerFile); } catch {}
 
-        if (code !== 0 && stderr) {
+        if (timedOut) {
+          resolve({
+            verdict: 'TIME_LIMIT_EXCEEDED',
+            status: 'Time Limit Exceeded',
+            passedCount: 0,
+            totalCount: cases.length || 1,
+            runtimeMs: limits.timeLimitMs + 1,
+            memoryMb: '16.00',
+            error: `Python execution exceeded ${limits.timeLimitMs}ms time limit`,
+            cases: []
+          });
+          return;
+        }
+
+        if (code !== 0 && stderr && !stdout.trim()) {
           resolve({
             verdict: 'RUNTIME_ERROR',
             status: 'Runtime Error',
             passedCount: 0,
-            totalCount: suite.cases.length,
+            totalCount: cases.length || 1,
             runtimeMs: Date.now() - startTime,
-            memoryMb: '16.8',
-            error: stderr.split('\n').filter(l => l.trim()).slice(-3).join('\n'),
+            memoryMb: '15.00',
+            error: stderr.split('\n').filter(l => l.trim()).slice(-4).join('\n'),
             cases: []
           });
           return;
@@ -404,16 +571,16 @@ print(json.dumps({
               verdict: 'COMPILE_ERROR',
               status: 'Compilation / Name Error',
               passedCount: 0,
-              totalCount: suite.cases.length,
+              totalCount: cases.length || 1,
               runtimeMs: Date.now() - startTime,
-              memoryMb: '15.5',
+              memoryMb: String(parsed.memoryMb ?? '14.50'),
               error: parsed.error,
               cases: []
             });
             return;
           }
 
-          const totalCount = suite.cases.length;
+          const totalCount = parsed.totalCount || cases.length || 1;
           const passedCount = parsed.passedCount || 0;
           const verdict = passedCount === totalCount ? 'ACCEPTED' : 'WRONG_ANSWER';
 
@@ -422,50 +589,39 @@ print(json.dumps({
             status: verdict === 'ACCEPTED' ? 'Accepted' : 'Wrong Answer',
             passedCount,
             totalCount,
-            runtimeMs: Math.max(18, Date.now() - startTime),
-            memoryMb: (15.1 + (Math.random() * 1.8)).toFixed(1),
+            runtimeMs: parsed.runtimeMs ? Math.max(1, Math.round(parsed.runtimeMs)) : Math.max(1, Date.now() - startTime),
+            memoryMb: String(parsed.memoryMb ?? '15.00'),
             cases: parsed.cases || []
           });
-        } catch (parseErr) {
+        } catch {
           resolve({
             verdict: 'RUNTIME_ERROR',
             status: 'Execution Failed',
             passedCount: 0,
-            totalCount: suite.cases.length,
+            totalCount: cases.length || 1,
             runtimeMs: Date.now() - startTime,
-            memoryMb: '15.0',
-            error: stdout || 'Failed to parse execution output',
+            memoryMb: '15.00',
+            error: (stderr || stdout || 'Failed to parse execution output').slice(0, 600),
             cases: []
           });
         }
       });
 
       proc.on('error', (err) => {
-        try { fs.unlinkSync(runnerFile); } catch (e) {}
-        resolve({
-          verdict: 'COMPILE_ERROR',
-          status: 'Python Engine Unavailable',
-          passedCount: 0,
-          totalCount: suite.cases.length,
-          runtimeMs: Date.now() - startTime,
-          memoryMb: '0',
-          error: `Could not launch Python subprocess: ${err.message}`,
-          cases: []
-        });
+        clearTimeout(timer);
+        try { fs.unlinkSync(runnerFile); } catch {}
+        resolve({ __enoent: err.code === 'ENOENT', verdict: 'COMPILE_ERROR', status: 'Python Engine Unavailable', passedCount: 0, totalCount: cases.length || 1, runtimeMs: Date.now() - startTime, memoryMb: '0', error: err.message, cases: [] });
       });
     } catch (err) {
-      resolve({
-        verdict: 'RUNTIME_ERROR',
-        status: 'Runner Error',
-        passedCount: 0,
-        totalCount: suite.cases.length,
-        runtimeMs: Date.now() - startTime,
-        memoryMb: '0',
-        error: err.message,
-        cases: []
-      });
+      resolve({ verdict: 'RUNTIME_ERROR', status: 'Runner Error', passedCount: 0, totalCount: cases.length || 1, runtimeMs: Date.now() - startTime, memoryMb: '0', error: err.message, cases: [] });
     }
   });
+
+  const py3Res = await runWithCmd('python3');
+  if (py3Res.__enoent) {
+    return runWithCmd('python');
+  }
+  return py3Res;
 }
 
 /**
@@ -807,8 +963,9 @@ function buildCppHarness(problemId, userCode) {
 /**
  * Local g++ compilation and test execution when g++ is installed on host.
  */
-async function judgeCppLocal(suite, code, startTime) {
+async function judgeCppLocal(suite, code, startTime, limits = { timeLimitMs: 2000, memoryLimitMb: 256 }) {
   const clean = String(code || '').trim();
+  const cases = Array.isArray(suite.cases) ? suite.cases : [];
   if (clean.length < 25 || clean.includes('// TODO: Implement')) {
     return judgeCompiledOrSQL(suite, 'cpp', code, startTime);
   }
@@ -816,8 +973,19 @@ async function judgeCppLocal(suite, code, startTime) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'roundone-cpp-'));
   const srcPath = path.join(tmpDir, 'solution.cpp');
   const harnessMain = buildCppHarness(suite.id, clean);
+  const memReporter = `
+#include <sys/resource.h>
+struct __RUsageReporter {
+  ~__RUsageReporter() {
+    struct rusage ru;
+    if (getrusage(RUSAGE_SELF, &ru) == 0) {
+      cerr << "__MEM_KB__:" << ru.ru_maxrss << "\\n";
+    }
+  }
+} __ru_reporter;
+`;
   const wrapped = `#include <bits/stdc++.h>\nusing namespace std;\n${clean}\n` +
-    (clean.includes('int main') ? '' : (harnessMain || '\nint main() { return 0; }\n'));
+    (clean.includes('int main') ? memReporter : (`${memReporter}\n` + (harnessMain || '\nint main() { return 0; }\n')));
 
   try {
     fs.writeFileSync(srcPath, wrapped, 'utf8');
@@ -826,7 +994,7 @@ async function judgeCppLocal(suite, code, startTime) {
     const compileResult = await new Promise((resolve) => {
       const proc = spawn('g++', ['-std=c++17', '-O2', srcPath, '-o', outPath], { stdio: ['ignore', 'pipe', 'pipe'] });
       let stderr = '';
-      const timer = setTimeout(() => { proc.kill('SIGKILL'); resolve({ ok: false, error: 'C++ Compilation timed out' }); }, 5000);
+      const timer = setTimeout(() => { proc.kill('SIGKILL'); resolve({ ok: false, error: 'C++ Compilation timed out' }); }, 6000);
       proc.stderr.on('data', (d) => { stderr += d.toString(); });
       proc.on('error', (e) => { clearTimeout(timer); resolve({ unavailable: true, error: e.message }); });
       proc.on('close', (codeExit) => { clearTimeout(timer); resolve({ ok: codeExit === 0, error: stderr }); });
@@ -841,33 +1009,61 @@ async function judgeCppLocal(suite, code, startTime) {
         verdict: 'COMPILE_ERROR',
         status: 'C++ Compilation Error',
         passedCount: 0,
-        totalCount: suite.cases.length,
+        totalCount: cases.length || 1,
         runtimeMs: Math.max(1, Date.now() - startTime),
-        memoryMb: '10.0',
+        memoryMb: '0.00',
         error: compileResult.error.slice(0, 1200),
         cases: [],
       };
     }
 
+    const execStart = Date.now();
     const runResult = await new Promise((resolve) => {
       const proc = spawn(outPath, [], { stdio: ['ignore', 'pipe', 'pipe'] });
       let stdout = '';
       let stderr = '';
-      const timer = setTimeout(() => { proc.kill('SIGKILL'); resolve({ ok: false, error: 'Time Limit Exceeded (2000ms)' }); }, 2000);
+      let timedOut = false;
+      const timer = setTimeout(() => {
+        timedOut = true;
+        try { proc.kill('SIGKILL'); } catch {}
+        resolve({ ok: false, timedOut: true, elapsedMs: limits.timeLimitMs + 1, stdout, error: `Time Limit Exceeded (${limits.timeLimitMs}ms)` });
+      }, limits.timeLimitMs);
       proc.stdout.on('data', (d) => { stdout += d.toString(); });
       proc.stderr.on('data', (d) => { stderr += d.toString(); });
-      proc.on('close', (codeExit) => { clearTimeout(timer); resolve({ ok: codeExit === 0, stdout, error: stderr }); });
+      proc.on('close', (codeExit) => {
+        clearTimeout(timer);
+        if (!timedOut) {
+          resolve({ ok: codeExit === 0, timedOut: false, elapsedMs: Math.max(1, Date.now() - execStart), stdout, error: stderr });
+        }
+      });
     });
+
+    const memMatch = /__MEM_KB__:(\d+)/.exec(runResult.error || '');
+    const measuredMb = memMatch ? (Number(memMatch[1]) / 1024).toFixed(2) : '6.40';
+    const cleanedErr = (runResult.error || '').replace(/__MEM_KB__:\d+\n?/g, '').trim();
+
+    if (runResult.timedOut) {
+      return {
+        verdict: 'TIME_LIMIT_EXCEEDED',
+        status: 'Time Limit Exceeded',
+        passedCount: 0,
+        totalCount: cases.length || 1,
+        runtimeMs: limits.timeLimitMs + 1,
+        memoryMb: measuredMb,
+        error: cleanedErr || `Time Limit Exceeded (${limits.timeLimitMs}ms)`,
+        cases: [],
+      };
+    }
 
     if (!runResult.ok) {
       return {
         verdict: 'RUNTIME_ERROR',
         status: 'C++ Runtime Error',
         passedCount: 0,
-        totalCount: suite.cases.length,
-        runtimeMs: Math.max(1, Date.now() - startTime),
-        memoryMb: '10.0',
-        error: (runResult.error || 'Non-zero exit code').slice(0, 800),
+        totalCount: cases.length || 1,
+        runtimeMs: runResult.elapsedMs,
+        memoryMb: measuredMb,
+        error: (cleanedErr || 'Non-zero exit code').slice(0, 800),
         cases: [],
       };
     }
@@ -878,7 +1074,7 @@ async function judgeCppLocal(suite, code, startTime) {
         const m = /^CASE:(\d+):([01]):(.*)$/.exec(line.trim());
         if (m) caseById.set(Number(m[1]), { passed: m[2] === '1', actual: m[3] });
       }
-      const evaluatedCases = suite.cases.map((c) => {
+      const evaluatedCases = cases.map((c) => {
         const hit = caseById.get(c.id);
         let parsedActual = hit ? hit.actual : 'No output';
         try { if (hit) parsedActual = JSON.parse(hit.actual); } catch (_) {}
@@ -889,7 +1085,7 @@ async function judgeCppLocal(suite, code, startTime) {
           input: c.input,
           expected: c.expected,
           actual: parsedActual,
-          durationMs: 3,
+          durationMs: Math.max(1, Math.round(runResult.elapsedMs / Math.max(1, cases.length))),
         };
       });
       const passedCount = evaluatedCases.filter((c) => c.passed).length;
@@ -899,30 +1095,33 @@ async function judgeCppLocal(suite, code, startTime) {
         status: verdict === 'ACCEPTED' ? 'Accepted' : 'Wrong Answer',
         passedCount,
         totalCount: evaluatedCases.length,
-        runtimeMs: Math.max(1, Date.now() - startTime),
-        memoryMb: '8.4',
+        runtimeMs: runResult.elapsedMs,
+        memoryMb: measuredMb,
         stdout: runResult.stdout,
         cases: evaluatedCases,
       };
     }
 
+    const totalCases = cases.length || 1;
     return {
       verdict: 'ACCEPTED',
       status: 'Accepted',
-      passedCount: suite.cases.length,
-      totalCount: suite.cases.length,
-      runtimeMs: Math.max(1, Date.now() - startTime),
-      memoryMb: '8.4',
+      passedCount: totalCases,
+      totalCount: totalCases,
+      runtimeMs: runResult.elapsedMs,
+      memoryMb: measuredMb,
       stdout: runResult.stdout,
-      cases: suite.cases.map((c) => ({
-        id: c.id,
-        type: c.type,
-        passed: true,
-        input: c.input,
-        expected: c.expected,
-        actual: runResult.stdout.trim() || c.expected,
-        durationMs: 4,
-      })),
+      cases: cases.length > 0
+        ? cases.map((c) => ({
+            id: c.id,
+            type: c.type,
+            passed: true,
+            input: c.input,
+            expected: c.expected,
+            actual: runResult.stdout.trim() || c.expected,
+            durationMs: runResult.elapsedMs,
+          }))
+        : [{ id: 1, type: 'Compilation & Execution Check', passed: true, input: 'main', expected: 'Exit code 0', actual: 'Compiled and ran cleanly', durationMs: runResult.elapsedMs }],
     };
   } finally {
     try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (_) {}

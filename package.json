@@ -7,11 +7,15 @@
     "start": "node backend/src/server.js",
     "dev": "node --watch backend/src/server.js",
     "test": "node tests/run_tests.js",
+    "mcp": "node mcp/server.js",
+    "mcp:http": "node mcp/server.js --http",
+    "mcp:test": "node tests/test_mcp_server.js",
     "db:migrate:pg": "node backend/src/db/migrateToPostgres.js",
     "db:test:pg": "node tests/test_postgres.js"
   },
   "type": "module",
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^13.0.3",
     "cors": "^2.8.6",
@@ -24,6 +28,7 @@
     "pdf-parse": "^2.4.5",
     "pg": "^8.23.1",
     "qrcode": "^1.5.4",
-    "stripe": "^23.1.0"
+    "stripe": "^23.1.0",
+    "zod": "^4.6.7"
   }
 }

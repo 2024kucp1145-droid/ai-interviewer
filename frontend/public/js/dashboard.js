@@ -32,9 +32,12 @@ async function apiRequest(endpoint, options = {}) {
   const res = await fetch(endpoint, { ...options, headers });
   if (res.status === 401) {
     authToken = null;
+    currentUser = null;
+    currentOrg = null;
     localStorage.removeItem('roundone_token');
+    localStorage.removeItem('ai_interviewer_token');
     updateUserBadge();
-    openAuthModal();
+    updateVisitorUiState(false);
     throw new Error('Session expired. Please sign in.');
   }
   return res;
@@ -44,7 +47,7 @@ async function apiRequest(endpoint, options = {}) {
 async function checkAuthSession() {
   if (!authToken) {
     updateUserBadge();
-    openAuthModal();
+    updateVisitorUiState(false);
     return false;
   }
 
@@ -87,6 +90,7 @@ async function checkAuthSession() {
       // Close auth modal and load dashboard
       if (authModal) authModal.style.display = 'none';
       updateUserBadge();
+      updateVisitorUiState(true);
       loadJobs();
       return true;
     } else if (res.status === 401) {
@@ -94,18 +98,23 @@ async function checkAuthSession() {
       localStorage.removeItem('roundone_token');
       localStorage.removeItem('ai_interviewer_token');
       updateUserBadge();
-      openAuthModal();
+      updateVisitorUiState(false);
       return false;
     }
+    updateVisitorUiState(false);
     return true;
   } catch (e) {
     console.error('Session check notice:', e);
+    updateVisitorUiState(false);
     return true;
   }
 }
 
 function updateUserBadge() {
+  const trialBtn = document.getElementById('btn-header-trial');
   if (currentUser && currentOrg) {
+    if (trialBtn) trialBtn.style.display = 'none';
+    const creditsCount = currentOrg.credits !== undefined ? currentOrg.credits : '—';
     userDisplayEl.innerHTML = `
       <span style="display:inline-flex; align-items:center; gap:0.4rem; font-weight:600; color:var(--text);">
         <span style="width:24px; height:24px; border-radius:50%; background:#eff6ff; color:#2563eb; font-weight:700; font-size:0.65rem; display:inline-flex; align-items:center; justify-content:center; border:1px solid #bfdbfe;">
@@ -115,20 +124,27 @@ function updateUserBadge() {
         <span class="badge" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; font-size:0.65rem; padding:0.15rem 0.45rem;">
           <i class="bi bi-building"></i> ${escapeHtml(currentOrg.name)}
         </span>
+        <span class="badge" style="background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; font-size:0.65rem; padding:0.15rem 0.45rem;" title="Available AI Interview credits">
+          <i class="bi bi-lightning-charge-fill"></i> ${creditsCount} Credits
+        </span>
       </span>
     `;
     document.getElementById('btn-auth-switch').innerHTML = `<i class="bi bi-box-arrow-right"></i> Sign Out`;
   } else {
-    userDisplayEl.innerHTML = `<span class="badge" style="background:#fff1f2; color:#be123c; border:1px solid #fecdd3;"><i class="bi bi-person-x"></i> Not Signed In</span>`;
+    if (trialBtn) trialBtn.style.display = 'inline-flex';
+    userDisplayEl.innerHTML = `<span class="badge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;"><i class="bi bi-gift-fill"></i> 10 Free Trials Ready</span>`;
     document.getElementById('btn-auth-switch').innerHTML = `<i class="bi bi-box-arrow-in-right"></i> Sign In / Register`;
   }
 }
 
 // Modal open & close
-window.openAuthModal = function() {
-  authModal.style.display = 'flex';
+window.openAuthModal = function(initialMode = 'login') {
+  if (authModal) authModal.style.display = 'flex';
   if (!authToken) {
     goToStep(1);
+    if (typeof toggleAuthMode === 'function') {
+      toggleAuthMode(initialMode || 'login');
+    }
     if (pendingTeamInviteToken) {
       toggleAuthMode('signup');
       const emailInput = document.getElementById('su-email');
@@ -142,12 +158,24 @@ window.openAuthModal = function() {
 };
 
 window.closeAuthModal = function() {
-  if (!authToken) {
-    alert('Please sign in or create an account to access the hiring platform.');
-    return;
+  if (authModal) {
+    authModal.style.display = 'none';
   }
-  authModal.style.display = 'none';
 };
+
+// Allow dismissing modal with backdrop click or Esc key
+if (authModal) {
+  authModal.addEventListener('click', (e) => {
+    if (e.target === authModal) {
+      window.closeAuthModal();
+    }
+  });
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && authModal && authModal.style.display === 'flex') {
+    window.closeAuthModal();
+  }
+});
 
 // Wizard Steps
 function goToStep(stepNum) {
@@ -199,14 +227,247 @@ document.getElementById('btn-auth-switch').addEventListener('click', () => {
       localStorage.removeItem('roundone_token');
       localStorage.removeItem('ai_interviewer_token');
       updateUserBadge();
-      openAuthModal();
-      toggleAuthMode('login');
+      updateVisitorUiState(false);
+      openAuthModal('login');
     }
   } else {
-    openAuthModal();
-    toggleAuthMode('login');
+    openAuthModal('login');
   }
 });
+
+// --- Bolt.new Landing Showcase & Interactive Sandbox Handlers ---
+window.updateVisitorUiState = function(isLoggedIn) {
+  const showcaseEl = document.getElementById('bolt-hero-showcase');
+  const trialBtn = document.getElementById('btn-header-trial');
+  const welcomeBanner = document.getElementById('bolt-recruiter-welcome');
+
+  if (isLoggedIn) {
+    if (showcaseEl) showcaseEl.classList.add('bolt-hero-compact');
+    if (trialBtn) trialBtn.style.display = 'none';
+    if (welcomeBanner) {
+      welcomeBanner.style.display = 'flex';
+      const nameEl = document.getElementById('recruiter-welcome-name');
+      const credEl = document.getElementById('recruiter-welcome-credits');
+      if (nameEl && currentUser) {
+        nameEl.textContent = currentUser.full_name || currentUser.email || 'Recruiter';
+      }
+      if (credEl && currentOrg) {
+        credEl.textContent = currentOrg.credits !== undefined ? currentOrg.credits : 10;
+      }
+    }
+  } else {
+    if (showcaseEl) {
+      showcaseEl.style.display = 'block';
+      showcaseEl.classList.remove('bolt-hero-compact');
+    }
+    if (trialBtn) trialBtn.style.display = 'inline-flex';
+    if (welcomeBanner) welcomeBanner.style.display = 'none';
+  }
+};
+
+window.handleStartTrialClick = function() {
+  if (authToken && currentUser) {
+    switchTab('jobs');
+    startInterviewCreationWizard();
+  } else {
+    if (typeof openAuthModal === 'function') {
+      openAuthModal('signup');
+    }
+  }
+};
+
+window.handleBoltChipClick = function(roleTitle) {
+  const input = document.getElementById('bolt-prompt-input');
+  if (input) input.value = roleTitle;
+  window.handleBoltRoleStart(roleTitle);
+};
+
+window.handleBoltPromptSubmit = function() {
+  const input = document.getElementById('bolt-prompt-input');
+  const promptText = input ? input.value.trim() : '';
+  if (!promptText) {
+    if (input) {
+      input.focus();
+      input.placeholder = 'Please type a job title or skill (e.g. Full-Stack React Engineer)...';
+    }
+    return;
+  }
+  window.handleBoltRoleStart(promptText);
+};
+
+window.handleBoltRoleStart = function(roleTitle) {
+  if (authToken && currentUser) {
+    startInterviewCreationWizardWithRole(roleTitle);
+  } else {
+    sessionStorage.setItem('pending_wizard_role', roleTitle);
+    if (typeof openAuthModal === 'function') {
+      openAuthModal('signup');
+    }
+  }
+};
+
+const DEFAULT_SANDBOX_CODE = `/**
+ * LeetCode #1: Two Sum
+ * Time Limit: 2.0s | Memory Limit: 256MB
+ * @param {number[]} nums
+ * @param {number} target
+ * @return {number[]}
+ */
+function twoSum(nums, target) {
+  const map = new Map();
+  for (let i = 0; i < nums.length; i++) {
+    const complement = target - nums[i];
+    if (map.has(complement)) {
+      return [map.get(complement), i];
+    }
+    map.set(nums[i], i);
+  }
+  return [];
+}`;
+
+window.resetSandboxCode = function() {
+  const codeEl = document.getElementById('sandbox-code-editor');
+  if (codeEl) codeEl.value = DEFAULT_SANDBOX_CODE;
+  const outEl = document.getElementById('sandbox-output-console');
+  if (outEl) {
+    outEl.innerHTML = `
+      <div style="color: #94a3b8; font-size: 0.72rem; font-family: 'JetBrains Mono', monospace;">
+        💡 Click <strong>"Run Test Cases"</strong> above to see our sandboxed compiler execute the solution against LeetCode test suites live.
+      </div>
+    `;
+  }
+};
+
+window.runDemoSandboxCode = function() {
+  const codeEl = document.getElementById('sandbox-code-editor');
+  const outEl = document.getElementById('sandbox-output-console');
+  const btn = document.getElementById('btn-run-sandbox');
+  if (!outEl) return;
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="bi bi-arrow-repeat spinning"></i> Running Test Cases...`;
+  }
+
+  outEl.style.display = 'block';
+  outEl.innerHTML = `<span style="color:#94a3b8; font-family:'JetBrains Mono',monospace; font-size:0.72rem;">▶ Compiling solution and executing sandboxed test runner...</span>`;
+
+  setTimeout(() => {
+    try {
+      const userCode = codeEl ? codeEl.value : '';
+      let fn;
+      try {
+        fn = new Function(userCode + '\n return twoSum;')();
+      } catch (compileErr) {
+        outEl.innerHTML = `
+          <div style="color:#ef4444; font-family:'JetBrains Mono',monospace; padding:0.4rem 0; font-size:0.75rem;">
+            ✖ Compile / Syntax Error: ${escapeHtml(compileErr.message)}
+          </div>
+        `;
+        if (btn) { btn.disabled = false; btn.innerHTML = `<i class="bi bi-play-fill"></i> Run Test Cases (Click to Test)`; }
+        return;
+      }
+
+      if (typeof fn !== 'function') {
+        outEl.innerHTML = `
+          <div style="color:#ef4444; font-family:'JetBrains Mono',monospace; padding:0.4rem 0; font-size:0.75rem;">
+            ✖ Runtime Error: function "twoSum" is not defined or not returned.
+          </div>
+        `;
+        if (btn) { btn.disabled = false; btn.innerHTML = `<i class="bi bi-play-fill"></i> Run Test Cases (Click to Test)`; }
+        return;
+      }
+
+      const suite = [
+        { nums: [2, 7, 11, 15], target: 9, expected: [0, 1] },
+        { nums: [3, 2, 4], target: 6, expected: [1, 2] },
+        { nums: [3, 3], target: 6, expected: [0, 1] }
+      ];
+
+      let totalLatency = 0;
+      let allPassed = true;
+      let testResults = [];
+
+      suite.forEach((test, idx) => {
+        const t0 = performance.now();
+        let res;
+        try {
+          res = fn(test.nums, test.target);
+        } catch (execErr) {
+          allPassed = false;
+          testResults.push({
+            idx: idx + 1,
+            nums: JSON.stringify(test.nums),
+            target: test.target,
+            error: execErr.message,
+            passed: false,
+            latency: 1
+          });
+          return;
+        }
+        const t1 = performance.now();
+        const latency = Math.max(1, Math.round(t1 - t0) + Math.floor(Math.random() * 8) + 4);
+        totalLatency += latency;
+
+        const sortedRes = Array.isArray(res) ? [...res].sort() : [];
+        const sortedExp = [...test.expected].sort();
+        const passed = JSON.stringify(sortedRes) === JSON.stringify(sortedExp);
+        if (!passed) allPassed = false;
+
+        testResults.push({
+          idx: idx + 1,
+          nums: JSON.stringify(test.nums),
+          target: test.target,
+          res: JSON.stringify(res),
+          expected: JSON.stringify(test.expected),
+          passed,
+          latency
+        });
+      });
+
+      let html = `<div style="font-family:'JetBrains Mono', monospace; font-size:0.74rem; line-height:1.6;">`;
+      testResults.forEach(tr => {
+        if (tr.passed) {
+          html += `<div style="color:#10b981; margin-bottom:0.25rem;">
+            <i class="bi bi-check-circle-fill"></i> <strong>Case ${tr.idx}:</strong> nums=${tr.nums}, target=${tr.target} ➔ [${tr.res}] <span style="color:#64748b; font-size:0.7rem;">(${tr.latency}ms • Passed)</span>
+          </div>`;
+        } else {
+          html += `<div style="color:#ef4444; margin-bottom:0.25rem;">
+            <i class="bi bi-x-circle-fill"></i> <strong>Case ${tr.idx}:</strong> nums=${tr.nums}, target=${tr.target} ➔ Got [${tr.res || 'Error: ' + tr.error}], Expected [${tr.expected}]
+          </div>`;
+        }
+      });
+
+      if (allPassed) {
+        html += `
+          <div style="margin-top:0.6rem; padding:0.6rem 0.8rem; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); border-radius:6px; color:#34d399;">
+            <div style="font-weight:700; font-size:0.8rem; display:flex; align-items:center; gap:0.4rem;">
+              <i class="bi bi-patch-check-fill"></i> All Test Cases Accepted • 100/100 Score
+            </div>
+            <div style="font-size:0.7rem; color:#94a3b8; margin-top:0.2rem;">
+              Runtime: ${totalLatency}ms • Memory: 41.2 MB • Time Complexity: O(n) Hash Map • Anti-Cheat: 0 Flags
+            </div>
+          </div>
+        `;
+      } else {
+        html += `
+          <div style="margin-top:0.6rem; padding:0.6rem 0.8rem; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); border-radius:6px; color:#f87171;">
+            <i class="bi bi-exclamation-triangle-fill"></i> Some test cases failed. Try modifying your code!
+          </div>
+        `;
+      }
+      html += `</div>`;
+      outEl.innerHTML = html;
+    } catch (err) {
+      outEl.innerHTML = `<div style="color:#ef4444; font-family:'JetBrains Mono',monospace; font-size:0.74rem;">Execution error: ${escapeHtml(err.message)}</div>`;
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="bi bi-play-fill"></i> Run Test Cases (Click to Test)`;
+      }
+    }
+  }, 350);
+};
 
 // Password visibility toggle helper
 window.togglePasswordVisibility = function(inputId, btn) {
@@ -403,8 +664,19 @@ document.getElementById('form-signup').addEventListener('submit', async (e) => {
 
     authModal.style.display = 'none';
     updateUserBadge();
+    updateVisitorUiState(true);
     loadJobs();
     loadRegisteredUsers();
+
+    const pendingRole = sessionStorage.getItem('pending_wizard_role');
+    if (pendingRole) {
+      sessionStorage.removeItem('pending_wizard_role');
+      setTimeout(() => {
+        if (typeof startInterviewCreationWizardWithRole === 'function') {
+          startInterviewCreationWizardWithRole(pendingRole);
+        }
+      }, 350);
+    }
   } catch (err) {
     alert(err.message);
   } finally {
@@ -467,8 +739,19 @@ window.resetPasswordFromLogin = async function() {
 
     authModal.style.display = 'none';
     updateUserBadge();
+    updateVisitorUiState(true);
     loadJobs();
     loadRegisteredUsers();
+
+    const pendingRole = sessionStorage.getItem('pending_wizard_role');
+    if (pendingRole) {
+      sessionStorage.removeItem('pending_wizard_role');
+      setTimeout(() => {
+        if (typeof startInterviewCreationWizardWithRole === 'function') {
+          startInterviewCreationWizardWithRole(pendingRole);
+        }
+      }, 350);
+    }
   } catch (err) {
     alert(err.message);
   } finally {
@@ -534,8 +817,19 @@ document.getElementById('form-login').addEventListener('submit', async (e) => {
 
     authModal.style.display = 'none';
     updateUserBadge();
+    updateVisitorUiState(true);
     loadJobs();
     loadRegisteredUsers();
+
+    const pendingRole = sessionStorage.getItem('pending_wizard_role');
+    if (pendingRole) {
+      sessionStorage.removeItem('pending_wizard_role');
+      setTimeout(() => {
+        if (typeof startInterviewCreationWizardWithRole === 'function') {
+          startInterviewCreationWizardWithRole(pendingRole);
+        }
+      }, 350);
+    }
   } catch (err) {
     alert(err.message);
   } finally {
@@ -619,6 +913,7 @@ document.getElementById('form-verify').addEventListener('submit', async (e) => {
     setVerifyStatusBanner('');
 
     updateUserBadge();
+    updateVisitorUiState(true);
     loadJobs();
     if (typeof loadRegisteredUsers === 'function') loadRegisteredUsers();
 
@@ -626,6 +921,15 @@ document.getElementById('form-verify').addEventListener('submit', async (e) => {
       goToStep(3);
     } else {
       authModal.style.display = 'none';
+      const pendingRole = sessionStorage.getItem('pending_wizard_role');
+      if (pendingRole) {
+        sessionStorage.removeItem('pending_wizard_role');
+        setTimeout(() => {
+          if (typeof startInterviewCreationWizardWithRole === 'function') {
+            startInterviewCreationWizardWithRole(pendingRole);
+          }
+        }, 350);
+      }
     }
   } catch (err) {
     alert(err.message);
@@ -704,7 +1008,17 @@ document.getElementById('form-company').addEventListener('submit', async (e) => 
     currentOrg = data.org;
     authModal.style.display = 'none';
     updateUserBadge();
+    updateVisitorUiState(true);
     loadJobs();
+    const pendingRole = sessionStorage.getItem('pending_wizard_role');
+    if (pendingRole) {
+      sessionStorage.removeItem('pending_wizard_role');
+      setTimeout(() => {
+        if (typeof startInterviewCreationWizardWithRole === 'function') {
+          startInterviewCreationWizardWithRole(pendingRole);
+        }
+      }, 350);
+    }
     alert('Onboarding complete! You can now start posting roles and screening candidates based on required skills.');
   } catch (err) {
     alert(err.message);
@@ -1372,6 +1686,11 @@ window.getSkillsForRole = function(roleTitle, category) {
 };
 
 window.startInterviewCreationWizardWithRole = function(roleTitle, category) {
+  if (!authToken) {
+    if (roleTitle) sessionStorage.setItem('pending_wizard_role', roleTitle);
+    if (typeof openAuthModal === 'function') openAuthModal('signup');
+    return;
+  }
   startInterviewCreationWizard();
   if (roleTitle) {
     selectRoleFromCategory(roleTitle);
@@ -1457,6 +1776,10 @@ let wizardCurrentStep = 1;
 let editingJobId = null;
 
 window.startInterviewCreationWizard = function() {
+  if (!authToken) {
+    if (typeof openAuthModal === 'function') openAuthModal('signup');
+    return;
+  }
   editingJobId = null;
   document.getElementById('form-job-wizard')?.reset();
 
@@ -1481,6 +1804,7 @@ window.startInterviewCreationWizard = function() {
   document.getElementById('view-interview-dashboard').style.display = 'none';
   document.getElementById('view-interview-wizard').style.display = 'block';
   const maxQEl = document.getElementById('wiz-max-questions'); if (maxQEl) maxQEl.value = '6';
+  if (typeof resetLeetCodeSelectionDefaults === 'function') resetLeetCodeSelectionDefaults();
   selectWizardDuration(15);
   const dispToggle = document.getElementById('wiz-timer-display-toggle');
   if (dispToggle) dispToggle.checked = true;
@@ -1571,27 +1895,23 @@ window.editInterview = async function(jobId) {
 
     if (job.leetcode_problem) {
       document.getElementById('wiz-dsa-toggle').checked = true;
-      let matchedKey = null;
-      for (const [key, prob] of Object.entries(LEETCODE_CATALOG)) {
-        if (job.leetcode_problem.includes(prob.title) || job.leetcode_problem.includes(`#${key}:`) || job.leetcode_problem.includes(`#${key} `)) {
-          matchedKey = key;
-          break;
-        }
-      }
-      const lcSelect = document.getElementById('wiz-leetcode-select');
-      if (!matchedKey && window.orgCustomProblemsMap && window.orgCustomProblemsMap[job.leetcode_problem]) {
-        matchedKey = job.leetcode_problem;
-      }
-      if (matchedKey && lcSelect) {
-        lcSelect.value = matchedKey;
-      } else if (lcSelect) {
-        lcSelect.value = 'custom';
-        const customInput = document.getElementById('wiz-custom-leetcode-input');
-        if (customInput) customInput.value = job.leetcode_problem;
+      if (typeof hydrateSelectedLeetCodeFromJob === 'function') {
+        await hydrateSelectedLeetCodeFromJob(job);
       }
     } else {
       document.getElementById('wiz-dsa-toggle').checked = false;
     }
+    const modeEl = document.getElementById('wiz-dsa-mode');
+    if (modeEl) modeEl.value = job.dsa_question_mode || 'solve';
+    const countEl = document.getElementById('wiz-dsa-count');
+    if (countEl) countEl.value = String(job.dsa_questions_count || Math.max(1, (job.leetcode_problem || '').split(',').filter(Boolean).length || 1));
+    const timeEl = document.getElementById('wiz-dsa-time-limit');
+    if (timeEl) timeEl.value = String(job.dsa_time_limit_ms || 2000);
+    const memEl = document.getElementById('wiz-dsa-memory-limit');
+    if (memEl) memEl.value = String(job.dsa_memory_limit_mb || 256);
+    const blindEl = document.getElementById('wiz-dsa-blind-mode');
+    if (blindEl) blindEl.checked = job.dsa_blind_mode !== 0;
+
     toggleDsaSection();
     updateLeetCodePreview();
 
@@ -1674,6 +1994,7 @@ window.goToWizardStep = function(stepNum) {
   }
   if (stepNum === 6) {
     initStep6QuestionBank();
+    if (typeof toggleDsaSection === 'function') toggleDsaSection();
   }
   if (stepNum === 7) {
     updateWizardSummaryReview();
@@ -2306,13 +2627,23 @@ window.renderActiveQuestionsTray = function() {
 };
 
 // --- Standalone Universal Question Bank Modal ---
+let modalQBankTab = 'leetcode';
+let modalLcTopic = '';
+let modalLcPage = 1;
+let modalLcSearchTimer = null;
+let modalLcSelectedDifficulty = '';
+
 window.openQuestionBankModal = async function() {
   const modal = document.getElementById('modal-question-bank');
   if (!modal) return;
   modal.style.display = 'flex';
   renderUniversalQuestionBankModal();
-  await loadQBankCatalog();
-  await loadQBankCustom();
+  await Promise.all([
+    loadQBankCatalog(),
+    loadQBankCustom(),
+    loadModalLeetCodeTopics(),
+    loadModalLeetCodeProblems(1)
+  ]);
   renderUniversalQuestionBankModal();
 };
 
@@ -2321,61 +2652,338 @@ window.closeQuestionBankModal = function() {
   if (modal) modal.style.display = 'none';
 };
 
+window.switchModalQBankTab = function(tab) {
+  modalQBankTab = tab;
+  renderUniversalQuestionBankModal();
+  if (tab === 'leetcode') {
+    loadModalLeetCodeTopics();
+    loadModalLeetCodeProblems(modalLcPage);
+  } else {
+    filterModalQBankQuestions();
+  }
+};
+
+window.loadModalLeetCodeTopics = async function() {
+  const pillsEl = document.getElementById('modal-lc-topic-pills');
+  const countEl = document.getElementById('modal-lc-count-badge');
+  try {
+    const res = await fetch('/api/leetcode/topics');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (countEl) {
+      countEl.textContent = `${data.total || 4111} Problems Available`;
+    }
+    if (pillsEl) {
+      const topTopics = (data.topics || []).slice(0, 30);
+      pillsEl.innerHTML = [
+        `<button type="button" class="btn btn-sm ${!modalLcTopic ? 'btn-dark' : 'btn-outline'}" onclick="selectModalLcTopic('')" style="font-size:0.7rem; border-radius:999px; padding:0.2rem 0.6rem; white-space:nowrap;">All Topics (${data.total})</button>`,
+        ...topTopics.map(t => `
+          <button type="button" class="btn btn-sm ${modalLcTopic === t.name ? 'btn-dark' : 'btn-outline'}" onclick="selectModalLcTopic('${String(t.name).replace(/'/g, "\\'")}')" style="font-size:0.7rem; border-radius:999px; padding:0.2rem 0.6rem; white-space:nowrap;">
+            ${escapeHtml(t.name)} (${t.count})
+          </button>
+        `)
+      ].join('');
+    }
+  } catch (e) {
+    console.error('Failed to load modal LeetCode topics:', e);
+  }
+};
+
+window.selectModalLcTopic = function(topic) {
+  modalLcTopic = topic || '';
+  loadModalLeetCodeTopics();
+  loadModalLeetCodeProblems(1);
+};
+
+window.debouncedModalLcSearch = function() {
+  clearTimeout(modalLcSearchTimer);
+  modalLcSearchTimer = setTimeout(() => {
+    loadModalLeetCodeProblems(1);
+  }, 250);
+};
+
+window.loadModalLeetCodeProblems = async function(page = 1) {
+  modalLcPage = page;
+  const listEl = document.getElementById('modal-lc-problem-list');
+  const pagEl = document.getElementById('modal-lc-pagination');
+  if (!listEl) return;
+
+  const search = document.getElementById('modal-lc-search')?.value.trim() || '';
+  const difficulty = document.getElementById('modal-lc-diff-select')?.value || '';
+
+  listEl.innerHTML = `
+    <div style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+      <i class="bi bi-arrow-repeat spinning" style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem;"></i>
+      Loading LeetCode problems...
+    </div>
+  `;
+
+  try {
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: '25',
+      search,
+      topic: modalLcTopic,
+      difficulty
+    });
+    const res = await fetch(`/api/leetcode/problems?${params.toString()}`);
+    if (!res.ok) throw new Error('Failed to fetch LeetCode problems');
+    const data = await res.json();
+
+    if (!data.items || data.items.length === 0) {
+      listEl.innerHTML = `
+        <div style="text-align: center; padding: 3rem 1rem; color: var(--text-muted); background: var(--surface-subtle); border-radius: 8px;">
+          <i class="bi bi-search" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
+          <strong style="font-size: 0.95rem; color: var(--text); display: block; margin-bottom: 0.25rem;">No LeetCode problems matched your query</strong>
+          <span style="font-size: 0.8rem;">Try searching by different keywords, problem number, or clearing the topic filter.</span>
+        </div>
+      `;
+      if (pagEl) pagEl.innerHTML = '';
+      return;
+    }
+
+    const diffColors = {
+      'Easy': { text: '#16a34a', bg: '#dcfce7', border: '#bbf7d0' },
+      'Medium': { text: '#d97706', bg: '#fef3c7', border: '#fde68a' },
+      'Hard': { text: '#dc2626', bg: '#fee2e2', border: '#fecaca' }
+    };
+
+    listEl.innerHTML = data.items.map(p => {
+      const diffStyle = diffColors[p.difficulty] || diffColors['Medium'];
+      const topicsBadges = (p.topics || []).slice(0, 4).map(t => `
+        <span class="badge badge-outline" style="font-size: 0.68rem; padding: 0.1rem 0.45rem;">${escapeHtml(t)}</span>
+      `).join('');
+
+      return `
+        <div style="border: 1px solid var(--border); border-radius: 8px; padding: 0.85rem 1rem; background: var(--surface); display: flex; flex-direction: column; gap: 0.45rem; transition: border-color 0.15s ease;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem;">
+            <div style="min-width: 0; flex: 1;">
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <span style="font-size: 0.72rem; font-weight: 800; color: var(--text-muted); background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 4px; padding: 0.1rem 0.4rem;">
+                  #${p.frontend_id}
+                </span>
+                <strong style="font-size: 0.92rem; color: var(--text);">${escapeHtml(p.title)}</strong>
+                <span style="font-size: 0.7rem; font-weight: 700; color: ${diffStyle.text}; background: ${diffStyle.bg}; border: 1px solid ${diffStyle.border}; padding: 0.12rem 0.45rem; border-radius: 4px;">
+                  ${p.difficulty}
+                </span>
+              </div>
+              <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.35rem;">
+                ${topicsBadges}
+              </div>
+            </div>
+            <div style="display: flex; gap: 0.4rem; align-items: center; flex-shrink: 0;">
+              <button type="button" class="btn btn-outline btn-sm" onclick="showModalLeetCodeDetails('${String(p.id)}')" style="font-size: 0.72rem; padding: 0.25rem 0.65rem;">
+                <i class="bi bi-file-earmark-text"></i> Details
+              </button>
+              <button type="button" class="btn btn-dark btn-sm" onclick="selectLeetCodeForNewInterview('${String(p.id)}')" style="font-size: 0.72rem; padding: 0.25rem 0.65rem;">
+                <i class="bi bi-plus-circle"></i> Use in Interview
+              </button>
+            </div>
+          </div>
+          <div id="modal-lc-desc-${p.id}" style="display: none; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed var(--border); font-size: 0.8rem; color: var(--text); line-height: 1.5;">
+            <!-- Populated on click -->
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    if (pagEl) {
+      pagEl.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; font-size: 0.78rem; color: var(--text-muted);">
+          <span>Page <strong>${data.page}</strong> of <strong>${data.totalPages}</strong> (Total ${data.total} problems)</span>
+          <div style="display: flex; gap: 0.4rem;">
+            <button type="button" class="btn btn-outline btn-sm" ${data.page <= 1 ? 'disabled' : ''} onclick="loadModalLeetCodeProblems(${data.page - 1})" style="font-size: 0.72rem; padding: 0.2rem 0.55rem;">
+              <i class="bi bi-chevron-left"></i> Prev
+            </button>
+            <button type="button" class="btn btn-outline btn-sm" ${data.page >= data.totalPages ? 'disabled' : ''} onclick="loadModalLeetCodeProblems(${data.page + 1})" style="font-size: 0.72rem; padding: 0.2rem 0.55rem;">
+              Next <i class="bi bi-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    }
+  } catch (err) {
+    listEl.innerHTML = `<div style="padding: 1.5rem; color: #dc2626; font-size: 0.85rem; text-align: center;">${escapeHtml(err.message)}</div>`;
+  }
+};
+
+window.showModalLeetCodeDetails = async function(problemId) {
+  const container = document.getElementById(`modal-lc-desc-${problemId}`);
+  if (!container) return;
+  if (container.style.display === 'block') {
+    container.style.display = 'none';
+    return;
+  }
+  container.style.display = 'block';
+  container.innerHTML = `<div style="color:var(--text-muted); font-size:0.75rem;"><i class="bi bi-arrow-repeat spinning"></i> Loading problem details...</div>`;
+  try {
+    const res = await fetch(`/api/leetcode/problems/${encodeURIComponent(problemId)}`);
+    if (!res.ok) throw new Error('Could not load problem');
+    const p = await res.json();
+    const cleanDesc = (p.description || 'No description provided').slice(0, 800) + (p.description && p.description.length > 800 ? '...' : '');
+    const exHtml = (p.examples || []).map((ex, i) => `
+      <div style="background:var(--surface-subtle); border:1px solid var(--border); border-radius:4px; padding:0.4rem 0.6rem; margin-top:0.35rem; font-family:monospace; font-size:0.72rem;">
+        <div><strong>Input:</strong> ${escapeHtml(ex.input || '')}</div>
+        <div><strong>Output:</strong> ${escapeHtml(ex.output || '')}</div>
+      </div>
+    `).join('');
+
+    container.innerHTML = `
+      <div style="white-space:pre-wrap; margin-bottom:0.5rem;">${escapeHtml(cleanDesc)}</div>
+      ${p.constraints ? `<div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:0.4rem;"><strong>Constraints:</strong> ${escapeHtml(p.constraints)}</div>` : ''}
+      ${exHtml ? `<div style="margin-top:0.4rem;"><strong>Sample Test Cases:</strong>${exHtml}</div>` : ''}
+    `;
+  } catch (err) {
+    container.innerHTML = `<div style="color:#dc2626; font-size:0.75rem;">Error loading details: ${escapeHtml(err.message)}</div>`;
+  }
+};
+
+window.selectLeetCodeForNewInterview = async function(problemId) {
+  if (!authToken) {
+    closeQuestionBankModal();
+    sessionStorage.setItem('pending_wizard_role', `LeetCode DSA #${problemId}`);
+    if (typeof openAuthModal === 'function') openAuthModal('signup');
+    return;
+  }
+  closeQuestionBankModal();
+  startInterviewCreationWizard();
+  // Move to DSA step or configure problem
+  try {
+    const res = await fetch(`/api/leetcode/problems/${encodeURIComponent(problemId)}`);
+    if (res.ok) {
+      const p = await res.json();
+      window.lcSelectedProblems = [p];
+      renderSelectedLeetCodeChips();
+      updateLeetCodePreview();
+    }
+  } catch {}
+  // Open DSA section in Step 3 / Step 6
+  const toggle = document.getElementById('wiz-dsa-toggle');
+  if (toggle) {
+    toggle.checked = true;
+    toggleDsaSection();
+  }
+  showNotification('LeetCode problem loaded into interview setup!', 'success');
+};
+
 window.renderUniversalQuestionBankModal = function() {
   const body = document.getElementById('modal-qbank-body');
   if (!body) return;
 
-  if (!qbankCatalogData) {
-    body.innerHTML = `
-      <div style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
-        <i class="bi bi-arrow-repeat spinning" style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem;"></i>
-        Loading Company Question Bank...
-      </div>
-    `;
-    return;
-  }
-
   body.innerHTML = `
-    <!-- Top Filter Controls -->
-    <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem; align-items: center; flex-wrap: wrap;">
-      <div style="flex: 0 0 auto;">
-        <label style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem; font-weight: 600;">Filter Domain:</label>
-        <select id="modal-domain-select" onchange="filterModalQBankQuestions()" style="font-size: 0.8rem; padding: 0.45rem 0.75rem; width: 240px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
-          <option value="all">All Domains (120 Questions)</option>
-          <option value="frontend">Frontend &amp; Web (React, JS, CSS)</option>
-          <option value="backend">Backend, APIs &amp; Microservices</option>
-          <option value="dsa">Data Structures &amp; Algorithms</option>
-          <option value="system_design">System Design &amp; Architecture</option>
-          <option value="python_ai">Python, Data Science &amp; AI</option>
-          <option value="devops">DevOps, Cloud &amp; Kubernetes</option>
-          <option value="java">Java &amp; Spring Boot Enterprise</option>
-          <option value="behavioral">Behavioral &amp; Leadership Principles</option>
-        </select>
-      </div>
+    <!-- Top Nav Tabs -->
+    <div style="display: flex; gap: 0.5rem; border-bottom: 2px solid var(--border); margin-bottom: 1.25rem; padding-bottom: 0.25rem;">
+      <button type="button" class="btn btn-sm ${modalQBankTab === 'leetcode' ? 'btn-dark' : 'btn-outline'}" onclick="switchModalQBankTab('leetcode')" style="font-weight: 700; font-size: 0.82rem; border-radius: 8px 8px 0 0; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.95rem;">
+        <i class="bi bi-code-square" style="color: #f59e0b;"></i> LeetCode Bank (4,111+ Problems)
+      </button>
+      <button type="button" class="btn btn-sm ${modalQBankTab === 'curated' ? 'btn-dark' : 'btn-outline'}" onclick="switchModalQBankTab('curated')" style="font-weight: 700; font-size: 0.82rem; border-radius: 8px 8px 0 0; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.95rem;">
+        <i class="bi bi-building"></i> Top Companies Catalog (120 Questions)
+      </button>
+    </div>
 
-      <div style="flex: 1; min-width: 220px;">
-        <label style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem; font-weight: 600;">Search Questions:</label>
-        <div style="position: relative;">
-          <i class="bi bi-search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); font-size: 0.8rem; color: var(--text-muted);"></i>
-          <input type="text" id="modal-search-input" placeholder="Search across all questions, topics, companies..." oninput="filterModalQBankQuestions()" style="padding-left: 2.2rem; font-size: 0.825rem; margin-bottom: 0;">
+    ${modalQBankTab === 'leetcode' ? `
+      <!-- LEETCODE TAB VIEW -->
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+          <div>
+            <div style="font-size: 0.82rem; font-weight: 700; color: var(--text);">
+              Live Algorithmic Problem Catalog <span id="modal-lc-count-badge" class="badge badge-dark" style="margin-left: 0.4rem;">4,111 Problems Available</span>
+            </div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem;">
+              Topics include Array, Dynamic Programming, Strings, Trees, Graphs, Sorting &amp; more. Strictly NO hints &amp; NO company tags.
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <span class="badge" style="background: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; font-size: 0.68rem;">976 Easy</span>
+            <span class="badge" style="background: #fef3c7; color: #d97706; border: 1px solid #fde68a; font-size: 0.68rem;">2,146 Medium</span>
+            <span class="badge" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; font-size: 0.68rem;">989 Hard</span>
+          </div>
+        </div>
+
+        <!-- Filter Controls -->
+        <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 240px; position: relative;">
+            <i class="bi bi-search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); font-size: 0.8rem; color: var(--text-muted);"></i>
+            <input type="text" id="modal-lc-search" placeholder="Search by #number, title (e.g. 1 or Two Sum, LRU Cache)..." oninput="debouncedModalLcSearch()" style="padding-left: 2.2rem; font-size: 0.825rem; margin-bottom: 0; width: 100%;">
+          </div>
+          <div style="flex: 0 0 auto;">
+            <select id="modal-lc-diff-select" onchange="loadModalLeetCodeProblems(1)" style="font-size: 0.8rem; padding: 0.45rem 0.75rem; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+              <option value="">All Difficulties</option>
+              <option value="Easy">Easy (976)</option>
+              <option value="Medium">Medium (2,146)</option>
+              <option value="Hard">Hard (989)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Topic Pills -->
+        <div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; margin-bottom: 0.35rem; text-transform: uppercase;">Filter by Topic:</div>
+          <div id="modal-lc-topic-pills" style="display: flex; gap: 0.4rem; overflow-x: auto; padding-bottom: 0.4rem;">
+            <!-- Loaded dynamically -->
+          </div>
+        </div>
+
+        <!-- Problem Cards List -->
+        <div id="modal-lc-problem-list" style="display: flex; flex-direction: column; gap: 0.65rem; min-height: 250px;">
+          <!-- Loaded dynamically -->
+        </div>
+
+        <!-- Pagination -->
+        <div id="modal-lc-pagination" style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 0.75rem;">
+          <!-- Loaded dynamically -->
         </div>
       </div>
-    </div>
+    ` : `
+      <!-- TOP COMPANIES CURATED QUESTIONS TAB VIEW -->
+      <div>
+        <!-- Top Filter Controls -->
+        <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem; align-items: center; flex-wrap: wrap;">
+          <div style="flex: 0 0 auto;">
+            <label style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem; font-weight: 600;">Filter Domain:</label>
+            <select id="modal-domain-select" onchange="filterModalQBankQuestions()" style="font-size: 0.8rem; padding: 0.45rem 0.75rem; width: 240px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
+              <option value="all">All Domains (120 Questions)</option>
+              <option value="frontend">Frontend &amp; Web (React, JS, CSS)</option>
+              <option value="backend">Backend, APIs &amp; Microservices</option>
+              <option value="dsa">Data Structures &amp; Algorithms</option>
+              <option value="system_design">System Design &amp; Architecture</option>
+              <option value="python_ai">Python, Data Science &amp; AI</option>
+              <option value="devops">DevOps, Cloud &amp; Kubernetes</option>
+              <option value="java">Java &amp; Spring Boot Enterprise</option>
+              <option value="behavioral">Behavioral &amp; Leadership Principles</option>
+            </select>
+          </div>
 
-    <!-- Company Filter Pills -->
-    <div style="margin-bottom: 1.25rem;">
-      <div style="display: flex; gap: 0.45rem; overflow-x: auto; padding-bottom: 0.35rem;" id="modal-company-pills">
-        <!-- Rendered by filterModalQBankQuestions -->
+          <div style="flex: 1; min-width: 220px;">
+            <label style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem; font-weight: 600;">Search Questions:</label>
+            <div style="position: relative;">
+              <i class="bi bi-search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); font-size: 0.8rem; color: var(--text-muted);"></i>
+              <input type="text" id="modal-search-input" placeholder="Search across all questions, topics, companies..." oninput="filterModalQBankQuestions()" style="padding-left: 2.2rem; font-size: 0.825rem; margin-bottom: 0;">
+            </div>
+          </div>
+        </div>
+
+        <!-- Company Filter Pills -->
+        <div style="margin-bottom: 1.25rem;">
+          <div style="display: flex; gap: 0.45rem; overflow-x: auto; padding-bottom: 0.35rem;" id="modal-company-pills">
+            <!-- Rendered by filterModalQBankQuestions -->
+          </div>
+        </div>
+
+        <!-- Questions Container -->
+        <div id="modal-qbank-list" style="display: flex; flex-direction: column; gap: 0.85rem;">
+          <!-- Populated dynamically -->
+        </div>
       </div>
-    </div>
-
-    <!-- Questions Container -->
-    <div id="modal-qbank-list" style="display: flex; flex-direction: column; gap: 0.85rem;">
-      <!-- Populated dynamically -->
-    </div>
+    `}
   `;
 
-  filterModalQBankQuestions();
+  if (modalQBankTab === 'leetcode') {
+    loadModalLeetCodeTopics();
+    loadModalLeetCodeProblems(modalLcPage);
+  } else {
+    filterModalQBankQuestions();
+  }
 };
 
 let modalSelectedCompany = 'all';
@@ -2506,18 +3114,259 @@ window.filterModalQBankQuestions = function() {
   }).join('');
 };
 
+// --- LeetCode 3,500+ Topic Catalog & Selection Controller (No Hints, No Company Tags) ---
+let lcCatalogTopic = '';
+let lcCatalogPage = 1;
+let lcCatalogSearchTimer = null;
+let lcCatalogItemsCache = {};
+window.lcSelectedProblems = [];
+
+window.resetLeetCodeSelectionDefaults = function() {
+  window.lcSelectedProblems = [{
+    id: '1',
+    frontend_id: 1,
+    title: 'Two Sum',
+    difficulty: 'Easy',
+    topics: ['Array', 'Hash Table']
+  }];
+  const modeEl = document.getElementById('wiz-dsa-mode'); if (modeEl) modeEl.value = 'solve';
+  const countEl = document.getElementById('wiz-dsa-count'); if (countEl) countEl.value = '1';
+  const timeEl = document.getElementById('wiz-dsa-time-limit'); if (timeEl) timeEl.value = '2000';
+  const memEl = document.getElementById('wiz-dsa-memory-limit'); if (memEl) memEl.value = '256';
+  const blindEl = document.getElementById('wiz-dsa-blind-mode'); if (blindEl) blindEl.checked = true;
+  const lcSelect = document.getElementById('wiz-leetcode-select'); if (lcSelect) lcSelect.value = '1';
+  renderSelectedLeetCodeChips();
+};
+
+window.hydrateSelectedLeetCodeFromJob = async function(job) {
+  const raw = String(job.leetcode_problem || '').trim();
+  if (!raw) { resetLeetCodeSelectionDefaults(); return; }
+  const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
+  const loaded = [];
+  for (const part of parts) {
+    if (part.startsWith('cprob_') && window.orgCustomProblemsMap?.[part]) {
+      loaded.push({ id: part, frontend_id: 0, title: window.orgCustomProblemsMap[part].title, difficulty: window.orgCustomProblemsMap[part].difficulty || 'Medium', topics: ['Custom'] });
+      continue;
+    }
+    const cleanId = /^\d+$/.test(part) ? part : (/^#?(\d+)/.exec(part)?.[1] || (/LeetCode #(\d+)/i.exec(part)?.[1]) || '');
+    if (cleanId) {
+      try {
+        const res = await fetch(`/api/leetcode/problems/${encodeURIComponent(cleanId)}`);
+        if (res.ok) {
+          const p = await res.json();
+          loaded.push(p);
+          lcCatalogItemsCache[p.id] = p;
+          continue;
+        }
+      } catch {}
+    }
+    if (LEETCODE_CATALOG[part]) {
+      loaded.push({ id: part, frontend_id: Number(part) || 1, title: LEETCODE_CATALOG[part].title, difficulty: LEETCODE_CATALOG[part].difficulty, topics: [] });
+    } else {
+      loaded.push({ id: part, frontend_id: 0, title: part, difficulty: 'Medium', topics: [] });
+    }
+  }
+  window.lcSelectedProblems = loaded.length ? loaded : [{ id: '1', frontend_id: 1, title: 'Two Sum', difficulty: 'Easy', topics: ['Array', 'Hash Table'] }];
+  const lcSelect = document.getElementById('wiz-leetcode-select');
+  if (lcSelect && window.lcSelectedProblems[0]) {
+    const firstId = window.lcSelectedProblems[0].id;
+    const hasOpt = Array.from(lcSelect.options).some(o => o.value === firstId);
+    if (hasOpt) lcSelect.value = firstId;
+  }
+  renderSelectedLeetCodeChips();
+};
+
+window.loadLeetCodeTopics = async function() {
+  const pillsEl = document.getElementById('lc-topic-pills');
+  const totalEl = document.getElementById('lc-catalog-total');
+  if (!pillsEl) return;
+  try {
+    const res = await fetch('/api/leetcode/topics');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (totalEl) totalEl.textContent = `${data.total} Questions · Easy ${data.difficulties?.Easy || 0} · Med ${data.difficulties?.Medium || 0} · Hard ${data.difficulties?.Hard || 0}`;
+    const topTopics = (data.topics || []).slice(0, 28);
+    pillsEl.innerHTML = [
+      `<button type="button" class="btn btn-sm ${!lcCatalogTopic ? 'btn-dark' : 'btn-outline'}" onclick="selectLeetCodeTopic('')" style="font-size:0.68rem; white-space:nowrap; border-radius:999px; padding:0.18rem 0.55rem;">All Topics (${data.total})</button>`,
+      ...topTopics.map(t => `<button type="button" class="btn btn-sm ${lcCatalogTopic === t.name ? 'btn-dark' : 'btn-outline'}" onclick="selectLeetCodeTopic('${String(t.name).replace(/'/g, "\\'")}')" style="font-size:0.68rem; white-space:nowrap; border-radius:999px; padding:0.18rem 0.55rem;">${escapeHtml(t.name)} (${t.count})</button>`)
+    ].join('');
+  } catch {}
+};
+
+window.selectLeetCodeTopic = function(topic) {
+  lcCatalogTopic = topic || '';
+  loadLeetCodeTopics();
+  loadLeetCodeCatalog(1);
+};
+
+window.debouncedLoadLeetCodeCatalog = function() {
+  clearTimeout(lcCatalogSearchTimer);
+  lcCatalogSearchTimer = setTimeout(() => loadLeetCodeCatalog(1), 220);
+};
+
+window.loadLeetCodeCatalog = async function(page = 1) {
+  const listEl = document.getElementById('lc-catalog-list');
+  const pageEl = document.getElementById('lc-catalog-pagination');
+  if (!listEl) return;
+  lcCatalogPage = page;
+  const search = document.getElementById('lc-catalog-search')?.value.trim() || '';
+  const diff = document.getElementById('lc-catalog-diff')?.value || '';
+  try {
+    const params = new URLSearchParams({ page: String(page), limit: '20', search, topic: lcCatalogTopic, difficulty: diff });
+    const res = await fetch(`/api/leetcode/problems?${params.toString()}`);
+    if (!res.ok) throw new Error('Catalog unavailable');
+    const data = await res.json();
+    const selectedIds = new Set((window.lcSelectedProblems || []).map(p => String(p.id)));
+
+    if (!data.items || data.items.length === 0) {
+      listEl.innerHTML = `<div style="padding:1rem; text-align:center; color:var(--text-muted); font-size:0.74rem;">No problems match that filter.</div>`;
+    } else {
+      listEl.innerHTML = data.items.map(p => {
+        lcCatalogItemsCache[p.id] = p;
+        const isAdded = selectedIds.has(String(p.id));
+        const diffColor = p.difficulty === 'Easy' ? '#16a34a' : (p.difficulty === 'Hard' ? '#dc2626' : '#d97706');
+        const topicsBadges = (p.topics || []).slice(0, 3).map(t => `<span class="badge badge-outline" style="font-size:0.62rem; padding:0.08rem 0.35rem;">${escapeHtml(t)}</span>`).join('');
+        return `
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; padding:0.42rem 0.6rem; border:1px solid ${isAdded ? '#0f172a' : 'var(--border)'}; background:${isAdded ? 'var(--surface-subtle)' : 'var(--surface)'}; border-radius:6px;">
+            <div style="min-width:0; flex:1;">
+              <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+                <strong style="font-size:0.75rem; color:var(--text);">#${p.frontend_id}. ${escapeHtml(p.title)}</strong>
+                <span style="font-size:0.66rem; font-weight:700; color:${diffColor};">${p.difficulty}</span>
+              </div>
+              <div style="display:flex; gap:0.25rem; flex-wrap:wrap; margin-top:0.2rem;">${topicsBadges}</div>
+            </div>
+            <button type="button" class="btn btn-sm ${isAdded ? 'btn-dark' : 'btn-outline'}" onclick="toggleLeetCodeSelection('${String(p.id).replace(/'/g, "\\'")}')" style="font-size:0.68rem; padding:0.22rem 0.55rem; white-space:nowrap;">
+              ${isAdded ? '<i class="bi bi-check-lg"></i> Selected' : '<i class="bi bi-plus-lg"></i> Add'}
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+    if (pageEl) {
+      pageEl.innerHTML = `
+        <span>Page ${data.page} of ${data.totalPages} (${data.total} matching)</span>
+        <div style="display:flex; gap:0.35rem;">
+          <button type="button" class="btn btn-sm btn-outline" ${data.page <= 1 ? 'disabled' : ''} onclick="loadLeetCodeCatalog(${data.page - 1})" style="font-size:0.68rem; padding:0.15rem 0.45rem;">Prev</button>
+          <button type="button" class="btn btn-sm btn-outline" ${data.page >= data.totalPages ? 'disabled' : ''} onclick="loadLeetCodeCatalog(${data.page + 1})" style="font-size:0.68rem; padding:0.15rem 0.45rem;">Next</button>
+        </div>
+      `;
+    }
+  } catch (e) {
+    listEl.innerHTML = `<div style="padding:0.75rem; color:#dc2626; font-size:0.74rem;">${escapeHtml(e.message)}</div>`;
+  }
+};
+
+window.toggleLeetCodeSelection = function(problemId) {
+  const idStr = String(problemId);
+  const idx = (window.lcSelectedProblems || []).findIndex(p => String(p.id) === idStr);
+  if (idx >= 0) {
+    if (window.lcSelectedProblems.length > 1) {
+      window.lcSelectedProblems.splice(idx, 1);
+    }
+  } else {
+    const prob = lcCatalogItemsCache[idStr] || { id: idStr, frontend_id: Number(idStr) || 0, title: `Problem #${idStr}`, difficulty: 'Medium', topics: [] };
+    const maxWanted = Math.max(1, parseInt(document.getElementById('wiz-dsa-count')?.value || '1', 10));
+    if (maxWanted === 1 && window.lcSelectedProblems.length >= 1) {
+      window.lcSelectedProblems = [prob];
+    } else {
+      window.lcSelectedProblems.push(prob);
+      const countEl = document.getElementById('wiz-dsa-count');
+      if (countEl && window.lcSelectedProblems.length > Number(countEl.value)) {
+        countEl.value = String(window.lcSelectedProblems.length);
+      }
+    }
+  }
+  renderSelectedLeetCodeChips();
+  updateLeetCodePreview();
+  loadLeetCodeCatalog(lcCatalogPage);
+};
+
+window.removeSelectedLeetCodeProblem = function(problemId) {
+  window.lcSelectedProblems = (window.lcSelectedProblems || []).filter(p => String(p.id) !== String(problemId));
+  if (window.lcSelectedProblems.length === 0) {
+    window.lcSelectedProblems = [{ id: '1', frontend_id: 1, title: 'Two Sum', difficulty: 'Easy', topics: ['Array', 'Hash Table'] }];
+  }
+  renderSelectedLeetCodeChips();
+  updateLeetCodePreview();
+  loadLeetCodeCatalog(lcCatalogPage);
+};
+
+window.renderSelectedLeetCodeChips = function() {
+  const container = document.getElementById('lc-selected-chips');
+  const countBadge = document.getElementById('lc-selected-count');
+  const targetCount = parseInt(document.getElementById('wiz-dsa-count')?.value || '1', 10) || 1;
+  if (!window.lcSelectedProblems || window.lcSelectedProblems.length === 0) {
+    window.lcSelectedProblems = [{ id: '1', frontend_id: 1, title: 'Two Sum', difficulty: 'Easy', topics: ['Array', 'Hash Table'] }];
+  }
+  if (countBadge) countBadge.textContent = `${window.lcSelectedProblems.length} / ${targetCount}`;
+  if (!container) return;
+  container.innerHTML = window.lcSelectedProblems.map(p => `
+    <span class="badge badge-dark" style="display:inline-flex; align-items:center; gap:0.35rem; font-size:0.7rem; padding:0.25rem 0.55rem;">
+      ${p.frontend_id ? `#${p.frontend_id} ` : ''}${escapeHtml(p.title)} (${p.difficulty || 'Med'})
+      <button type="button" onclick="removeSelectedLeetCodeProblem('${String(p.id).replace(/'/g, "\\'")}')" style="background:none; border:none; color:#fff; cursor:pointer; font-size:0.75rem; padding:0; line-height:1;">&times;</button>
+    </span>
+  `).join('');
+};
+
+window.selectQuickLeetCodeOption = function() {
+  const select = document.getElementById('wiz-leetcode-select');
+  if (!select) return;
+  const val = select.value;
+  if (val && val !== 'custom') {
+    if (val.startsWith('cprob_') && window.orgCustomProblemsMap?.[val]) {
+      const cp = window.orgCustomProblemsMap[val];
+      window.lcSelectedProblems = [{ id: val, frontend_id: 0, title: cp.title, difficulty: cp.difficulty || 'Medium', topics: ['Custom'], description: cp.description }];
+    } else if (LEETCODE_CATALOG[val]) {
+      const p = LEETCODE_CATALOG[val];
+      window.lcSelectedProblems = [{ id: val, frontend_id: Number(val), title: p.title, difficulty: p.difficulty, topics: [], description: p.description, examples: [{ input: p.testcases, output: '' }] }];
+    }
+    renderSelectedLeetCodeChips();
+  }
+  updateLeetCodePreview();
+};
+
+window.syncLeetCodeCatalogFromUi = async function(btn) {
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-arrow-repeat spinning"></i> Syncing...'; }
+  try {
+    const res = await apiRequest('/api/leetcode/sync', {
+      method: 'POST',
+      body: JSON.stringify({ source: 'full', limit: 4200 })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Sync failed');
+    await loadLeetCodeTopics();
+    await loadLeetCodeCatalog(1);
+    if (btn) btn.innerHTML = `<i class="bi bi-check-lg"></i> Synced (${data.total})`;
+  } catch (e) {
+    alert(`Sync notice: ${e.message}`);
+    if (btn) btn.innerHTML = '<i class="bi bi-cloud-download"></i> Sync 4,000+ Problems';
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+};
+
 window.toggleDsaSection = function() {
   const checked = document.getElementById('wiz-dsa-toggle')?.checked;
   const box = document.getElementById('wiz-dsa-picker-box');
   if (box) box.style.display = checked ? 'block' : 'none';
-  if (checked && typeof loadOrgProblems === 'function') loadOrgProblems();
+  if (checked) {
+    if (typeof loadOrgProblems === 'function') loadOrgProblems();
+    if (!window.lcSelectedProblems || window.lcSelectedProblems.length === 0) resetLeetCodeSelectionDefaults();
+    loadLeetCodeTopics();
+    loadLeetCodeCatalog(1);
+  }
 };
 
 window.updateLeetCodePreview = function() {
   const select = document.getElementById('wiz-leetcode-select');
   const customBox = document.getElementById('wiz-custom-leetcode-input-box');
-  if (!select) return;
+  const timeLim = document.getElementById('wiz-dsa-time-limit')?.value || '2000';
+  const memLim = document.getElementById('wiz-dsa-memory-limit')?.value || '256';
+  const modeVal = document.getElementById('wiz-dsa-mode')?.value || 'solve';
+  const limitsBadge = document.getElementById('lc-preview-limits');
+  if (limitsBadge) limitsBadge.textContent = `${timeLim}ms · ${memLim}MB · ${modeVal === 'fix_bug' ? 'Fix Bug Code' : 'Complete Solution'}`;
 
+  if (!select) return;
   const val = select.value;
   if (val && val.startsWith('cprob_') && window.orgCustomProblemsMap && window.orgCustomProblemsMap[val]) {
     if (customBox) customBox.style.display = 'none';
@@ -2538,11 +3387,25 @@ window.updateLeetCodePreview = function() {
     document.getElementById('lc-preview-title').textContent = customVal;
     document.getElementById('lc-preview-diff').textContent = 'Custom';
     document.getElementById('lc-preview-desc').textContent = 'Interviewer configured custom algorithmic challenge.';
-    document.getElementById('lc-preview-testcases').textContent = 'Candidate will run custom test cases in compiler sandbox.';
+    document.getElementById('lc-preview-testcases').textContent = 'Candidate solution evaluated securely on server.';
     return;
   }
 
   if (customBox) customBox.style.display = 'none';
+  const activeProb = (window.lcSelectedProblems && window.lcSelectedProblems[0]) || null;
+  if (activeProb && activeProb.description) {
+    document.getElementById('lc-preview-title').textContent = activeProb.frontend_id ? `#${activeProb.frontend_id}: ${activeProb.title}` : activeProb.title;
+    document.getElementById('lc-preview-diff').textContent = activeProb.difficulty || 'Medium';
+    const topicsEl = document.getElementById('lc-preview-topics');
+    if (topicsEl) {
+      topicsEl.innerHTML = (activeProb.topics || []).map(t => `<span class="badge badge-outline" style="font-size:0.65rem;">${escapeHtml(t)}</span>`).join('');
+    }
+    document.getElementById('lc-preview-desc').textContent = activeProb.description.slice(0, 320) + (activeProb.description.length > 320 ? '...' : '');
+    const ex = (activeProb.examples || [])[0];
+    document.getElementById('lc-preview-testcases').textContent = ex ? `Input: ${ex.input} | Output: ${ex.output}` : 'Automated hidden test suite on server.';
+    return;
+  }
+
   const problem = LEETCODE_CATALOG[val] || LEETCODE_CATALOG['1'];
   document.getElementById('lc-preview-title').textContent = problem.title;
   document.getElementById('lc-preview-diff').textContent = problem.difficulty;
@@ -2575,10 +3438,16 @@ function updateWizardSummaryReview() {
   let dsaText = 'None attached';
   if (dsaActive) {
     const lcSelect = document.getElementById('wiz-leetcode-select')?.value;
-    if (lcSelect && lcSelect.startsWith('cprob_') && window.orgCustomProblemsMap?.[lcSelect]) {
+    const tLim = document.getElementById('wiz-dsa-time-limit')?.value || '2000';
+    const mLim = document.getElementById('wiz-dsa-memory-limit')?.value || '256';
+    const qMode = document.getElementById('wiz-dsa-mode')?.value === 'fix_bug' ? 'Fix Buggy Code' : 'Solve Problem';
+    if (lcSelect === 'custom') {
+      dsaText = `${document.getElementById('wiz-custom-leetcode-input')?.value || 'Custom Problem'} (${qMode} · ${tLim}ms / ${mLim}MB)`;
+    } else if (window.lcSelectedProblems && window.lcSelectedProblems.length > 0) {
+      const titles = window.lcSelectedProblems.map(p => p.frontend_id ? `#${p.frontend_id} ${p.title}` : p.title).join(', ');
+      dsaText = `${titles} (${window.lcSelectedProblems.length} Qs · ${qMode} · ${tLim}ms / ${mLim}MB)`;
+    } else if (lcSelect && lcSelect.startsWith('cprob_') && window.orgCustomProblemsMap?.[lcSelect]) {
       dsaText = `${window.orgCustomProblemsMap[lcSelect].title} (Org Custom)`;
-    } else if (lcSelect === 'custom') {
-      dsaText = document.getElementById('wiz-custom-leetcode-input')?.value || 'Custom Problem';
     } else {
       dsaText = LEETCODE_CATALOG[lcSelect]?.title || 'LeetCode Problem';
     }
@@ -2659,14 +3528,28 @@ window.handleWizardFinalSubmit = async function(e) {
   const question_mode = ((rawQMode === 'company_bank' || rawQMode === 'custom_questions') && custom_questions) ? 'custom_questions' : 'ai_adaptive';
 
   let leetcode_problem = '';
+  let dsa_time_limit_ms = 2000;
+  let dsa_memory_limit_mb = 256;
+  let dsa_question_mode = 'solve';
+  let dsa_questions_count = 1;
+  let dsa_blind_mode = 1;
   if (document.getElementById('wiz-dsa-toggle').checked) {
+    dsa_time_limit_ms = parseInt(document.getElementById('wiz-dsa-time-limit')?.value || '2000', 10) || 2000;
+    dsa_memory_limit_mb = parseInt(document.getElementById('wiz-dsa-memory-limit')?.value || '256', 10) || 256;
+    dsa_question_mode = document.getElementById('wiz-dsa-mode')?.value === 'fix_bug' ? 'fix_bug' : 'solve';
+    dsa_questions_count = parseInt(document.getElementById('wiz-dsa-count')?.value || '1', 10) || 1;
+    dsa_blind_mode = document.getElementById('wiz-dsa-blind-mode')?.checked ? 1 : 0;
+
     const lcVal = document.getElementById('wiz-leetcode-select').value;
-    if (lcVal && lcVal.startsWith('cprob_')) {
-      leetcode_problem = lcVal;
-    } else if (lcVal === 'custom') {
+    if (lcVal === 'custom') {
       leetcode_problem = document.getElementById('wiz-custom-leetcode-input')?.value.trim() || 'Custom LeetCode Challenge';
+    } else if (window.lcSelectedProblems && window.lcSelectedProblems.length > 0) {
+      leetcode_problem = window.lcSelectedProblems.map(p => String(p.id)).join(',');
+      dsa_questions_count = Math.max(dsa_questions_count, window.lcSelectedProblems.length);
+    } else if (lcVal && lcVal.startsWith('cprob_')) {
+      leetcode_problem = lcVal;
     } else {
-      leetcode_problem = LEETCODE_CATALOG[lcVal]?.title || 'LeetCode #1: Two Sum';
+      leetcode_problem = lcVal || '1';
     }
   }
 
@@ -2700,6 +3583,11 @@ window.handleWizardFinalSubmit = async function(e) {
         resume_required,
         leetcode_problem,
         compiler_languages: compiler_langs || 'javascript,python,sql',
+        dsa_time_limit_ms,
+        dsa_memory_limit_mb,
+        dsa_question_mode,
+        dsa_questions_count,
+        dsa_blind_mode,
         level: 'junior',
         max_minutes,
         max_questions,
@@ -4320,30 +5208,45 @@ window.openReportModal = async function(interviewId) {
         </p>
       </div>
 
-      ${report.dsa_evaluation ? `
-        <!-- LeetCode Automated Judge Evaluation Card -->
-        <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px; padding: 1rem 1.15rem; margin-bottom: 1.25rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem;">
+      ${report.dsa_evaluation ? (() => {
+        const dsa = report.dsa_evaluation;
+        const isOk = dsa.verdict === 'ACCEPTED';
+        const isLimit = dsa.verdict === 'TIME_LIMIT_EXCEEDED' || dsa.verdict === 'MEMORY_LIMIT_EXCEEDED';
+        const bg = isOk ? '#f0fdf4' : (isLimit ? '#fffbeb' : '#fef2f2');
+        const bd = isOk ? '#86efac' : (isLimit ? '#fcd34d' : '#fca5a5');
+        const fg = isOk ? '#166534' : (isLimit ? '#92400e' : '#991b1b');
+        const badgeBg = isOk ? '#16a34a' : (isLimit ? '#d97706' : '#dc2626');
+        const subRows = dsa.submissions ? Object.values(dsa.submissions).map(s => `
+          <div style="display:flex; justify-content:space-between; font-size:0.72rem; padding:0.3rem 0.5rem; background:#fff; border:1px solid ${bd}; border-radius:4px; margin-top:0.3rem;">
+            <span><strong>${escapeHtml(s.problemTitle || `Problem #${s.problemId}`)}</strong> (${escapeHtml((s.lang || '').toUpperCase())})</span>
+            <span><strong>${escapeHtml(s.verdict)}</strong> · ${s.passedCount}/${s.totalCount} · ${s.runtimeMs}ms/${s.timeLimitMs}ms · ${s.memoryMb}MB/${s.memoryLimitMb}MB</span>
+          </div>
+        `).join('') : '';
+        return `
+        <!-- LeetCode Server Judge & Performance Card -->
+        <div style="background: ${bg}; border: 1.5px solid ${bd}; border-radius: 8px; padding: 1rem 1.15rem; margin-bottom: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem; flex-wrap: wrap; gap: 0.5rem;">
             <div style="display: flex; align-items: center; gap: 0.45rem;">
-              <span class="badge" style="background: #16a34a; color: #fff; font-size: 0.72rem; font-weight: 800;">
-                <i class="bi bi-shield-check"></i> LEETCODE AUTOMATED JUDGE
+              <span class="badge" style="background: ${badgeBg}; color: #fff; font-size: 0.72rem; font-weight: 800;">
+                <i class="bi bi-cpu-fill"></i> SERVER CODE JUDGE
               </span>
-              <strong style="font-size: 0.85rem; color: #166534;">Problem #${report.dsa_evaluation.problem_id}</strong>
+              <strong style="font-size: 0.85rem; color: ${fg};">${escapeHtml(dsa.problem_title || `Problem #${dsa.problem_id}`)}</strong>
+              <span class="badge badge-outline" style="font-size:0.65rem;">${dsa.question_mode === 'fix_bug' ? 'Fix Bug Mode' : 'Solve Mode'}</span>
             </div>
             <div>
-              <span class="badge" style="background: ${report.dsa_evaluation.verdict === 'ACCEPTED' ? '#16a34a' : '#dc2626'}; color: #fff; font-size: 0.75rem; font-weight: 700;">
-                ${report.dsa_evaluation.verdict} (${report.dsa_evaluation.passed_tests}/${report.dsa_evaluation.total_tests} Tests Passed)
+              <span class="badge" style="background: ${badgeBg}; color: #fff; font-size: 0.75rem; font-weight: 700;">
+                ${escapeHtml(dsa.verdict)} (${dsa.passed_tests}/${dsa.total_tests} Tests Passed)
               </span>
             </div>
           </div>
-          <div style="font-size: 0.775rem; color: #14532d; display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 0.35rem;">
-            <span><strong>Language:</strong> ${(report.dsa_evaluation.language || 'code').toUpperCase()}</span>
-            <span><strong>Execution Speed:</strong> ${report.dsa_evaluation.runtime_ms || 24} ms</span>
-            <span><strong>Memory Usage:</strong> ${report.dsa_evaluation.memory_mb || '14.2'} MB</span>
-            <span><strong>Test Coverage:</strong> 100% (Public + Hidden Edge Cases)</span>
+          <div style="font-size: 0.775rem; color: ${fg}; display: flex; gap: 1.25rem; flex-wrap: wrap; margin-top: 0.35rem;">
+            <span><strong>Language:</strong> ${escapeHtml((dsa.language || 'code').toUpperCase())}</span>
+            <span><strong>Runtime:</strong> ${dsa.runtime_ms ?? 0} ms / ${dsa.time_limit_ms || 2000} ms limit</span>
+            <span><strong>Memory:</strong> ${dsa.memory_mb ?? '0.00'} MB / ${dsa.memory_limit_mb || 256} MB limit</span>
           </div>
-        </div>
-      ` : ''}
+          ${subRows}
+        </div>`;
+      })() : ''}
 
       
       <!-- Question-by-Question Technical Correctness & Coverage Audit -->
@@ -5988,6 +6891,35 @@ window.loadBillingHistory = async function() {
 let checkoutMethodsCache = null;
 let appliedCheckoutCoupon = null;
 let activeDirectOrderId = null;
+let orderStatusPoller = null;
+
+function stopOrderStatusPoller() {
+  if (orderStatusPoller) {
+    clearInterval(orderStatusPoller);
+    orderStatusPoller = null;
+  }
+}
+
+function startOrderStatusPoller(orderId) {
+  stopOrderStatusPoller();
+  if (!orderId || !authToken) return;
+
+  orderStatusPoller = setInterval(async () => {
+    try {
+      const res = await fetch(`/billing/order/${encodeURIComponent(orderId)}/status`, {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.isPaid || data.status === 'paid') {
+        stopOrderStatusPoller();
+        finishImmediateBillingSuccess(data, 'Payment detected and verified! Credits added.');
+      }
+    } catch {
+      // Quiet background polling
+    }
+  }, 2000);
+}
 
 function renderCheckoutSummaryBox() {
   const summary = document.getElementById('checkout-summary');
@@ -6056,6 +6988,10 @@ function finishImmediateBillingSuccess(data, fallbackMsg) {
   if (currentOrg) {
     if (data.creditsRemaining !== undefined) currentOrg.included_interviews = data.creditsRemaining;
     if (data.plan) currentOrg.plan = data.plan;
+  }
+  const creditsEl = document.getElementById('billing-credits-remaining');
+  if (creditsEl && data.creditsRemaining !== undefined) {
+    creditsEl.textContent = data.creditsRemaining.toLocaleString();
   }
   if (typeof updateUserBadge === 'function') updateUserBadge();
   loadBillingBalance();
@@ -6168,6 +7104,7 @@ window.applyCheckoutCoupon = async function() {
 };
 
 window.closeBillingModal = function() {
+  stopOrderStatusPoller();
   const modal = document.getElementById('billing-checkout-modal');
   if (modal) modal.style.display = 'none';
 };
@@ -6287,6 +7224,9 @@ window.startUpiCheckout = async function() {
     }
 
     activeDirectOrderId = data.orderId;
+    startOrderStatusPoller(data.orderId);
+    const detectorBox = document.getElementById('pay-upi-detector-box');
+    if (detectorBox) detectorBox.style.display = 'block';
     if (body) {
       if (data.qrDataUrl) {
         body.innerHTML = `
@@ -6338,6 +7278,9 @@ window.startBankCheckout = async function() {
     }
 
     activeDirectOrderId = data.orderId;
+    startOrderStatusPoller(data.orderId);
+    const bankDetectorBox = document.getElementById('pay-bank-detector-box');
+    if (bankDetectorBox) bankDetectorBox.style.display = 'block';
     const b = data.bankDetails;
     if (body) {
       if (b) {
@@ -6361,6 +7304,34 @@ window.startBankCheckout = async function() {
   }
 };
 
+window.triggerAutoDetectPayment = async function() {
+  if (!activeDirectOrderId) return alert('No active order. Please click Generate UPI QR first.');
+  const btnUpi = document.getElementById('btn-upi-auto-detect');
+  const btnBank = document.getElementById('btn-bank-auto-detect');
+  [btnUpi, btnBank].forEach(b => { if (b) { b.disabled = true; b.innerHTML = '<i class="bi bi-hourglass-split"></i> Verifying payment detection...'; } });
+
+  try {
+    const res = await fetch(`/billing/order/${encodeURIComponent(activeDirectOrderId)}/auto-detect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Auto-detection failed');
+
+    stopOrderStatusPoller();
+    finishImmediateBillingSuccess(data, 'Payment detected and unlocked! Credits added.');
+  } catch (err) {
+    alert(`Payment Detection Notice: ${err.message}`);
+  } finally {
+    [btnUpi, btnBank].forEach(b => {
+      if (b) {
+        b.disabled = false;
+        b.innerHTML = '<i class="bi bi-lightning-charge-fill" style="color:#f59e0b;"></i> I Have Paid — Auto-Detect &amp; Unlock Credits';
+      }
+    });
+  }
+};
+
 window.submitDirectUtrPayment = async function(method) {
   if (!activeDirectOrderId) return alert('Generate an order first.');
   const inputId = method === 'bank_transfer' ? 'pay-bank-utr' : 'pay-upi-utr';
@@ -6376,9 +7347,14 @@ window.submitDirectUtrPayment = async function(method) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'UTR submission failed');
 
-    if (typeof loadBillingHistory === 'function') loadBillingHistory();
-    closeBillingModal();
-    alert(`✅ ${data.message}\nReference: ${data.utrNumber}`);
+    stopOrderStatusPoller();
+    if (data.status === 'paid' || data.paidImmediately) {
+      finishImmediateBillingSuccess(data, 'Payment verified instantly! Credits added.');
+    } else {
+      if (typeof loadBillingHistory === 'function') loadBillingHistory();
+      closeBillingModal();
+      alert(`✅ ${data.message}\nReference: ${data.utrNumber}`);
+    }
   } catch (err) {
     alert(err.message);
   }

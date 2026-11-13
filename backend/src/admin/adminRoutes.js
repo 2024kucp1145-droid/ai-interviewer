@@ -1405,7 +1405,11 @@ adminRouter.get('/users', requireAdmin, (req, res) => {
         o.included_interviews as org_credits,
         (SELECT COUNT(*) FROM jobs j WHERE j.org_id = o.id) as total_jobs,
         (SELECT COUNT(*) FROM interviews i JOIN jobs j ON i.job_id = j.id WHERE j.org_id = o.id) as total_interviews,
-        (SELECT COUNT(*) FROM candidates c WHERE c.org_id = o.id) as total_candidates
+        (SELECT COUNT(*) FROM candidates c WHERE c.org_id = o.id) as total_candidates,
+        (SELECT COUNT(*) FROM billing_orders bo WHERE bo.org_id = o.id) as total_orders,
+        (SELECT COUNT(*) FROM billing_orders bo WHERE bo.org_id = o.id AND bo.status = 'paid') as paid_orders,
+        (SELECT COALESCE(SUM(bo.amount_usd), 0) FROM billing_orders bo WHERE bo.org_id = o.id AND bo.status = 'paid') as total_spent_usd,
+        (SELECT bo.status FROM billing_orders bo WHERE bo.org_id = o.id ORDER BY bo.created_at DESC LIMIT 1) as latest_order_status
       FROM users u
       LEFT JOIN organizations o ON u.org_id = o.id
       WHERE u.role != 'superadmin'
@@ -2034,9 +2038,16 @@ adminRouter.post('/orders/:id/mark-paid', requireAdmin, (req, res) => {
       details: { amountUsd: order.amount_usd, creditsAdded, orderType: order.type }
     });
 
+    const updatedOrg = db.prepare('SELECT id, plan, included_interviews FROM organizations WHERE id = ?').get(order.org_id);
+
     res.json({
       success: true,
-      message: `Order marked as paid. +${creditsAdded} interview credits granted to organization.`
+      message: `Order marked as paid. +${creditsAdded} interview credits granted to organization.`,
+      orderId: order.id,
+      creditsAdded,
+      orgId: order.org_id,
+      newCredits: updatedOrg?.included_interviews || 0,
+      plan: updatedOrg?.plan || 'free_trial'
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -2092,6 +2103,7 @@ adminRouter.get('/settings', requireAdmin, async (req, res) => {
         enableUpiDirect: paymentConfig.enableUpiDirect,
         enableBankTransfer: paymentConfig.enableBankTransfer,
         enableRazorpay: paymentConfig.enableRazorpay,
+        autoApprovePayments: paymentConfig.autoApprovePayments !== false,
       },
       authConfig,
       siteConfig,

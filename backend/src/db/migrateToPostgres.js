@@ -113,8 +113,8 @@ export async function runMigration(explicitUrl) {
       name: 'jobs',
       sqliteSql: 'SELECT * FROM jobs',
       insertSql: `
-        INSERT INTO jobs (id, org_id, title, jd_text, skills, level, max_minutes, max_questions, qualifications, interview_type, question_mode, custom_questions, terminal_required, word_editor_required, resume_required, purpose, experience_required, assessment_rules, leetcode_problem, compiler_languages, category, show_timer, auto_submit_timer, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
+        INSERT INTO jobs (id, org_id, title, jd_text, skills, level, max_minutes, max_questions, qualifications, interview_type, question_mode, custom_questions, terminal_required, word_editor_required, resume_required, purpose, experience_required, assessment_rules, leetcode_problem, compiler_languages, category, show_timer, auto_submit_timer, dsa_time_limit_ms, dsa_memory_limit_mb, dsa_question_mode, dsa_questions_count, dsa_blind_mode, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)
         ON CONFLICT (id) DO UPDATE SET
           title = EXCLUDED.title,
           jd_text = EXCLUDED.jd_text,
@@ -125,7 +125,9 @@ export async function runMigration(explicitUrl) {
         r.qualifications, r.interview_type, r.question_mode, safeJson(r.custom_questions),
         r.terminal_required, r.word_editor_required, r.resume_required, r.purpose,
         r.experience_required, safeJson(r.assessment_rules), r.leetcode_problem,
-        r.compiler_languages, r.category, r.show_timer, r.auto_submit_timer, r.created_at
+        r.compiler_languages, r.category, r.show_timer, r.auto_submit_timer,
+        r.dsa_time_limit_ms || 2000, r.dsa_memory_limit_mb || 256, r.dsa_question_mode || 'solve',
+        r.dsa_questions_count || 1, r.dsa_blind_mode ?? 1, r.created_at
       ]
     },
     {

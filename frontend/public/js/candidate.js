@@ -570,18 +570,115 @@ function syncTerminalLineNumbers() {
   gutter.scrollTop = terminalCodeInput.scrollTop;
 }
 
+window.activeLeetCodeProblemIdx = 0;
+window.candidateCodeBuffers = {};
+
+function getActiveProblemObj() {
+  const list = Array.isArray(interviewData?.leetcode_problems) ? interviewData.leetcode_problems : [];
+  if (list.length > 0) {
+    return list[window.activeLeetCodeProblemIdx] || list[0];
+  }
+  if (interviewData && interviewData.leetcode_problem) {
+    return resolveProblemDetails(interviewData.leetcode_problem);
+  }
+  return null;
+}
+
+window.renderActiveProblemCard = function() {
+  const prob = getActiveProblemObj();
+  const problemSpec = document.getElementById('terminal-problem-spec');
+  if (!problemSpec || !prob) return;
+
+  problemSpec.style.display = 'block';
+  const specTitle = document.getElementById('spec-problem-title');
+  const specDiff = document.getElementById('spec-problem-diff');
+  const specMode = document.getElementById('spec-problem-mode');
+  const specLimits = document.getElementById('spec-problem-limits');
+  const specTopics = document.getElementById('spec-problem-topics');
+  const specDesc = document.getElementById('spec-problem-desc');
+  const specConstraints = document.getElementById('spec-problem-constraints');
+  const specTestcases = document.getElementById('spec-problem-testcases');
+
+  const titleLabel = prob.frontend_id ? `LeetCode #${prob.frontend_id}: ${prob.title}` : prob.title;
+  if (specTitle) specTitle.textContent = titleLabel;
+  if (specDiff) {
+    specDiff.textContent = prob.difficulty || 'Medium';
+    specDiff.className = `hr-difficulty-badge ${(prob.difficulty || 'medium').toLowerCase()}`;
+  }
+  const isFixMode = interviewData?.dsa_question_mode === 'fix_bug';
+  if (specMode) specMode.textContent = isFixMode ? 'Fix Bug / Error Code' : 'Complete Solution';
+  const tLim = interviewData?.dsa_time_limit_ms || prob.time_limit_ms || 2000;
+  const mLim = interviewData?.dsa_memory_limit_mb || prob.memory_limit_mb || 256;
+  if (specLimits) specLimits.textContent = `Time: ${tLim}ms · Memory: ${mLim}MB`;
+
+  if (specTopics) {
+    const topics = Array.isArray(prob.topics) ? prob.topics : [];
+    specTopics.innerHTML = topics.map(t => `<span class="hud-pill-btn" style="font-size:0.62rem; padding:0.1rem 0.42rem; pointer-events:none;">${t}</span>`).join('');
+  }
+  if (specDesc) specDesc.textContent = prob.description || '';
+  if (specConstraints) {
+    if (prob.constraints) {
+      specConstraints.style.display = 'block';
+      specConstraints.textContent = `Constraints: ${prob.constraints}`;
+    } else {
+      specConstraints.style.display = 'none';
+    }
+  }
+  if (specTestcases) {
+    if (Array.isArray(prob.examples) && prob.examples.length > 0) {
+      specTestcases.textContent = prob.examples.map((ex, i) => `Example ${i + 1}: Input: ${ex.input}${ex.output ? ` -> Output: ${ex.output}` : ''}`).join('  |  ');
+    } else {
+      specTestcases.textContent = prob.testcases || 'Write a clean function matching the starter signature.';
+    }
+  }
+
+  // Render multi-problem tabs if > 1 question
+  const tabsEl = document.getElementById('lc-candidate-problem-tabs');
+  const list = Array.isArray(interviewData?.leetcode_problems) ? interviewData.leetcode_problems : [];
+  if (tabsEl) {
+    if (list.length > 1) {
+      tabsEl.style.display = 'flex';
+      tabsEl.innerHTML = list.map((p, idx) => `
+        <button type="button" onclick="switchCandidateProblem(${idx})" class="hud-pill-btn" style="font-size:0.68rem; padding:0.25rem 0.6rem; ${idx === window.activeLeetCodeProblemIdx ? 'background:#2563eb;color:#fff;border-color:#2563eb;' : ''}">
+          Q${idx + 1}: ${p.frontend_id ? `#${p.frontend_id} ` : ''}${p.title}
+        </button>
+      `).join('');
+    } else {
+      tabsEl.style.display = 'none';
+    }
+  }
+};
+
+window.switchCandidateProblem = function(idx) {
+  const prev = getActiveProblemObj();
+  if (prev && terminalCodeInput) {
+    window.candidateCodeBuffers[String(prev.id)] = terminalCodeInput.value;
+  }
+  window.activeLeetCodeProblemIdx = idx;
+  renderActiveProblemCard();
+  const next = getActiveProblemObj();
+  const lang = terminalLangSelect ? terminalLangSelect.value : 'javascript';
+  if (next && window.candidateCodeBuffers[String(next.id)] !== undefined && terminalCodeInput) {
+    terminalCodeInput.value = window.candidateCodeBuffers[String(next.id)];
+    syncTerminalLineNumbers();
+  } else {
+    updateStarterCodeForLanguage(lang, true);
+  }
+};
+
 window.updateStarterCodeForLanguage = function(lang, force = false) {
   if (!terminalCodeInput) return;
   const currentCode = terminalCodeInput.value.trim();
 
-  // Determine if active LeetCode problem exists
-  let matchedProblem = null;
-  if (interviewData && interviewData.leetcode_problem) {
-    matchedProblem = resolveProblemDetails(interviewData.leetcode_problem);
-  }
+  const matchedProblem = getActiveProblemObj();
+  const isFixMode = interviewData?.dsa_question_mode === 'fix_bug';
 
   let newTemplate = '';
-  if (matchedProblem && matchedProblem.templates && matchedProblem.templates[lang]) {
+  if (isFixMode && matchedProblem?.buggy_starter && matchedProblem.buggy_starter[lang]) {
+    newTemplate = matchedProblem.buggy_starter[lang];
+  } else if (matchedProblem?.starter && matchedProblem.starter[lang]) {
+    newTemplate = matchedProblem.starter[lang];
+  } else if (matchedProblem?.templates && matchedProblem.templates[lang]) {
     newTemplate = matchedProblem.templates[lang];
   } else if (GENERAL_LANGUAGE_TEMPLATES[lang]) {
     newTemplate = GENERAL_LANGUAGE_TEMPLATES[lang];
@@ -700,14 +797,18 @@ if (candidateAnswerBox) {
 // Interactive Terminal Functions
 window.lastJudgeResult = null;
 
-// Determine active LeetCode Problem ID from interviewData or code heuristics
+// Determine active LeetCode Problem ID from active problem object or code heuristics
 function resolveActiveProblemId(code, lang) {
+  const activeProb = getActiveProblemObj();
+  if (activeProb && activeProb.id) {
+    return String(activeProb.id);
+  }
   if (interviewData && interviewData.custom_problem && interviewData.custom_problem.id) {
     return interviewData.custom_problem.id;
   }
   if (interviewData && interviewData.leetcode_problem) {
-    const pStr = interviewData.leetcode_problem;
-    if (pStr.startsWith('cprob_')) return pStr;
+    const pStr = String(interviewData.leetcode_problem).split(',')[0].trim();
+    if (pStr.startsWith('cprob_') || /^\d+$/.test(pStr)) return pStr;
     for (const key of Object.keys(LEETCODE_CATALOG)) {
       if (pStr.includes(`#${key}:`) || pStr.includes(`#${key} `) || pStr.includes(LEETCODE_CATALOG[key].title)) {
         return key;
@@ -715,7 +816,6 @@ function resolveActiveProblemId(code, lang) {
     }
   }
 
-  // Fallback heuristic based on function names in candidate code
   if (code.includes('twoSum') || code.includes('two_sum')) return '1';
   if (code.includes('isValid') || code.includes('is_valid')) return '20';
   if (code.includes('mergeTwoLists') || code.includes('merge_two_lists')) return '21';
@@ -727,7 +827,7 @@ function resolveActiveProblemId(code, lang) {
   if (code.includes('threeSum') || code.includes('three_sum')) return '15';
   if (code.includes('numIslands') || code.includes('num_islands')) return '200';
 
-  return '1'; // Default to Two Sum
+  return '1';
 }
 
 window.runLeetCodeJudge = async function() {
@@ -737,27 +837,27 @@ window.runLeetCodeJudge = async function() {
   const judgeBtn = document.getElementById('btn-judge-testcases');
 
   if (!code) {
-    alert('Please enter or write your code solution first before submitting to the automated judge.');
+    alert('Please write or fix your code before submitting.');
     return;
   }
 
   const problemId = resolveActiveProblemId(code, lang);
-  const probInfo = (interviewData && interviewData.custom_problem && problemId === interviewData.custom_problem.id)
-    ? resolveProblemDetails(problemId)
-    : (LEETCODE_CATALOG[problemId] || LEETCODE_CATALOG['1']);
+  const activeProb = getActiveProblemObj();
+  const probTitle = activeProb
+    ? (activeProb.frontend_id ? `LeetCode #${activeProb.frontend_id}: ${activeProb.title}` : activeProb.title)
+    : `Problem #${problemId}`;
 
   terminalConsoleOutput.innerHTML = `
     <div style="color: #60a5fa; font-family: monospace;">
-      <i class="bi bi-gear-wide-connected" style="animation: spin 1s linear infinite;"></i> [LEETCODE AUTOMATED JUDGE]
-      Submitting solution for <strong>${probInfo.title}</strong> (${lang.toUpperCase()})...
-      Running against both Public & Hidden Test Cases...
+      <i class="bi bi-cloud-arrow-up" style="animation: spin 1s linear infinite;"></i>
+      Submitting <strong>${probTitle}</strong> (${lang.toUpperCase()}) to server for private evaluation...
     </div>
   `;
 
   const originalJudgeText = judgeBtn ? judgeBtn.innerHTML : '';
   if (judgeBtn) {
     judgeBtn.disabled = true;
-    judgeBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" style="width:0.75rem;height:0.75rem;"></span> Judging...';
+    judgeBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" style="width:0.75rem;height:0.75rem;"></span> Submitting...';
   }
 
   try {
@@ -774,13 +874,32 @@ window.runLeetCodeJudge = async function() {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Judge execution failed');
+      throw new Error(err.error || 'Server submission failed');
     }
 
-    const { result } = await res.json();
-    window.lastJudgeResult = { ...result, problemTitle: probInfo.title, lang };
+    const payload = await res.json();
 
-    // Format output
+    // Blind Interview Mode: Do NOT show pass/fail verdicts, expected outputs, or test details to candidate
+    if (payload.blindMode) {
+      window.lastJudgeResult = null;
+      if (insertBtn) insertBtn.style.display = 'none';
+      const ts = payload.timestamp ? new Date(payload.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
+      terminalConsoleOutput.textContent = [
+        '====================================================================',
+        'SERVER SUBMISSION RECORDED',
+        `Problem:  ${probTitle}`,
+        `Language: ${lang.toUpperCase()}`,
+        `Recorded: ${ts}`,
+        '--------------------------------------------------------------------',
+        payload.message || 'Solution received and evaluated on the server. Results & performance metrics have been saved for your interviewer.',
+        '===================================================================='
+      ].join('\n');
+      return;
+    }
+
+    const result = payload.result;
+    window.lastJudgeResult = { ...result, problemTitle: probTitle, lang };
+
     let outputText = '';
     const divider = '====================================================================';
     const subDivider = '--------------------------------------------------------------------';
@@ -788,46 +907,38 @@ window.runLeetCodeJudge = async function() {
     if (result.verdict === 'ACCEPTED') {
       outputText = `
 ${divider}
-🏆 LEETCODE JUDGE: ACCEPTED (${result.passedCount}/${result.totalCount} Test Cases Passed)
-Problem: ${probInfo.title} | Language: ${lang.toUpperCase()}
-Runtime: ${result.runtimeMs} ms (faster than 88.4%) | Memory: ${result.memoryMb} MB
-${subDivider}
-${(result.cases || []).map(c => `✓ Test Case ${c.id} [${c.type}]: PASSED (${c.durationMs || 1}ms)`).join('\n')}
-${divider}
-✓ All test cases passed! Your solution meets optimal time and space complexity requirements.
-Click "Insert Test Results" below to attach verified judge output to your answer.`;
-    } else if (result.verdict === 'WRONG_ANSWER') {
-      const failedCase = (result.cases || []).find(c => !c.passed);
-      outputText = `
-${divider}
-❌ LEETCODE JUDGE: WRONG ANSWER (${result.passedCount}/${result.totalCount} Test Cases Passed)
-Problem: ${probInfo.title} | Language: ${lang.toUpperCase()}
+ACCEPTED (${result.passedCount}/${result.totalCount} Test Cases Passed)
+Problem: ${probTitle} | Language: ${lang.toUpperCase()}
 Runtime: ${result.runtimeMs} ms | Memory: ${result.memoryMb} MB
 ${subDivider}
-${(result.cases || []).map(c => c.passed 
-  ? `✓ Test Case ${c.id} [${c.type}]: PASSED`
-  : `❌ Test Case ${c.id} [${c.type}]: FAILED
-   Input: ${JSON.stringify(c.input)}
-   Expected Output: ${JSON.stringify(c.expected)}
-   Your Output:     ${JSON.stringify(c.actual)}`
-).join('\n\n')}
+${(result.cases || []).map(c => `PASS Test Case ${c.id} [${c.type}] (${c.durationMs || 1}ms)`).join('\n')}
+${divider}`;
+    } else if (result.verdict === 'WRONG_ANSWER') {
+      outputText = `
 ${divider}
-⚠️ Solution produced incorrect output on test case #${failedCase ? failedCase.id : '?'}. Please review logic and edge cases.`;
+WRONG ANSWER (${result.passedCount}/${result.totalCount} Test Cases Passed)
+Problem: ${probTitle} | Language: ${lang.toUpperCase()}
+Runtime: ${result.runtimeMs} ms | Memory: ${result.memoryMb} MB
+${subDivider}
+${(result.cases || []).map(c => c.passed
+  ? `PASS Test Case ${c.id} [${c.type}]`
+  : `FAIL Test Case ${c.id} [${c.type}]\n   Input: ${JSON.stringify(c.input)}\n   Expected: ${JSON.stringify(c.expected)}\n   Actual:   ${JSON.stringify(c.actual)}`
+).join('\n\n')}
+${divider}`;
     } else {
       outputText = `
 ${divider}
-⚠️ LEETCODE JUDGE: ${result.status ? result.status.toUpperCase() : 'EXECUTION FAILED'}
-Problem: ${probInfo.title} | Language: ${lang.toUpperCase()}
+${result.status ? result.status.toUpperCase() : 'EXECUTION FAILED'}
+Problem: ${probTitle} | Language: ${lang.toUpperCase()}
 ${subDivider}
-${result.error || 'Execution encountered a syntax or runtime error.'}
-${divider}
-Tip: Ensure function name and signature match problem specifications.`;
+${result.error || 'Execution encountered an error.'}
+${divider}`;
     }
 
     terminalConsoleOutput.textContent = outputText.trim();
     if (insertBtn) insertBtn.style.display = 'inline-block';
   } catch (err) {
-    terminalConsoleOutput.textContent = `>>> Judge Server Error: ${err.message}`;
+    terminalConsoleOutput.textContent = `>>> Submission Error: ${err.message}`;
   } finally {
     if (judgeBtn) {
       judgeBtn.disabled = false;
@@ -851,9 +962,12 @@ window.copyJudgeResultToAnswer = function() {
 };
 
 window.runSandboxCode = function() {
+  if (token && interviewData?.dsa_blind_mode !== 0) {
+    return window.runLeetCodeJudge();
+  }
   const code = terminalCodeInput.value;
   const lang = terminalLangSelect ? terminalLangSelect.value : 'javascript';
-  terminalConsoleOutput.textContent = `>>> Executing ${lang.toUpperCase()} compiler sandbox...\n`;
+  terminalConsoleOutput.textContent = `>>> Executing ${lang.toUpperCase()} sandbox...\n`;
 
   if (lang === 'javascript') {
     const logs = [];
@@ -862,27 +976,20 @@ window.runSandboxCode = function() {
       console.log = (...args) => {
         logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' '));
       };
-      // Sandboxed execution of candidate JS code
       const result = new Function(code)();
       console.log = originalLog;
 
       let output = logs.join('\n');
       if (result !== undefined) {
-        output += `\n>>> Evaluated Result: ${typeof result === 'object' ? JSON.stringify(result) : result}`;
+        output += `\n>>> Return Value: ${typeof result === 'object' ? JSON.stringify(result) : result}`;
       }
-      terminalConsoleOutput.textContent = output ? `>>> Execution Output:\n${output}\n\n✓ All test cases executed without syntax or runtime faults.` : '>>> Code executed successfully with zero stdout output.';
+      terminalConsoleOutput.textContent = output ? `>>> Execution Output:\n${output}` : '>>> Executed cleanly (no stdout).';
     } catch (err) {
       console.log = originalLog;
       terminalConsoleOutput.textContent = `>>> Runtime Error:\n${err.name}: ${err.message}`;
     }
-  } else if (lang === 'python') {
-    terminalConsoleOutput.textContent = `>>> [Python 3 Engine Sandbox]\n>>> Validating syntax & AST trees...\n>>> Executed module without syntax faults.\n>>> Test output:\nCandidate solution logic validated against problem test cases.\nReady to include in response.`;
-  } else if (lang === 'cpp') {
-    terminalConsoleOutput.textContent = `>>> [GCC C++20 Compiler Sandbox]\n>>> Compiling with flags -O2 -std=c++20...\n>>> Build finished: 0 errors, 0 warnings.\n>>> Output generated successfully.`;
-  } else if (lang === 'java') {
-    terminalConsoleOutput.textContent = `>>> [OpenJDK 21 Sandbox]\n>>> Compiling Solution.java...\n>>> Compilation successful.\n>>> Output verified.`;
-  } else if (lang === 'sql') {
-    terminalConsoleOutput.textContent = `>>> [SQL Parser & Execution Engine]\n>>> Query plan generated: Index scan on primary key.\n>>> 4 rows matched.\n>>> Output ready.`;
+  } else {
+    return window.runLeetCodeJudge();
   }
 };
 
@@ -1110,41 +1217,26 @@ async function loadInterviewData() {
       if (btnToggle) btnToggle.style.display = 'none';
     }
 
-    if (hasDsa) {
-      const lcStr = (interviewData.leetcode_problem || '').trim();
-      let matched = resolveProblemDetails(lcStr);
-
-      const problemSpec = document.getElementById('terminal-problem-spec');
-      if (problemSpec) {
-        problemSpec.style.display = 'block';
-        if (matched) {
-          const specTitle = document.getElementById('spec-problem-title');
-          const specDiff = document.getElementById('spec-problem-diff');
-          const specDesc = document.getElementById('spec-problem-desc');
-          const specTestcases = document.getElementById('spec-problem-testcases');
-          if (specTitle) specTitle.textContent = matched.title;
-          if (specDiff) specDiff.textContent = matched.difficulty;
-          if (specDesc) specDesc.textContent = matched.description;
-          if (specTestcases) specTestcases.textContent = matched.testcases;
-          const activeLang = terminalLangSelect ? terminalLangSelect.value : 'javascript';
-          updateStarterCodeForLanguage(activeLang, true);
-        }
-      }
-    }
-
-    // Configure language selector options if interviewData.compiler_languages is set
+    // Configure language selector options FIRST if interviewData.compiler_languages is set
     if (interviewData.compiler_languages && terminalLangSelect) {
       const allowedLangs = interviewData.compiler_languages.split(',').map(s => s.trim().toLowerCase());
       Array.from(terminalLangSelect.options).forEach(opt => {
         if (!allowedLangs.includes(opt.value.toLowerCase())) {
           opt.disabled = true;
-          opt.textContent += ' (Not Enabled)';
+          if (!opt.textContent.includes('(Not Enabled)')) opt.textContent += ' (Not Enabled)';
         }
       });
       if (allowedLangs.length > 0 && !allowedLangs.includes(terminalLangSelect.value)) {
         const firstAllowed = Array.from(terminalLangSelect.options).find(opt => !opt.disabled);
         if (firstAllowed) terminalLangSelect.value = firstAllowed.value;
       }
+    }
+
+    if (hasDsa) {
+      window.activeLeetCodeProblemIdx = 0;
+      renderActiveProblemCard();
+      const activeLang = terminalLangSelect ? terminalLangSelect.value : 'javascript';
+      updateStarterCodeForLanguage(activeLang, true);
     }
 
     // Restore autosaved code draft & language after page refresh/reconnect
@@ -1547,7 +1639,13 @@ async function finishInterview() {
   }
 
   try {
-    await fetch(`/i/${token}/finish`, { method: 'POST' });
+    const codeDraft = terminalCodeInput ? terminalCodeInput.value : '';
+    const codeLang = terminalLangSelect ? terminalLangSelect.value : 'javascript';
+    await fetch(`/i/${token}/finish`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code_draft: codeDraft, code_lang: codeLang })
+    });
   } catch (err) {
     console.warn('Finish call error:', err);
   }

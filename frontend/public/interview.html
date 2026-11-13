@@ -1125,11 +1125,11 @@
             </div>
 
             <div style="display: flex; gap: 0.45rem; align-items: center;">
-              <button class="hr-ide-btn-run" onclick="runSandboxCode()" title="Run and test code locally">
-                <i class="bi bi-lightning-charge-fill"></i> Run Code
+              <button id="btn-run-sandbox" class="hr-ide-btn-run" onclick="runSandboxCode()" title="Check syntax & stdout locally">
+                <i class="bi bi-play-fill"></i> Run
               </button>
-              <button id="btn-judge-testcases" class="hr-ide-btn-judge" onclick="runLeetCodeJudge()" title="Execute Automated Test Cases (Public & Hidden)">
-                <i class="bi bi-check2-all"></i> Run Testcases
+              <button id="btn-judge-testcases" class="hr-ide-btn-judge" onclick="runLeetCodeJudge()" title="Submit code to server for private evaluation">
+                <i class="bi bi-cloud-upload-fill"></i> Submit Code
               </button>
               <button class="hud-pill-btn" onclick="resetToStarterCode()" style="padding: 0.3rem 0.55rem; font-size: 0.68rem;" title="Reset code skeleton">
                 <i class="bi bi-arrow-counterclockwise"></i> Reset
@@ -1137,36 +1137,40 @@
             </div>
           </div>
 
-          <!-- LeetCode Problem Spec Banner (HackerRank Problem Card) -->
-          <div id="terminal-problem-spec" class="hr-problem-banner" style="display: none; margin: 0.75rem 0.95rem 0 0.95rem;">
-            <div class="hr-problem-title-row">
-              <span id="spec-problem-title" style="font-weight: 800; font-size: 0.85rem; color: var(--hr-text);">LeetCode Challenge</span>
-              <span id="spec-problem-diff" class="hr-difficulty-badge medium">Medium</span>
+          <!-- Multi-Problem Switcher Strip (Shown when interviewer selected >1 problem) -->
+          <div id="lc-candidate-problem-tabs" style="display: none; gap: 0.35rem; flex-wrap: wrap; padding: 0.5rem 0.95rem 0 0.95rem;"></div>
+
+          <!-- LeetCode Problem Spec Card (Topics, Difficulty, Limits, Mode — NO Hints, NO Company Tags) -->
+          <div id="terminal-problem-spec" class="hr-problem-banner" style="display: none; margin: 0.65rem 0.95rem 0 0.95rem;">
+            <div class="hr-problem-title-row" style="gap: 0.5rem; flex-wrap: wrap;">
+              <span id="spec-problem-title" style="font-weight: 800; font-size: 0.88rem; color: var(--hr-text);">LeetCode Challenge</span>
+              <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
+                <span id="spec-problem-mode" class="hud-pill-btn" style="font-size: 0.64rem; padding: 0.14rem 0.45rem;">Solve Mode</span>
+                <span id="spec-problem-limits" class="hud-pill-btn" style="font-size: 0.64rem; padding: 0.14rem 0.45rem; color: var(--hr-cyan);">2000ms · 256MB</span>
+                <span id="spec-problem-diff" class="hr-difficulty-badge medium">Medium</span>
+              </div>
             </div>
-            <p id="spec-problem-desc" style="font-size: 0.75rem; color: var(--hr-text-muted); line-height: 1.5; margin-bottom: 0.5rem;">
+            <div id="spec-problem-topics" style="display: flex; gap: 0.3rem; flex-wrap: wrap; margin: 0.35rem 0;"></div>
+            <p id="spec-problem-desc" style="font-size: 0.76rem; color: var(--hr-text-muted); line-height: 1.55; margin-bottom: 0.45rem; white-space: pre-line;">
               Problem description...
             </p>
+            <div id="spec-problem-constraints" style="display: none; font-size: 0.69rem; color: #94a3b8; margin-bottom: 0.45rem;"></div>
             <div id="spec-problem-testcases" style="font-family: var(--hr-font-mono); font-size: 0.7rem; color: var(--hr-cyan); background: #06090f; padding: 0.45rem 0.75rem; border-radius: 4px; border: 1px solid var(--hr-border);">
-              Sample Testcases Loading...
+              Sample Examples Loading...
             </div>
           </div>
 
           <!-- Code Editor Area with Line Numbers -->
           <div id="terminal-editor-shell" style="display:flex;flex:1;min-height:240px;background:#0f172a;border-top:1px solid #1e293b;border-bottom:1px solid #1e293b;overflow:hidden;">
             <pre id="terminal-line-numbers" aria-hidden="true" style="margin:0;padding:0.85rem 0.65rem 0.85rem 0.5rem;min-width:42px;text-align:right;background:#0b1220;color:#64748b;border-right:1px solid #1e293b;font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.82rem;line-height:1.55;user-select:none;overflow:hidden;">1</pre>
-            <textarea id="terminal-code-input" class="hr-code-editor" spellcheck="false" style="flex:1;border:none;outline:none;border-radius:0;padding:0.85rem;font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.82rem;line-height:1.55;background:#0f172a;color:#e2e8f0;resize:none;" placeholder="// Write or implement your solution here... (Tab indents, Ctrl+Enter runs code)
-function solution() {
-  console.log('Testing solution execution...');
-  return true;
-}
-solution();"></textarea>
+            <textarea id="terminal-code-input" class="hr-code-editor" spellcheck="false" style="flex:1;border:none;outline:none;border-radius:0;padding:0.85rem;font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.82rem;line-height:1.55;background:#0f172a;color:#e2e8f0;resize:none;" placeholder="// Write or fix your solution here... (Tab indents, Ctrl+Enter submits)"></textarea>
           </div>
 
-          <!-- Tabbed Testcase & Output Drawer -->
+          <!-- Tabbed Console & Submission Drawer -->
           <div class="hr-testcase-drawer">
             <div class="hr-testcase-nav">
               <button class="hr-testcase-tab active" id="tab-testcase-output">
-                <i class="bi bi-terminal"></i> Test Results & STDOUT
+                <i class="bi bi-terminal"></i> Submission &amp; Console
               </button>
               <div style="margin-left: auto; display: flex; gap: 0.35rem;">
                 <button id="btn-insert-judge-result" class="hud-pill-btn" onclick="copyJudgeResultToAnswer()" style="padding: 0.2rem 0.5rem; font-size: 0.65rem; display: none;">
@@ -1181,7 +1185,7 @@ solution();"></textarea>
               </div>
             </div>
 
-            <div id="terminal-console-output" class="hr-testcase-content">Console ready. Click "Run Code" or "Run Testcases" to execute.</div>
+            <div id="terminal-console-output" class="hr-testcase-content">Console ready. Write or fix your code and click "Submit Code" to record on server.</div>
           </div>
         </div>
 

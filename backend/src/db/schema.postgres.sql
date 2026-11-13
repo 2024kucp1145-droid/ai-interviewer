@@ -78,11 +78,16 @@ CREATE TABLE IF NOT EXISTS jobs (
   purpose VARCHAR(64) DEFAULT 'job',
   experience_required VARCHAR(64) DEFAULT '0-2 Yrs',
   assessment_rules JSONB,
-  leetcode_problem VARCHAR(64),
+  leetcode_problem TEXT,
   compiler_languages VARCHAR(255) DEFAULT 'javascript,python,sql',
   category VARCHAR(128) DEFAULT 'Software & Tech',
   show_timer INTEGER DEFAULT 1,
   auto_submit_timer INTEGER DEFAULT 1,
+  dsa_time_limit_ms INTEGER DEFAULT 2000,
+  dsa_memory_limit_mb INTEGER DEFAULT 256,
+  dsa_question_mode VARCHAR(32) DEFAULT 'solve',
+  dsa_questions_count INTEGER DEFAULT 1,
+  dsa_blind_mode INTEGER DEFAULT 1,
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -392,6 +397,28 @@ CREATE TABLE IF NOT EXISTS org_custom_problems (
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 26. LeetCode Coding Bank (Topic-tagged, NO hints, NO company tags)
+CREATE TABLE IF NOT EXISTS leetcode_problems (
+  id VARCHAR(64) PRIMARY KEY,
+  frontend_id INTEGER NOT NULL,
+  slug VARCHAR(255) UNIQUE NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  difficulty VARCHAR(32) DEFAULT 'Medium',
+  topics_json JSONB DEFAULT '[]',
+  category VARCHAR(64) DEFAULT 'Algorithms',
+  description TEXT NOT NULL,
+  constraints TEXT DEFAULT '',
+  examples_json JSONB DEFAULT '[]',
+  starter_json JSONB DEFAULT '{}',
+  buggy_starter_json JSONB DEFAULT '{}',
+  test_cases_json JSONB DEFAULT '[]',
+  function_name_json JSONB DEFAULT '{}',
+  time_limit_ms INTEGER DEFAULT 2000,
+  memory_limit_mb INTEGER DEFAULT 256,
+  source VARCHAR(64) DEFAULT 'builtin',
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ==============================================================================
 -- Optimized B-Tree Indexes for High Performance Queries
 -- ==============================================================================
@@ -412,3 +439,5 @@ CREATE INDEX IF NOT EXISTS idx_pg_webhook_deliveries_org ON webhook_deliveries(o
 CREATE INDEX IF NOT EXISTS idx_pg_proctor_snapshots_iv ON proctor_snapshots(interview_id);
 CREATE INDEX IF NOT EXISTS idx_pg_report_shares_token ON report_shares(token_hash);
 CREATE INDEX IF NOT EXISTS idx_pg_org_custom_problems_org ON org_custom_problems(org_id);
+CREATE INDEX IF NOT EXISTS idx_pg_leetcode_frontend_id ON leetcode_problems(frontend_id);
+CREATE INDEX IF NOT EXISTS idx_pg_leetcode_difficulty ON leetcode_problems(difficulty);
