@@ -21,6 +21,9 @@ export function startHttpBridge(server, port = 3005) {
     allowedHeaders: ['*']
   }));
 
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
   // Diagnostic request logger for Claude Connectors
   app.use((req, res, next) => {
     console.log(`[MCP HTTP ${req.method}] ${req.url} - Headers:`, {
@@ -34,9 +37,6 @@ export function startHttpBridge(server, port = 3005) {
     }
     next();
   });
-
-  app.use(express.json({ limit: '10mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
   // Helper to dynamically derive base URL
   function getBaseUrl(req) {
@@ -214,8 +214,37 @@ export function startHttpBridge(server, port = 3005) {
       };
     }
 
+    // Spec: server/discover (Modern unified MCP discovery)
+    if (method === 'server/discover' || method === 'discovery/discover') {
+      return {
+        jsonrpc: '2.0',
+        id: id !== undefined ? id : null,
+        result: {
+          supportedVersions: ['2024-11-05', '2024-10-07', '2026-07-28'],
+          capabilities: {
+            tools: { listChanged: true },
+            resources: { subscribe: false, listChanged: true },
+            prompts: { listChanged: true },
+            logging: {}
+          },
+          _meta: {
+            'io.modelcontextprotocol/serverInfo': {
+              name: 'roundone-ai',
+              version: '1.0.0'
+            }
+          },
+          instructions: 'RoundOne AI Autonomous Interviewer, 4,111+ LeetCode DSA Code Judge Engine & Codebase Manager. Access LeetCode problem bank, run sandboxed code judge, manage technical interviews, invite candidates, evaluate scores, and inspect/edit project files.'
+        }
+      };
+    }
+
     // Spec: ping
     if (method === 'ping') {
+      return { jsonrpc: '2.0', id: id !== undefined ? id : null, result: {} };
+    }
+
+    // Spec: logging/setLevel
+    if (method === 'logging/setLevel') {
       return { jsonrpc: '2.0', id: id !== undefined ? id : null, result: {} };
     }
 

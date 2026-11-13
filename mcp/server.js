@@ -25,6 +25,7 @@ import { registerInterviewTools } from './tools/interviewTools.js';
 import { registerCandidateTools } from './tools/candidateTools.js';
 import { registerEvaluationTools } from './tools/evaluationTools.js';
 import { registerSystemTools } from './tools/systemTools.js';
+import { registerCodebaseTools } from './tools/codebaseTools.js';
 import { registerPrompts } from './prompts/prompts.js';
 import { registerResources } from './resources/resources.js';
 import { startHttpBridge } from './httpServer.js';
@@ -43,6 +44,7 @@ registerInterviewTools(server);
 registerCandidateTools(server);
 registerEvaluationTools(server);
 registerSystemTools(server);
+registerCodebaseTools(server);
 
 // 3. Register Prompts & Resources
 registerPrompts(server);

@@ -110,6 +110,18 @@ async function runTests() {
   assert.ok(billingRes.content[0].text.includes('Credits'));
   console.log('   ✓ get_platform_stats and get_billing_and_credits returned operational telemetry');
 
+  // 10b. Test Codebase Tools
+  console.log('\n10b. Testing Codebase Tools (read_project_file, list_project_files, run_project_command)...');
+  const readRes = await tools.read_project_file.handler({ file_path: 'package.json' });
+  assert.ok(readRes.content[0].text.includes('roundone-ai'));
+
+  const listRes = await tools.list_project_files.handler({ directory: 'backend/src' });
+  assert.ok(listRes.content[0].text.includes('server.js'));
+
+  const cmdRes = await tools.run_project_command.handler({ command: 'node -v' });
+  assert.ok(cmdRes.content[0].text.includes('v'));
+  console.log('   ✓ Codebase tools executed and read project files & commands successfully');
+
   // 11. Test Prompts
   console.log('\n11. Testing MCP Prompts...');
   const promptScreening = await (prompts['conduct-technical-screening'].callback || prompts['conduct-technical-screening'].handler)({ role: 'Lead ML Engineer' });
