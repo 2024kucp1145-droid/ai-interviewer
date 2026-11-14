@@ -31,5 +31,8 @@
     "qrcode": "^1.5.4",
     "stripe": "^23.1.0",
     "zod": "^4.6.7"
+  },
+  "allowScripts": {
+    "better-sqlite3@13.0.3": true
   }
 }
