@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { checkPostgresConnection, getPostgresConfig } from '../backend/src/db/postgres.js';
 
 async function testPostgres() {

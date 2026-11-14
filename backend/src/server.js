@@ -49,6 +49,7 @@ import {
   sendInterviewCompletionEmail,
   sendWaitlistConfirmationEmail
 } from './services/emailService.js';
+import { startSupabaseLiveSync } from './services/supabaseLiveSync.js';
 
 dotenv.config();
 validateJwtSecret();
@@ -3973,4 +3974,5 @@ app.listen(PORT, () => {
   console.log(`   - Candidate Interview: http://localhost:${PORT}/interview.html?token=<token>`);
   console.log(`   - Health check:        http://localhost:${PORT}/health`);
   console.log(`=======================================================`);
+  startSupabaseLiveSync();
 });
