@@ -934,6 +934,10 @@
     </div>
   </div>
 
+  <!-- Anime.js v4 & RoundOne Enterprise Motion Engine -->
+  <script src="/vendor/anime.min.js"></script>
+  <script src="/js/roundone-animations.js"></script>
+
   <script>
     const authToken = localStorage.getItem('roundone_token') || localStorage.getItem('ai_interviewer_token');
     const urlParams = new URLSearchParams(window.location.search);
@@ -1487,6 +1491,10 @@
       renderSectionContainer('container-borderline-list', sortedBorderline, 'card-amber', 'borderline');
       renderSectionContainer('container-rejected-list', sortedRejected, 'card-red', 'rejected');
       renderPendingContainer('container-pending-list', pending);
+
+      if (window.RoundOneMotion) {
+        window.RoundOneMotion.animateStaggeredEntrance('.candidate-card', 40);
+      }
     }
 
     function renderSectionContainer(containerId, list, cardStyleClass, type) {
@@ -1920,10 +1928,13 @@
         ` : '';
 
         const skillsHtml = ((report && report.skills) || []).map(s => `
-          <div style="background:var(--surface-subtle); border:1px solid var(--border); border-radius:6px; padding:0.65rem 0.85rem; margin-bottom:0.5rem;">
+          <div class="evaluated-skill-item" style="background:var(--surface-subtle); border:1px solid var(--border); border-radius:6px; padding:0.65rem 0.85rem; margin-bottom:0.5rem; transition: transform 0.2s ease;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <strong>${escapeHtml(s.skill)}</strong>
               <span class="badge ${s.score >= 4 ? 'badge-dark' : 'badge-outline'}">${s.score}/5 Score</span>
+            </div>
+            <div style="width:100%; height:4px; background:var(--border); border-radius:2px; margin-top:0.4rem; overflow:hidden;">
+              <div class="skill-meter-fill" data-percent="${Math.min(100, (s.score / 5) * 100)}" style="width:0%; height:100%; background:${s.score >= 4 ? '#10b981' : (s.score >= 3 ? '#f59e0b' : '#ef4444')}; border-radius:2px;"></div>
             </div>
             ${s.evidence && s.evidence.length > 0 ? `<div style="font-size:0.725rem; color:var(--text-muted); font-style:italic; margin-top:0.35rem;">"${escapeHtml(s.evidence[0].quote)}"</div>` : ''}
           </div>
@@ -1992,7 +2003,7 @@
             </div>
             <div style="text-align:right;">
               <div style="font-size:0.75rem; color:var(--text-muted);">Audit Score</div>
-              <strong style="font-size:1.45rem; color:#2563eb;">${scoreDisp}${scoreDisp !== '--' ? '/100' : ''}</strong>
+              <strong id="modal-audit-score" style="font-size:1.45rem; color:#2563eb;">${typeof scoreDisp === 'number' ? '0/100' : scoreDisp}</strong>
             </div>
           </div>
 
@@ -2034,6 +2045,11 @@
             </div>
           </div>
         `;
+
+        if (typeof scoreDisp === 'number' && window.RoundOneMotion) {
+          window.RoundOneMotion.animateScoreCounter('modal-audit-score', scoreDisp, 1400, '/100');
+          window.RoundOneMotion.animateSkillCards('.evaluated-skill-item');
+        }
       } catch (err) {
         content.innerHTML = `<div style="color:#dc2626; padding:1rem;">Failed to load report: ${escapeHtml(err.message)}</div>`;
       }

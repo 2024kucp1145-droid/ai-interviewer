@@ -464,6 +464,12 @@ export class ProctorEngine {
 
     console.warn(`[ProctorEngine] WARNING ${this.warningsCount} OF ${this.maxWarnings}: ${reason}`);
 
+    // Trigger Anime.js elastic camera shake and warning pill pulse
+    if (window.RoundOneMotion) {
+      window.RoundOneMotion.shakeProctorCamera('#proctor-pip-widget');
+      window.RoundOneMotion.animateWarningPill(`#pip-pill-${this.warningsCount}`);
+    }
+
     // Update PIP Warning Pills
     this.updateWarningPills(this.warningsCount);
 
@@ -577,6 +583,10 @@ export class ProctorEngine {
     `;
 
     document.body.appendChild(modal);
+
+    if (window.RoundOneMotion) {
+      window.RoundOneMotion.animateProctorModal('.proctor-alert-box');
+    }
 
     // Auto-dismiss after 8 seconds if candidate does not click
     setTimeout(() => {
@@ -733,6 +743,10 @@ export class ProctorEngine {
         </div>
       </div>
     `;
+
+    if (window.RoundOneMotion) {
+      window.RoundOneMotion.animateProctorModal('.proctor-disqualified-card');
+    }
   }
 
   /**

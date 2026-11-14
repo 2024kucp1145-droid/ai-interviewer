@@ -116,6 +116,10 @@ function setVoiceBarState(state) {
     if (voiceIndicator) voiceIndicator.style.display = 'none';
     avatar.classList.add('speaking');
     if (soundwave) soundwave.classList.add('active');
+    if (window.RoundOneMotion) {
+      window.RoundOneMotion.startAiAvatarPulse();
+      window.RoundOneMotion.startVoiceEqualizer();
+    }
   } else if (state === 'listening') {
     voiceStatusPulse.style.background = '#00ea64';
     voiceStatusPulse.style.boxShadow = '0 0 12px #00ea64';
@@ -125,6 +129,10 @@ function setVoiceBarState(state) {
     if (voiceIndicator) voiceIndicator.style.display = 'inline-block';
     avatar.classList.remove('speaking');
     if (soundwave) soundwave.classList.add('active');
+    if (window.RoundOneMotion) {
+      window.RoundOneMotion.stopAiAvatarPulse();
+      window.RoundOneMotion.startVoiceEqualizer();
+    }
   } else if (state === 'transcribing') {
     voiceStatusPulse.style.background = '#a855f7';
     voiceStatusPulse.style.boxShadow = '0 0 12px #a855f7';
@@ -134,6 +142,9 @@ function setVoiceBarState(state) {
     if (voiceIndicator) voiceIndicator.style.display = 'inline-block';
     avatar.classList.remove('speaking');
     if (soundwave) soundwave.classList.add('active');
+    if (window.RoundOneMotion) {
+      window.RoundOneMotion.startVoiceEqualizer();
+    }
   } else if (state === 'submitting') {
     voiceStatusPulse.style.background = '#f59e0b';
     voiceStatusPulse.style.boxShadow = '0 0 10px #f59e0b';
@@ -143,6 +154,10 @@ function setVoiceBarState(state) {
     if (voiceIndicator) voiceIndicator.style.display = 'none';
     avatar.classList.remove('speaking');
     if (soundwave) soundwave.classList.remove('active');
+    if (window.RoundOneMotion) {
+      window.RoundOneMotion.stopVoiceEqualizer();
+      window.RoundOneMotion.stopAiAvatarPulse();
+    }
   }
 }
 
@@ -1277,6 +1292,9 @@ async function loadInterviewData() {
 
       if (lastTurn && lastTurn.role === 'ai') {
         aiQuestionText.textContent = lastTurn.text;
+        if (window.RoundOneMotion) {
+          window.RoundOneMotion.animateQuestionEntrance('.question-box, #ai-question-text');
+        }
       } else {
         fetchNextQuestion(null);
       }
@@ -1510,6 +1528,10 @@ function showInterviewRoom() {
   const showTimer = interviewData?.show_timer !== 0;
   const autoSubmit = interviewData?.auto_submit_timer !== 0;
   startInterviewDurationTimer(durationMins, showTimer, autoSubmit);
+
+  if (window.RoundOneMotion) {
+    window.RoundOneMotion.animateHudEntrance('#floating-ai-hud');
+  }
 }
 
 // 3. Hands-Free Conversational Voice Q&A Loop
@@ -1588,6 +1610,9 @@ async function fetchNextQuestion(answerText) {
 
     if (aiQuestionText) {
       aiQuestionText.textContent = data.question;
+      if (window.RoundOneMotion) {
+        window.RoundOneMotion.animateQuestionEntrance('.question-box, #ai-question-text');
+      }
     }
 
     // Check question content to dynamically open or close tools

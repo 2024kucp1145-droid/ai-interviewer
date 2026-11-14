@@ -3979,6 +3979,9 @@ function renderDashboardJobsList(jobs, catalogMatches = [], searchQ = '', catego
   }
 
   jobsListEl.innerHTML = html;
+  if (window.RoundOneMotion) {
+    window.RoundOneMotion.animateStaggeredEntrance('#dashboard-jobs-list .configured-role-card, #dashboard-jobs-list .catalog-role-card, #dashboard-jobs-list .card', 30);
+  }
 }
 
 window.selectJobForCandidates = function(jobId) {
@@ -4801,6 +4804,10 @@ window.applyCandidateFilters = function() {
       </tr>
     `;
   }).join('');
+
+  if (window.RoundOneMotion) {
+    window.RoundOneMotion.animateStaggeredEntrance('#candidates-roster-cards .candidate-merit-card', 35);
+  }
 };
 
 // 6. Load Interviews for the Active Job Round (or all organization responses if no job specified)
@@ -5156,7 +5163,7 @@ window.openReportModal = async function(interviewId) {
         <div style="text-align:right;">
           <div style="font-size:0.7rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Overall Technical Score</div>
           <div style="font-size:1.45rem; font-weight:700; color:${report.disqualified || verdict === 'DISQUALIFIED' ? '#dc2626' : 'var(--text)'}; margin-top:0.1rem;">
-            ${score} <span style="font-size:0.75rem; color:var(--text-muted); font-weight:400;">/ 100</span>
+            <span id="dashboard-modal-score">${score}</span> <span style="font-size:0.75rem; color:var(--text-muted); font-weight:400;">/ 100</span>
           </div>
         </div>
       </div>
@@ -5330,6 +5337,11 @@ window.openReportModal = async function(interviewId) {
         </div>
       </details>
     `;
+
+    if (typeof score === 'number' && window.RoundOneMotion) {
+      window.RoundOneMotion.animateScoreCounter('dashboard-modal-score', score, 1400);
+      window.RoundOneMotion.animateSkillCards('#modal-report-body .card');
+    }
   } catch (err) {
     modalBody.innerHTML = `<p style="color:#000; font-size:0.775rem;">Error loading report: ${err.message}</p>`;
   }
@@ -7430,6 +7442,13 @@ window.loadRegisteredUsers = async function(isManualRefresh = false) {
     if (statIntvs) statIntvs.textContent = data.stats?.totalInterviews ?? 0;
     if (totalCountEl) totalCountEl.textContent = totalCount;
 
+    if (window.RoundOneMotion) {
+      window.RoundOneMotion.animateScoreCounter('stat-modal-users-count', totalCount, 1000);
+      window.RoundOneMotion.animateScoreCounter('stat-modal-orgs-count', data.stats?.totalOrgs ?? 0, 1000);
+      window.RoundOneMotion.animateScoreCounter('stat-modal-jobs-count', data.stats?.totalJobs ?? 0, 1000);
+      window.RoundOneMotion.animateScoreCounter('stat-modal-interviews-count', data.stats?.totalInterviews ?? 0, 1000);
+    }
+
     renderRegisteredUsersTable(allLoadedRegisteredUsers);
   } catch (err) {
     if (tbody) {
@@ -7571,6 +7590,10 @@ window.renderRegisteredUsersTable = function(users) {
       </tr>
     `;
   }).join('');
+
+  if (window.RoundOneMotion) {
+    window.RoundOneMotion.animateStaggeredEntrance('#registered-users-tbody tr', 25);
+  }
 };
 
 window.handleSearchUsersInput = function() {
