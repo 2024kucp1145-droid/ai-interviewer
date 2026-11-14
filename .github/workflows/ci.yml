@@ -10,14 +10,20 @@ jobs:
   verify:
     runs-on: ubuntu-latest
 
+    env:
+      NODE_ENV: test
+      PORT: 3001
+      JWT_SECRET: ci_test_jwt_secret_key_849204910284019284019
+      ENCRYPTION_MASTER_KEY: e83a9f1b4c7d0e2f5a6b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
@@ -38,7 +44,27 @@ jobs:
 
       - name: Run unit, admin & full-stack integration tests
         run: |
+          # 1. Run unit test suite
           npm test
+
+          # 2. Start backend server in background for HTTP integration tests
+          node backend/src/server.js &
+          SERVER_PID=$!
+
+          # Wait up to 30 seconds for health check endpoint to respond
+          echo "Waiting for backend server to be ready on port 3001..."
+          for i in {1..30}; do
+            if curl -s http://127.0.0.1:3001/health > /dev/null 2>&1; then
+              echo "Backend server is ready on port 3001 (attempt $i)"
+              break
+            fi
+            sleep 1
+          done
+
+          # 3. Run full HTTP integration suites
           node tests/test_admin_system.js
           node tests/test_problems_1_2_3.js
           node tests/test_fullstack_features.js
+
+          # 4. Clean up background server process
+          kill $SERVER_PID || true
