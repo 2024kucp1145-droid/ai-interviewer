@@ -1749,7 +1749,269 @@
       transform: translateY(-1px);
     }
 
-    /* Sandbox Card */
+    /* Employer 3-Step Pipeline Showcase */
+    .employer-workflow-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08);
+      margin-bottom: 2.25rem;
+      position: relative;
+      z-index: 3;
+    }
+    [data-theme="dark"] .employer-workflow-card {
+      background: #0f172a;
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+    }
+    .employer-workflow-header {
+      background: var(--surface-subtle);
+      border-bottom: 1px solid var(--border);
+      padding: 0.85rem 1.4rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    [data-theme="dark"] .employer-workflow-header {
+      background: #111a2e;
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    .employer-steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+      padding: 1.75rem 1.5rem;
+    }
+    @media (max-width: 960px) {
+      .employer-steps-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .employer-step-item {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.35rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: all 0.25s ease;
+    }
+    .employer-step-item:hover {
+      transform: translateY(-3px);
+      border-color: #6366f1;
+      box-shadow: 0 10px 25px rgba(99, 102, 241, 0.1);
+    }
+    [data-theme="dark"] .employer-step-item {
+      background: rgba(30, 41, 59, 0.45);
+      border-color: rgba(255, 255, 255, 0.07);
+    }
+    [data-theme="dark"] .employer-step-item:hover {
+      background: rgba(30, 41, 59, 0.75);
+      border-color: rgba(129, 140, 248, 0.4);
+    }
+    .employer-step-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    .employer-step-badge {
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+    }
+    .step-badge-1 { background: rgba(37,99,235,0.12); color: #2563eb; border: 1px solid rgba(37,99,235,0.25); }
+    .step-badge-2 { background: rgba(16,185,129,0.12); color: #059669; border: 1px solid rgba(16,185,129,0.25); }
+    .step-badge-3 { background: rgba(245,158,11,0.12); color: #d97706; border: 1px solid rgba(245,158,11,0.25); }
+    .employer-step-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+    }
+    .step-icon-1 { background: linear-gradient(135deg, rgba(37,99,235,0.15), rgba(59,130,246,0.25)); color: #2563eb; }
+    .step-icon-2 { background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(52,211,153,0.25)); color: #10b981; }
+    .step-icon-3 { background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(251,191,36,0.25)); color: #f59e0b; }
+    .employer-step-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.45rem;
+    }
+    .employer-step-desc {
+      font-size: 0.775rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+      margin-bottom: 1rem;
+      flex-grow: 1;
+    }
+    .employer-step-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-bottom: 1rem;
+    }
+    .employer-step-chip {
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    [data-theme="dark"] .employer-step-chip {
+      background: #0b0f19;
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    .employer-step-action {
+      margin-top: auto;
+      padding-top: 0.75rem;
+      border-top: 1px dashed var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Employer Front Page Pricing Component */
+    .front-pricing-box {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem 1.75rem;
+      margin-bottom: 2rem;
+      position: relative;
+      z-index: 3;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.06);
+    }
+    [data-theme="dark"] .front-pricing-box {
+      background: #0f172a;
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 16px 45px rgba(0, 0, 0, 0.45);
+    }
+    .front-pricing-header {
+      text-align: center;
+      max-width: 680px;
+      margin: 0 auto 2rem;
+    }
+    .front-pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.35rem;
+      align-items: stretch;
+    }
+    @media (max-width: 960px) {
+      .front-pricing-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .front-pricing-card {
+      background: var(--surface-subtle);
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 1.6rem 1.35rem;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: all 0.25s ease;
+    }
+    .front-pricing-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+    }
+    [data-theme="dark"] .front-pricing-card {
+      background: rgba(30, 41, 59, 0.35);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    .front-pricing-card.popular {
+      border-color: #6366f1;
+      background: linear-gradient(180deg, rgba(99, 102, 241, 0.06) 0%, var(--surface-subtle) 100%);
+      box-shadow: 0 12px 35px rgba(99, 102, 241, 0.15);
+    }
+    [data-theme="dark"] .front-pricing-card.popular {
+      background: linear-gradient(180deg, rgba(99, 102, 241, 0.12) 0%, rgba(30, 41, 59, 0.5) 100%);
+      border-color: #818cf8;
+    }
+    .front-pricing-badge-popular {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 0.25rem 0.8rem;
+      border-radius: 999px;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    }
+    .front-price-row {
+      display: flex;
+      align-items: baseline;
+      gap: 0.45rem;
+      margin: 0.85rem 0 0.25rem;
+    }
+    .front-price-usd {
+      font-size: 1.85rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+    .front-price-inr {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #10b981;
+    }
+    .front-price-sep {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .front-price-unit {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-bottom: 1.25rem;
+    }
+    .front-pricing-features {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      flex-grow: 1;
+    }
+    .front-pricing-features li {
+      font-size: 0.775rem;
+      color: var(--text);
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      line-height: 1.45;
+    }
+    .front-pricing-features li i {
+      color: #10b981;
+      font-size: 0.85rem;
+      margin-top: 1px;
+      flex-shrink: 0;
+    }
+
+    /* Sandbox Card (Compatibility fallback) */
     .bolt-sandbox-card {
       background: var(--surface);
       border: 1.5px solid var(--border);
@@ -2142,19 +2404,19 @@
           <!-- Pill Badge -->
           <div class="bolt-pill" onclick="handleStartTrialClick()" style="cursor: pointer;">
             <span class="bolt-pill-badge">FREE TRIAL</span>
-            <span>🎁 10 Free AI Interviews Included • No Credit Card Required</span>
+            <span>🎁 10 Free AI Interviews Included • For Employers &amp; Hiring Teams • Rates from $0.50 / ₹42</span>
             <i class="bi bi-arrow-right" style="font-size: 0.75rem;"></i>
           </div>
 
           <!-- Main Title -->
           <h1 class="bolt-title">
-            Hire Top 1% Engineers with<br>
+            Hire Top Engineers for Employers with<br>
             <span class="bolt-gradient-text">Autonomous AI Voice &amp; Live Coding</span>
           </h1>
 
           <!-- Subtitle -->
           <p class="bolt-subhead">
-            Conduct realistic voice technical screenings with an AI engineering lead, assess real-time code execution across our <strong>4,111+ LeetCode DSA Problem Bank</strong>, defeat cheating with keystroke telemetry, and receive instant 0–100 objective evaluation rubrics.
+            Empower your recruiting team with 24/7 autonomous technical screening. Evaluate candidates across our <strong>4,111+ LeetCode DSA Problem Bank</strong>, defeat cheating with keystroke proctoring, and receive instant 0–100 objective evaluation scorecards.
           </p>
 
           <!-- Bolt.new-style Interactive Prompt Bar -->
@@ -2163,7 +2425,7 @@
               <i class="bi bi-sparkles bolt-prompt-icon"></i>
               <input type="text" id="bolt-prompt-input" class="bolt-prompt-input" placeholder="What role or technical round do you want to conduct? (e.g. Senior Full-Stack Engineer, LeetCode Hard DP...)" onkeydown="if(event.key==='Enter') handleBoltPromptSubmit()">
               <button type="button" class="btn btn-primary bolt-prompt-btn" onclick="handleBoltPromptSubmit()">
-                <span>Launch Sandbox</span>
+                <span>Create Interview</span>
                 <i class="bi bi-arrow-right"></i>
               </button>
             </div>
@@ -2180,127 +2442,107 @@
           </div>
         </div>
 
-        <!-- Interactive Live Candidate Room & Code Runner Sandbox (Split View) -->
-        <div class="bolt-sandbox-card">
-          <div class="bolt-sandbox-header">
+        <!-- 3-STEP EMPLOYER AUTONOMOUS HIRING WORKFLOW SHOWCASE -->
+        <div class="employer-workflow-card">
+          <div class="employer-workflow-header">
             <div style="display: flex; align-items: center; gap: 0.6rem;">
               <span class="bolt-window-dots">
                 <span style="background: #ef4444;"></span>
                 <span style="background: #eab308;"></span>
                 <span style="background: #22c55e;"></span>
               </span>
-              <span style="font-weight: 700; color: var(--text);">Interactive Live Interview &amp; Code Sandbox</span>
-              <span class="badge" style="background: rgba(37,99,235,0.1); color: #2563eb; border: 1px solid rgba(37,99,235,0.2); font-size: 0.65rem;">LeetCode #1: Two Sum</span>
+              <span style="font-weight: 700; color: var(--text);">How RoundOne AI Works for Employers</span>
+              <span class="badge" style="background: rgba(37,99,235,0.1); color: #2563eb; border: 1px solid rgba(37,99,235,0.2); font-size: 0.65rem;">3-Step Autonomous Pipeline</span>
             </div>
             <div style="display: flex; align-items: center; gap: 0.5rem;">
               <span class="badge" style="background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid rgba(16,185,129,0.2); font-size: 0.65rem; display: inline-flex; align-items: center; gap: 4px;">
-                <span class="pulse-green-dot"></span> Live Voice Connected
+                <span class="pulse-green-dot"></span> 24/7 Screening Active
               </span>
-              <button class="btn btn-outline btn-xs" onclick="resetSandboxCode()" title="Reset code"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
               <button class="btn btn-primary btn-xs" onclick="handleStartTrialClick()"><i class="bi bi-gift-fill"></i> Get 10 Free Rounds</button>
             </div>
           </div>
 
-          <div class="bolt-sandbox-grid">
-            <!-- Left Pane: AI Voice Interviewer & Telemetry Mockup -->
-            <div class="bolt-sandbox-left">
-              <!-- AI Avatar Card -->
-              <div class="bolt-interviewer-card">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.6rem;">
-                  <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <div class="bolt-avatar-glow">
-                      <i class="bi bi-robot"></i>
-                    </div>
-                    <div>
-                      <div style="font-size: 0.8rem; font-weight: 700; color: var(--text);">AI Tech Lead (Alex)</div>
-                      <div style="font-size: 0.68rem; color: var(--text-muted);">Autonomous Audio Screening Agent</div>
-                    </div>
-                  </div>
-                  <div class="voice-wave-container" title="Audio waveform streaming">
-                    <span class="voice-wave-bar"></span>
-                    <span class="voice-wave-bar"></span>
-                    <span class="voice-wave-bar"></span>
-                    <span class="voice-wave-bar"></span>
-                    <span class="voice-wave-bar"></span>
-                  </div>
+          <div class="employer-steps-grid">
+            <!-- STEP 1 -->
+            <div class="employer-step-item">
+              <div class="employer-step-top">
+                <div class="employer-step-icon step-icon-1">
+                  <i class="bi bi-briefcase-fill"></i>
                 </div>
-
-                <div class="bolt-dialogue-bubble">
-                  <i class="bi bi-quote" style="opacity: 0.4;"></i>
-                  <span>"Welcome! Today we'll solve <strong>Two Sum</strong>. Could you first explain your algorithmic strategy before coding? Aim for <code>O(n)</code> linear time using a Hash Map rather than <code>O(n²)</code> brute force."</span>
-                </div>
+                <span class="employer-step-badge step-badge-1">STEP 01 • SETUP</span>
               </div>
-
-              <!-- Candidate Video & Anti-Cheating Telemetry -->
-              <div class="bolt-candidate-telemetry-box">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                  <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Anti-Cheat Telemetry</span>
-                  <span class="badge" style="background: rgba(16,185,129,0.12); color: #059669; font-size: 0.65rem;">Integrity: 100%</span>
-                </div>
-                <div class="bolt-telemetry-chips">
-                  <span class="bolt-telemetry-tag"><i class="bi bi-camera-video-fill" style="color: #10b981;"></i> Video Verified</span>
-                  <span class="bolt-telemetry-tag"><i class="bi bi-eye-fill" style="color: #10b981;"></i> Tab Focused</span>
-                  <span class="bolt-telemetry-tag"><i class="bi bi-clipboard-check-fill" style="color: #10b981;"></i> 0 Copy-Paste</span>
-                  <span class="bolt-telemetry-tag"><i class="bi bi-mic-fill" style="color: #10b981;"></i> Clear Mic</span>
-                </div>
-                <div class="bolt-candidate-transcript">
-                  <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.2rem;">Candidate Voice Transcript:</div>
-                  <div style="font-size: 0.72rem; color: var(--text); font-style: italic;">"I'll iterate through nums with a single pass. For each element, I'll calculate complement = target - nums[i] and query the Map in O(1)..."</div>
-                </div>
+              <h3 class="employer-step-title">Create or Pick Challenges</h3>
+              <p class="employer-step-desc">
+                Paste your Job Description or choose from <strong>4,111+ LeetCode DSA questions</strong>. Set difficulty, interview duration (15–60 mins), and skill weights in under 60 seconds.
+              </p>
+              <div class="employer-step-chips">
+                <span class="employer-step-chip"><i class="bi bi-collection-fill" style="color: #2563eb;"></i> 4,111+ DSA Bank</span>
+                <span class="employer-step-chip"><i class="bi bi-file-earmark-text" style="color: #2563eb;"></i> Instant JD Parser</span>
+                <span class="employer-step-chip"><i class="bi bi-sliders" style="color: #2563eb;"></i> Custom Rubric</span>
               </div>
-
-              <!-- Quick Feature Bullet points -->
-              <div class="bolt-quick-perks">
-                <div class="bolt-perk"><i class="bi bi-check2-circle" style="color: #10b981;"></i> Sub-second conversational voice latency</div>
-                <div class="bolt-perk"><i class="bi bi-check2-circle" style="color: #10b981;"></i> Keystroke timeline recorded for recruiter review</div>
-                <div class="bolt-perk"><i class="bi bi-check2-circle" style="color: #10b981;"></i> 0–100 rubric generated automatically</div>
+              <div class="employer-step-action">
+                <button type="button" class="btn btn-outline btn-xs" onclick="startInterviewCreationWizard()">
+                  <i class="bi bi-plus-circle"></i> Create Interview Wizard &rarr;
+                </button>
+                <span style="font-size: 0.7rem; color: var(--text-muted);">&lt; 1 min</span>
               </div>
             </div>
 
-            <!-- Right Pane: Live In-Browser Code IDE & Runner -->
-            <div class="bolt-sandbox-right">
-              <div class="bolt-code-editor-header">
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                  <i class="bi bi-file-earmark-code" style="color: #60a5fa;"></i>
-                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #e2e8f0; font-weight: 600;">solution.js</span>
-                  <span style="font-size: 0.68rem; color: #94a3b8;">(JavaScript / Node.js)</span>
+            <!-- STEP 2 -->
+            <div class="employer-step-item">
+              <div class="employer-step-top">
+                <div class="employer-step-icon step-icon-2">
+                  <i class="bi bi-mic-fill"></i>
                 </div>
-                <div style="display: flex; align-items: center; gap: 0.4rem;">
-                  <button type="button" class="btn btn-sm btn-success bolt-run-btn" id="btn-run-sandbox" onclick="runDemoSandboxCode()" title="Run test cases live">
-                    <i class="bi bi-play-fill"></i> Run Test Cases (Click to Test)
-                  </button>
-                </div>
+                <span class="employer-step-badge step-badge-2">STEP 02 • SCREEN</span>
               </div>
-
-              <!-- Code Textarea -->
-              <div class="bolt-code-area-wrap">
-                <textarea id="sandbox-code-editor" class="bolt-code-textarea" spellcheck="false">/**
- * LeetCode #1: Two Sum
- * Time Limit: 2.0s | Memory Limit: 256MB
- * @param {number[]} nums
- * @param {number} target
- * @return {number[]}
- */
-function twoSum(nums, target) {
-  const map = new Map();
-  for (let i = 0; i < nums.length; i++) {
-    const complement = target - nums[i];
-    if (map.has(complement)) {
-      return [map.get(complement), i];
-    }
-    map.set(nums[i], i);
-  }
-  return [];
-}</textarea>
+              <h3 class="employer-step-title">Autonomous 24/7 Voice Screen</h3>
+              <p class="employer-step-desc">
+                Candidates interview anytime worldwide. AI Tech Lead (Alex) conducts sub-second natural voice screenings, evaluates trade-offs (O(N) vs O(N²)), and monitors webcam &amp; keystrokes.
+              </p>
+              <div class="employer-step-chips">
+                <span class="employer-step-chip"><i class="bi bi-broadcast" style="color: #10b981;"></i> Voice Latency &lt; 1s</span>
+                <span class="employer-step-chip"><i class="bi bi-shield-check" style="color: #10b981;"></i> Keystroke Proctoring</span>
+                <span class="employer-step-chip"><i class="bi bi-code-slash" style="color: #10b981;"></i> Real-Time Runner</span>
               </div>
-
-              <!-- Output Console -->
-              <div id="sandbox-output-console" class="bolt-output-console">
-                <div style="color: #94a3b8; font-size: 0.72rem; font-family: 'JetBrains Mono', monospace;">
-                  💡 Click <strong>"Run Test Cases"</strong> above to see our sandboxed compiler execute the solution against LeetCode test suites live.
-                </div>
+              <div class="employer-step-action">
+                <span style="font-size: 0.72rem; color: #10b981; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                  <i class="bi bi-check-circle-fill"></i> 0 Recruiter Hours Spent
+                </span>
+                <span class="badge" style="background: rgba(16,185,129,0.1); color: #059669; font-size: 0.65rem;">24/7 Ready</span>
               </div>
             </div>
+
+            <!-- STEP 3 -->
+            <div class="employer-step-item">
+              <div class="employer-step-top">
+                <div class="employer-step-icon step-icon-3">
+                  <i class="bi bi-trophy-fill"></i>
+                </div>
+                <span class="employer-step-badge step-badge-3">STEP 03 • DECIDE</span>
+              </div>
+              <h3 class="employer-step-title">Instant 0–100 Ranked Scorecards</h3>
+              <p class="employer-step-desc">
+                Receive comprehensive objective rubrics within 30 seconds. Review transparent skill scores (DSA, Architecture, Communication), anti-hallucination quotes, and export PDF summaries.
+              </p>
+              <div class="employer-step-chips">
+                <span class="employer-step-chip"><i class="bi bi-graph-up-arrow" style="color: #d97706;"></i> 0–100 Scores</span>
+                <span class="employer-step-chip"><i class="bi bi-chat-left-quote" style="color: #d97706;"></i> Evidence Quotes</span>
+                <span class="employer-step-chip"><i class="bi bi-file-earmark-pdf" style="color: #d97706;"></i> One-Click PDF</span>
+              </div>
+              <div class="employer-step-action">
+                <button type="button" class="btn btn-outline btn-xs" onclick="openOrgCareersPage()">
+                  <i class="bi bi-globe"></i> View Public Careers &rarr;
+                </button>
+                <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">Top 5% Match</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hidden fallback sandbox elements to prevent any script reference errors -->
+          <div style="display:none;" aria-hidden="true">
+            <textarea id="sandbox-code-editor"></textarea>
+            <div id="sandbox-output-console"></div>
           </div>
         </div>
 
@@ -2348,6 +2590,109 @@ function twoSum(nums, target) {
             <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.5;">
               Consistent, unbiased evaluation across Code Quality, Problem Solving, and System Design. Instant PDF exports and candidate rank lists in your recruiter pipeline.
             </p>
+          </div>
+        </div>
+
+        <!-- EMPLOYER TRANSPARENT PRICING SECTION -->
+        <div class="front-pricing-box" id="front-pricing">
+          <div class="front-pricing-header">
+            <span class="bolt-pill-badge" style="background: rgba(99,102,241,0.12); color: #6366f1; border: 1px solid rgba(99,102,241,0.25); margin-bottom: 0.6rem; display: inline-block;">
+              TRANSPARENT PRICING FOR EMPLOYERS
+            </span>
+            <h2 style="font-size: 1.45rem; font-weight: 800; color: var(--text); letter-spacing: -0.02em; margin-bottom: 0.4rem;">
+              Pay-As-You-Go &amp; Monthly Plans for Employers
+            </h2>
+            <p style="font-size: 0.825rem; color: var(--text-muted); line-height: 1.5; margin: 0 auto;">
+              Every account includes <strong>10 Free AI Interviews</strong> on signup. No credit card required. Flexible pricing in <strong>USD ($)</strong> and <strong>INR (₹)</strong> starting at just <strong>$0.50 (₹42)</strong> per interview.
+            </p>
+          </div>
+
+          <div class="front-pricing-grid">
+            <!-- Plan 1: Pay As You Go -->
+            <div class="front-pricing-card">
+              <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Pay-As-You-Go</div>
+              <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text); margin: 0.2rem 0;">Rapid Screening</h3>
+              <p style="font-size: 0.73rem; color: var(--text-muted); margin-bottom: 0.5rem;">For startups, occasional technical checks, and hiring on demand.</p>
+              
+              <div class="front-price-row">
+                <span class="front-price-usd">$0.50</span>
+                <span class="front-price-sep">/</span>
+                <span class="front-price-inr">₹42</span>
+              </div>
+              <div class="front-price-unit">per completed interview • credits never expire</div>
+
+              <ul class="front-pricing-features">
+                <li><i class="bi bi-check-circle-fill"></i> <strong>10 Free AI Interviews</strong> on sign up</li>
+                <li><i class="bi bi-check-circle-fill"></i> Pay only for finished candidate interviews</li>
+                <li><i class="bi bi-check-circle-fill"></i> 4,111+ LeetCode DSA challenge bank</li>
+                <li><i class="bi bi-check-circle-fill"></i> AI Tech Lead voice interviewer (Alex)</li>
+                <li><i class="bi bi-check-circle-fill"></i> Keystroke telemetry &amp; anti-cheating</li>
+                <li><i class="bi bi-check-circle-fill"></i> Instant 0–100 rubric &amp; PDF report</li>
+              </ul>
+
+              <button type="button" class="btn btn-outline" onclick="handleStartTrialClick()" style="width: 100%; font-weight: 700; font-size: 0.8rem; padding: 0.65rem;">
+                <i class="bi bi-gift-fill"></i> Claim 10 Free Rounds
+              </button>
+            </div>
+
+            <!-- Plan 2: Starter Recruiter (Most Popular) -->
+            <div class="front-pricing-card popular">
+              <span class="front-pricing-badge-popular">🔥 Most Popular for Employers</span>
+              <div style="font-size: 0.8rem; font-weight: 700; color: #6366f1; text-transform: uppercase; letter-spacing: 0.05em;">Starter Plan</div>
+              <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text); margin: 0.2rem 0;">Growing Tech Teams</h3>
+              <p style="font-size: 0.73rem; color: var(--text-muted); margin-bottom: 0.5rem;">For teams screening 10–50 candidates each month.</p>
+              
+              <div class="front-price-row">
+                <span class="front-price-usd">$49</span>
+                <span class="front-price-sep">/</span>
+                <span class="front-price-inr">₹4,100</span>
+              </div>
+              <div class="front-price-unit">per month • includes 120 interviews (~$0.41 / ₹34 each)</div>
+
+              <ul class="front-pricing-features">
+                <li><i class="bi bi-check-circle-fill"></i> <strong>120 AI Interviews / month</strong> included</li>
+                <li><i class="bi bi-check-circle-fill"></i> Branded public careers page (<code>/careers.html?org=...</code>)</li>
+                <li><i class="bi bi-check-circle-fill"></i> Bulk candidate invite via CSV &amp; direct email</li>
+                <li><i class="bi bi-check-circle-fill"></i> Custom role questions &amp; rubric weighting</li>
+                <li><i class="bi bi-check-circle-fill"></i> Export candidate rankings to CSV &amp; PDF</li>
+                <li><i class="bi bi-check-circle-fill"></i> Priority low-latency AI voice streaming</li>
+              </ul>
+
+              <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()" style="width: 100%; font-weight: 700; font-size: 0.8rem; padding: 0.65rem;">
+                <i class="bi bi-lightning-charge-fill"></i> Start Starter Plan Trial
+              </button>
+            </div>
+
+            <!-- Plan 3: Scale / Enterprise -->
+            <div class="front-pricing-card">
+              <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Scale &amp; Enterprise</div>
+              <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text); margin: 0.2rem 0;">High-Volume Hiring</h3>
+              <p style="font-size: 0.73rem; color: var(--text-muted); margin-bottom: 0.5rem;">For staffing agencies, colleges &amp; enterprise hiring.</p>
+              
+              <div class="front-price-row">
+                <span class="front-price-usd">$149</span>
+                <span class="front-price-sep">/</span>
+                <span class="front-price-inr">₹12,400</span>
+              </div>
+              <div class="front-price-unit">per month • includes 450 interviews (~$0.33 / ₹27 each)</div>
+
+              <ul class="front-pricing-features">
+                <li><i class="bi bi-check-circle-fill"></i> <strong>450 AI Interviews / month</strong> included</li>
+                <li><i class="bi bi-check-circle-fill"></i> Multi-recruiter team seats &amp; role controls</li>
+                <li><i class="bi bi-check-circle-fill"></i> ATS integrations &amp; real-time webhooks</li>
+                <li><i class="bi bi-check-circle-fill"></i> Custom DSA challenges &amp; coding setups</li>
+                <li><i class="bi bi-check-circle-fill"></i> Dedicated account manager &amp; onboarding</li>
+                <li><i class="bi bi-check-circle-fill"></i> 99.9% uptime SLA &amp; compliance data export</li>
+              </ul>
+
+              <button type="button" class="btn btn-outline" onclick="handleStartTrialClick()" style="width: 100%; font-weight: 700; font-size: 0.8rem; padding: 0.65rem;">
+                <i class="bi bi-shield-lock-fill"></i> Start Enterprise Trial
+              </button>
+            </div>
+          </div>
+
+          <div style="text-align: center; margin-top: 1.25rem; font-size: 0.725rem; color: var(--text-muted);">
+            💡 Need campus volume over 1,000+ candidates? Volume pricing drops to <strong>$0.25 (~₹21)</strong> per interview. All accounts come with 10 free trial rounds.
           </div>
         </div>
 
