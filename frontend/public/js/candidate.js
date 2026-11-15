@@ -787,9 +787,17 @@ window.initMonacoEditor = function(initialCode, initialLang) {
       if (shell) shell.style.display = 'block';
       if (fallback) fallback.style.display = 'none';
 
-      window.monacoEditor.onDidChangeModelContent(() => {
+      window.monacoEditor.onDidChangeModelContent((e) => {
         const val = window.monacoEditor.getValue();
         if (terminalCodeInput) terminalCodeInput.value = val;
+        if (e && Array.isArray(e.changes)) {
+          for (const ch of e.changes) {
+            if (ch.text && ch.text.length >= 120) {
+              pendingPasteDelta += ch.text.length;
+              logPasteBurst(ch.text.length, 'Monaco IDE');
+            }
+          }
+        }
         scheduleDraftAutosave();
       });
     });
@@ -851,9 +859,15 @@ function logPasteBurst(charCount, surfaceLabel) {
     body: JSON.stringify({
       type: 'paste_burst',
       reason: `Large paste detected (${charCount} chars in ${surfaceLabel})`,
-      warningsCount: proctor?.warningsCount || 0
+      warningsCount: (proctor || window.proctorEngine)?.warningsCount || 0
     })
   }).catch(() => {});
+
+  // Trigger photographic snapshot evidence for anti-cheat audit
+  const engine = proctor || window.proctorEngine;
+  if (engine && typeof engine.captureAndUploadSnapshot === 'function') {
+    engine.captureAndUploadSnapshot(`paste_burst_${charCount}chars`);
+  }
 }
 
 function scheduleDraftAutosave(flushImmediate = false) {

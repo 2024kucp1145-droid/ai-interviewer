@@ -2958,11 +2958,12 @@ app.post('/i/:token/proctor-event', (req, res) => {
       time: new Date().toLocaleTimeString('en-US', { hour12: false })
     });
 
+    const finalWarnings = Math.max(interview.proctor_warnings || 0, Number(warningsCount) || 0);
     db.prepare(`
       UPDATE interviews 
       SET proctor_warnings = ?, proctor_logs = ? 
       WHERE id = ?
-    `).run(warningsCount || 0, JSON.stringify(existingLogs), interview.id);
+    `).run(finalWarnings, JSON.stringify(existingLogs), interview.id);
 
     res.json({ success: true, logged: true });
   } catch (err) {
@@ -2970,7 +2971,7 @@ app.post('/i/:token/proctor-event', (req, res) => {
   }
 });
 
-// Capture compressed webcam snapshot during proctoring violations
+// Capture compressed webcam snapshot during proctoring violations & periodic integrity checks
 app.post('/i/:token/snapshot', (req, res) => {
   try {
     const interview = getOrHydrateInterview(req.params.token);
@@ -2984,9 +2985,9 @@ app.post('/i/:token/snapshot', (req, res) => {
       return res.status(413).json({ error: 'Snapshot image exceeds 450KB limit' });
     }
 
-    // Cap snapshots per interview to prevent storage abuse (keep newest 20)
+    // Cap snapshots per interview to prevent storage abuse (keep newest 36)
     const countRow = db.prepare('SELECT COUNT(*) as c FROM proctor_snapshots WHERE interview_id = ?').get(interview.id);
-    if ((countRow?.c || 0) >= 20) {
+    if ((countRow?.c || 0) >= 36) {
       db.prepare(`
         DELETE FROM proctor_snapshots WHERE id IN (
           SELECT id FROM proctor_snapshots WHERE interview_id = ? ORDER BY created_at ASC LIMIT 1
@@ -3052,7 +3053,7 @@ app.get('/interviews/:id/snapshots', requireAuth, (req, res) => {
     `).get(req.params.id, req.user.org_id);
     if (!interview) return res.status(404).json({ error: 'Interview not found' });
 
-    const snapshots = db.prepare('SELECT id, reason, image_data, created_at FROM proctor_snapshots WHERE interview_id = ? ORDER BY created_at DESC LIMIT 20').all(interview.id);
+    const snapshots = db.prepare('SELECT id, reason, image_data, created_at FROM proctor_snapshots WHERE interview_id = ? ORDER BY created_at DESC LIMIT 36').all(interview.id);
     res.json({ snapshots });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -3074,7 +3075,7 @@ app.get('/interviews/:id/report', requireAuth, (req, res) => {
 
     const reportRow = db.prepare('SELECT * FROM reports WHERE interview_id = ?').get(interview.id);
     const turns = db.prepare('SELECT idx, role, text, skill, level, created_at FROM turns WHERE interview_id = ? ORDER BY idx ASC').all(interview.id);
-    const snapshots = db.prepare('SELECT id, reason, image_data, created_at FROM proctor_snapshots WHERE interview_id = ? ORDER BY created_at DESC LIMIT 20').all(interview.id);
+    const snapshots = db.prepare('SELECT id, reason, image_data, created_at FROM proctor_snapshots WHERE interview_id = ? ORDER BY created_at DESC LIMIT 36').all(interview.id);
     let codeHistory = [];
     try { codeHistory = interview.code_history ? JSON.parse(interview.code_history) : []; } catch { codeHistory = []; }
 

@@ -36,6 +36,8 @@ export class ProctorEngine {
     this.exitTimeoutId = null;
     this.warmupIntervalId = null;
     this.visionIntervalId = null;
+    this.heartbeatIntervalId = null;
+    this.toastTimer = null;
 
     // AI Models
     this.cocoModel = null;
@@ -48,6 +50,9 @@ export class ProctorEngine {
     this.noPersonStreak = 0;
     this.lastWarningTime = 0;
     this.warmupRemaining = 15;
+
+    // Global reference for inter-module integration (Monaco IDE, code paste checks)
+    window.proctorEngine = this;
   }
 
   /**
@@ -120,6 +125,11 @@ export class ProctorEngine {
           <span id="proctor-footer-detail"><i class="bi bi-camera-video-fill"></i> Camera Initializing...</span>
           <span id="proctor-model-badge" style="font-size:0.65rem; color:var(--text-muted);"><i class="bi bi-shield-check"></i> Vision AI</span>
         </div>
+        <div class="proctor-security-badges" style="display:flex; gap:4px; padding:4px 8px; font-size:0.6rem; color:#94a3b8; background:rgba(0,0,0,0.45); border-top:1px solid rgba(255,255,255,0.06); justify-content:space-between;">
+          <span title="Right-click & shortcuts locked"><i class="bi bi-lock-fill" style="color:#10b981;"></i> Security Lock</span>
+          <span title="Periodic camera verification active"><i class="bi bi-camera-fill" style="color:#38bdf8;"></i> Heartbeat Sync</span>
+          <span title="DevTools inspection blocked"><i class="bi bi-shield-lock-fill" style="color:#a855f7;"></i> Anti-Inspect</span>
+        </div>
       </div>
     `;
 
@@ -183,8 +193,67 @@ export class ProctorEngine {
           faceTag.textContent = 'Candidate Verified';
         }
         console.log('[ProctorEngine] Warmup completed. Anti-cheating vision AI is now armed.');
+
+        // Baseline candidate identity verification snapshot
+        this.captureAndUploadSnapshot('baseline_identity_verification');
+
+        // Start continuous periodic integrity heartbeat snapshots (every 70s)
+        this.startHeartbeatLoop();
       }
     }, 1000);
+  }
+
+  /**
+   * Periodic integrity heartbeat snapshots every 70 seconds
+   * Ensures continuous facial identity verification throughout candidate interview
+   */
+  startHeartbeatLoop() {
+    if (this.heartbeatIntervalId) clearInterval(this.heartbeatIntervalId);
+    this.heartbeatIntervalId = setInterval(() => {
+      if (!this.isActive || !this.isArmed || !this.videoEl || this.videoEl.readyState < 2) return;
+      this.captureAndUploadSnapshot('periodic_integrity_check');
+      console.log('[ProctorEngine] Periodic integrity heartbeat snapshot uploaded.');
+    }, 70000);
+  }
+
+  /**
+   * Non-intrusive security toast notice for candidate
+   */
+  showToastNotice(msg) {
+    let toast = document.getElementById('proctor-toast-notice');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'proctor-toast-notice';
+      toast.style.cssText = `
+        position: fixed;
+        top: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #0f172a;
+        color: #f8fafc;
+        border: 1px solid #334155;
+        border-left: 4px solid #f59e0b;
+        padding: 0.6rem 1.2rem;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        z-index: 100000;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+      `;
+      document.body.appendChild(toast);
+    }
+    toast.innerHTML = `<i class="bi bi-shield-exclamation" style="color:#f59e0b; font-size:1rem;"></i> <span>${msg}</span>`;
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateX(-50%) translateY(0)';
+    clearTimeout(this.toastTimer);
+    this.toastTimer = setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(-50%) translateY(-10px)';
+    }, 2800);
   }
 
   /**
@@ -605,12 +674,49 @@ export class ProctorEngine {
       this.handleDisqualification(reason);
     };
 
-    // 1. Tab switch or minimize check (visibilitychange)
+    // 1. Context menu / right-click prevention
+    window.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      this.showToastNotice('Right-click & context menu are disabled during proctored assessment.');
+    });
+
+    // 2. DevTools & source inspection shortcut prevention (F12, Ctrl+Shift+I/J/C, Ctrl+U/S)
+    window.addEventListener('keydown', (e) => {
+      const isDevTools = 
+        e.key === 'F12' ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && ['I', 'i', 'J', 'j', 'C', 'c'].includes(e.key)) ||
+        ((e.ctrlKey || e.metaKey) && ['U', 'u', 'S', 's'].includes(e.key));
+
+      if (isDevTools) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.showToastNotice('Developer Tools and page inspection shortcuts are strictly locked.');
+        if (this.isActive && this.isArmed) {
+          this.captureAndUploadSnapshot('devtools_shortcut_attempt');
+          try {
+            fetch(`/i/${this.token}/proctor-event`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                type: 'devtools_shortcut_blocked',
+                reason: `Blocked key shortcut: ${e.key} (Ctrl=${e.ctrlKey}, Shift=${e.shiftKey})`,
+                warningsCount: this.warningsCount
+              })
+            }).catch(() => {});
+          } catch (_) {}
+        }
+      }
+    }, true);
+
+    // 3. Tab switch or minimize check (visibilitychange)
     document.addEventListener('visibilitychange', () => {
       if (!this.isActive || !this.isArmed) return;
 
       if (document.hidden) {
         console.warn('[ProctorEngine] Candidate tab hidden / minimized. Starting exit timer...');
+        // Take immediate photographic snapshot evidence of the tab switch
+        this.captureAndUploadSnapshot('tab_switch_detected');
+
         // 2.5 second confirmation buffer
         if (!this.exitTimeoutId) {
           this.exitTimeoutId = setTimeout(() => {
@@ -628,9 +734,10 @@ export class ProctorEngine {
       }
     });
 
-    // 2. Window blur (clicking outside or switching windows)
+    // 4. Window blur (clicking outside or switching windows)
     window.addEventListener('blur', () => {
       if (!this.isActive || !this.isArmed) return;
+      this.captureAndUploadSnapshot('window_blur_detected');
 
       if (!this.exitTimeoutId) {
         this.exitTimeoutId = setTimeout(() => {
@@ -661,6 +768,10 @@ export class ProctorEngine {
     if (this.exitTimeoutId) clearTimeout(this.exitTimeoutId);
     if (this.warmupIntervalId) clearInterval(this.warmupIntervalId);
     if (this.visionIntervalId) clearInterval(this.visionIntervalId);
+    if (this.heartbeatIntervalId) clearInterval(this.heartbeatIntervalId);
+    if (this.toastTimer) clearTimeout(this.toastTimer);
+    const toast = document.getElementById('proctor-toast-notice');
+    if (toast) toast.remove();
 
     if (this.videoStream) {
       this.videoStream.getTracks().forEach(t => t.stop());
@@ -758,6 +869,10 @@ export class ProctorEngine {
     if (this.exitTimeoutId) clearTimeout(this.exitTimeoutId);
     if (this.warmupIntervalId) clearInterval(this.warmupIntervalId);
     if (this.visionIntervalId) clearInterval(this.visionIntervalId);
+    if (this.heartbeatIntervalId) clearInterval(this.heartbeatIntervalId);
+    if (this.toastTimer) clearTimeout(this.toastTimer);
+    const toast = document.getElementById('proctor-toast-notice');
+    if (toast) toast.remove();
     if (this.videoStream) {
       this.videoStream.getTracks().forEach(t => t.stop());
     }
