@@ -824,6 +824,126 @@
       background: #27272a;
       border-color: #ffffff;
     }
+
+    /* Pre-Flight Hardware Station */
+    .preflight-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.85rem;
+      margin-bottom: 1.25rem;
+    }
+    @media (max-width: 768px) {
+      .preflight-container { grid-template-columns: 1fr; }
+    }
+    .preflight-card {
+      background: var(--surface-subtle);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 0.95rem;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+    .preflight-card.verified {
+      border-color: #10b981;
+      background: rgba(16, 185, 129, 0.04);
+    }
+    .preflight-card.required {
+      border-color: #f87171;
+    }
+    .preflight-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.65rem;
+      font-size: 0.775rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .audio-vu-meter {
+      display: flex;
+      gap: 3px;
+      height: 18px;
+      align-items: flex-end;
+      background: rgba(0,0,0,0.06);
+      padding: 3px;
+      border-radius: 4px;
+      margin: 0.45rem 0;
+    }
+    [data-theme="dark"] .audio-vu-meter {
+      background: #090d16;
+    }
+    .vu-segment {
+      flex: 1;
+      height: 20%;
+      background: #cbd5e1;
+      border-radius: 1.5px;
+      transition: height 0.08s ease, background 0.08s ease;
+    }
+    [data-theme="dark"] .vu-segment {
+      background: #334155;
+    }
+    .vu-segment.active-low { background: #10b981; }
+    .vu-segment.active-mid { background: #f59e0b; }
+    .vu-segment.active-high { background: #ef4444; }
+
+    /* IDE Custom Tabs & Drawer */
+    .ide-drawer-tabs {
+      display: flex;
+      align-items: center;
+      background: #090d16;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 0 0.5rem;
+    }
+    .ide-tab-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      padding: 0.45rem 0.85rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .ide-tab-btn:hover { color: #f8fafc; }
+    .ide-tab-btn.active {
+      color: #38bdf8;
+      border-bottom-color: #38bdf8;
+      background: rgba(56, 189, 248, 0.08);
+    }
+    .testcase-chip {
+      padding: 0.25rem 0.6rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      border-radius: 6px;
+      background: #1e293b;
+      color: #94a3b8;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .testcase-chip:hover {
+      background: #334155;
+      color: #fff;
+    }
+    .testcase-chip.active {
+      background: #2563eb;
+      color: #fff;
+      border-color: #60a5fa;
+    }
+    .testcase-chip.passed {
+      color: #34d399;
+      border-color: rgba(52, 211, 153, 0.3);
+    }
+    .testcase-chip.failed {
+      color: #f87171;
+      border-color: rgba(248, 113, 113, 0.3);
+    }
   </style>
   <script src="/js/theme.js"></script>
 </head>
@@ -967,70 +1087,127 @@
       </button>
     </div>
 
-    <!-- Screen 2: Mic, Camera & Anti-Cheating Setup -->
-    <div id="mic-screen" class="card" style="display: none; max-width: 680px;">
+    <!-- Screen 2: Candidate Pre-Flight Hardware & System Readiness Station -->
+    <div id="mic-screen" class="card" style="display: none; max-width: 780px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-        <span class="badge badge-dark"><i class="bi bi-shield-lock-fill"></i> AI Proctoring Enforced</span>
-        <span class="badge badge-outline" style="color: #ef4444; border-color: #fca5a5;"><i class="bi bi-camera-video-fill"></i> Camera Required</span>
+        <span class="badge badge-dark"><i class="bi bi-shield-lock-fill"></i> Proctored Pre-Flight Check</span>
+        <span id="preflight-status-badge" class="badge" style="background: rgba(37,99,235,0.12); color: #2563eb; font-weight: 700;">
+          <i class="bi bi-gear-wide-connected"></i> 3 Core Verification Checks
+        </span>
       </div>
-      <h1 class="title">Hardware Setup &amp; Proctoring Rules</h1>
-      <p class="subtitle">Verify microphone and live camera feed before entering the assessment room.</p>
+      <h1 class="title">Hardware &amp; System Readiness Station</h1>
+      <p class="subtitle">Complete the 3 quick pre-checks below before entering the live conversational interview.</p>
 
-      <!-- Anti-Cheating Rules Notice -->
-      <div class="notice-box" style="border-left-color: #ef4444; background: var(--surface-subtle);">
-        <strong style="color: #ef4444; display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.35rem;">
-          <i class="bi bi-shield-check"></i> Mandatory Screening Guidelines:
+      <!-- Anti-Cheating Notice -->
+      <div class="notice-box" style="border-left-color: #ef4444; background: var(--surface-subtle); margin-bottom: 1.15rem;">
+        <strong style="color: #ef4444; display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.25rem;">
+          <i class="bi bi-shield-check"></i> Proctored Interview Guidelines:
         </strong>
-        <p style="margin-bottom: 0.25rem;"><strong>1. Continuous Live Camera Feed:</strong> Your webcam must remain active and visible on-screen throughout the entire interview.</p>
-        <p style="margin: 0;"><strong>2. Screen Lock Protection:</strong> Do <strong>not</strong> switch tabs, minimize, or leave this interview window. Exiting the interview screen will result in <strong>immediate session disqualification</strong>.</p>
+        <p style="margin: 0; font-size: 0.75rem; color: var(--text);">
+          Continuous camera feed is strictly required. Tab-switching, minimizing the browser, or multiple faces in the frame trigger immediate alerts.
+        </p>
       </div>
 
-        <!-- Hardware Verification Grid: Mic + Camera -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
-          
-          <!-- Mic Test Box -->
-          <div style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; text-align: center;">
-            <div style="font-weight: 700; font-size: 0.775rem; color: var(--text); margin-bottom: 0.5rem;">
-              <i class="bi bi-mic"></i> Microphone Check
-            </div>
-            <button id="btn-test-mic" class="btn btn-record" style="margin: 0.5rem auto; padding: 0.5rem 1rem; font-size: 0.775rem;">
-              <i class="bi bi-mic-fill"></i> Test Microphone
-            </button>
-            <p id="mic-test-status" style="margin-top: 0.4rem; color: var(--text-muted); font-size: 0.7rem;">
-              Click to test voice input
-            </p>
-            <div id="mic-test-result" style="margin-top: 0.25rem; font-weight: 600; font-size: 0.725rem; color: #000;"></div>
+      <!-- 3-Pillar Verification Grid -->
+      <div class="preflight-container">
+        
+        <!-- 1. Microphone & Audio Level Meter -->
+        <div class="preflight-card" id="preflight-mic-card">
+          <div class="preflight-card-header">
+            <span><i class="bi bi-mic-fill" style="color: #2563eb;"></i> 1. Microphone</span>
+            <span id="check-mic-badge" class="badge" style="background: rgba(100,116,139,0.15); color: var(--text-muted); font-size: 0.65rem;">Pending</span>
           </div>
 
-          <!-- Camera Test Box (MANDATORY) -->
-          <div style="background: var(--surface-subtle); border: 2px solid #ef4444; border-radius: 8px; padding: 1rem; text-align: center; position: relative;">
-            <span style="position: absolute; top: -10px; right: 10px; background: #ef4444; color: #fff; font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 999px;">
-              MANDATORY
-            </span>
-            <div style="font-weight: 700; font-size: 0.775rem; color: var(--text); margin-bottom: 0.5rem;">
-              <i class="bi bi-camera-video-fill" style="color: #ef4444;"></i> Camera Access (Required)
-            </div>
-            <div style="width: 100%; height: 95px; background: #09090b; border-radius: 5px; overflow: hidden; position: relative; margin-bottom: 0.5rem;">
-              <video id="setup-camera-preview" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
-              <div id="setup-camera-placeholder" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #f87171; font-size: 0.7rem;">
-                <i class="bi bi-camera-video-off" style="margin-right: 0.25rem;"></i> Camera Required to Enter
-              </div>
-            </div>
-            <button type="button" class="btn btn-outline btn-sm" id="btn-verify-camera" onclick="verifySetupCamera()" style="width: 100%; font-size: 0.725rem; border-color: #ef4444; color: #ef4444; font-weight: 600;">
-              <i class="bi bi-camera-fill"></i> Allow & Verify Camera
-            </button>
+          <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.4rem;">
+            Test microphone volume &amp; speech clarity:
           </div>
 
+          <!-- Live Audio VU Level Meter -->
+          <div class="audio-vu-meter" id="audio-vu-meter" title="Live audio input volume">
+            <div class="vu-segment" id="vu-0"></div>
+            <div class="vu-segment" id="vu-1"></div>
+            <div class="vu-segment" id="vu-2"></div>
+            <div class="vu-segment" id="vu-3"></div>
+            <div class="vu-segment" id="vu-4"></div>
+            <div class="vu-segment" id="vu-5"></div>
+            <div class="vu-segment" id="vu-6"></div>
+            <div class="vu-segment" id="vu-7"></div>
+            <div class="vu-segment" id="vu-8"></div>
+            <div class="vu-segment" id="vu-9"></div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem;">
+            <span style="font-size: 0.68rem; color: var(--text-muted);" id="vu-volume-label">Level: 0%</span>
+            <span style="font-size: 0.68rem; font-weight: 600; color: #10b981;" id="mic-clarity-label">Speak to test</span>
+          </div>
+
+          <button id="btn-test-mic" type="button" class="btn btn-record" style="margin: auto 0 0 0; padding: 0.45rem 0.75rem; font-size: 0.75rem; width: 100%;">
+            <i class="bi bi-mic-fill"></i> Test Microphone
+          </button>
+          <div id="mic-test-status" style="display:none;"></div>
+          <div id="mic-test-result" style="margin-top: 0.35rem; font-size: 0.7rem; color: var(--text); font-style: italic; min-height: 18px;"></div>
         </div>
 
-      <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-        <button id="btn-start-interview-voice" class="btn" style="padding: 0.85rem; font-size: 0.95rem; font-weight: 700; background: #2563eb; color: #fff;">
+        <!-- 2. HD Camera & Face Alignment -->
+        <div class="preflight-card required" id="preflight-cam-card">
+          <div class="preflight-card-header">
+            <span><i class="bi bi-camera-video-fill" style="color: #ef4444;"></i> 2. HD Camera</span>
+            <span id="check-cam-badge" class="badge" style="background: rgba(239,68,68,0.12); color: #ef4444; font-size: 0.65rem;">Required</span>
+          </div>
+
+          <div style="width: 100%; height: 95px; background: #09090b; border-radius: 6px; overflow: hidden; position: relative; margin-bottom: 0.45rem;">
+            <video id="setup-camera-preview" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+            <div id="setup-camera-placeholder" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #f87171; font-size: 0.7rem; text-align: center; padding: 0.5rem;">
+              <i class="bi bi-camera-video-off" style="margin-right: 0.25rem;"></i> Camera Access Required
+            </div>
+            <!-- Face Center Guideline Overlay -->
+            <div id="camera-face-guide" style="position: absolute; inset: 10% 25%; border: 1.5px dashed rgba(16,185,129,0.7); border-radius: 50%; pointer-events: none; display: none;"></div>
+          </div>
+
+          <button type="button" class="btn btn-outline btn-sm" id="btn-verify-camera" onclick="verifySetupCamera()" style="margin: auto 0 0 0; width: 100%; font-size: 0.725rem; border-color: #ef4444; color: #ef4444; font-weight: 600; padding: 0.45rem;">
+            <i class="bi bi-camera-fill"></i> Allow &amp; Verify Camera
+          </button>
+        </div>
+
+        <!-- 3. Network & System Health -->
+        <div class="preflight-card" id="preflight-net-card">
+          <div class="preflight-card-header">
+            <span><i class="bi bi-speedometer2" style="color: #10b981;"></i> 3. System &amp; Net</span>
+            <span id="check-net-badge" class="badge" style="background: rgba(16,185,129,0.12); color: #10b981; font-size: 0.65rem;">Measuring...</span>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 0.45rem; font-size: 0.72rem; margin: 0.25rem 0;">
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-muted);"><i class="bi bi-wifi"></i> Latency Ping:</span>
+              <strong id="ping-latency-text" style="color: #10b981;">-- ms</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-muted);"><i class="bi bi-display"></i> Resolution:</span>
+              <strong id="screen-resolution-text" style="color: var(--text);">Detecting...</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-muted);"><i class="bi bi-browser-chrome"></i> Speech AI:</span>
+              <strong id="speech-engine-text" style="color: #10b981;">Ready</strong>
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-outline btn-sm" onclick="runPreflightPingCheck()" style="margin: auto 0 0 0; width: 100%; font-size: 0.725rem; padding: 0.45rem;">
+            <i class="bi bi-arrow-clockwise"></i> Re-test Network
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Readiness Checklist Status & Enter Button -->
+      <div style="display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.5rem;">
+        <button id="btn-start-interview-voice" class="btn" style="padding: 0.85rem; font-size: 0.95rem; font-weight: 700; background: #2563eb; color: #fff; box-shadow: 0 4px 15px rgba(37,99,235,0.35);">
           <i class="bi bi-mic-fill"></i> Enter Live Conversational Interview
         </button>
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; color: var(--text-muted);">
+          <span><i class="bi bi-shield-check"></i> Sub-second hands-free conversational voice AI</span>
+          <span id="preflight-all-status" style="font-weight: 600; color: #10b981;"><i class="bi bi-check-circle"></i> Complete mic and camera checks above</span>
+        </div>
       </div>
-      <p style="text-align: center; font-size: 0.7rem; color: var(--text-muted); margin-top: 0.65rem;">
-        <i class="bi bi-shield-check"></i> Hands-free voice interview: AI speaks questions and listens to your spoken answers in real time.
-      </p>
     </div>
 
     <!-- Screen 3: Interactive Interview Room & HackerRank Split Studio -->
@@ -1122,14 +1299,17 @@
                 <option value="java">Java 21</option>
                 <option value="sql">PostgreSQL / SQL</option>
               </select>
+              <button type="button" class="hud-pill-btn" onclick="formatMonacoCode()" style="padding: 0.25rem 0.55rem; font-size: 0.68rem;" title="Auto-format code indentation">
+                <i class="bi bi-magic"></i> Format
+              </button>
             </div>
 
             <div style="display: flex; gap: 0.45rem; align-items: center;">
-              <button id="btn-run-sandbox" class="hr-ide-btn-run" onclick="runSandboxCode()" title="Check syntax & stdout locally">
-                <i class="bi bi-play-fill"></i> Run
+              <button id="btn-run-sandbox" class="hr-ide-btn-run" onclick="runSandboxCode()" title="Run test cases">
+                <i class="bi bi-play-fill"></i> Run Code
               </button>
-              <button id="btn-judge-testcases" class="hr-ide-btn-judge" onclick="runLeetCodeJudge()" title="Submit code to server for private evaluation">
-                <i class="bi bi-cloud-upload-fill"></i> Submit Code
+              <button id="btn-judge-testcases" class="hr-ide-btn-judge" onclick="runLeetCodeJudge()" title="Submit solution to evaluation engine">
+                <i class="bi bi-cloud-upload-fill"></i> Submit Solution
               </button>
               <button class="hud-pill-btn" onclick="resetToStarterCode()" style="padding: 0.3rem 0.55rem; font-size: 0.68rem;" title="Reset code skeleton">
                 <i class="bi bi-arrow-counterclockwise"></i> Reset
@@ -1160,7 +1340,12 @@
             </div>
           </div>
 
-          <!-- Code Editor Area with Line Numbers -->
+          <!-- Monaco Editor Shell -->
+          <div id="monaco-editor-shell" style="width: 100%; height: 350px; background: #0f172a; border-top: 1px solid #1e293b; border-bottom: 1px solid #1e293b; position: relative; display: none;">
+            <div id="monaco-editor-instance" style="width: 100%; height: 100%;"></div>
+          </div>
+
+          <!-- Fallback Code Editor Area with Line Numbers -->
           <div id="terminal-editor-shell" style="display:flex;flex:1;min-height:240px;background:#0f172a;border-top:1px solid #1e293b;border-bottom:1px solid #1e293b;overflow:hidden;">
             <pre id="terminal-line-numbers" aria-hidden="true" style="margin:0;padding:0.85rem 0.65rem 0.85rem 0.5rem;min-width:42px;text-align:right;background:#0b1220;color:#64748b;border-right:1px solid #1e293b;font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.82rem;line-height:1.55;user-select:none;overflow:hidden;">1</pre>
             <textarea id="terminal-code-input" class="hr-code-editor" spellcheck="false" style="flex:1;border:none;outline:none;border-radius:0;padding:0.85rem;font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.82rem;line-height:1.55;background:#0f172a;color:#e2e8f0;resize:none;" placeholder="// Write or fix your solution here... (Tab indents, Ctrl+Enter submits)"></textarea>
@@ -1168,16 +1353,22 @@
 
           <!-- Tabbed Console & Submission Drawer -->
           <div class="hr-testcase-drawer">
-            <div class="hr-testcase-nav">
-              <button class="hr-testcase-tab active" id="tab-testcase-output">
-                <i class="bi bi-terminal"></i> Submission &amp; Console
+            <div class="ide-drawer-tabs">
+              <button type="button" class="ide-tab-btn active" id="tab-btn-cases" onclick="switchIdeTab('cases')">
+                <i class="bi bi-check2-square"></i> Test Cases
               </button>
-              <div style="margin-left: auto; display: flex; gap: 0.35rem;">
+              <button type="button" class="ide-tab-btn" id="tab-btn-output" onclick="switchIdeTab('output')">
+                <i class="bi bi-terminal"></i> Console &amp; Output
+              </button>
+              <button type="button" class="ide-tab-btn" id="tab-btn-notes" onclick="switchIdeTab('notes')">
+                <i class="bi bi-pencil-square"></i> Architecture Notes
+              </button>
+              <div style="margin-left: auto; display: flex; gap: 0.35rem; align-items: center;">
                 <button id="btn-insert-judge-result" class="hud-pill-btn" onclick="copyJudgeResultToAnswer()" style="padding: 0.2rem 0.5rem; font-size: 0.65rem; display: none;">
-                  <i class="bi bi-clipboard-check"></i> Insert Results in Answer
+                  <i class="bi bi-clipboard-check"></i> Insert in Answer
                 </button>
                 <button class="hud-pill-btn" onclick="copyCodeToAnswer()" style="padding: 0.2rem 0.5rem; font-size: 0.65rem;">
-                  <i class="bi bi-box-arrow-down-left"></i> Insert Code in Answer
+                  <i class="bi bi-box-arrow-down-left"></i> Insert in Answer
                 </button>
                 <button class="hud-pill-btn" onclick="clearConsole()" style="padding: 0.2rem 0.5rem; font-size: 0.65rem;">
                   Clear
@@ -1185,7 +1376,44 @@
               </div>
             </div>
 
-            <div id="terminal-console-output" class="hr-testcase-content">Console ready. Write or fix your code and click "Submit Code" to record on server.</div>
+            <!-- Tab 1 Pane: Test Cases & Examples -->
+            <div id="ide-tab-pane-cases" style="padding: 0.75rem 0.95rem; background: #090d16; font-family: var(--hr-font-mono);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
+                <div id="testcase-chips-row" style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+                  <button type="button" class="testcase-chip active" id="tc-chip-1" onclick="selectTestCaseTab(1)">Case 1</button>
+                  <button type="button" class="testcase-chip" id="tc-chip-2" onclick="selectTestCaseTab(2)">Case 2</button>
+                  <button type="button" class="testcase-chip" id="tc-chip-3" onclick="selectTestCaseTab(3)">Case 3</button>
+                </div>
+                <label style="font-size: 0.68rem; color: #94a3b8; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                  <input type="checkbox" id="chk-custom-testcase" onchange="toggleCustomTestCaseInput()">
+                  <span>Custom Input (stdin)</span>
+                </label>
+              </div>
+
+              <!-- Case Detail Box -->
+              <div id="testcase-detail-box" style="background: #0f172a; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 0.65rem 0.85rem; font-size: 0.75rem; color: #e2e8f0; line-height: 1.5;">
+                <div style="color: #94a3b8; font-size: 0.68rem; margin-bottom: 0.2rem;">Input:</div>
+                <div id="tc-detail-input" style="color: #38bdf8; margin-bottom: 0.45rem;">nums = [2,7,11,15], target = 9</div>
+                <div style="color: #94a3b8; font-size: 0.68rem; margin-bottom: 0.2rem;">Expected Output:</div>
+                <div id="tc-detail-expected" style="color: #34d399;">[0,1]</div>
+              </div>
+
+              <!-- Custom Test Case Input Area -->
+              <div id="custom-testcase-container" style="display: none; margin-top: 0.5rem;">
+                <div style="font-size: 0.68rem; color: #94a3b8; margin-bottom: 0.25rem;">Custom Input JSON arguments:</div>
+                <textarea id="custom-testcase-input" style="width: 100%; min-height: 60px; background: #0f172a; border: 1px solid #38bdf8; border-radius: 6px; padding: 0.5rem; font-family: var(--hr-font-mono); font-size: 0.75rem; color: #f8fafc;" placeholder='{"nums": [3, 2, 4], "target": 6}'></textarea>
+              </div>
+            </div>
+
+            <!-- Tab 2 Pane: Output Console -->
+            <div id="ide-tab-pane-output" style="display: none;">
+              <div id="terminal-console-output" class="hr-testcase-content">Console ready. Click "Run Code" to test against sample cases, or "Submit Solution" to record evaluation on server.</div>
+            </div>
+
+            <!-- Tab 3 Pane: Notes -->
+            <div id="ide-tab-pane-notes" style="display: none; padding: 0.75rem 0.95rem; background: #090d16;">
+              <textarea id="ide-quick-notes" style="width: 100%; min-height: 110px; background: #0f172a; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 0.65rem; color: #f8fafc; font-family: var(--hr-font-mono); font-size: 0.75rem; resize: vertical;" placeholder="Quick engineering scratchpad: note algorithmic complexities (e.g. Time: O(N), Space: O(N) using HashMap)..."></textarea>
+            </div>
           </div>
         </div>
 
@@ -1239,6 +1467,9 @@
 
         <!-- Quick Floating Action Buttons -->
         <div class="hud-actions">
+          <button type="button" class="hud-pill-btn" id="btn-interrupt-ai" onclick="interruptAiSpeaking()" title="Cut in and speak now" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); display: none;">
+            <i class="bi bi-mic-fill"></i> <span>Respond Now</span>
+          </button>
           <button class="hud-pill-btn" onclick="toggleFloatingScratchpad()" title="Open Floating Engineering Notes">
             <i class="bi bi-pencil-square" style="color: var(--hr-cyan);"></i> <span>Notes</span>
           </button>
@@ -1364,6 +1595,9 @@
   <!-- Anime.js v4 & RoundOne Enterprise Motion Engine -->
   <script src="/vendor/anime.min.js"></script>
   <script src="/js/roundone-animations.js"></script>
+
+  <!-- Monaco Editor (VS Code in Browser) via RequireJS CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
 
   <!-- TensorFlow.js and COCO-SSD for Vision AI Proctoring (Mobile Phone & Multi-Person Detection) -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>

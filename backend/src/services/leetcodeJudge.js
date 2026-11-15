@@ -246,6 +246,21 @@ export async function judgeLeetCodeSolution(problemId, lang, code, customSuite =
     }
   }
 
+  // Support single custom candidate testcase (stdin / custom parameters)
+  if (limitOptions.customCase && typeof limitOptions.customCase === 'object') {
+    const customInput = limitOptions.customCase.input !== undefined ? limitOptions.customCase.input : limitOptions.customCase;
+    const customCaseObj = {
+      id: 'Custom',
+      type: 'Custom (Candidate Stdin)',
+      input: customInput,
+      expected: limitOptions.customCase.expected !== undefined ? limitOptions.customCase.expected : null
+    };
+    suite = {
+      ...suite,
+      cases: [customCaseObj, ...(suite.cases || [])]
+    };
+  }
+
   const limits = clampLimits({
     timeLimitMs: limitOptions.timeLimitMs ?? limitOptions.time_limit_ms ?? suite.time_limit_ms,
     memoryLimitMb: limitOptions.memoryLimitMb ?? limitOptions.memory_limit_mb ?? suite.memory_limit_mb

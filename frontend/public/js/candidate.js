@@ -106,8 +106,10 @@ const voice = new VoiceManager({
 
 function setVoiceBarState(state) {
   const soundwave = document.getElementById('hud-soundwave');
+  const interruptBtn = document.getElementById('btn-interrupt-ai');
   if (!voiceStatusPulse || !voiceStateTitle) return;
   if (state === 'speaking') {
+    if (interruptBtn) interruptBtn.style.display = 'inline-flex';
     voiceStatusPulse.style.background = '#38bdf8';
     voiceStatusPulse.style.boxShadow = '0 0 10px #38bdf8';
     voiceStatusPulse.style.animation = 'none';
@@ -121,6 +123,7 @@ function setVoiceBarState(state) {
       window.RoundOneMotion.startVoiceEqualizer();
     }
   } else if (state === 'listening') {
+    if (interruptBtn) interruptBtn.style.display = 'none';
     voiceStatusPulse.style.background = '#00ea64';
     voiceStatusPulse.style.boxShadow = '0 0 12px #00ea64';
     voiceStatusPulse.style.animation = 'pulse 1.5s infinite';
@@ -134,6 +137,7 @@ function setVoiceBarState(state) {
       window.RoundOneMotion.startVoiceEqualizer();
     }
   } else if (state === 'transcribing') {
+    if (interruptBtn) interruptBtn.style.display = 'none';
     voiceStatusPulse.style.background = '#a855f7';
     voiceStatusPulse.style.boxShadow = '0 0 12px #a855f7';
     voiceStatusPulse.style.animation = 'pulse 1s infinite';
@@ -146,6 +150,7 @@ function setVoiceBarState(state) {
       window.RoundOneMotion.startVoiceEqualizer();
     }
   } else if (state === 'submitting') {
+    if (interruptBtn) interruptBtn.style.display = 'none';
     voiceStatusPulse.style.background = '#f59e0b';
     voiceStatusPulse.style.boxShadow = '0 0 10px #f59e0b';
     voiceStatusPulse.style.animation = 'none';
@@ -160,6 +165,16 @@ function setVoiceBarState(state) {
     }
   }
 }
+
+window.interruptAiSpeaking = function() {
+  try {
+    voice.stopSpeaking();
+    setVoiceBarState('listening');
+    try { voice.startListening(); } catch(e) {}
+  } catch (err) {
+    console.warn('Interruption error:', err);
+  }
+};
 
 // Floating Widgets & HackerRank Studio Helpers
 window.toggleFullscreen = function() {
@@ -705,6 +720,13 @@ window.updateStarterCodeForLanguage = function(lang, force = false) {
     if (force || !currentCode || isDefaultTemplate(currentCode)) {
       terminalCodeInput.value = newTemplate;
       syncTerminalLineNumbers();
+      if (window.monacoEditor) {
+        window.monacoEditor.setValue(newTemplate);
+        if (typeof monaco !== 'undefined') {
+          const monacoLangMap = { 'javascript': 'javascript', 'python': 'python', 'cpp': 'cpp', 'java': 'java', 'sql': 'sql' };
+          monaco.editor.setModelLanguage(window.monacoEditor.getModel(), monacoLangMap[lang] || 'javascript');
+        }
+      }
     }
   }
 };
@@ -719,10 +741,103 @@ window.resetToStarterCode = function() {
 
 window.handleLangChange = function() {
   const lang = terminalLangSelect.value;
-  terminalConsoleOutput.textContent = `>>> Switched compiler environment to ${lang.toUpperCase()}.
-Click "Run Code" to execute.`;
+  terminalConsoleOutput.textContent = `>>> Switched compiler environment to ${lang.toUpperCase()}.\nClick "Run Code" to execute.`;
   updateStarterCodeForLanguage(lang, false);
+  if (window.monacoEditor && typeof monaco !== 'undefined') {
+    const monacoLangMap = { 'javascript': 'javascript', 'python': 'python', 'cpp': 'cpp', 'java': 'java', 'sql': 'sql' };
+    monaco.editor.setModelLanguage(window.monacoEditor.getModel(), monacoLangMap[lang] || 'javascript');
+  }
   scheduleDraftAutosave();
+};
+
+// Monaco IDE & Tabbed Drawer Controls
+window.initMonacoEditor = function(initialCode, initialLang) {
+  if (typeof require === 'undefined') {
+    const fallback = document.getElementById('terminal-editor-shell');
+    if (fallback) fallback.style.display = 'flex';
+    return;
+  }
+  try {
+    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
+    require(['vs/editor/editor.main'], function() {
+      const container = document.getElementById('monaco-editor-instance');
+      const shell = document.getElementById('monaco-editor-shell');
+      const fallback = document.getElementById('terminal-editor-shell');
+      if (!container || window.monacoEditor) return;
+
+      const monacoLangMap = { 'javascript': 'javascript', 'python': 'python', 'cpp': 'cpp', 'java': 'java', 'sql': 'sql' };
+      const codeVal = initialCode || (terminalCodeInput ? terminalCodeInput.value : '');
+      const langVal = monacoLangMap[initialLang] || 'javascript';
+
+      window.monacoEditor = monaco.editor.create(container, {
+        value: codeVal,
+        language: langVal,
+        theme: 'vs-dark',
+        automaticLayout: true,
+        minimap: { enabled: false },
+        fontSize: 13,
+        fontFamily: "'JetBrains Mono', Consolas, monospace",
+        tabSize: 2,
+        scrollBeyondLastLine: false,
+        lineNumbers: 'on',
+        renderLineHighlight: 'all',
+        bracketPairColorization: { enabled: true }
+      });
+
+      if (shell) shell.style.display = 'block';
+      if (fallback) fallback.style.display = 'none';
+
+      window.monacoEditor.onDidChangeModelContent(() => {
+        const val = window.monacoEditor.getValue();
+        if (terminalCodeInput) terminalCodeInput.value = val;
+        scheduleDraftAutosave();
+      });
+    });
+  } catch (err) {
+    console.warn('Monaco init error, using fallback editor:', err);
+    const fallback = document.getElementById('terminal-editor-shell');
+    if (fallback) fallback.style.display = 'flex';
+  }
+};
+
+window.formatMonacoCode = function() {
+  if (window.monacoEditor) {
+    window.monacoEditor.getAction('editor.action.formatDocument')?.run();
+  }
+};
+
+window.switchIdeTab = function(tabName) {
+  const tabs = ['cases', 'output', 'notes'];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`tab-btn-${t}`);
+    const pane = document.getElementById(`ide-tab-pane-${t}`);
+    if (btn) btn.classList.toggle('active', t === tabName);
+    if (pane) pane.style.display = t === tabName ? 'block' : 'none';
+  });
+};
+
+window.selectTestCaseTab = function(caseNum) {
+  [1, 2, 3].forEach(n => {
+    const chip = document.getElementById(`tc-chip-${n}`);
+    if (chip) chip.classList.toggle('active', n === caseNum);
+  });
+  const activeProb = getActiveProblemObj();
+  const cases = activeProb?.cases || activeProb?.test_cases || [];
+  const selectedCase = cases[caseNum - 1] || null;
+  const inEl = document.getElementById('tc-detail-input');
+  const expEl = document.getElementById('tc-detail-expected');
+  if (selectedCase) {
+    if (inEl) inEl.textContent = typeof selectedCase.input === 'object' ? JSON.stringify(selectedCase.input) : String(selectedCase.input);
+    if (expEl) expEl.textContent = typeof selectedCase.expected === 'object' ? JSON.stringify(selectedCase.expected) : String(selectedCase.expected);
+  }
+};
+
+window.toggleCustomTestCaseInput = function() {
+  const chk = document.getElementById('chk-custom-testcase');
+  const container = document.getElementById('custom-testcase-container');
+  if (container) {
+    container.style.display = chk && chk.checked ? 'block' : 'none';
+  }
 };
 
 let draftSaveTimer = null;
@@ -846,7 +961,13 @@ function resolveActiveProblemId(code, lang) {
 }
 
 window.runLeetCodeJudge = async function() {
-  const code = terminalCodeInput ? terminalCodeInput.value.trim() : '';
+  let code = '';
+  if (window.monacoEditor) {
+    code = window.monacoEditor.getValue().trim();
+    if (terminalCodeInput) terminalCodeInput.value = code;
+  } else {
+    code = terminalCodeInput ? terminalCodeInput.value.trim() : '';
+  }
   const lang = terminalLangSelect ? terminalLangSelect.value : 'javascript';
   const insertBtn = document.getElementById('btn-insert-judge-result');
   const judgeBtn = document.getElementById('btn-judge-testcases');
@@ -854,6 +975,25 @@ window.runLeetCodeJudge = async function() {
   if (!code) {
     alert('Please write or fix your code before submitting.');
     return;
+  }
+
+  // Switch to output tab so candidate sees test results
+  if (typeof window.switchIdeTab === 'function') {
+    window.switchIdeTab('output');
+  }
+
+  // Check for custom testcase input
+  let customCase = null;
+  const chkCustom = document.getElementById('chk-custom-testcase');
+  if (chkCustom && chkCustom.checked) {
+    const rawCustom = document.getElementById('custom-testcase-input')?.value.trim();
+    if (rawCustom) {
+      try {
+        customCase = { input: JSON.parse(rawCustom) };
+      } catch (e) {
+        customCase = { input: rawCustom };
+      }
+    }
   }
 
   const problemId = resolveActiveProblemId(code, lang);
@@ -865,7 +1005,7 @@ window.runLeetCodeJudge = async function() {
   terminalConsoleOutput.innerHTML = `
     <div style="color: #60a5fa; font-family: monospace;">
       <i class="bi bi-cloud-arrow-up" style="animation: spin 1s linear infinite;"></i>
-      Submitting <strong>${probTitle}</strong> (${lang.toUpperCase()}) to server for private evaluation...
+      Submitting <strong>${probTitle}</strong> (${lang.toUpperCase()}) to server for evaluation...
     </div>
   `;
 
@@ -883,7 +1023,8 @@ window.runLeetCodeJudge = async function() {
         problemId,
         lang,
         code,
-        token: token || ''
+        token: token || '',
+        customCase
       })
     });
 
@@ -914,6 +1055,18 @@ window.runLeetCodeJudge = async function() {
 
     const result = payload.result;
     window.lastJudgeResult = { ...result, problemTitle: probTitle, lang };
+
+    // Update testcase chips with pass/fail visual status
+    if (result && Array.isArray(result.cases)) {
+      result.cases.forEach((c, idx) => {
+        const chip = document.getElementById(`tc-chip-${idx + 1}`);
+        if (chip) {
+          chip.classList.remove('passed', 'failed');
+          chip.classList.add(c.passed ? 'passed' : 'failed');
+          chip.innerHTML = c.passed ? `Case ${idx + 1} ✓` : `Case ${idx + 1} ✗`;
+        }
+      });
+    }
 
     let outputText = '';
     const divider = '====================================================================';
@@ -980,7 +1133,16 @@ window.runSandboxCode = function() {
   if (token && interviewData?.dsa_blind_mode !== 0) {
     return window.runLeetCodeJudge();
   }
-  const code = terminalCodeInput.value;
+  let code = '';
+  if (window.monacoEditor) {
+    code = window.monacoEditor.getValue();
+    if (terminalCodeInput) terminalCodeInput.value = code;
+  } else {
+    code = terminalCodeInput ? terminalCodeInput.value : '';
+  }
+  if (typeof window.switchIdeTab === 'function') {
+    window.switchIdeTab('output');
+  }
   const lang = terminalLangSelect ? terminalLangSelect.value : 'javascript';
   terminalConsoleOutput.textContent = `>>> Executing ${lang.toUpperCase()} sandbox...\n`;
 
@@ -1403,12 +1565,105 @@ btnConsentNext.addEventListener('click', async () => {
     if (!res.ok) throw new Error('Consent registration failed');
     consentScreen.style.display = 'none';
     micScreen.style.display = 'block';
+    if (typeof window.runPreflightPingCheck === 'function') {
+      window.runPreflightPingCheck();
+    }
   } catch (err) {
     alert(err.message);
   }
 });
 
-// 2. Mic Check Handlers (Universal Cross-Browser Support)
+// Pre-Flight Audio VU Level Meter
+let preflightAudioCtx = null;
+let preflightAnalyser = null;
+let preflightVuAnimId = null;
+
+window.startVuMeter = function(stream) {
+  try {
+    if (!stream) return;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    if (preflightAudioCtx) {
+      try { preflightAudioCtx.close(); } catch(e) {}
+    }
+    preflightAudioCtx = new AudioContextClass();
+    const source = preflightAudioCtx.createMediaStreamSource(stream);
+    preflightAnalyser = preflightAudioCtx.createAnalyser();
+    preflightAnalyser.fftSize = 64;
+    source.connect(preflightAnalyser);
+
+    const dataArray = new Uint8Array(preflightAnalyser.frequencyBinCount);
+    function updateVuBars() {
+      if (!preflightAnalyser) return;
+      preflightAnalyser.getByteFrequencyData(dataArray);
+      let sum = 0;
+      for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+      const avg = sum / dataArray.length;
+      const pct = Math.min(100, Math.round((avg / 128) * 100));
+
+      const lbl = document.getElementById('vu-volume-label');
+      if (lbl) lbl.textContent = `Level: ${pct}%`;
+
+      const clarity = document.getElementById('mic-clarity-label');
+      if (clarity && pct > 12) {
+        clarity.textContent = 'Voice detected ✓';
+        clarity.style.color = '#10b981';
+        const micBadge = document.getElementById('check-mic-badge');
+        if (micBadge) {
+          micBadge.className = 'badge';
+          micBadge.style.background = 'rgba(16, 185, 129, 0.12)';
+          micBadge.style.color = '#10b981';
+          micBadge.innerHTML = '<i class="bi bi-check-circle-fill"></i> Verified';
+        }
+        const micCard = document.getElementById('preflight-mic-card');
+        if (micCard) micCard.classList.add('verified');
+      }
+
+      for (let i = 0; i < 10; i++) {
+        const seg = document.getElementById(`vu-${i}`);
+        if (seg) {
+          const threshold = (i + 1) * 9;
+          if (pct >= threshold) {
+            seg.style.height = `${Math.max(25, Math.min(100, (pct - threshold + 10) * 10))}%`;
+            seg.className = i < 6 ? 'vu-segment active-low' : (i < 8 ? 'vu-segment active-mid' : 'vu-segment active-high');
+          } else {
+            seg.style.height = '20%';
+            seg.className = 'vu-segment';
+          }
+        }
+      }
+      preflightVuAnimId = requestAnimationFrame(updateVuBars);
+    }
+    updateVuBars();
+  } catch (err) {
+    console.warn('Audio VU meter error:', err);
+  }
+};
+
+window.runPreflightPingCheck = async function() {
+  const pingEl = document.getElementById('ping-latency-text');
+  const badge = document.getElementById('check-net-badge');
+  const netCard = document.getElementById('preflight-net-card');
+  const screenEl = document.getElementById('screen-resolution-text');
+  if (screenEl) screenEl.textContent = `${window.screen.width}x${window.screen.height}`;
+  if (pingEl) pingEl.textContent = 'Testing...';
+  try {
+    const t0 = performance.now();
+    await fetch('/health', { cache: 'no-store' });
+    const rtt = Math.round(performance.now() - t0);
+    if (pingEl) pingEl.textContent = `${rtt} ms`;
+    if (badge) {
+      badge.textContent = rtt < 120 ? 'Optimal Ping' : 'Good';
+      badge.style.color = '#10b981';
+      badge.style.background = 'rgba(16, 185, 129, 0.12)';
+    }
+    if (netCard) netCard.classList.add('verified');
+  } catch (e) {
+    if (pingEl) pingEl.textContent = 'Online';
+  }
+};
+
+// 2. Mic Check Handlers (Universal Cross-Browser Support with Live Decibel Meter)
 let isTestingMic = false;
 btnTestMic.addEventListener('click', async () => {
   if (!isTestingMic) {
@@ -1422,11 +1677,29 @@ btnTestMic.addEventListener('click', async () => {
     btnTestMic.classList.add('recording');
     btnTestMic.innerHTML = '<i class="bi bi-stop-circle"></i> Stop Test';
     micTestStatus.innerHTML = '<span style="color:#059669;"><i class="bi bi-broadcast"></i> Microphone active across all browsers (Chrome, Safari, Firefox, iOS, Android)! Speak now.</span>';
+    
+    // Connect audio stream to reactive decibel VU meter
+    if (voice.mediaStream) {
+      window.startVuMeter(voice.mediaStream);
+    } else {
+      try {
+        const testStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        window.startVuMeter(testStream);
+      } catch(e) {}
+    }
+
     voice.onInterimResult = (text) => {
       micTestResult.textContent = `Hearing: "${text}"`;
     };
     voice.onFinalResult = (text) => {
       micTestResult.textContent = `✓ Captured: "${text}"`;
+      const micBadge = document.getElementById('check-mic-badge');
+      if (micBadge) {
+        micBadge.className = 'badge';
+        micBadge.style.background = 'rgba(16, 185, 129, 0.12)';
+        micBadge.style.color = '#10b981';
+        micBadge.innerHTML = '<i class="bi bi-check-circle-fill"></i> Verified';
+      }
     };
   } else {
     voice.stopListening();
@@ -1444,6 +1717,11 @@ window.verifySetupCamera = async function() {
   const preview = document.getElementById('setup-camera-preview');
   const placeholder = document.getElementById('setup-camera-placeholder');
   const btn = document.getElementById('btn-verify-camera');
+  const guide = document.getElementById('camera-face-guide');
+  const camBadge = document.getElementById('check-cam-badge');
+  const camCard = document.getElementById('preflight-cam-card');
+  const allStatus = document.getElementById('preflight-all-status');
+
   try {
     if (btn) btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Accessing camera...';
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -1452,6 +1730,7 @@ window.verifySetupCamera = async function() {
     if (preview) {
       preview.srcObject = stream;
       if (placeholder) placeholder.style.display = 'none';
+      if (guide) guide.style.display = 'block';
     }
     window.hasCameraVerified = true;
     if (btn) {
@@ -1459,7 +1738,20 @@ window.verifySetupCamera = async function() {
       btn.style.backgroundColor = '#16a34a';
       btn.style.borderColor = '#16a34a';
       btn.style.color = '#ffffff';
-      btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Camera Verified & Live';
+      btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Camera Verified &amp; Live';
+    }
+    if (camBadge) {
+      camBadge.className = 'badge';
+      camBadge.style.background = 'rgba(16, 185, 129, 0.12)';
+      camBadge.style.color = '#10b981';
+      camBadge.innerHTML = '<i class="bi bi-check-circle-fill"></i> HD Active';
+    }
+    if (camCard) {
+      camCard.classList.remove('required');
+      camCard.classList.add('verified');
+    }
+    if (allStatus) {
+      allStatus.innerHTML = '<i class="bi bi-check-circle-fill" style="color:#10b981;"></i> All Systems Verified • Ready to Begin!';
     }
     const startBtn = document.getElementById('btn-start-interview-voice');
     if (startBtn) {
@@ -1522,6 +1814,16 @@ function showInterviewRoom() {
   consentScreen.style.display = 'none';
   micScreen.style.display = 'none';
   interviewRoomWrapper.style.display = 'block';
+
+  // Initialize Monaco Editor and load active language / code
+  const lang = terminalLangSelect ? terminalLangSelect.value : 'javascript';
+  const code = terminalCodeInput ? terminalCodeInput.value : '';
+  if (typeof window.initMonacoEditor === 'function') {
+    window.initMonacoEditor(code, lang);
+  }
+  if (typeof window.selectTestCaseTab === 'function') {
+    window.selectTestCaseTab(1);
+  }
 
   // Start active countdown timer for configured duration
   const durationMins = parseInt(interviewData?.max_minutes, 10) || 15;

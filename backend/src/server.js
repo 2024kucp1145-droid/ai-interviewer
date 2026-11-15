@@ -2264,7 +2264,8 @@ app.post('/api/compiler/judge', async (req, res) => {
       }
     }
 
-    const result = await judgeLeetCodeSolution(String(problemId), lang, code, customSuite, { timeLimitMs, memoryLimitMb });
+    const customCase = req.body.customCase;
+    const result = await judgeLeetCodeSolution(String(problemId), lang, code, customSuite, { timeLimitMs, memoryLimitMb, customCase });
     const problemTitle = customSuite?.title || (catalogMeta ? `#${catalogMeta.frontend_id}: ${catalogMeta.title}` : `LeetCode #${problemId}`);
 
     // If an interview session token is provided, persist full evaluation & performance metrics in database
