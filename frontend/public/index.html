@@ -1548,21 +1548,19 @@
       100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0); }
     }
 
+    /* =====================================================================
+       OBSIDIAN BLACK ENTERPRISE HERO STYLING (Linear / Cursor SaaS Aesthetic)
+       ===================================================================== */
     .bolt-hero-wrapper {
-      background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.12) 0%, rgba(15, 23, 42, 0.02) 65%), var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 2.75rem 2rem 2.25rem;
+      background: radial-gradient(circle at 50% -10%, rgba(99, 102, 241, 0.22) 0%, rgba(14, 165, 233, 0.08) 35%, rgba(3, 7, 18, 0.98) 75%), #030712;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 3.25rem 2rem 2.5rem;
       margin-bottom: 2rem;
       position: relative;
       overflow: hidden;
-      box-shadow: 0 12px 35px -8px rgba(0, 0, 0, 0.06);
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    [data-theme="dark"] .bolt-hero-wrapper {
-      background: radial-gradient(circle at 50% -10%, rgba(99, 102, 241, 0.25) 0%, rgba(15, 23, 42, 0.85) 60%), #0b0f19;
-      border-color: rgba(255, 255, 255, 0.1);
-      box-shadow: 0 20px 45px -15px rgba(0, 0, 0, 0.65);
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.04);
+      color: #f8fafc;
     }
     .bolt-hero-wrapper.bolt-hero-compact {
       display: none !important;
@@ -1571,105 +1569,103 @@
     .bolt-ambient-glow {
       position: absolute;
       border-radius: 50%;
-      filter: blur(80px);
+      filter: blur(100px);
       pointer-events: none;
       z-index: 1;
-      opacity: 0.5;
+      opacity: 0.45;
     }
     .bolt-glow-1 {
-      top: -80px;
-      left: 15%;
-      width: 340px;
-      height: 340px;
-      background: rgba(56, 189, 248, 0.22);
+      top: -100px;
+      left: 10%;
+      width: 420px;
+      height: 420px;
+      background: rgba(56, 189, 248, 0.18);
     }
     .bolt-glow-2 {
-      top: -60px;
-      right: 15%;
-      width: 360px;
-      height: 360px;
-      background: rgba(168, 85, 247, 0.22);
+      top: -80px;
+      right: 10%;
+      width: 450px;
+      height: 450px;
+      background: rgba(168, 85, 247, 0.18);
     }
 
+    /* Hero Eyebrow Pill */
     .bolt-pill {
       display: inline-flex;
       align-items: center;
       gap: 0.55rem;
       padding: 0.35rem 0.95rem;
       border-radius: 9999px;
-      background: rgba(37, 99, 235, 0.08);
-      border: 1px solid rgba(37, 99, 235, 0.25);
-      color: #2563eb;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(129, 140, 248, 0.35);
+      color: #cbd5e1;
       font-size: 0.775rem;
       font-weight: 600;
       margin-bottom: 1.25rem;
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.15);
       transition: all 0.2s ease;
+      cursor: pointer;
     }
     .bolt-pill:hover {
-      background: rgba(37, 99, 235, 0.14);
+      background: rgba(30, 41, 59, 0.95);
+      border-color: #818cf8;
+      color: #ffffff;
       transform: translateY(-1px);
     }
-    [data-theme="dark"] .bolt-pill {
-      background: rgba(99, 102, 241, 0.15);
-      border-color: rgba(129, 140, 248, 0.35);
-      color: #a5b4fc;
-    }
     .bolt-pill-badge {
-      background: #2563eb;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
       color: #ffffff;
       font-size: 0.625rem;
       font-weight: 800;
-      padding: 0.15rem 0.45rem;
+      padding: 0.15rem 0.5rem;
       border-radius: 9999px;
       letter-spacing: 0.05em;
     }
 
+    /* Main Typography */
     .bolt-title {
-      font-size: 2.35rem;
+      font-size: 2.65rem;
       font-weight: 800;
-      line-height: 1.18;
+      line-height: 1.15;
       letter-spacing: -0.035em;
-      color: var(--text);
-      margin-bottom: 0.85rem;
-      max-width: 860px;
+      color: #ffffff;
+      margin-bottom: 0.9rem;
+      max-width: 900px;
       margin-left: auto;
       margin-right: auto;
     }
     @media (max-width: 768px) {
-      .bolt-title { font-size: 1.75rem; }
+      .bolt-title { font-size: 1.85rem; }
     }
-
     .bolt-gradient-text {
-      background: linear-gradient(135deg, #2563eb 0%, #7c3aed 50%, #db2777 100%);
+      background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       display: inline-block;
     }
-    [data-theme="dark"] .bolt-gradient-text {
-      background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
     .bolt-subhead {
-      font-size: 0.925rem;
-      color: var(--text-muted);
-      max-width: 750px;
-      margin: 0 auto 1.75rem;
+      font-size: 0.975rem;
+      color: #94a3b8;
+      max-width: 780px;
+      margin: 0 auto 1.85rem;
       line-height: 1.6;
+    }
+    .bolt-subhead strong {
+      color: #e2e8f0;
     }
 
     /* Prompt Box */
     .bolt-prompt-container {
-      max-width: 760px;
+      max-width: 780px;
       margin: 0 auto 2.25rem;
       position: relative;
       z-index: 5;
     }
     .bolt-prompt-box {
-      background: var(--surface);
-      border: 1.5px solid var(--border);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(99, 102, 241, 0.08);
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1.5px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(99, 102, 241, 0.15);
       border-radius: 14px;
       padding: 0.45rem 0.55rem 0.45rem 1rem;
       display: flex;
@@ -1677,18 +1673,13 @@
       gap: 0.75rem;
       transition: all 0.2s ease;
     }
-    [data-theme="dark"] .bolt-prompt-box {
-      background: rgba(15, 23, 42, 0.75);
-      border-color: rgba(255, 255, 255, 0.12);
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(129, 140, 248, 0.2);
-    }
     .bolt-prompt-box:focus-within {
-      border-color: #6366f1;
-      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15), 0 8px 24px rgba(0, 0, 0, 0.1);
+      border-color: #818cf8;
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.25), 0 12px 35px rgba(0, 0, 0, 0.8);
     }
     .bolt-prompt-icon {
-      color: #7c3aed;
-      font-size: 1.15rem;
+      color: #a855f7;
+      font-size: 1.2rem;
       flex-shrink: 0;
     }
     .bolt-prompt-input {
@@ -1696,29 +1687,35 @@
       background: transparent;
       border: none;
       outline: none;
-      color: var(--text);
+      color: #f8fafc;
       font-size: 0.875rem;
       font-family: inherit;
       padding: 0.35rem 0;
     }
+    .bolt-prompt-input::placeholder {
+      color: #64748b;
+    }
     .bolt-prompt-btn {
-      padding: 0.55rem 1.15rem;
-      font-size: 0.8rem;
+      padding: 0.55rem 1.25rem;
+      font-size: 0.825rem;
       font-weight: 700;
       border-radius: 10px;
       display: inline-flex;
       align-items: center;
-      gap: 0.4rem;
+      gap: 0.45rem;
       white-space: nowrap;
       flex-shrink: 0;
-      background: linear-gradient(135deg, #2563eb, #6366f1);
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
       border: none;
-      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+      color: #ffffff;
+      box-shadow: 0 0 16px rgba(99, 102, 241, 0.4);
       cursor: pointer;
+      transition: all 0.2s ease;
     }
     .bolt-prompt-btn:hover {
       opacity: 0.95;
       transform: translateY(-1px);
+      box-shadow: 0 0 22px rgba(99, 102, 241, 0.6);
     }
     .bolt-prompt-chips {
       display: flex;
@@ -1729,9 +1726,9 @@
       margin-top: 0.9rem;
     }
     .bolt-chip {
-      background: var(--surface-subtle);
-      border: 1px solid var(--border);
-      color: var(--text);
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
       font-size: 0.72rem;
       font-weight: 500;
       padding: 0.28rem 0.7rem;
@@ -1743,164 +1740,338 @@
       gap: 0.35rem;
     }
     .bolt-chip:hover {
-      background: var(--accent-light);
-      border-color: #93c5fd;
-      color: #1d4ed8;
+      background: rgba(30, 41, 59, 0.9);
+      border-color: #818cf8;
+      color: #ffffff;
       transform: translateY(-1px);
     }
 
-    /* Employer 3-Step Pipeline Showcase */
-    .employer-workflow-card {
-      background: var(--surface);
-      border: 1.5px solid var(--border);
+    /* Hero CTA Row */
+    .hero-cta-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 2.25rem;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 5;
+    }
+
+    /* ==========================================================
+       INTERACTIVE LIVE ASSESSMENT SIMULATOR WIDGET (Hero Centerpiece)
+       ========================================================== */
+    .hero-simulator-window {
+      background: #090d16;
+      border: 1.5px solid rgba(255, 255, 255, 0.12);
       border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08);
-      margin-bottom: 2.25rem;
+      box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.85), 0 0 35px rgba(99, 102, 241, 0.12);
+      margin-bottom: 2.75rem;
       position: relative;
-      z-index: 3;
+      z-index: 4;
+      text-align: left;
     }
-    [data-theme="dark"] .employer-workflow-card {
-      background: #0f172a;
-      border-color: rgba(255, 255, 255, 0.1);
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
-    }
-    .employer-workflow-header {
-      background: var(--surface-subtle);
-      border-bottom: 1px solid var(--border);
-      padding: 0.85rem 1.4rem;
+    .hero-simulator-header {
+      background: #0d121f;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 0.75rem 1.25rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
       gap: 0.75rem;
     }
-    [data-theme="dark"] .employer-workflow-header {
-      background: #111a2e;
-      border-color: rgba(255, 255, 255, 0.08);
+    .bolt-window-dots {
+      display: inline-flex;
+      gap: 6px;
     }
-    .employer-steps-grid {
+    .bolt-window-dots span {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .pulse-green-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      display: inline-block;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulseDot 1.5s infinite;
+    }
+    @keyframes pulseDot {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    .hero-simulator-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1.25rem;
-      padding: 1.75rem 1.5rem;
+      grid-template-columns: 1.15fr 1.35fr;
+      min-height: 480px;
     }
-    @media (max-width: 960px) {
-      .employer-steps-grid {
+    @media (max-width: 1024px) {
+      .hero-simulator-grid {
         grid-template-columns: 1fr;
       }
     }
-    .employer-step-item {
-      background: var(--surface-subtle);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.35rem 1.25rem;
+    .hero-sim-left {
+      padding: 1.25rem;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
       display: flex;
       flex-direction: column;
-      position: relative;
-      transition: all 0.25s ease;
+      gap: 1rem;
+      background: #090d16;
     }
-    .employer-step-item:hover {
-      transform: translateY(-3px);
-      border-color: #6366f1;
-      box-shadow: 0 10px 25px rgba(99, 102, 241, 0.1);
-    }
-    [data-theme="dark"] .employer-step-item {
-      background: rgba(30, 41, 59, 0.45);
-      border-color: rgba(255, 255, 255, 0.07);
-    }
-    [data-theme="dark"] .employer-step-item:hover {
-      background: rgba(30, 41, 59, 0.75);
-      border-color: rgba(129, 140, 248, 0.4);
-    }
-    .employer-step-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 1rem;
-    }
-    .employer-step-badge {
-      font-size: 0.65rem;
-      font-weight: 800;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      padding: 0.2rem 0.6rem;
-      border-radius: 6px;
-    }
-    .step-badge-1 { background: rgba(37,99,235,0.12); color: #2563eb; border: 1px solid rgba(37,99,235,0.25); }
-    .step-badge-2 { background: rgba(16,185,129,0.12); color: #059669; border: 1px solid rgba(16,185,129,0.25); }
-    .step-badge-3 { background: rgba(245,158,11,0.12); color: #d97706; border: 1px solid rgba(245,158,11,0.25); }
-    .employer-step-icon {
-      width: 44px;
-      height: 44px;
+    .sim-card {
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 10px;
+      padding: 0.85rem;
+    }
+    .voice-wave-container {
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 1.25rem;
+      gap: 3px;
+      height: 20px;
     }
-    .step-icon-1 { background: linear-gradient(135deg, rgba(37,99,235,0.15), rgba(59,130,246,0.25)); color: #2563eb; }
-    .step-icon-2 { background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(52,211,153,0.25)); color: #10b981; }
-    .step-icon-3 { background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(251,191,36,0.25)); color: #f59e0b; }
-    .employer-step-title {
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: var(--text);
-      margin-bottom: 0.45rem;
+    .voice-wave-bar {
+      width: 3px;
+      height: 100%;
+      background: #6366f1;
+      border-radius: 2px;
+      animation: soundWave 1.2s ease-in-out infinite alternate;
     }
-    .employer-step-desc {
-      font-size: 0.775rem;
-      color: var(--text-muted);
-      line-height: 1.55;
-      margin-bottom: 1rem;
-      flex-grow: 1;
-    }
-    .employer-step-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.35rem;
-      margin-bottom: 1rem;
-    }
-    .employer-step-chip {
-      font-size: 0.68rem;
-      font-weight: 600;
-      padding: 0.2rem 0.5rem;
-      border-radius: 6px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text);
-      display: inline-flex;
-      align-items: center;
-      gap: 0.3rem;
-    }
-    [data-theme="dark"] .employer-step-chip {
-      background: #0b0f19;
-      border-color: rgba(255, 255, 255, 0.08);
-    }
-    .employer-step-action {
-      margin-top: auto;
-      padding-top: 0.75rem;
-      border-top: 1px dashed var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .voice-wave-bar:nth-child(2) { animation-delay: 0.2s; height: 65%; background: #818cf8; }
+    .voice-wave-bar:nth-child(3) { animation-delay: 0.4s; height: 90%; background: #38bdf8; }
+    .voice-wave-bar:nth-child(4) { animation-delay: 0.15s; height: 45%; background: #818cf8; }
+    .voice-wave-bar:nth-child(5) { animation-delay: 0.35s; height: 80%; background: #6366f1; }
+    @keyframes soundWave {
+      0% { transform: scaleY(0.2); }
+      100% { transform: scaleY(1); }
     }
 
-    /* Employer Front Page Pricing Component */
-    .front-pricing-box {
-      background: var(--surface);
-      border: 1.5px solid var(--border);
-      border-radius: 16px;
-      padding: 2rem 1.75rem;
-      margin-bottom: 2rem;
+    .hero-sim-right {
+      display: flex;
+      flex-direction: column;
+      background: #0b0f19;
+      border-top-right-radius: 16px;
+      border-bottom-right-radius: 16px;
+      overflow: hidden;
+    }
+    .sim-editor-toolbar {
+      background: #0e1424;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 0.55rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .sim-run-btn {
+      font-weight: 700;
+      font-size: 0.75rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 6px;
+      background: #10b981;
+      border: none;
+      color: #ffffff;
+      cursor: pointer;
+      box-shadow: 0 0 14px rgba(16, 185, 129, 0.4);
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .sim-run-btn:hover {
+      background: #059669;
+      transform: translateY(-1px);
+    }
+    .sim-code-area {
+      flex: 1;
+      position: relative;
+      min-height: 250px;
+    }
+    .sim-code-textarea {
+      width: 100%;
+      height: 100%;
+      min-height: 250px;
+      background: #090d16;
+      color: #e2e8f0;
+      border: none;
+      outline: none;
+      padding: 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.775rem;
+      line-height: 1.6;
+      resize: vertical;
+    }
+    .sim-console-output {
+      background: #05070e;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 0.85rem 1rem;
+      min-height: 120px;
+      max-height: 190px;
+      overflow-y: auto;
+    }
+
+    /* ==========================================================
+       "IF YOU WANT THIS ➔ ROUNDONE DELIVERS THIS" OUTCOME MATRIX
+       ========================================================== */
+    .if-then-section {
+      margin-bottom: 3rem;
       position: relative;
       z-index: 3;
-      box-shadow: 0 12px 36px rgba(0,0,0,0.06);
     }
-    [data-theme="dark"] .front-pricing-box {
-      background: #0f172a;
-      border-color: rgba(255, 255, 255, 0.1);
-      box-shadow: 0 16px 45px rgba(0, 0, 0, 0.45);
+    .if-then-header {
+      text-align: center;
+      max-width: 780px;
+      margin: 0 auto 2rem;
+    }
+    .if-then-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+    }
+    @media (max-width: 1024px) {
+      .if-then-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 640px) {
+      .if-then-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .if-then-card {
+      background: #090d16;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 1.4rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      transition: all 0.25s ease;
+      position: relative;
+    }
+    .if-then-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(99, 102, 241, 0.5);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(99, 102, 241, 0.15);
+    }
+    .if-block {
+      background: rgba(239, 68, 68, 0.06);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: 8px;
+      padding: 0.75rem 0.85rem;
+    }
+    .if-label {
+      font-size: 0.65rem;
+      font-weight: 800;
+      color: #f87171;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin-bottom: 0.35rem;
+    }
+    .if-text {
+      font-size: 0.825rem;
+      font-weight: 600;
+      color: #f1f5f9;
+      line-height: 1.4;
+    }
+    .then-block {
+      background: rgba(16, 185, 129, 0.06);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 8px;
+      padding: 0.75rem 0.85rem;
+    }
+    .then-label {
+      font-size: 0.65rem;
+      font-weight: 800;
+      color: #34d399;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin-bottom: 0.35rem;
+    }
+    .then-text {
+      font-size: 0.825rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+    }
+
+    /* ==========================================================
+       COMPETITOR COMPARISON MATRIX (RoundOne AI vs Legacy Platforms)
+       ========================================================== */
+    .compare-section {
+      background: #090d16;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 2.25rem 1.75rem;
+      margin-bottom: 2.75rem;
+      position: relative;
+      z-index: 3;
+      box-shadow: 0 16px 45px rgba(0, 0, 0, 0.6);
+    }
+    .compare-table-wrapper {
+      overflow-x: auto;
+      margin-top: 1.5rem;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.8rem;
+    }
+    .compare-table th, .compare-table td {
+      padding: 0.9rem 1.15rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .compare-table th {
+      font-weight: 700;
+      color: #94a3b8;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: #0d121f;
+    }
+    .compare-table th.col-highlight {
+      background: rgba(99, 102, 241, 0.22);
+      color: #a5b4fc;
+      border-left: 2px solid #818cf8;
+      border-right: 2px solid #818cf8;
+      border-top: 2px solid #818cf8;
+    }
+    .compare-table td.col-highlight {
+      background: rgba(99, 102, 241, 0.07);
+      border-left: 2px solid #818cf8;
+      border-right: 2px solid #818cf8;
+      font-weight: 600;
+      color: #ffffff;
+    }
+    .compare-table tr:last-child td.col-highlight {
+      border-bottom: 2px solid #818cf8;
+    }
+
+    /* ==========================================================
+       EMPLOYER TRANSPARENT PRICING CARDS
+       ========================================================== */
+    .front-pricing-box {
+      background: #090d16;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 2.25rem 1.75rem;
+      margin-bottom: 2.5rem;
+      position: relative;
+      z-index: 3;
+      box-shadow: 0 16px 45px rgba(0, 0, 0, 0.6);
     }
     .front-pricing-header {
       text-align: center;
@@ -1919,10 +2090,10 @@
       }
     }
     .front-pricing-card {
-      background: var(--surface-subtle);
-      border: 1.5px solid var(--border);
+      background: rgba(15, 23, 42, 0.45);
+      border: 1.5px solid rgba(255, 255, 255, 0.08);
       border-radius: 14px;
-      padding: 1.6rem 1.35rem;
+      padding: 1.75rem 1.35rem;
       display: flex;
       flex-direction: column;
       position: relative;
@@ -1930,20 +2101,13 @@
     }
     .front-pricing-card:hover {
       transform: translateY(-3px);
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
-    }
-    [data-theme="dark"] .front-pricing-card {
-      background: rgba(30, 41, 59, 0.35);
-      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 14px 35px rgba(0, 0, 0, 0.5);
+      border-color: rgba(255, 255, 255, 0.16);
     }
     .front-pricing-card.popular {
-      border-color: #6366f1;
-      background: linear-gradient(180deg, rgba(99, 102, 241, 0.06) 0%, var(--surface-subtle) 100%);
-      box-shadow: 0 12px 35px rgba(99, 102, 241, 0.15);
-    }
-    [data-theme="dark"] .front-pricing-card.popular {
-      background: linear-gradient(180deg, rgba(99, 102, 241, 0.12) 0%, rgba(30, 41, 59, 0.5) 100%);
+      background: linear-gradient(180deg, rgba(99, 102, 241, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%);
       border-color: #818cf8;
+      box-shadow: 0 16px 40px rgba(99, 102, 241, 0.22);
     }
     .front-pricing-badge-popular {
       position: absolute;
@@ -1956,9 +2120,9 @@
       font-weight: 800;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      padding: 0.25rem 0.8rem;
+      padding: 0.25rem 0.85rem;
       border-radius: 999px;
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.5);
     }
     .front-price-row {
       display: flex;
@@ -1967,9 +2131,9 @@
       margin: 0.85rem 0 0.25rem;
     }
     .front-price-usd {
-      font-size: 1.85rem;
+      font-size: 1.95rem;
       font-weight: 800;
-      color: var(--text);
+      color: #ffffff;
       letter-spacing: -0.02em;
     }
     .front-price-inr {
@@ -1978,12 +2142,12 @@
       color: #10b981;
     }
     .front-price-sep {
-      color: var(--text-muted);
+      color: #64748b;
       font-size: 0.95rem;
     }
     .front-price-unit {
       font-size: 0.72rem;
-      color: var(--text-muted);
+      color: #94a3b8;
       font-weight: 500;
       margin-bottom: 1.25rem;
     }
@@ -1993,12 +2157,12 @@
       margin: 0 0 1.5rem;
       display: flex;
       flex-direction: column;
-      gap: 0.55rem;
+      gap: 0.6rem;
       flex-grow: 1;
     }
     .front-pricing-features li {
       font-size: 0.775rem;
-      color: var(--text);
+      color: #cbd5e1;
       display: flex;
       align-items: flex-start;
       gap: 0.5rem;
@@ -2011,305 +2175,22 @@
       flex-shrink: 0;
     }
 
-    /* Sandbox Card (Compatibility fallback) */
-    .bolt-sandbox-card {
-      background: var(--surface);
-      border: 1.5px solid var(--border);
-      border-radius: 14px;
-      overflow: hidden;
-      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.08);
-      margin-bottom: 2.25rem;
-      position: relative;
-      z-index: 3;
-    }
-    [data-theme="dark"] .bolt-sandbox-card {
-      background: #0f172a;
-      border-color: rgba(255, 255, 255, 0.1);
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
-    }
-    .bolt-sandbox-header {
-      background: var(--surface-subtle);
-      border-bottom: 1px solid var(--border);
-      padding: 0.65rem 1.25rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.775rem;
-    }
-    [data-theme="dark"] .bolt-sandbox-header {
-      background: #111a2e;
-      border-color: rgba(255, 255, 255, 0.08);
-    }
-    .bolt-window-dots {
-      display: inline-flex;
-      gap: 5px;
-      margin-right: 0.4rem;
-    }
-    .bolt-window-dots span {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      display: inline-block;
-    }
-    .pulse-green-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #10b981;
-      display: inline-block;
-      box-shadow: 0 0 8px #10b981;
-      animation: pulseDot 1.5s infinite;
-    }
-    @keyframes pulseDot {
-      0% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.85); }
-      100% { opacity: 1; transform: scale(1); }
-    }
-    .bolt-sandbox-grid {
-      display: grid;
-      grid-template-columns: 1fr 1.2fr;
-      min-height: 420px;
-    }
-    @media (max-width: 960px) {
-      .bolt-sandbox-grid { grid-template-columns: 1fr; }
-    }
-    .bolt-sandbox-left {
-      padding: 1.25rem;
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-      background: var(--surface);
-    }
-    [data-theme="dark"] .bolt-sandbox-left {
-      border-color: rgba(255, 255, 255, 0.08);
-      background: #0f172a;
-    }
-    .bolt-interviewer-card {
-      background: var(--surface-subtle);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 0.85rem;
-    }
-    [data-theme="dark"] .bolt-interviewer-card {
-      background: rgba(30, 41, 59, 0.45);
-      border-color: rgba(255, 255, 255, 0.06);
-    }
-    .bolt-avatar-glow {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #2563eb, #7c3aed);
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.9rem;
-      box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
-    }
-    .voice-wave-container {
-      display: flex;
-      align-items: center;
-      gap: 3px;
-      height: 22px;
-    }
-    .voice-wave-bar {
-      width: 3px;
-      height: 100%;
-      background: #6366f1;
-      border-radius: 2px;
-      animation: soundWave 1.2s ease-in-out infinite alternate;
-    }
-    .voice-wave-bar:nth-child(2) { animation-delay: 0.2s; height: 65%; background: #818cf8; }
-    .voice-wave-bar:nth-child(3) { animation-delay: 0.4s; height: 90%; background: #38bdf8; }
-    .voice-wave-bar:nth-child(4) { animation-delay: 0.15s; height: 45%; background: #818cf8; }
-    .voice-wave-bar:nth-child(5) { animation-delay: 0.35s; height: 80%; background: #6366f1; }
-    @keyframes soundWave {
-      0% { transform: scaleY(0.2); }
-      100% { transform: scaleY(1); }
-    }
-    .bolt-dialogue-bubble {
-      margin-top: 0.4rem;
-      font-size: 0.775rem;
-      line-height: 1.5;
-      color: var(--text);
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.65rem 0.8rem;
-    }
-    [data-theme="dark"] .bolt-dialogue-bubble {
-      background: #0b0f19;
-      border-color: rgba(255, 255, 255, 0.08);
-    }
-    .bolt-candidate-telemetry-box {
-      background: var(--surface-subtle);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 0.85rem;
-    }
-    [data-theme="dark"] .bolt-candidate-telemetry-box {
-      background: rgba(30, 41, 59, 0.45);
-      border-color: rgba(255, 255, 255, 0.06);
-    }
-    .bolt-telemetry-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.35rem;
-      margin-bottom: 0.6rem;
-    }
-    .bolt-telemetry-tag {
-      font-size: 0.68rem;
-      font-weight: 600;
-      padding: 0.18rem 0.5rem;
-      border-radius: 6px;
-      background: rgba(16, 185, 129, 0.08);
-      border: 1px solid rgba(16, 185, 129, 0.2);
-      color: #059669;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.3rem;
-    }
-    .bolt-candidate-transcript {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 0.55rem 0.7rem;
-    }
-    [data-theme="dark"] .bolt-candidate-transcript {
-      background: #0b0f19;
-      border-color: rgba(255, 255, 255, 0.08);
-    }
-    .bolt-quick-perks {
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-      font-size: 0.72rem;
-      color: var(--text-muted);
-      margin-top: auto;
-    }
-    .bolt-perk {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-
-    /* Sandbox Right: Code IDE */
-    .bolt-sandbox-right {
-      display: flex;
-      flex-direction: column;
-      background: #0d1117;
-      border-top-right-radius: 12px;
-      border-bottom-right-radius: 12px;
-      overflow: hidden;
-    }
-    .bolt-code-editor-header {
-      background: #161b22;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 0.55rem 1rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .bolt-run-btn {
-      font-weight: 700;
-      font-size: 0.75rem;
-      padding: 0.35rem 0.8rem;
-      border-radius: 6px;
-      background: #10b981;
-      border: none;
-      color: #ffffff;
-      cursor: pointer;
-      box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
-      transition: all 0.15s ease;
-    }
-    .bolt-run-btn:hover {
-      background: #059669;
-      transform: translateY(-1px);
-    }
-    .bolt-code-area-wrap {
-      flex: 1;
-      position: relative;
-      min-height: 240px;
-    }
-    .bolt-code-textarea {
-      width: 100%;
-      height: 100%;
-      min-height: 240px;
-      background: #0d1117;
-      color: #c9d1d9;
-      border: none;
-      outline: none;
-      padding: 1rem;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.775rem;
-      line-height: 1.6;
-      resize: vertical;
-    }
-    .bolt-output-console {
-      background: #090d16;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 0.85rem 1rem;
-      min-height: 100px;
-      max-height: 200px;
-      overflow-y: auto;
-    }
-
-    /* Bento Features */
-    .bolt-features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-      gap: 1.25rem;
-      margin-bottom: 2rem;
-      position: relative;
-      z-index: 3;
-    }
-    .bolt-feat-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.25rem;
-      transition: all 0.2s ease;
-    }
-    .bolt-feat-card:hover {
-      border-color: #6366f1;
-      transform: translateY(-2px);
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
-    }
-    [data-theme="dark"] .bolt-feat-card {
-      background: rgba(15, 23, 42, 0.55);
-      border-color: rgba(255, 255, 255, 0.08);
-    }
-    [data-theme="dark"] .bolt-feat-card:hover {
-      background: rgba(15, 23, 42, 0.9);
-      border-color: rgba(129, 140, 248, 0.4);
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
-    }
-    .bolt-feat-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.2rem;
-      margin-bottom: 0.85rem;
-    }
-
-    /* Bottom Banner */
+    /* ==========================================================
+       BOTTOM HIGH-CONVERSION CTA BANNER
+       ========================================================== */
     .bolt-bottom-banner {
-      background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
-      border: 1px solid rgba(129, 140, 248, 0.25);
-      border-radius: 14px;
-      padding: 1.5rem 1.75rem;
+      background: linear-gradient(135deg, #111827 0%, #030712 100%);
+      border: 1px solid rgba(129, 140, 248, 0.35);
+      border-radius: 16px;
+      padding: 1.75rem 2rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 1rem;
+      gap: 1.25rem;
       flex-wrap: wrap;
       position: relative;
       z-index: 3;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 16px 45px rgba(0, 0, 0, 0.6), 0 0 30px rgba(99, 102, 241, 0.15);
     }
   </style>
   <script src="/js/theme.js"></script>
@@ -2394,7 +2275,7 @@
         </div>
       </div>
 
-      <!-- BOLT.NEW STYLE HERO SHOWCASE (Inspiring, Interactive, Free Trial Focused) -->
+<!-- BOLT.NEW STYLE HERO SHOWCASE (Inspiring, Interactive, Free Trial Focused) -->
       <div id="bolt-hero-showcase" class="bolt-hero-wrapper">
         <!-- Ambient Glowing Background Accents -->
         <div class="bolt-ambient-glow bolt-glow-1"></div>
@@ -2403,21 +2284,21 @@
         <!-- Hero Content Center -->
         <div style="text-align: center; position: relative; z-index: 2;">
           <!-- Pill Badge -->
-          <div class="bolt-pill" onclick="handleStartTrialClick()" style="cursor: pointer;">
-            <span class="bolt-pill-badge">FREE TRIAL</span>
-            <span>🎁 10 Free AI Interviews Included • For Employers &amp; Hiring Teams • Rates from $0.50 / ₹42</span>
+          <div class="bolt-pill" onclick="handleStartTrialClick()">
+            <span class="bolt-pill-badge">ENTERPRISE SAAS</span>
+            <span>⚡ Autonomous Technical Screening • $0.50 (₹42) / Round • 10 Free Trials</span>
             <i class="bi bi-arrow-right" style="font-size: 0.75rem;"></i>
           </div>
 
           <!-- Main Title -->
           <h1 class="bolt-title">
-            Hire Top Engineers for Employers with<br>
-            <span class="bolt-gradient-text">Autonomous AI Voice &amp; Live Coding</span>
+            Stop Wasting Engineering Hours on First Rounds.<br>
+            <span class="bolt-gradient-text">Autonomous AI Voice &amp; Live Code Screening.</span>
           </h1>
 
           <!-- Subtitle -->
           <p class="bolt-subhead">
-            Empower your recruiting team with 24/7 autonomous technical screening. Evaluate candidates across our <strong>4,111+ LeetCode DSA Problem Bank</strong>, defeat cheating with keystroke proctoring, and receive instant 0–100 objective evaluation scorecards.
+            Screen 50 software engineers by tonight. Real-time voice follow-ups, <strong>4,111+ LeetCode problems</strong>, and continuous camera anti-cheat proctoring. From <strong>$0.50 (₹42)</strong> per interview with zero annual contracts.
           </p>
 
           <!-- Bolt.new-style Interactive Prompt Bar -->
@@ -2425,14 +2306,14 @@
             <div class="bolt-prompt-box">
               <i class="bi bi-sparkles bolt-prompt-icon"></i>
               <input type="text" id="bolt-prompt-input" class="bolt-prompt-input" placeholder="What role or technical round do you want to conduct? (e.g. Senior Full-Stack Engineer, LeetCode Hard DP...)" onkeydown="if(event.key==='Enter') handleBoltPromptSubmit()">
-              <button type="button" class="btn btn-primary bolt-prompt-btn" onclick="handleBoltPromptSubmit()">
+              <button type="button" class="btn bolt-prompt-btn" onclick="handleBoltPromptSubmit()">
                 <span>Create Interview</span>
                 <i class="bi bi-arrow-right"></i>
               </button>
             </div>
             <!-- Quick Chips -->
             <div class="bolt-prompt-chips">
-              <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; margin-right: 0.2rem;">Try popular roles:</span>
+              <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 600; margin-right: 0.2rem;">Try popular roles:</span>
               <button type="button" class="bolt-chip" onclick="handleBoltChipClick('Full-Stack Engineer (React + Node.js)')">⚡ Full-Stack (React/Node)</button>
               <button type="button" class="bolt-chip" onclick="handleBoltChipClick('Python &amp; Machine Learning Engineer')">🐍 Python &amp; AI/ML</button>
               <button type="button" class="bolt-chip" onclick="handleBoltChipClick('Java Enterprise Systems Architect')">☕ Java Enterprise</button>
@@ -2441,169 +2322,344 @@
               <button type="button" class="bolt-chip" onclick="openQuestionBankModal()">📚 4,111+ LeetCode Bank</button>
             </div>
           </div>
+
+          <!-- Hero Action CTAs -->
+          <div class="hero-cta-row">
+            <button type="button" class="btn btn-primary btn-pulse-trial" onclick="handleStartTrialClick()" style="padding: 0.75rem 1.6rem; font-size: 0.9rem; font-weight: 700;">
+              <i class="bi bi-gift-fill"></i> Claim 10 Free AI Interviews
+            </button>
+            <button type="button" class="btn btn-outline" onclick="openQuestionBankModal()" style="padding: 0.75rem 1.4rem; font-size: 0.9rem; font-weight: 600; border-color: rgba(255,255,255,0.2); color: #f8fafc;">
+              <i class="bi bi-collection"></i> Explore 4,111+ LeetCode Bank
+            </button>
+            <button type="button" class="btn btn-outline" onclick="openOrgCareersPage()" style="padding: 0.75rem 1.4rem; font-size: 0.9rem; font-weight: 600; border-color: rgba(255,255,255,0.2); color: #f8fafc;">
+              <i class="bi bi-globe"></i> View Public Careers Portal
+            </button>
+          </div>
         </div>
 
-        <!-- 3-STEP EMPLOYER AUTONOMOUS HIRING WORKFLOW SHOWCASE -->
-        <div class="employer-workflow-card">
-          <div class="employer-workflow-header">
-            <div style="display: flex; align-items: center; gap: 0.6rem;">
+        <!-- ========================================================
+             INTERACTIVE LIVE ASSESSMENT SIMULATOR WIDGET (HERO CENTERPIECE)
+             ======================================================== -->
+        <div class="hero-simulator-window">
+          <div class="hero-simulator-header">
+            <div style="display: flex; align-items: center; gap: 0.65rem;">
               <span class="bolt-window-dots">
                 <span style="background: #ef4444;"></span>
                 <span style="background: #eab308;"></span>
                 <span style="background: #22c55e;"></span>
               </span>
-              <span style="font-weight: 700; color: var(--text);">How RoundOne AI Works for Employers</span>
-              <span class="badge" style="background: rgba(37,99,235,0.1); color: #2563eb; border: 1px solid rgba(37,99,235,0.2); font-size: 0.65rem;">3-Step Autonomous Pipeline</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <span class="badge" style="background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid rgba(16,185,129,0.2); font-size: 0.65rem; display: inline-flex; align-items: center; gap: 4px;">
-                <span class="pulse-green-dot"></span> 24/7 Screening Active
+              <span style="font-weight: 700; color: #f8fafc; font-size: 0.8rem;">
+                RoundOne AI v2.4 • Live Candidate Session #8421
               </span>
-              <button class="btn btn-primary btn-xs" onclick="handleStartTrialClick()"><i class="bi bi-gift-fill"></i> Get 10 Free Rounds</button>
+              <span class="badge" style="background: rgba(99,102,241,0.18); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); font-size: 0.65rem;">
+                LeetCode #1: Two Sum
+              </span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <span class="badge" style="background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.3); font-size: 0.68rem; display: inline-flex; align-items: center; gap: 5px;">
+                <span class="pulse-green-dot"></span> LIVE SCREENING IN PROGRESS
+              </span>
+              <span style="font-size: 0.7rem; color: #94a3b8; font-family: monospace;">Time Elapsed: 14:32</span>
             </div>
           </div>
 
-          <div class="employer-steps-grid">
-            <!-- STEP 1 -->
-            <div class="employer-step-item">
-              <div class="employer-step-top">
-                <div class="employer-step-icon step-icon-1">
-                  <i class="bi bi-briefcase-fill"></i>
+          <div class="hero-simulator-grid">
+            <!-- Left Column: Voice AI Tech Lead & Proctoring Stream -->
+            <div class="hero-sim-left">
+              <!-- AI Interviewer Dialogue -->
+              <div class="sim-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                  <div style="display: flex; align-items: center; gap: 0.55rem;">
+                    <div style="width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #4f46e5, #7c3aed); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.8rem;">
+                      <i class="bi bi-cpu"></i>
+                    </div>
+                    <div>
+                      <div style="font-size: 0.775rem; font-weight: 700; color: #f8fafc;">Alex • AI Technical Lead</div>
+                      <div style="font-size: 0.65rem; color: #94a3b8;">Autonomous Voice Screener (Sub-second latency)</div>
+                    </div>
+                  </div>
+                  <div class="voice-wave-container" title="AI Voice Streaming">
+                    <span class="voice-wave-bar"></span>
+                    <span class="voice-wave-bar"></span>
+                    <span class="voice-wave-bar"></span>
+                    <span class="voice-wave-bar"></span>
+                    <span class="voice-wave-bar"></span>
+                  </div>
                 </div>
-                <span class="employer-step-badge step-badge-1">STEP 01 • SETUP</span>
+                <div style="background: rgba(0,0,0,0.4); border-radius: 8px; padding: 0.65rem 0.75rem; border: 1px solid rgba(255,255,255,0.06); font-size: 0.775rem; color: #cbd5e1; line-height: 1.5;">
+                  <strong style="color: #a5b4fc;">AI Follow-up Question:</strong>
+                  "Great! You used a HashMap to achieve <code>O(N)</code> time for Two Sum. But if memory is strictly <code>O(1)</code> auxiliary space and the array is already sorted, how would you redesign your pointers?"
+                </div>
               </div>
-              <h3 class="employer-step-title">Create or Pick Challenges</h3>
-              <p class="employer-step-desc">
-                Paste your Job Description or choose from <strong>4,111+ LeetCode DSA questions</strong>. Set difficulty, interview duration (15–60 mins), and skill weights in under 60 seconds.
-              </p>
-              <div class="employer-step-chips">
-                <span class="employer-step-chip"><i class="bi bi-collection-fill" style="color: #2563eb;"></i> 4,111+ DSA Bank</span>
-                <span class="employer-step-chip"><i class="bi bi-file-earmark-text" style="color: #2563eb;"></i> Instant JD Parser</span>
-                <span class="employer-step-chip"><i class="bi bi-sliders" style="color: #2563eb;"></i> Custom Rubric</span>
+
+              <!-- Candidate Voice Transcript -->
+              <div class="sim-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                  <div style="display: flex; align-items: center; gap: 0.55rem;">
+                    <div style="width: 26px; height: 26px; border-radius: 50%; background: #334155; display: flex; align-items: center; justify-content: center; color: #e2e8f0; font-size: 0.75rem;">
+                      <i class="bi bi-person-fill"></i>
+                    </div>
+                    <div style="font-size: 0.75rem; font-weight: 600; color: #f8fafc;">Candidate Response (Live Audio Stream)</div>
+                  </div>
+                  <span class="badge" style="background: rgba(56,189,248,0.12); color: #38bdf8; font-size: 0.62rem;">98.4% Confidence</span>
+                </div>
+                <div style="background: rgba(0,0,0,0.4); border-radius: 8px; padding: 0.6rem 0.75rem; border: 1px solid rgba(255,255,255,0.06); font-size: 0.75rem; color: #e2e8f0; line-height: 1.5; font-style: italic;">
+                  "I'd use a two-pointer approach: one at index 0 and one at length-1. If sum > target, decrement right; if sum < target, increment left. That runs in O(N) time and strictly O(1) auxiliary space."
+                </div>
               </div>
-              <div class="employer-step-action">
-                <button type="button" class="btn btn-outline btn-xs" onclick="startInterviewCreationWizard()">
-                  <i class="bi bi-plus-circle"></i> Create Interview Wizard &rarr;
-                </button>
-                <span style="font-size: 0.7rem; color: var(--text-muted);">&lt; 1 min</span>
+
+              <!-- Real-time Anti-Cheat Telemetry -->
+              <div class="sim-card" style="margin-top: auto;">
+                <div style="font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
+                  <span>Continuous Anti-Cheat Proctoring</span>
+                  <span style="color: #10b981; font-weight: 700;">Zero Flags</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.72rem; color: #cbd5e1; background: rgba(0,0,0,0.3); padding: 0.35rem 0.6rem; border-radius: 6px;">
+                    <span><i class="bi bi-camera-video-fill" style="color: #10b981; margin-right: 5px;"></i> Webcam Proctoring</span>
+                    <span style="color: #10b981; font-weight: 600;">Verified (Face In Center)</span>
+                  </div>
+                  <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.72rem; color: #cbd5e1; background: rgba(0,0,0,0.3); padding: 0.35rem 0.6rem; border-radius: 6px;">
+                    <span><i class="bi bi-keyboard-fill" style="color: #10b981; margin-right: 5px;"></i> Keystroke Dynamics</span>
+                    <span style="color: #10b981; font-weight: 600;">Human Typing (0 Pastes)</span>
+                  </div>
+                  <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.72rem; color: #cbd5e1; background: rgba(0,0,0,0.3); padding: 0.35rem 0.6rem; border-radius: 6px;">
+                    <span><i class="bi bi-window-fullscreen" style="color: #10b981; margin-right: 5px;"></i> Browser Focus Lock</span>
+                    <span style="color: #10b981; font-weight: 600;">100% Focused (0 Blurs)</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- STEP 2 -->
-            <div class="employer-step-item">
-              <div class="employer-step-top">
-                <div class="employer-step-icon step-icon-2">
-                  <i class="bi bi-mic-fill"></i>
+            <!-- Right Column: Live Interactive IDE & Test Execution -->
+            <div class="hero-sim-right">
+              <div class="sim-editor-toolbar">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <span style="color: #cbd5e1; font-size: 0.75rem; font-family: 'JetBrains Mono', monospace;">
+                    <i class="bi bi-file-earmark-code" style="color: #818cf8;"></i> solution.js
+                  </span>
+                  <span class="badge" style="background: rgba(255,255,255,0.06); color: #94a3b8; font-size: 0.62rem;">JavaScript / Node.js</span>
                 </div>
-                <span class="employer-step-badge step-badge-2">STEP 02 • SCREEN</span>
+                <div style="display: flex; align-items: center; gap: 0.45rem;">
+                  <button type="button" class="btn btn-ghost btn-xs" onclick="window.resetSandboxCode()" style="font-size: 0.7rem; color: #94a3b8; padding: 0.25rem 0.5rem;" title="Reset demo code">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reset
+                  </button>
+                  <button type="button" id="btn-run-sandbox" class="sim-run-btn" onclick="window.runDemoSandboxCode()" title="Execute test runner live">
+                    <i class="bi bi-play-fill"></i> Run Test Cases (Click to Test)
+                  </button>
+                </div>
               </div>
-              <h3 class="employer-step-title">Autonomous 24/7 Voice Screen</h3>
-              <p class="employer-step-desc">
-                Candidates interview anytime worldwide. AI Tech Lead (Alex) conducts sub-second natural voice screenings, evaluates trade-offs (O(N) vs O(N²)), and monitors webcam &amp; keystrokes.
-              </p>
-              <div class="employer-step-chips">
-                <span class="employer-step-chip"><i class="bi bi-broadcast" style="color: #10b981;"></i> Voice Latency &lt; 1s</span>
-                <span class="employer-step-chip"><i class="bi bi-shield-check" style="color: #10b981;"></i> Keystroke Proctoring</span>
-                <span class="employer-step-chip"><i class="bi bi-code-slash" style="color: #10b981;"></i> Real-Time Runner</span>
+
+              <!-- Live Monaco Code Textarea -->
+              <div class="sim-code-area">
+                <textarea id="sandbox-code-editor" class="sim-code-textarea" spellcheck="false">/**
+ * LeetCode #1: Two Sum
+ * Time Limit: 2.0s | Memory Limit: 256MB
+ * @param {number[]} nums
+ * @param {number} target
+ * @return {number[]}
+ */
+function twoSum(nums, target) {
+  const map = new Map();
+  for (let i = 0; i < nums.length; i++) {
+    const complement = target - nums[i];
+    if (map.has(complement)) {
+      return [map.get(complement), i];
+    }
+    map.set(nums[i], i);
+  }
+  return [];
+}</textarea>
               </div>
-              <div class="employer-step-action">
-                <span style="font-size: 0.72rem; color: #10b981; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
-                  <i class="bi bi-check-circle-fill"></i> 0 Recruiter Hours Spent
-                </span>
-                <span class="badge" style="background: rgba(16,185,129,0.1); color: #059669; font-size: 0.65rem;">24/7 Ready</span>
+
+              <!-- Live Output Console -->
+              <div id="sandbox-output-console" class="sim-console-output">
+                <div style="color: #94a3b8; font-size: 0.72rem; font-family: 'JetBrains Mono', monospace; line-height: 1.5;">
+                  💡 Click <strong style="color: #34d399;">"Run Test Cases"</strong> above to see our sandboxed compiler execute the solution against LeetCode test suites live.
+                </div>
               </div>
             </div>
-
-            <!-- STEP 3 -->
-            <div class="employer-step-item">
-              <div class="employer-step-top">
-                <div class="employer-step-icon step-icon-3">
-                  <i class="bi bi-trophy-fill"></i>
-                </div>
-                <span class="employer-step-badge step-badge-3">STEP 03 • DECIDE</span>
-              </div>
-              <h3 class="employer-step-title">Instant 0–100 Ranked Scorecards</h3>
-              <p class="employer-step-desc">
-                Receive comprehensive objective rubrics within 30 seconds. Review transparent skill scores (DSA, Architecture, Communication), anti-hallucination quotes, and export PDF summaries.
-              </p>
-              <div class="employer-step-chips">
-                <span class="employer-step-chip"><i class="bi bi-graph-up-arrow" style="color: #d97706;"></i> 0–100 Scores</span>
-                <span class="employer-step-chip"><i class="bi bi-chat-left-quote" style="color: #d97706;"></i> Evidence Quotes</span>
-                <span class="employer-step-chip"><i class="bi bi-file-earmark-pdf" style="color: #d97706;"></i> One-Click PDF</span>
-              </div>
-              <div class="employer-step-action">
-                <button type="button" class="btn btn-outline btn-xs" onclick="openOrgCareersPage()">
-                  <i class="bi bi-globe"></i> View Public Careers &rarr;
-                </button>
-                <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">Top 5% Match</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Hidden fallback sandbox elements to prevent any script reference errors -->
-          <div style="display:none;" aria-hidden="true">
-            <textarea id="sandbox-code-editor"></textarea>
-            <div id="sandbox-output-console"></div>
           </div>
         </div>
 
-        <!-- Bento Grid: 4 Core Platform Superpowers -->
-        <div class="bolt-features-grid">
-          <!-- Card 1 -->
-          <div class="bolt-feat-card">
-            <div class="bolt-feat-icon" style="background: rgba(37,99,235,0.1); color: #2563eb;">
-              <i class="bi bi-mic-fill"></i>
-            </div>
-            <h4 style="font-size: 0.88rem; font-weight: 700; color: var(--text); margin-bottom: 0.35rem;">Conversational Voice AI</h4>
-            <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.5;">
-              Speaks naturally with sub-second latency. Probes algorithmic complexity (O(n log n) vs O(n)), questions edge cases, and adjusts dynamically to candidate responses.
+        <!-- ========================================================
+             "IF YOU WANT THIS ➔ ROUNDONE DELIVERS THIS" OUTCOME MATRIX
+             ======================================================== -->
+        <div class="if-then-section">
+          <div class="if-then-header">
+            <span class="bolt-pill-badge" style="background: rgba(99,102,241,0.18); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); margin-bottom: 0.6rem; display: inline-block;">
+              DIRECT OUTCOME MATRIX
+            </span>
+            <h2 style="font-size: 1.65rem; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; margin-bottom: 0.4rem;">
+              If You Want This ➔ RoundOne Delivers This
+            </h2>
+            <p style="font-size: 0.85rem; color: #94a3b8; line-height: 1.5; margin: 0 auto;">
+              No lengthy sales demos. No fluff. Here is exactly what happens when you switch to RoundOne AI.
             </p>
           </div>
 
-          <!-- Card 2 -->
-          <div class="bolt-feat-card">
-            <div class="bolt-feat-icon" style="background: rgba(124,58,237,0.1); color: #7c3aed;">
-              <i class="bi bi-collection-fill"></i>
+          <div class="if-then-grid">
+            <!-- Card 1 -->
+            <div class="if-then-card">
+              <div class="if-block">
+                <div class="if-label"><i class="bi bi-x-circle-fill"></i> IF YOU WANT:</div>
+                <div class="if-text">Zero Senior Engineers Burned Out on First-Round Interviews</div>
+              </div>
+              <div class="then-block">
+                <div class="then-label"><i class="bi bi-check-circle-fill"></i> ROUNDONE DELIVERS:</div>
+                <div class="then-text">Autonomous 45-min voice &amp; coding rounds 24/7. Your engineers only spend time on pre-vetted top 5% finalists.</div>
+              </div>
             </div>
-            <h4 style="font-size: 0.88rem; font-weight: 700; color: var(--text); margin-bottom: 0.35rem;">4,111+ LeetCode DSA Bank</h4>
-            <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.5;">
-              Select from thousands of curated DSA challenges across DP, Graphs, Arrays, and Trees. Complete with automated multi-language test execution and memory tracking.
-            </p>
-          </div>
 
-          <!-- Card 3 -->
-          <div class="bolt-feat-card">
-            <div class="bolt-feat-icon" style="background: rgba(16,185,129,0.1); color: #059669;">
-              <i class="bi bi-shield-check"></i>
+            <!-- Card 2 -->
+            <div class="if-then-card">
+              <div class="if-block">
+                <div class="if-label"><i class="bi bi-x-circle-fill"></i> IF YOU WANT:</div>
+                <div class="if-text">Real-Time Technical Follow-ups (Not Static MCQs or Silent Coding)</div>
+              </div>
+              <div class="then-block">
+                <div class="then-label"><i class="bi bi-check-circle-fill"></i> ROUNDONE DELIVERS:</div>
+                <div class="then-text">Conversational AI Alex probes time/space complexity (O(N) vs O(N²)), challenges edge cases, and discusses architectural trade-offs in sub-second voice.</div>
+              </div>
             </div>
-            <h4 style="font-size: 0.88rem; font-weight: 700; color: var(--text); margin-bottom: 0.35rem;">Anti-Cheat &amp; Telemetry</h4>
-            <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.5;">
-              Full keystroke playback, browser focus tracking, copy-paste telemetry, and camera proctoring ensure total integrity and zero AI assistance during screening.
-            </p>
-          </div>
 
-          <!-- Card 4 -->
-          <div class="bolt-feat-card">
-            <div class="bolt-feat-icon" style="background: rgba(234,88,12,0.1); color: #ea580c;">
-              <i class="bi bi-graph-up-arrow"></i>
+            <!-- Card 3 -->
+            <div class="if-then-card">
+              <div class="if-block">
+                <div class="if-label"><i class="bi bi-x-circle-fill"></i> IF YOU WANT:</div>
+                <div class="if-text">Ironclad Anti-Cheat &amp; Zero ChatGPT Cheaters Passing Through</div>
+              </div>
+              <div class="then-block">
+                <div class="then-label"><i class="bi bi-check-circle-fill"></i> ROUNDONE DELIVERS:</div>
+                <div class="then-text">Continuous keystroke dynamics, copy-paste telemetry, and webcam monitoring flag AI assistance with 99.8% precision.</div>
+              </div>
             </div>
-            <h4 style="font-size: 0.88rem; font-weight: 700; color: var(--text); margin-bottom: 0.35rem;">0–100 Objective Rubrics</h4>
-            <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.5;">
-              Consistent, unbiased evaluation across Code Quality, Problem Solving, and System Design. Instant PDF exports and candidate rank lists in your recruiter pipeline.
-            </p>
+
+            <!-- Card 4 -->
+            <div class="if-then-card">
+              <div class="if-block">
+                <div class="if-label"><i class="bi bi-x-circle-fill"></i> IF YOU WANT:</div>
+                <div class="if-text">Standardized, Unbiased FAANG-Grade Screening Difficulty</div>
+              </div>
+              <div class="then-block">
+                <div class="then-label"><i class="bi bi-check-circle-fill"></i> ROUNDONE DELIVERS:</div>
+                <div class="then-text">4,111+ LeetCode DSA challenge bank with automated multi-language test execution and instant 0–100 objective scorecards.</div>
+              </div>
+            </div>
+
+            <!-- Card 5 -->
+            <div class="if-then-card">
+              <div class="if-block">
+                <div class="if-label"><i class="bi bi-x-circle-fill"></i> IF YOU WANT:</div>
+                <div class="if-text">Same-Hour Hiring Decisions Instead of 2-Week Waiting Periods</div>
+              </div>
+              <div class="then-block">
+                <div class="then-label"><i class="bi bi-check-circle-fill"></i> ROUNDONE DELIVERS:</div>
+                <div class="then-text">Candidate completes round ➔ Recruiter receives a 0–100 rubric with exact audio quote timestamps &amp; PDF scorecard in 30 seconds.</div>
+              </div>
+            </div>
+
+            <!-- Card 6 -->
+            <div class="if-then-card">
+              <div class="if-block">
+                <div class="if-label"><i class="bi bi-x-circle-fill"></i> IF YOU WANT:</div>
+                <div class="if-text">Pay-As-You-Go ($0.50 / ₹42) vs $5,000 Upfront Annual Contracts</div>
+              </div>
+              <div class="then-block">
+                <div class="then-label"><i class="bi bi-check-circle-fill"></i> ROUNDONE DELIVERS:</div>
+                <div class="then-text">No locked yearly licenses. Pay $0.50 (₹42) per completed interview. 10 free rounds included on day one.</div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- EMPLOYER TRANSPARENT PRICING SECTION -->
+        <!-- ========================================================
+             COMPETITOR COMPARISON TABLE (ROUNDONE vs LEGACY)
+             ======================================================== -->
+        <div class="compare-section">
+          <div style="text-align: center; max-width: 720px; margin: 0 auto 1.5rem;">
+            <span class="bolt-pill-badge" style="background: rgba(16,185,129,0.18); color: #34d399; border: 1px solid rgba(16,185,129,0.3); margin-bottom: 0.6rem; display: inline-block;">
+              HEAD-TO-HEAD BENCHMARK
+            </span>
+            <h2 style="font-size: 1.55rem; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; margin-bottom: 0.35rem;">
+              RoundOne AI vs Legacy Screening Options
+            </h2>
+            <p style="font-size: 0.825rem; color: #94a3b8; line-height: 1.5;">
+              See why modern hiring teams are replacing static HackerRank tests and expensive Karat interviews.
+            </p>
+          </div>
+
+          <div class="compare-table-wrapper">
+            <table class="compare-table">
+              <thead>
+                <tr>
+                  <th>Capability</th>
+                  <th class="col-highlight">RoundOne AI (Autonomous)</th>
+                  <th>HackerRank / Codility</th>
+                  <th>Karat ($150/screen)</th>
+                  <th>Manual Dev Phone Screen</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Cost per Completed Screen</strong></td>
+                  <td class="col-highlight"><span style="color: #34d399; font-weight: 700;">$0.50 (₹42)</span> • Pay-as-you-go</td>
+                  <td>$3,500 – $8,000 / yr min contract</td>
+                  <td>$150 – $250 / interview</td>
+                  <td>$150+ in engineer hourly rates</td>
+                </tr>
+                <tr>
+                  <td><strong>Conversational Voice Follow-ups</strong></td>
+                  <td class="col-highlight"><i class="bi bi-check-circle-fill" style="color: #34d399;"></i> Yes • Sub-second voice (Alex AI)</td>
+                  <td><i class="bi bi-x-circle-fill" style="color: #ef4444;"></i> No • Silent editor only</td>
+                  <td><i class="bi bi-check-circle-fill" style="color: #94a3b8;"></i> Human interviewer only</td>
+                  <td><i class="bi bi-check-circle-fill" style="color: #94a3b8;"></i> Yes • Burns senior dev hours</td>
+                </tr>
+                <tr>
+                  <td><strong>Continuous Anti-Cheat Proctoring</strong></td>
+                  <td class="col-highlight"><i class="bi bi-check-circle-fill" style="color: #34d399;"></i> Webcam + Keystrokes + Focus telemetry</td>
+                  <td>Basic tab blur detection</td>
+                  <td>Human proctor</td>
+                  <td>Subjective • Ghost proxy risk</td>
+                </tr>
+                <tr>
+                  <td><strong>DSA Problem Bank</strong></td>
+                  <td class="col-highlight"><strong style="color: #38bdf8;">4,111+ LeetCode DSA Bank</strong> + Custom JDs</td>
+                  <td>Fixed vendor library</td>
+                  <td>Proprietary closed set</td>
+                  <td>Ad-hoc uncalibrated questions</td>
+                </tr>
+                <tr>
+                  <td><strong>Turnaround Time to Scorecard</strong></td>
+                  <td class="col-highlight"><strong style="color: #34d399;">30 Seconds</strong> (0–100 Rubric &amp; PDF)</td>
+                  <td>2–4 hours manual review</td>
+                  <td>24–48 hours</td>
+                  <td>3–7 business days</td>
+                </tr>
+                <tr>
+                  <td><strong>Setup &amp; Calibration Time</strong></td>
+                  <td class="col-highlight"><strong style="color: #34d399;">&lt; 60 Seconds</strong> (Paste JD or pick chip)</td>
+                  <td>Days of sales onboarding</td>
+                  <td>Weeks of rubric calibration</td>
+                  <td>Hours of candidate scheduling</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ========================================================
+             EMPLOYER TRANSPARENT PRICING SECTION
+             ======================================================== -->
         <div class="front-pricing-box" id="front-pricing">
           <div class="front-pricing-header">
-            <span class="bolt-pill-badge" style="background: rgba(99,102,241,0.12); color: #6366f1; border: 1px solid rgba(99,102,241,0.25); margin-bottom: 0.6rem; display: inline-block;">
+            <span class="bolt-pill-badge" style="background: rgba(99,102,241,0.18); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); margin-bottom: 0.6rem; display: inline-block;">
               TRANSPARENT PRICING FOR EMPLOYERS
             </span>
-            <h2 style="font-size: 1.45rem; font-weight: 800; color: var(--text); letter-spacing: -0.02em; margin-bottom: 0.4rem;">
+            <h2 style="font-size: 1.55rem; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; margin-bottom: 0.4rem;">
               Pay-As-You-Go &amp; Monthly Plans for Employers
             </h2>
-            <p style="font-size: 0.825rem; color: var(--text-muted); line-height: 1.5; margin: 0 auto;">
+            <p style="font-size: 0.825rem; color: #94a3b8; line-height: 1.5; margin: 0 auto;">
               Every account includes <strong>10 Free AI Interviews</strong> on signup. No credit card required. Flexible pricing in <strong>USD ($)</strong> and <strong>INR (₹)</strong> starting at just <strong>$0.50 (₹42)</strong> per interview.
             </p>
           </div>
@@ -2611,9 +2667,9 @@
           <div class="front-pricing-grid">
             <!-- Plan 1: Pay As You Go -->
             <div class="front-pricing-card">
-              <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Pay-As-You-Go</div>
-              <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text); margin: 0.2rem 0;">Rapid Screening</h3>
-              <p style="font-size: 0.73rem; color: var(--text-muted); margin-bottom: 0.5rem;">For startups, occasional technical checks, and hiring on demand.</p>
+              <div style="font-size: 0.8rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Pay-As-You-Go</div>
+              <h3 style="font-size: 1.15rem; font-weight: 800; color: #ffffff; margin: 0.2rem 0;">Rapid Screening</h3>
+              <p style="font-size: 0.73rem; color: #94a3b8; margin-bottom: 0.5rem;">For startups, occasional technical checks, and hiring on demand.</p>
               
               <div class="front-price-row">
                 <span class="front-price-usd">$0.50</span>
@@ -2631,7 +2687,7 @@
                 <li><i class="bi bi-check-circle-fill"></i> Instant 0–100 rubric &amp; PDF report</li>
               </ul>
 
-              <button type="button" class="btn btn-outline" onclick="handleStartTrialClick()" style="width: 100%; font-weight: 700; font-size: 0.8rem; padding: 0.65rem;">
+              <button type="button" class="btn btn-outline" onclick="handleStartTrialClick()" style="width: 100%; font-weight: 700; font-size: 0.8rem; padding: 0.65rem; border-color: rgba(255,255,255,0.2); color: #ffffff;">
                 <i class="bi bi-gift-fill"></i> Claim 10 Free Rounds
               </button>
             </div>
@@ -2639,9 +2695,9 @@
             <!-- Plan 2: Starter Recruiter (Most Popular) -->
             <div class="front-pricing-card popular">
               <span class="front-pricing-badge-popular">🔥 Most Popular for Employers</span>
-              <div style="font-size: 0.8rem; font-weight: 700; color: #6366f1; text-transform: uppercase; letter-spacing: 0.05em;">Starter Plan</div>
-              <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text); margin: 0.2rem 0;">Growing Tech Teams</h3>
-              <p style="font-size: 0.73rem; color: var(--text-muted); margin-bottom: 0.5rem;">For teams screening 10–50 candidates each month.</p>
+              <div style="font-size: 0.8rem; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.05em;">Starter Plan</div>
+              <h3 style="font-size: 1.15rem; font-weight: 800; color: #ffffff; margin: 0.2rem 0;">Growing Tech Teams</h3>
+              <p style="font-size: 0.73rem; color: #94a3b8; margin-bottom: 0.5rem;">For teams screening 10–50 candidates each month.</p>
               
               <div class="front-price-row">
                 <span class="front-price-usd">$49</span>
@@ -2666,9 +2722,9 @@
 
             <!-- Plan 3: Scale / Enterprise -->
             <div class="front-pricing-card">
-              <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Scale &amp; Enterprise</div>
-              <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text); margin: 0.2rem 0;">High-Volume Hiring</h3>
-              <p style="font-size: 0.73rem; color: var(--text-muted); margin-bottom: 0.5rem;">For staffing agencies, colleges &amp; enterprise hiring.</p>
+              <div style="font-size: 0.8rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Scale &amp; Enterprise</div>
+              <h3 style="font-size: 1.15rem; font-weight: 800; color: #ffffff; margin: 0.2rem 0;">High-Volume Hiring</h3>
+              <p style="font-size: 0.73rem; color: #94a3b8; margin-bottom: 0.5rem;">For staffing agencies, colleges &amp; enterprise hiring.</p>
               
               <div class="front-price-row">
                 <span class="front-price-usd">$149</span>
@@ -2686,28 +2742,28 @@
                 <li><i class="bi bi-check-circle-fill"></i> 99.9% uptime SLA &amp; compliance data export</li>
               </ul>
 
-              <button type="button" class="btn btn-outline" onclick="handleStartTrialClick()" style="width: 100%; font-weight: 700; font-size: 0.8rem; padding: 0.65rem;">
+              <button type="button" class="btn btn-outline" onclick="handleStartTrialClick()" style="width: 100%; font-weight: 700; font-size: 0.8rem; padding: 0.65rem; border-color: rgba(255,255,255,0.2); color: #ffffff;">
                 <i class="bi bi-shield-lock-fill"></i> Start Enterprise Trial
               </button>
             </div>
           </div>
 
-          <div style="text-align: center; margin-top: 1.25rem; font-size: 0.725rem; color: var(--text-muted);">
-            💡 Need campus volume over 1,000+ candidates? Volume pricing drops to <strong>$0.25 (~₹21)</strong> per interview. All accounts come with 10 free trial rounds.
+          <div style="text-align: center; margin-top: 1.25rem; font-size: 0.725rem; color: #94a3b8;">
+            💡 Need campus volume over 1,000+ candidates? Volume pricing drops to <strong style="color: #34d399;">$0.25 (~₹21)</strong> per interview. All accounts come with 10 free trial rounds.
           </div>
         </div>
 
         <!-- Bottom Callout Footer Banner -->
         <div class="bolt-bottom-banner">
           <div>
-            <div style="font-size: 1rem; font-weight: 800; color: #ffffff;">Automate Technical Screening in 60 Seconds</div>
-            <div style="font-size: 0.75rem; color: #cbd5e1; margin-top: 0.2rem;">🎁 Sign up today and get <strong>10 Free AI Technical Interviews</strong> credited instantly to your workspace.</div>
+            <div style="font-size: 1.1rem; font-weight: 800; color: #ffffff;">Automate Technical Screening in 60 Seconds</div>
+            <div style="font-size: 0.775rem; color: #94a3b8; margin-top: 0.25rem;">🎁 Sign up today and get <strong>10 Free AI Technical Interviews</strong> credited instantly to your workspace.</div>
           </div>
-          <div style="display: flex; gap: 0.6rem; align-items: center;">
-            <button type="button" class="btn btn-outline btn-sm" onclick="openQuestionBankModal()" style="border-color: rgba(255,255,255,0.25); color: #ffffff;">
+          <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="openQuestionBankModal()" style="border-color: rgba(255,255,255,0.25); color: #ffffff; padding: 0.6rem 1rem;">
               <i class="bi bi-collection"></i> Explore 4,111+ Questions
             </button>
-            <button type="button" class="btn btn-primary btn-sm btn-pulse-trial" onclick="handleStartTrialClick()">
+            <button type="button" class="btn btn-primary btn-sm btn-pulse-trial" onclick="handleStartTrialClick()" style="padding: 0.6rem 1.25rem;">
               <i class="bi bi-gift-fill"></i> Claim 10 Free Interviews
             </button>
           </div>
