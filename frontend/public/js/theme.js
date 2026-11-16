@@ -1,12 +1,11 @@
-// Theme Manager for Dark and Light Mode
+// Theme Manager for Dark and Light Mode (Obsidian Dark by Default)
 (function initTheme() {
-  const saved = localStorage.getItem('ai_interviewer_theme') || 
-    (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  const saved = localStorage.getItem('ai_interviewer_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', saved);
 })();
 
 window.toggleTheme = function() {
-  const current = document.documentElement.getAttribute('data-theme') || 'light';
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
   const next = current === 'dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', next);
   localStorage.setItem('ai_interviewer_theme', next);
@@ -14,7 +13,7 @@ window.toggleTheme = function() {
 };
 
 window.syncThemeUI = function(theme) {
-  const currentTheme = theme || document.documentElement.getAttribute('data-theme') || 'light';
+  const currentTheme = theme || document.documentElement.getAttribute('data-theme') || 'dark';
   const isDark = currentTheme === 'dark';
   
   document.querySelectorAll('.theme-toggle-icon').forEach(icon => {

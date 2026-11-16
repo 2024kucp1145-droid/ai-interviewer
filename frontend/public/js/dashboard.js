@@ -242,8 +242,11 @@ window.updateVisitorUiState = function(isLoggedIn) {
   const welcomeBanner = document.getElementById('bolt-recruiter-welcome');
 
   if (isLoggedIn) {
-    if (showcaseEl) showcaseEl.classList.add('bolt-hero-compact');
-    if (trialBtn) trialBtn.style.display = 'none';
+    if (showcaseEl) {
+      showcaseEl.style.display = 'block';
+      showcaseEl.classList.remove('bolt-hero-compact');
+    }
+    if (trialBtn) trialBtn.style.display = 'inline-flex';
     if (welcomeBanner) {
       welcomeBanner.style.display = 'flex';
       const nameEl = document.getElementById('recruiter-welcome-name');
@@ -8017,3 +8020,79 @@ if (document.readyState === 'loading') {
 } else {
   loadPublicSiteConfig();
 }
+
+
+// --- Interactive Live Assessment Simulator Helpers ---
+window.switchSimTab = function(tabName) {
+  document.querySelectorAll('.sim-tab-panel').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.sim-tab-btn').forEach(b => b.classList.remove('active'));
+
+  const activePanel = document.getElementById('sim-panel-' + tabName);
+  const activeBtn = document.getElementById('sim-btn-' + tabName);
+  if (activePanel) {
+    activePanel.style.display = (tabName === 'voice' || tabName === 'scorecard') ? 'flex' : 'block';
+  }
+  if (activeBtn) activeBtn.classList.add('active');
+};
+
+let simFollowupState = 0;
+const SIM_FOLLOWUPS = [
+  {
+    q: "How would your two-pointer logic handle edge cases like empty arrays, negative integers, or duplicate elements?",
+    a: "Empty or single-element arrays return [] immediately in O(1). Negative numbers work identically since sorted order preserves directionality. Duplicates are handled naturally by pointer comparison without skipping valid pairs."
+  },
+  {
+    q: "If this service had to screen 100,000 candidates concurrently during campus hiring season, how would you architect the proctoring pipeline?",
+    a: "I'd use WebSockets terminating at an edge ingress, push keystroke dynamics and webcam heartbeats into Kafka, and run lightweight ONNX models on workers for instant anomaly detection without overloading GPU clusters."
+  },
+  {
+    q: "Great architectural breakdown! You demonstrated strong O(N) algorithmic trade-off comprehension and distributed system design.",
+    a: "Thank you! I always optimize for space-time trade-offs and production reliability first."
+  }
+];
+
+window.simulateAlexFollowup = function() {
+  const speechEl = document.getElementById('sim-alex-speech');
+  const candEl = document.getElementById('sim-candidate-speech');
+  const btn = document.getElementById('btn-sim-followup');
+  if (!speechEl || !candEl) return;
+
+  const current = SIM_FOLLOWUPS[simFollowupState % SIM_FOLLOWUPS.length];
+  simFollowupState++;
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-broadcast spinning"></i> Alex is speaking...';
+  }
+
+  speechEl.innerHTML = '<strong style="color:#a5b4fc;">AI Follow-up Question:</strong> "' + current.q + '"';
+  candEl.innerHTML = '<span style="color:#64748b; font-style:italic;">Candidate thinking & speaking...</span>';
+
+  setTimeout(() => {
+    candEl.innerHTML = '"' + current.a + '"';
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Ask Another Follow-up Question';
+    }
+  }, 900);
+};
+
+window.switchFrontMode = function(mode) {
+  const showcaseEl = document.getElementById('bolt-hero-showcase');
+  const dashEl = document.getElementById('view-interview-dashboard');
+  const btnShowcase = document.getElementById('btn-mode-showcase');
+  const btnWorkspace = document.getElementById('btn-mode-workspace');
+
+  if (mode === 'showcase') {
+    if (showcaseEl) showcaseEl.style.display = 'block';
+    if (btnShowcase) btnShowcase.classList.add('active');
+    if (btnWorkspace) btnWorkspace.classList.remove('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
+    if (btnWorkspace) btnWorkspace.classList.add('active');
+    if (btnShowcase) btnShowcase.classList.remove('active');
+    if (dashEl) {
+      dashEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+};

@@ -9,32 +9,36 @@
   <link rel="stylesheet" href="/css/hackerrank-theme.css">
   <style>
     :root {
-      --bg: #f8fafc;
-      --surface: #ffffff;
-      --surface-subtle: #f1f5f9;
-      --border: #e2e8f0;
-      --border-dark: #cbd5e1;
-      --text: #0f172a;
-      --text-muted: #64748b;
-      --text-subtle: #94a3b8;
-      --accent: #2563eb;
-      --accent-hover: #1d4ed8;
-      --accent-light: #eff6ff;
-      --success: #059669;
-      --success-light: #ecfdf5;
-      --warning: #d97706;
-      --warning-light: #fffbeb;
-      --danger: #dc2626;
-      --danger-light: #fef2f2;
-      --tag-bg: #f1f5f9;
+      --bg: #000000;
+      --surface: #090d16;
+      --surface-subtle: #0f172a;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-dark: rgba(255, 255, 255, 0.16);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --accent-light: rgba(99, 102, 241, 0.15);
+      --success: #10b981;
+      --success-light: rgba(16, 185, 129, 0.15);
+      --warning: #f59e0b;
+      --warning-light: rgba(245, 158, 11, 0.15);
+      --danger: #ef4444;
+      --danger-light: rgba(239, 68, 68, 0.15);
+      --tag-bg: #1e293b;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
+      background-color: #000000;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.18) 0%, rgba(14, 165, 233, 0.06) 35%, transparent 70%),
+        radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.08) 0%, transparent 50%);
+      background-attachment: fixed;
+      color: #f8fafc;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
@@ -44,63 +48,65 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Top Navigation */
+    /* Top Navigation (Glassmorphic Obsidian) */
     header {
-      background-color: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(8px);
-      border-bottom: 1px solid var(--border);
+      background-color: rgba(3, 7, 18, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       padding: 0.75rem 2rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
       position: sticky;
       top: 0;
-      z-index: 40;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+      z-index: 100;
+      box-shadow: 0 4px 25px rgba(0, 0, 0, 0.7);
     }
 
     .brand {
-      font-size: 1rem;
+      font-size: 1.05rem;
       font-weight: 800;
-      color: #0f172a;
+      color: #ffffff;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.55rem;
       letter-spacing: -0.02em;
     }
     .brand i {
-      color: #2563eb;
-      font-size: 1.25rem;
+      color: #818cf8;
+      font-size: 1.35rem;
+      filter: drop-shadow(0 0 10px rgba(129, 140, 248, 0.7));
     }
     .brand-badge {
-      background: #eff6ff;
-      color: #2563eb;
-      border: 1px solid #bfdbfe;
+      background: rgba(99, 102, 241, 0.18);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.35);
       font-size: 0.65rem;
       font-weight: 700;
-      padding: 0.15rem 0.45rem;
-      border-radius: 4px;
+      padding: 0.18rem 0.5rem;
+      border-radius: 999px;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.06em;
     }
 
     .nav-tabs {
       display: flex;
       gap: 0.3rem;
-      background: #f1f5f9;
+      background: rgba(15, 23, 42, 0.75);
       padding: 0.25rem;
-      border-radius: 8px;
-      border: 1px solid var(--border);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .nav-btn {
       background: none;
       border: none;
-      color: var(--text-muted);
+      color: #94a3b8;
       font-size: 0.775rem;
       font-weight: 600;
       padding: 0.45rem 0.85rem;
-      border-radius: 6px;
+      border-radius: 7px;
       cursor: pointer;
       transition: all 0.15s ease;
       display: inline-flex;
@@ -109,18 +115,18 @@
     }
 
     .nav-btn:hover {
-      color: var(--text);
-      background-color: rgba(255, 255, 255, 0.6);
+      color: #ffffff;
+      background-color: rgba(255, 255, 255, 0.06);
     }
 
     .nav-btn.active {
-      background-color: #ffffff;
-      color: #2563eb;
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      color: #ffffff;
       font-weight: 700;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 0 14px rgba(99, 102, 241, 0.5);
     }
     .nav-btn.active i {
-      color: #2563eb;
+      color: #ffffff;
     }
 
     .header-user {
@@ -134,81 +140,62 @@
       align-items: center;
       justify-content: center;
       gap: 0.4rem;
-      background-color: #0f172a;
+      background: #1e293b;
       color: #ffffff;
-      border: 1px solid #0f172a;
-      border-radius: 6px;
-      padding: 0.45rem 0.9rem;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 0.45rem 0.95rem;
       font-weight: 600;
       font-size: 0.785rem;
       cursor: pointer;
       transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
       text-decoration: none;
       white-space: nowrap;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
 
     .btn:hover {
-      background-color: #1e293b;
-      border-color: #1e293b;
+      background: #334155;
+      border-color: rgba(255, 255, 255, 0.25);
+      color: #ffffff;
       transform: translateY(-0.5px);
     }
 
     .btn-primary {
-      background-color: #2563eb !important;
-      border-color: #2563eb !important;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
+      border: 1px solid rgba(129, 140, 248, 0.4) !important;
       color: #ffffff !important;
-      box-shadow: 0 2px 5px rgba(37, 99, 235, 0.25);
+      box-shadow: 0 0 16px rgba(99, 102, 241, 0.4);
     }
     .btn-primary:hover {
-      background-color: #1d4ed8 !important;
-      border-color: #1d4ed8 !important;
-      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.35);
+      opacity: 0.95;
+      box-shadow: 0 0 22px rgba(99, 102, 241, 0.6);
+      transform: translateY(-1px);
     }
 
     .btn-outline {
-      background-color: #ffffff;
-      color: #334155;
-      border: 1px solid var(--border-dark);
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+      background: rgba(15, 23, 42, 0.65);
+      color: #f8fafc;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     }
-
     .btn-outline:hover {
-      background-color: #f8fafc;
-      border-color: #94a3b8;
-      color: #0f172a;
+      background: rgba(30, 41, 59, 0.85);
+      border-color: rgba(255, 255, 255, 0.3);
+      color: #ffffff;
       transform: translateY(-0.5px);
-    }
-
-    /* Danger / Delete button variant */
-    .btn-danger-outline {
-      background-color: #ffffff;
-      color: #dc2626;
-      border: 1px solid #fecaca;
-    }
-    .btn-danger-outline:hover {
-      background-color: #fef2f2;
-      border-color: #f87171;
-      color: #b91c1c;
-      transform: translateY(-0.5px);
-    }
-
-    .btn-sm {
-      padding: 0.32rem 0.7rem;
-      font-size: 0.725rem;
-      border-radius: 5px;
     }
 
     .btn-ghost {
       background: none;
       border: none;
-      color: var(--text-muted);
+      color: #94a3b8;
       padding: 0.35rem 0.55rem;
       box-shadow: none;
     }
     .btn-ghost:hover {
-      background: var(--surface-subtle);
-      color: #0f172a;
+      background: rgba(255, 255, 255, 0.06);
+      color: #ffffff;
       transform: none;
     }
 
@@ -216,9 +203,154 @@
     main {
       flex: 1;
       padding: 1.75rem 2rem;
-      max-width: 1240px;
+      max-width: 1280px;
       margin: 0 auto;
       width: 100%;
+    }
+
+    /* Mode Switcher Bar */
+    .workspace-mode-switcher {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 1.5rem;
+      padding: 0.4rem;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      width: fit-content;
+    }
+    .mode-pill {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      padding: 0.45rem 1rem;
+      border-radius: 8px;
+      font-size: 0.775rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      transition: all 0.2s ease;
+    }
+    .mode-pill:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .mode-pill.active {
+      background: rgba(99, 102, 241, 0.22);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      box-shadow: 0 0 14px rgba(99, 102, 241, 0.25);
+    }
+
+    /* Cards */
+    .card {
+      background-color: #090d16;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 1.4rem 1.6rem;
+      margin-bottom: 1.35rem;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+      color: #f8fafc;
+    }
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 0.95rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #ffffff;
+      letter-spacing: -0.01em;
+    }
+
+    label {
+      font-size: 0.725rem;
+      font-weight: 600;
+      color: #94a3b8;
+      display: block;
+      margin-bottom: 0.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    input, textarea, select {
+      width: 100%;
+      background-color: #0b0f19;
+      border: 1.5px solid rgba(255, 255, 255, 0.12);
+      color: #f8fafc;
+      padding: 0.55rem 0.85rem;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.8125rem;
+      margin-bottom: 0.75rem;
+      transition: all 0.15s ease;
+    }
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #818cf8;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+      background-color: #0d121f;
+    }
+
+    table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 0.5rem; }
+    th {
+      text-align: left;
+      padding: 0.75rem 0.95rem;
+      background-color: #0d121f;
+      color: #94a3b8;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+    }
+    td {
+      padding: 0.85rem 0.95rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 0.8rem;
+      color: #cbd5e1;
+    }
+    tr:hover td {
+      background-color: rgba(255, 255, 255, 0.03);
+    }
+
+    .modal-content {
+      background-color: #090d16;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 16px;
+      padding: 1.85rem;
+      max-width: 640px;
+      width: 100%;
+      color: #f8fafc;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85);
+    }
+    .drawer-content {
+      background: #090d16;
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+      width: 100%;
+      max-width: 660px;
+      height: 100vh;
+      color: #f8fafc;
+    }
+    .response-card {
+      background: #0d121f;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 1.15rem 1.35rem;
+      margin-bottom: 1.15rem;
+      color: #f8fafc;
+    }
+    .metric-card {
+      background: #090d16;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 1.15rem 1.25rem;
+      color: #f8fafc;
+    }
+    .metric-val {
+      color: #ffffff;
     }
 
     /* Cards */
@@ -2192,7 +2324,31 @@
       z-index: 3;
       box-shadow: 0 16px 45px rgba(0, 0, 0, 0.6), 0 0 30px rgba(99, 102, 241, 0.15);
     }
-  </style>
+  
+    .sim-tab-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.15s ease;
+    }
+    .sim-tab-btn:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .sim-tab-btn.active {
+      background: #4f46e5;
+      color: #ffffff;
+      box-shadow: 0 0 10px rgba(79, 70, 229, 0.5);
+    }
+</style>
   <script src="/js/theme.js"></script>
 </head>
 <body>
@@ -2281,6 +2437,18 @@
         <div class="bolt-ambient-glow bolt-glow-1"></div>
         <div class="bolt-ambient-glow bolt-glow-2"></div>
 
+        <!-- Mode Switcher Pill -->
+        <div style="display: flex; justify-content: center; margin-bottom: 1.25rem; position: relative; z-index: 5;">
+          <div class="workspace-mode-switcher">
+            <button type="button" class="mode-pill active" id="btn-mode-showcase" onclick="switchFrontMode('showcase')">
+              <i class="bi bi-stars" style="color: #818cf8;"></i> Live Product Showcase &amp; Simulator
+            </button>
+            <button type="button" class="mode-pill" id="btn-mode-workspace" onclick="switchFrontMode('workspace')">
+              <i class="bi bi-briefcase-fill" style="color: #34d399;"></i> Recruiter Workspace &amp; Active Interviews
+            </button>
+          </div>
+        </div>
+
         <!-- Hero Content Center -->
         <div style="text-align: center; position: relative; z-index: 2;">
           <!-- Pill Badge -->
@@ -2292,7 +2460,7 @@
 
           <!-- Main Title -->
           <h1 class="bolt-title">
-            Stop Wasting Engineering Hours on First Rounds.<br>
+            Stop Wasting 1,000s of Dev Hours on First Rounds.<br>
             <span class="bolt-gradient-text">Autonomous AI Voice &amp; Live Code Screening.</span>
           </h1>
 
@@ -2301,7 +2469,7 @@
             Screen 50 software engineers by tonight. Real-time voice follow-ups, <strong>4,111+ LeetCode problems</strong>, and continuous camera anti-cheat proctoring. From <strong>$0.50 (₹42)</strong> per interview with zero annual contracts.
           </p>
 
-          <!-- Bolt.new-style Interactive Prompt Bar -->
+          <!-- Interactive Prompt Bar -->
           <div class="bolt-prompt-container">
             <div class="bolt-prompt-box">
               <i class="bi bi-sparkles bolt-prompt-icon"></i>
@@ -2338,9 +2506,10 @@
         </div>
 
         <!-- ========================================================
-             INTERACTIVE LIVE ASSESSMENT SIMULATOR WIDGET (HERO CENTERPIECE)
+             INTERACTIVE 3-TAB LIVE ASSESSMENT SIMULATOR (Centerpiece)
              ======================================================== -->
         <div class="hero-simulator-window">
+          <!-- Window Header -->
           <div class="hero-simulator-header">
             <div style="display: flex; align-items: center; gap: 0.65rem;">
               <span class="bolt-window-dots">
@@ -2355,26 +2524,39 @@
                 LeetCode #1: Two Sum
               </span>
             </div>
+
+            <!-- Tab Switcher Inside Simulator -->
+            <div style="display: flex; align-items: center; gap: 0.35rem; background: rgba(0,0,0,0.4); padding: 0.25rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+              <button type="button" class="sim-tab-btn active" id="sim-btn-voice" onclick="switchSimTab('voice')">
+                <i class="bi bi-mic-fill"></i> 01. Voice Screen
+              </button>
+              <button type="button" class="sim-tab-btn" id="sim-btn-compiler" onclick="switchSimTab('compiler')">
+                <i class="bi bi-code-slash"></i> 02. Code Sandbox
+              </button>
+              <button type="button" class="sim-tab-btn" id="sim-btn-scorecard" onclick="switchSimTab('scorecard')">
+                <i class="bi bi-trophy-fill"></i> 03. 0–100 Scorecard
+              </button>
+            </div>
+
             <div style="display: flex; align-items: center; gap: 0.6rem;">
               <span class="badge" style="background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.3); font-size: 0.68rem; display: inline-flex; align-items: center; gap: 5px;">
-                <span class="pulse-green-dot"></span> LIVE SCREENING IN PROGRESS
+                <span class="pulse-green-dot"></span> LIVE DEMO ACTIVE
               </span>
-              <span style="font-size: 0.7rem; color: #94a3b8; font-family: monospace;">Time Elapsed: 14:32</span>
             </div>
           </div>
 
-          <div class="hero-simulator-grid">
-            <!-- Left Column: Voice AI Tech Lead & Proctoring Stream -->
+          <!-- TAB PANEL 1: VOICE SCREENING (DEFAULT) -->
+          <div id="sim-panel-voice" class="sim-tab-panel hero-simulator-grid">
+            <!-- Left: Alex AI -->
             <div class="hero-sim-left">
-              <!-- AI Interviewer Dialogue -->
               <div class="sim-card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                   <div style="display: flex; align-items: center; gap: 0.55rem;">
-                    <div style="width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #4f46e5, #7c3aed); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.8rem;">
-                      <i class="bi bi-cpu"></i>
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #4f46e5, #7c3aed); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.85rem;">
+                      <i class="bi bi-cpu-fill"></i>
                     </div>
                     <div>
-                      <div style="font-size: 0.775rem; font-weight: 700; color: #f8fafc;">Alex • AI Technical Lead</div>
+                      <div style="font-size: 0.8rem; font-weight: 700; color: #f8fafc;">Alex • AI Technical Lead</div>
                       <div style="font-size: 0.65rem; color: #94a3b8;">Autonomous Voice Screener (Sub-second latency)</div>
                     </div>
                   </div>
@@ -2386,37 +2568,28 @@
                     <span class="voice-wave-bar"></span>
                   </div>
                 </div>
-                <div style="background: rgba(0,0,0,0.4); border-radius: 8px; padding: 0.65rem 0.75rem; border: 1px solid rgba(255,255,255,0.06); font-size: 0.775rem; color: #cbd5e1; line-height: 1.5;">
+
+                <div id="sim-alex-speech" style="background: rgba(0,0,0,0.5); border-radius: 8px; padding: 0.75rem 0.85rem; border: 1px solid rgba(255,255,255,0.08); font-size: 0.8rem; color: #cbd5e1; line-height: 1.55;">
                   <strong style="color: #a5b4fc;">AI Follow-up Question:</strong>
                   "Great! You used a HashMap to achieve <code>O(N)</code> time for Two Sum. But if memory is strictly <code>O(1)</code> auxiliary space and the array is already sorted, how would you redesign your pointers?"
                 </div>
-              </div>
 
-              <!-- Candidate Voice Transcript -->
-              <div class="sim-card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
-                  <div style="display: flex; align-items: center; gap: 0.55rem;">
-                    <div style="width: 26px; height: 26px; border-radius: 50%; background: #334155; display: flex; align-items: center; justify-content: center; color: #e2e8f0; font-size: 0.75rem;">
-                      <i class="bi bi-person-fill"></i>
-                    </div>
-                    <div style="font-size: 0.75rem; font-weight: 600; color: #f8fafc;">Candidate Response (Live Audio Stream)</div>
-                  </div>
-                  <span class="badge" style="background: rgba(56,189,248,0.12); color: #38bdf8; font-size: 0.62rem;">98.4% Confidence</span>
-                </div>
-                <div style="background: rgba(0,0,0,0.4); border-radius: 8px; padding: 0.6rem 0.75rem; border: 1px solid rgba(255,255,255,0.06); font-size: 0.75rem; color: #e2e8f0; line-height: 1.5; font-style: italic;">
-                  "I'd use a two-pointer approach: one at index 0 and one at length-1. If sum > target, decrement right; if sum < target, increment left. That runs in O(N) time and strictly O(1) auxiliary space."
+                <div style="margin-top: 0.75rem; display: flex; justify-content: flex-end;">
+                  <button type="button" id="btn-sim-followup" class="btn btn-outline btn-xs" onclick="simulateAlexFollowup()" style="font-size: 0.72rem; padding: 0.35rem 0.75rem; border-color: rgba(99,102,241,0.4); color: #a5b4fc;">
+                    <i class="bi bi-broadcast"></i> Simulate Alex AI Follow-up &rarr;
+                  </button>
                 </div>
               </div>
 
-              <!-- Real-time Anti-Cheat Telemetry -->
+              <!-- Continuous Anti-Cheat Telemetry -->
               <div class="sim-card" style="margin-top: auto;">
                 <div style="font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
                   <span>Continuous Anti-Cheat Proctoring</span>
-                  <span style="color: #10b981; font-weight: 700;">Zero Flags</span>
+                  <span style="color: #10b981; font-weight: 700;">100% Integrity</span>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 0.4rem;">
                   <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.72rem; color: #cbd5e1; background: rgba(0,0,0,0.3); padding: 0.35rem 0.6rem; border-radius: 6px;">
-                    <span><i class="bi bi-camera-video-fill" style="color: #10b981; margin-right: 5px;"></i> Webcam Proctoring</span>
+                    <span><i class="bi bi-camera-video-fill" style="color: #10b981; margin-right: 5px;"></i> Webcam Gaze Tracking</span>
                     <span style="color: #10b981; font-weight: 600;">Verified (Face In Center)</span>
                   </div>
                   <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.72rem; color: #cbd5e1; background: rgba(0,0,0,0.3); padding: 0.35rem 0.6rem; border-radius: 6px;">
@@ -2425,14 +2598,50 @@
                   </div>
                   <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.72rem; color: #cbd5e1; background: rgba(0,0,0,0.3); padding: 0.35rem 0.6rem; border-radius: 6px;">
                     <span><i class="bi bi-window-fullscreen" style="color: #10b981; margin-right: 5px;"></i> Browser Focus Lock</span>
-                    <span style="color: #10b981; font-weight: 600;">100% Focused (0 Blurs)</span>
+                    <span style="color: #10b981; font-weight: 600;">100% Locked (0 Window Blurs)</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Right Column: Live Interactive IDE & Test Execution -->
-            <div class="hero-sim-right">
+            <!-- Right: Candidate Response Stream -->
+            <div class="hero-sim-right" style="padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; background: #0b0f19;">
+              <div class="sim-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                  <div style="display: flex; align-items: center; gap: 0.55rem;">
+                    <div style="width: 30px; height: 30px; border-radius: 50%; background: #334155; display: flex; align-items: center; justify-content: center; color: #e2e8f0; font-size: 0.8rem;">
+                      <i class="bi bi-person-fill"></i>
+                    </div>
+                    <div>
+                      <div style="font-size: 0.775rem; font-weight: 600; color: #f8fafc;">Candidate Response (Live Audio Stream)</div>
+                      <div style="font-size: 0.65rem; color: #94a3b8;">Real-Time Audio Latency: 420ms</div>
+                    </div>
+                  </div>
+                  <span class="badge" style="background: rgba(56,189,248,0.12); color: #38bdf8; font-size: 0.62rem;">98.4% Confidence</span>
+                </div>
+                <div id="sim-candidate-speech" style="background: rgba(0,0,0,0.5); border-radius: 8px; padding: 0.75rem 0.85rem; border: 1px solid rgba(255,255,255,0.08); font-size: 0.8rem; color: #e2e8f0; line-height: 1.55; font-style: italic;">
+                  "I'd use a two-pointer approach: one at index 0 and one at length-1. If sum > target, decrement right; if sum < target, increment left. That runs in O(N) time and strictly O(1) auxiliary space."
+                </div>
+              </div>
+
+              <!-- Simulator Next Action Pill -->
+              <div class="sim-card" style="background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(16,185,129,0.08)); border-color: rgba(99,102,241,0.25); margin-top: auto;">
+                <div style="font-size: 0.825rem; font-weight: 700; color: #ffffff; margin-bottom: 0.35rem;">
+                  Ready to test candidate code execution?
+                </div>
+                <div style="font-size: 0.725rem; color: #94a3b8; margin-bottom: 0.75rem;">
+                  Switch to Tab 02 to compile and run candidate solutions against LeetCode test suites live.
+                </div>
+                <button type="button" class="btn btn-primary btn-sm" onclick="switchSimTab('compiler')" style="font-size: 0.75rem;">
+                  <i class="bi bi-code-slash"></i> Open Code Sandbox Tab &rarr;
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB PANEL 2: CODE SANDBOX COMPILER -->
+          <div id="sim-panel-compiler" class="sim-tab-panel" style="display: none;">
+            <div class="hero-sim-right" style="border-radius: 0;">
               <div class="sim-editor-toolbar">
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                   <span style="color: #cbd5e1; font-size: 0.75rem; font-family: 'JetBrains Mono', monospace;">
@@ -2476,6 +2685,73 @@ function twoSum(nums, target) {
               <div id="sandbox-output-console" class="sim-console-output">
                 <div style="color: #94a3b8; font-size: 0.72rem; font-family: 'JetBrains Mono', monospace; line-height: 1.5;">
                   💡 Click <strong style="color: #34d399;">"Run Test Cases"</strong> above to see our sandboxed compiler execute the solution against LeetCode test suites live.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB PANEL 3: 0–100 AI SCORECARD -->
+          <div id="sim-panel-scorecard" class="sim-tab-panel" style="display: none; padding: 1.5rem; background: #090d16;">
+            <div style="display: grid; grid-template-columns: 1fr 1.35fr; gap: 1.5rem; width: 100%;">
+              <!-- Overall Score Card -->
+              <div class="sim-card" style="text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 1.75rem 1.25rem;">
+                <div class="badge" style="background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); font-size: 0.7rem; margin-bottom: 0.75rem;">
+                  <i class="bi bi-check-circle-fill"></i> AUTOMATED RECRUITER VERDICT
+                </div>
+                <div style="font-size: 3.5rem; font-weight: 800; color: #ffffff; line-height: 1; letter-spacing: -0.04em;">
+                  94<span style="font-size: 1.5rem; color: #64748b;">/100</span>
+                </div>
+                <div style="font-size: 1.05rem; font-weight: 800; color: #34d399; margin: 0.5rem 0 0.25rem;">
+                  STRONG HIRE RECOMMENDATION
+                </div>
+                <div style="font-size: 0.725rem; color: #94a3b8; margin-bottom: 1.25rem;">
+                  Candidate in <strong>Top 3.8%</strong> of Full-Stack Engineer benchmark.
+                </div>
+                <button type="button" class="btn btn-outline btn-sm" onclick="alert('Demo: Full 8-page candidate PDF scorecard generated with audio timestamps and telemetry evidence.')" style="border-color: rgba(255,255,255,0.2); color: #f8fafc;">
+                  <i class="bi bi-file-earmark-pdf-fill" style="color: #ef4444;"></i> Download PDF Scorecard
+                </button>
+              </div>
+
+              <!-- Skill Rubric Bars -->
+              <div class="sim-card" style="display: flex; flex-direction: column; gap: 0.85rem; padding: 1.4rem;">
+                <div style="font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">
+                  Objective Skill Rubric Breakdown
+                </div>
+
+                <div>
+                  <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 0.25rem;">
+                    <span style="color: #f8fafc; font-weight: 600;">Data Structures &amp; Algorithms</span>
+                    <span style="color: #34d399; font-weight: 700;">96 / 100</span>
+                  </div>
+                  <div style="background: rgba(255,255,255,0.08); height: 6px; border-radius: 99px; overflow: hidden;">
+                    <div style="background: #10b981; width: 96%; height: 100%;"></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 0.25rem;">
+                    <span style="color: #f8fafc; font-weight: 600;">Code Quality &amp; Edge Handling</span>
+                    <span style="color: #818cf8; font-weight: 700;">92 / 100</span>
+                  </div>
+                  <div style="background: rgba(255,255,255,0.08); height: 6px; border-radius: 99px; overflow: hidden;">
+                    <div style="background: #818cf8; width: 92%; height: 100%;"></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 0.25rem;">
+                    <span style="color: #f8fafc; font-weight: 600;">System Design &amp; Architectural Trade-offs</span>
+                    <span style="color: #38bdf8; font-weight: 700;">94 / 100</span>
+                  </div>
+                  <div style="background: rgba(255,255,255,0.08); height: 6px; border-radius: 99px; overflow: hidden;">
+                    <div style="background: #38bdf8; width: 94%; height: 100%;"></div>
+                  </div>
+                </div>
+
+                <!-- Anti-Hallucination Quote -->
+                <div style="background: rgba(0,0,0,0.4); border-left: 3px solid #10b981; padding: 0.65rem 0.8rem; border-radius: 4px; font-size: 0.725rem; color: #cbd5e1; line-height: 1.45; margin-top: 0.35rem;">
+                  <strong style="color: #34d399;">Verified Audio Quote (12:44):</strong>
+                  "Candidate proactively recognized: 'With a sorted array, two-pointers eliminate auxiliary HashMap memory completely, achieving O(1) space.'"
                 </div>
               </div>
             </div>
@@ -2569,6 +2845,82 @@ function twoSum(nums, target) {
                 <div class="then-label"><i class="bi bi-check-circle-fill"></i> ROUNDONE DELIVERS:</div>
                 <div class="then-text">No locked yearly licenses. Pay $0.50 (₹42) per completed interview. 10 free rounds included on day one.</div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================================
+             INTERACTIVE 4,111+ LEETCODE QUESTION BANK PREVIEW
+             ======================================================== -->
+        <div style="background: #090d16; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 2rem 1.75rem; margin-bottom: 2.75rem; box-shadow: 0 16px 45px rgba(0,0,0,0.6);">
+          <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <span class="bolt-pill-badge" style="background: rgba(56,189,248,0.18); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3); margin-bottom: 0.5rem; display: inline-block;">
+                4,111+ CURATED DSA PROBLEMS
+              </span>
+              <h3 style="font-size: 1.35rem; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; margin-bottom: 0.25rem;">
+                Select FAANG-Grade Challenges in 1-Click
+              </h3>
+              <p style="font-size: 0.8rem; color: #94a3b8; margin: 0;">
+                Pre-calibrated test cases across Python, Java, C++, TypeScript, and Go.
+              </p>
+            </div>
+            <button type="button" class="btn btn-outline btn-sm" onclick="openQuestionBankModal()" style="border-color: rgba(255,255,255,0.2); color: #ffffff;">
+              <i class="bi bi-collection"></i> Explore Full 4,111+ Bank &rarr;
+            </button>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem;">
+            <!-- Problem 1 -->
+            <div style="background: rgba(15,23,42,0.5); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 1.15rem; transition: all 0.2s;" onmouseover="this.style.borderColor='#818cf8'" onmouseout="this.style.borderColor='rgba(255,255,255,0.08)'">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                <span class="badge" style="background: rgba(16,185,129,0.12); color: #34d399; font-size: 0.65rem;">Easy</span>
+                <span style="font-size: 0.7rem; color: #64748b;">Arrays &amp; Hashing</span>
+              </div>
+              <div style="font-size: 0.9rem; font-weight: 700; color: #ffffff; margin-bottom: 0.35rem;">LeetCode #1: Two Sum</div>
+              <div style="font-size: 0.725rem; color: #94a3b8; line-height: 1.45; margin-bottom: 0.85rem;">Find indices of two numbers that add up to a specific target in O(N) time.</div>
+              <button type="button" class="btn btn-outline btn-xs" onclick="switchSimTab('compiler')" style="font-size: 0.7rem; width: 100%;">
+                <i class="bi bi-play-fill"></i> Test in Sandbox
+              </button>
+            </div>
+
+            <!-- Problem 2 -->
+            <div style="background: rgba(15,23,42,0.5); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 1.15rem; transition: all 0.2s;" onmouseover="this.style.borderColor='#818cf8'" onmouseout="this.style.borderColor='rgba(255,255,255,0.08)'">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                <span class="badge" style="background: rgba(245,158,11,0.12); color: #fbbf24; font-size: 0.65rem;">Medium</span>
+                <span style="font-size: 0.7rem; color: #64748b;">Linked List / Cache</span>
+              </div>
+              <div style="font-size: 0.9rem; font-weight: 700; color: #ffffff; margin-bottom: 0.35rem;">LeetCode #146: LRU Cache</div>
+              <div style="font-size: 0.725rem; color: #94a3b8; line-height: 1.45; margin-bottom: 0.85rem;">Design a Least Recently Used cache with O(1) get and put operations.</div>
+              <button type="button" class="btn btn-outline btn-xs" onclick="openQuestionBankModal()" style="font-size: 0.7rem; width: 100%;">
+                <i class="bi bi-collection"></i> View Challenge
+              </button>
+            </div>
+
+            <!-- Problem 3 -->
+            <div style="background: rgba(15,23,42,0.5); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 1.15rem; transition: all 0.2s;" onmouseover="this.style.borderColor='#818cf8'" onmouseout="this.style.borderColor='rgba(255,255,255,0.08)'">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                <span class="badge" style="background: rgba(239,68,68,0.12); color: #f87171; font-size: 0.65rem;">Hard</span>
+                <span style="font-size: 0.7rem; color: #64748b;">Heap / Priority Queue</span>
+              </div>
+              <div style="font-size: 0.9rem; font-weight: 700; color: #ffffff; margin-bottom: 0.35rem;">LeetCode #23: Merge k Lists</div>
+              <div style="font-size: 0.725rem; color: #94a3b8; line-height: 1.45; margin-bottom: 0.85rem;">Merge k sorted linked lists and return it as one sorted list in O(N log k).</div>
+              <button type="button" class="btn btn-outline btn-xs" onclick="openQuestionBankModal()" style="font-size: 0.7rem; width: 100%;">
+                <i class="bi bi-collection"></i> View Challenge
+              </button>
+            </div>
+
+            <!-- Problem 4 -->
+            <div style="background: rgba(15,23,42,0.5); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 1.15rem; transition: all 0.2s;" onmouseover="this.style.borderColor='#818cf8'" onmouseout="this.style.borderColor='rgba(255,255,255,0.08)'">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                <span class="badge" style="background: rgba(239,68,68,0.12); color: #f87171; font-size: 0.65rem;">Hard</span>
+                <span style="font-size: 0.7rem; color: #64748b;">Two Pointers / DP</span>
+              </div>
+              <div style="font-size: 0.9rem; font-weight: 700; color: #ffffff; margin-bottom: 0.35rem;">LeetCode #42: Trapping Rain</div>
+              <div style="font-size: 0.725rem; color: #94a3b8; line-height: 1.45; margin-bottom: 0.85rem;">Calculate how much water an elevation map can trap after raining.</div>
+              <button type="button" class="btn btn-outline btn-xs" onclick="openQuestionBankModal()" style="font-size: 0.7rem; width: 100%;">
+                <i class="bi bi-collection"></i> View Challenge
+              </button>
             </div>
           </div>
         </div>
@@ -2756,7 +3108,7 @@ function twoSum(nums, target) {
         <!-- Bottom Callout Footer Banner -->
         <div class="bolt-bottom-banner">
           <div>
-            <div style="font-size: 1.1rem; font-weight: 800; color: #ffffff;">Automate Technical Screening in 60 Seconds</div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: #ffffff;">Automate Technical Screening in 60 Seconds</div>
             <div style="font-size: 0.775rem; color: #94a3b8; margin-top: 0.25rem;">🎁 Sign up today and get <strong>10 Free AI Technical Interviews</strong> credited instantly to your workspace.</div>
           </div>
           <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
@@ -2770,7 +3122,7 @@ function twoSum(nums, target) {
         </div>
       </div>
 
-      <!-- SUB-VIEW 1: Clean Interview Dashboard (Default View) -->
+            <!-- SUB-VIEW 1: Clean Interview Dashboard (Default View) -->
       <div id="view-interview-dashboard">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
           <div>
