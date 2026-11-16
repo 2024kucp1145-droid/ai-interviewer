@@ -238,15 +238,23 @@ document.getElementById('btn-auth-switch').addEventListener('click', () => {
 // --- Bolt.new Landing Showcase & Interactive Sandbox Handlers ---
 window.updateVisitorUiState = function(isLoggedIn) {
   const showcaseEl = document.getElementById('bolt-hero-showcase');
+  const dashViewEl = document.getElementById('view-interview-dashboard');
   const trialBtn = document.getElementById('btn-header-trial');
   const welcomeBanner = document.getElementById('bolt-recruiter-welcome');
+  const publicNav = document.getElementById('public-nav-tabs');
+  const mainNav = document.getElementById('main-nav-tabs');
+  const responsesBtn = document.getElementById('btn-top-responses');
+  const authBtn = document.getElementById('btn-auth-switch');
 
   if (isLoggedIn) {
-    if (showcaseEl) {
-      showcaseEl.style.display = 'block';
-      showcaseEl.classList.remove('bolt-hero-compact');
-    }
-    if (trialBtn) trialBtn.style.display = 'inline-flex';
+    if (publicNav) publicNav.style.display = 'none';
+    if (mainNav) mainNav.style.display = 'flex';
+    if (responsesBtn) responsesBtn.style.display = 'inline-flex';
+    if (trialBtn) trialBtn.style.display = 'none';
+    if (dashViewEl) dashViewEl.style.display = 'block';
+    if (showcaseEl) showcaseEl.style.display = 'none';
+    if (authBtn) authBtn.innerHTML = '<i class="bi bi-box-arrow-right"></i> Sign Out';
+
     if (welcomeBanner) {
       welcomeBanner.style.display = 'flex';
       const nameEl = document.getElementById('recruiter-welcome-name');
@@ -259,12 +267,25 @@ window.updateVisitorUiState = function(isLoggedIn) {
       }
     }
   } else {
-    if (showcaseEl) {
-      showcaseEl.style.display = 'block';
-      showcaseEl.classList.remove('bolt-hero-compact');
-    }
+    if (publicNav) publicNav.style.display = 'flex';
+    if (mainNav) mainNav.style.display = 'none';
+    if (responsesBtn) responsesBtn.style.display = 'none';
     if (trialBtn) trialBtn.style.display = 'inline-flex';
     if (welcomeBanner) welcomeBanner.style.display = 'none';
+    if (showcaseEl) showcaseEl.style.display = 'block';
+    if (dashViewEl) dashViewEl.style.display = 'none';
+    if (authBtn) authBtn.innerHTML = '<i class="bi bi-person"></i> Sign In';
+  }
+};
+
+window.togglePublicShowcase = function() {
+  const showcaseEl = document.getElementById('bolt-hero-showcase');
+  if (showcaseEl) {
+    const isHidden = showcaseEl.style.display === 'none';
+    showcaseEl.style.display = isHidden ? 'block' : 'none';
+    if (isHidden) {
+      showcaseEl.scrollIntoView({ behavior: 'smooth' });
+    }
   }
 };
 
