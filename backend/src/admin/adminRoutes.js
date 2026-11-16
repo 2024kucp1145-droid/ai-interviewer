@@ -2690,6 +2690,177 @@ adminRouter.delete('/pages/:id', requireAdmin, (req, res) => {
   }
 });
 
+// ─── Editorial Blog & Resources CMS ──────────────────────────────────────────
+adminRouter.get('/resources', requireAdmin, (req, res) => {
+  try {
+    const q = String(req.query?.q || '').trim().toLowerCase();
+    const cat = String(req.query?.category || '').trim();
+    const status = String(req.query?.status || '').trim();
+
+    let sql = 'SELECT * FROM resources WHERE 1=1';
+    const params = [];
+
+    if (q) {
+      sql += ' AND (LOWER(title) LIKE ? OR LOWER(summary) LIKE ? OR LOWER(tags) LIKE ?)';
+      params.push(`%${q}%`, `%${q}%`, `%${q}%`);
+    }
+    if (cat && cat !== 'all') {
+      sql += ' AND category = ?';
+      params.push(cat);
+    }
+    if (status === 'published') {
+      sql += ' AND is_published = 1';
+    } else if (status === 'draft') {
+      sql += ' AND is_published = 0';
+    }
+
+    sql += ' ORDER BY sort_order ASC, created_at DESC';
+    const resources = db.prepare(sql).all(...params);
+    res.json({ success: true, resources });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+adminRouter.post('/resources', requireAdmin, (req, res) => {
+  try {
+    const title = String(req.body?.title || '').trim();
+    const slug = normalizeSlug(req.body?.slug || title);
+    const summary = String(req.body?.summary || '').trim();
+    const content = String(req.body?.content || '');
+    const category = String(req.body?.category || 'Guides').trim();
+    const authorName = String(req.body?.author_name || req.body?.authorName || 'RoundOne Team').trim();
+    const authorRole = String(req.body?.author_role || req.body?.authorRole || 'Technical Recruitment').trim();
+    const readTime = String(req.body?.read_time || req.body?.readTime || '5 min read').trim();
+    const coverImage = String(req.body?.cover_image || req.body?.coverImage || '').trim();
+    const tags = String(req.body?.tags || '').trim();
+    const isPublished = req.body?.is_published === false || req.body?.is_published === 0 || req.body?.isPublished === false ? 0 : 1;
+    const sortOrder = parseInt(req.body?.sort_order ?? req.body?.sortOrder ?? 0, 10) || 0;
+
+    if (!title || !slug) {
+      return res.status(400).json({ error: 'Article title and valid slug are required.' });
+    }
+
+    const id = 'res_' + crypto.randomUUID().slice(0, 12);
+    db.prepare(`
+      INSERT INTO resources (
+        id, slug, title, summary, content, category, author_name, author_role,
+        read_time, cover_image, tags, is_published, views_count, sort_order, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      ON CONFLICT(slug) DO UPDATE SET
+        title = excluded.title,
+        summary = excluded.summary,
+        content = excluded.content,
+        category = excluded.category,
+        author_name = excluded.author_name,
+        author_role = excluded.author_role,
+        read_time = excluded.read_time,
+        cover_image = excluded.cover_image,
+        tags = excluded.tags,
+        is_published = excluded.is_published,
+        sort_order = excluded.sort_order,
+        updated_at = CURRENT_TIMESTAMP
+    `).run(id, slug, title, summary, content, category, authorName, authorRole, readTime, coverImage, tags, isPublished, sortOrder);
+
+    const saved = db.prepare('SELECT * FROM resources WHERE slug = ?').get(slug);
+    logActivity({
+      action: 'RESOURCE_ARTICLE_SAVED',
+      actorType: 'admin',
+      actorId: req.admin.id,
+      actorEmail: req.admin.email,
+      actorName: req.admin.full_name,
+      details: { slug, title, category, isPublished },
+    });
+    res.json({ success: true, resource: saved });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+adminRouter.get('/resources/:id', requireAdmin, (req, res) => {
+  try {
+    const resource = db.prepare('SELECT * FROM resources WHERE id = ?').get(req.params.id);
+    if (!resource) return res.status(404).json({ error: 'Resource not found' });
+    res.json({ success: true, resource });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+adminRouter.put('/resources/:id', requireAdmin, (req, res) => {
+  try {
+    const existing = db.prepare('SELECT * FROM resources WHERE id = ?').get(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Resource not found' });
+
+    const title = req.body?.title !== undefined ? String(req.body.title).trim() : existing.title;
+    const slug = req.body?.slug !== undefined ? normalizeSlug(req.body.slug) : existing.slug;
+    const summary = req.body?.summary !== undefined ? String(req.body.summary).trim() : existing.summary;
+    const content = req.body?.content !== undefined ? String(req.body.content) : existing.content;
+    const category = req.body?.category !== undefined ? String(req.body.category).trim() : existing.category;
+    const authorName = (req.body?.author_name ?? req.body?.authorName) !== undefined
+      ? String(req.body.author_name ?? req.body.authorName).trim()
+      : existing.author_name;
+    const authorRole = (req.body?.author_role ?? req.body?.authorRole) !== undefined
+      ? String(req.body.author_role ?? req.body.authorRole).trim()
+      : existing.author_role;
+    const readTime = (req.body?.read_time ?? req.body?.readTime) !== undefined
+      ? String(req.body.read_time ?? req.body.readTime).trim()
+      : existing.read_time;
+    const coverImage = (req.body?.cover_image ?? req.body?.coverImage) !== undefined
+      ? String(req.body.cover_image ?? req.body.coverImage).trim()
+      : existing.cover_image;
+    const tags = req.body?.tags !== undefined ? String(req.body.tags).trim() : existing.tags;
+    const isPublished = req.body?.is_published !== undefined
+      ? (req.body.is_published ? 1 : 0)
+      : (req.body?.isPublished !== undefined ? (req.body.isPublished ? 1 : 0) : existing.is_published);
+    const sortOrder = (req.body?.sort_order ?? req.body?.sortOrder) !== undefined
+      ? (parseInt(req.body.sort_order ?? req.body.sortOrder, 10) || 0)
+      : existing.sort_order;
+
+    if (!title || !slug) return res.status(400).json({ error: 'Title and slug cannot be empty.' });
+
+    db.prepare(`
+      UPDATE resources
+      SET slug = ?, title = ?, summary = ?, content = ?, category = ?, author_name = ?, author_role = ?,
+          read_time = ?, cover_image = ?, tags = ?, is_published = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(slug, title, summary, content, category, authorName, authorRole, readTime, coverImage, tags, isPublished, sortOrder, existing.id);
+
+    const updated = db.prepare('SELECT * FROM resources WHERE id = ?').get(existing.id);
+    logActivity({
+      action: 'RESOURCE_ARTICLE_UPDATED',
+      actorType: 'admin',
+      actorId: req.admin.id,
+      actorEmail: req.admin.email,
+      actorName: req.admin.full_name,
+      details: { slug, title, category, isPublished },
+    });
+    res.json({ success: true, resource: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+adminRouter.delete('/resources/:id', requireAdmin, (req, res) => {
+  try {
+    const existing = db.prepare('SELECT * FROM resources WHERE id = ?').get(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Resource not found' });
+
+    db.prepare('DELETE FROM resources WHERE id = ?').run(req.params.id);
+    logActivity({
+      action: 'RESOURCE_ARTICLE_DELETED',
+      actorType: 'admin',
+      actorId: req.admin.id,
+      actorEmail: req.admin.email,
+      actorName: req.admin.full_name,
+      details: { id: req.params.id, title: existing.title, slug: existing.slug },
+    });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Email OTP / Auth Inspector & Server Operations ──────────────────────────
 adminRouter.get('/auth/otps', requireAdmin, (req, res) => {
   try {

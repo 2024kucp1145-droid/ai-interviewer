@@ -237,6 +237,26 @@ CREATE TABLE IF NOT EXISTS site_pages (
   updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Admin-Managed Resources & Blog Articles
+CREATE TABLE IF NOT EXISTS resources (
+  id VARCHAR(64) PRIMARY KEY,
+  slug VARCHAR(128) UNIQUE NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  summary TEXT DEFAULT '',
+  content TEXT DEFAULT '',
+  category VARCHAR(64) DEFAULT 'Guides',
+  author_name VARCHAR(128) DEFAULT 'RoundOne Team',
+  author_role VARCHAR(128) DEFAULT 'Technical Recruitment',
+  read_time VARCHAR(64) DEFAULT '5 min read',
+  cover_image TEXT DEFAULT '',
+  tags TEXT DEFAULT '',
+  is_published INTEGER DEFAULT 1,
+  views_count INTEGER DEFAULT 0,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
 -- 13. Billing Events (Financial Audit Ledger)
 CREATE TABLE IF NOT EXISTS billing_events (
   id VARCHAR(64) PRIMARY KEY,

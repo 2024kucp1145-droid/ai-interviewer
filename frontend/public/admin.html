@@ -1992,6 +1992,10 @@
             <button type="button" class="nav-tab-btn ta-nav-item" data-tab="website" onclick="switchDashboardTab('website')">
               <span class="ta-nav-item-left"><i class="bi bi-window-sidebar"></i> <span>Website &amp; Pages</span></span>
             </button>
+            <button type="button" class="nav-tab-btn ta-nav-item" data-tab="resources" onclick="switchDashboardTab('resources')">
+              <span class="ta-nav-item-left"><i class="bi bi-journal-richtext"></i> <span>Resources &amp; Blog</span></span>
+              <span id="resources-count-badge" class="badge badge-neutral" style="display:none;">0</span>
+            </button>
             <button type="button" class="nav-tab-btn ta-nav-item" data-tab="server" onclick="switchDashboardTab('server')">
               <span class="ta-nav-item-left"><i class="bi bi-hdd-rack-fill"></i> <span>Server &amp; Ops</span></span>
             </button>
@@ -2703,6 +2707,99 @@
       </div>
     </div>
 
+    <!-- TAB: RESOURCES & BLOG EDITORIAL CMS -->
+    <div id="tab-content-resources" style="display: none;">
+      <!-- Quick KPIs Row -->
+      <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 1.25rem;">
+        <div class="kpi-card">
+          <div class="kpi-card-header"><span class="kpi-label">Total Articles</span><i class="bi bi-journal-text kpi-icon"></i></div>
+          <div id="res-stat-total" class="kpi-value">0</div>
+          <div class="kpi-subtext">All content assets</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-header"><span class="kpi-label">Live on Site</span><i class="bi bi-check-circle-fill kpi-icon" style="color:var(--success);"></i></div>
+          <div id="res-stat-published" class="kpi-value" style="color:var(--success);">0</div>
+          <div class="kpi-subtext">Visible to public</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-header"><span class="kpi-label">Drafts</span><i class="bi bi-file-earmark-lock kpi-icon" style="color:var(--warning);"></i></div>
+          <div id="res-stat-drafts" class="kpi-value" style="color:var(--warning);">0</div>
+          <div class="kpi-subtext">Unpublished work</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-header"><span class="kpi-label">Total Reader Views</span><i class="bi bi-eye-fill kpi-icon" style="color:var(--primary);"></i></div>
+          <div id="res-stat-views" class="kpi-value" style="color:var(--primary);">0</div>
+          <div class="kpi-subtext">Cumulative page hits</div>
+        </div>
+      </div>
+
+      <!-- Main Resources Table Card -->
+      <div class="card">
+        <div class="card-header" style="flex-wrap: wrap; gap: 0.75rem;">
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            <div class="card-title"><i class="bi bi-journal-richtext" style="color:var(--primary);"></i> Resources &amp; Blog CMS</div>
+            <span class="badge badge-primary" id="res-badge-live-count">0 Articles</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+            <a href="/blog.html" target="_blank" class="btn btn-secondary btn-sm" title="Preview public blog">
+              <i class="bi bi-box-arrow-up-right"></i> Open Public Blog ↗
+            </a>
+            <button type="button" class="btn btn-primary btn-sm" onclick="openResourceEditorModal()">
+              <i class="bi bi-plus-lg"></i> + Add New Article / Guide
+            </button>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <!-- Filter & Search Toolbar -->
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:0.75rem; flex-wrap:wrap; margin-bottom:1rem; padding-bottom:0.75rem; border-bottom:1px solid var(--border);">
+            <div style="display:flex; align-items:center; gap:0.5rem; flex:1; min-width:240px;">
+              <input type="text" id="res-filter-search" class="form-input form-input-sm" placeholder="Search by title, summary, or tag..." oninput="filterAdminResourcesList()">
+            </div>
+            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+              <select id="res-filter-category" class="form-select form-select-sm" onchange="filterAdminResourcesList()">
+                <option value="all">All Categories</option>
+                <option value="Guides">Guides</option>
+                <option value="Comparisons">Comparisons</option>
+                <option value="Tech Hiring">Tech Hiring</option>
+                <option value="Engineering">Engineering</option>
+                <option value="Company News">Company News</option>
+              </select>
+              <select id="res-filter-status" class="form-select form-select-sm" onchange="filterAdminResourcesList()">
+                <option value="all">All Status</option>
+                <option value="published">Published Only</option>
+                <option value="draft">Drafts Only</option>
+              </select>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="loadAdminResourcesList()" title="Refresh articles">
+                <i class="bi bi-arrow-clockwise"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Resources Table -->
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Article &amp; URL Slug</th>
+                  <th>Category</th>
+                  <th>Author</th>
+                  <th>Read Time</th>
+                  <th>Status</th>
+                  <th>Views</th>
+                  <th>Updated</th>
+                  <th style="text-align:right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-resources-table-body">
+                <tr><td colspan="8" style="text-align:center; padding:1.5rem; color:var(--text-muted);">Loading resources...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- TAB: SERVER HEALTH, EMAIL OTP INSPECTOR & OPS -->
     <div id="tab-content-server" style="display: none;">
       <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin-bottom: 1.25rem;">
@@ -3260,6 +3357,115 @@
         <button class="btn btn-danger" id="confirm-modal-btn-execute" onclick="executeConfirmedAction()">
           <i class="bi bi-trash3-fill"></i> Proceed &amp; Confirm
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: Editorial Article / Resource Editor Modal -->
+  <div id="modal-resource-editor" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 860px; max-height: 92vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <div class="modal-title" id="resource-modal-title" style="display: flex; align-items: center; gap: 0.5rem;">
+          <i class="bi bi-pencil-square" style="color: var(--primary);"></i> Create New Resource Article
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="closeResourceEditorModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="overflow-y: auto; flex: 1; padding: 1.25rem;">
+        <input type="hidden" id="res-input-id">
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 0.85rem;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Article Title <span style="color:var(--danger);">*</span></label>
+            <input type="text" id="res-input-title" class="form-input" placeholder="e.g. 5 Signs of Candidate Proxy in Remote Interviews" oninput="autoGenerateResourceSlug(this.value)">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Category</label>
+            <select id="res-input-category" class="form-select">
+              <option value="Guides">Guides</option>
+              <option value="Comparisons">Comparisons</option>
+              <option value="Tech Hiring">Tech Hiring</option>
+              <option value="Engineering">Engineering</option>
+              <option value="Company News">Company News</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 0.85rem;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">URL Slug (/blog.html?slug=...) <span style="color:var(--danger);">*</span></label>
+            <input type="text" id="res-input-slug" class="form-input code-font" placeholder="e.g. 5-signs-candidate-proxy-remote-interviews">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Estimated Read Time</label>
+            <input type="text" id="res-input-readtime" class="form-input" placeholder="5 min read">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 0.85rem;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Author Name</label>
+            <input type="text" id="res-input-author" class="form-input" placeholder="RoundOne Team">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Author Role</label>
+            <input type="text" id="res-input-role" class="form-input" placeholder="Technical Recruitment">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Sort Order</label>
+            <input type="number" id="res-input-sort" class="form-input" value="0" min="0">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.85rem;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Cover Image URL (Optional)</label>
+            <input type="text" id="res-input-image" class="form-input" placeholder="https://images.unsplash.com/... or leave blank">
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label">Tags (comma-separated)</label>
+            <input type="text" id="res-input-tags" class="form-input" placeholder="AI Proctoring, Hiring, Guides">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0.85rem;">
+          <label class="form-label">Short Summary / Excerpt (Used in Search, Social Preview &amp; SEO)</label>
+          <textarea id="res-input-summary" class="form-textarea" rows="2" placeholder="Brief 1-2 sentence preview for search engines and card display..."></textarea>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0.85rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+            <label class="form-label" style="margin: 0;">Article Content (Markdown &amp; HTML Supported)</label>
+            <div style="display: flex; gap: 0.35rem;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="insertResourceMarkdown('## ')" title="Heading 2">H2</button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="insertResourceMarkdown('### ')" title="Heading 3">H3</button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="wrapResourceSelection('**', '**')" title="Bold"><strong>B</strong></button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="wrapResourceSelection('*', '*')" title="Italic"><em>I</em></button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="insertResourceMarkdown('- ')" title="Bullet List"><i class="bi bi-list-ul"></i></button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="wrapResourceSelection('```\n', '\n```')" title="Code Block"><i class="bi bi-code-slash"></i></button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="insertResourceMarkdown('> ')" title="Blockquote"><i class="bi bi-quote"></i></button>
+            </div>
+          </div>
+          <textarea id="res-input-content" class="form-textarea code-font" rows="12" placeholder="Write full article here in Markdown...&#10;&#10;## Introduction&#10;Your article text goes here..."></textarea>
+        </div>
+
+        <div style="background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+          <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; margin: 0;">
+            <input type="checkbox" id="res-input-published" checked style="width: 17px; height: 17px;">
+            <span style="font-weight: 600; color: var(--text);">Publish immediately to live public blog</span>
+          </label>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">Uncheck to save as draft</span>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" class="btn btn-secondary" onclick="closeResourceEditorModal()">Cancel</button>
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" class="btn btn-secondary" onclick="submitResourceForm(false)">
+            <i class="bi bi-file-earmark-lock"></i> Save as Draft
+          </button>
+          <button type="button" class="btn btn-primary" onclick="submitResourceForm(true)">
+            <i class="bi bi-check-lg"></i> Save &amp; Publish Live
+          </button>
+        </div>
       </div>
     </div>
   </div>

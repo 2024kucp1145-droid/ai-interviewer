@@ -715,7 +715,7 @@ window.closeMobileSidebar = function() {
 
 window.switchDashboardTab = function(tabName) {
   currentTab = tabName;
-  const tabs = ['overview', 'activities', 'users', 'interviews', 'orders', 'feedbacks', 'invites', 'audit', 'website', 'server', 'settings'];
+  const tabs = ['overview', 'activities', 'users', 'interviews', 'orders', 'feedbacks', 'invites', 'audit', 'website', 'resources', 'server', 'settings'];
 
   tabs.forEach(t => {
     const content = document.getElementById(`tab-content-${t}`);
@@ -734,6 +734,7 @@ window.switchDashboardTab = function(tabName) {
   if (tabName === 'invites') loadAdminInvites();
   if (tabName === 'audit') loadAdminAuditLogs();
   if (tabName === 'website') { loadPlatformSettings(); loadAdminPages(); }
+  if (tabName === 'resources') loadAdminResourcesList();
   if (tabName === 'server') loadServerDiagnostics();
   if (tabName === 'settings') loadPlatformSettings();
 };
@@ -4275,6 +4276,376 @@ window.deleteAdminPage = async function(pageId) {
     }
   } catch (err) {
     showToast(err.message, 'danger');
+  }
+};
+
+// ─── Editorial Resources & Blog CMS ──────────────────────────────────────────
+let cachedAdminResources = [];
+
+window.loadAdminResourcesList = async function() {
+  const tbody = document.getElementById('admin-resources-table-body');
+  if (!tbody) return;
+  try {
+    const res = await fetch(`${API_BASE}/resources`, {
+      headers: { 'Authorization': `Bearer ${adminToken}` },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to load resources');
+    cachedAdminResources = data.resources || [];
+
+    // Calculate KPIs
+    const total = cachedAdminResources.length;
+    const published = cachedAdminResources.filter(r => Boolean(r.is_published)).length;
+    const drafts = total - published;
+    const views = cachedAdminResources.reduce((acc, r) => acc + (Number(r.views_count) || 0), 0);
+
+    const elTotal = document.getElementById('res-stat-total');
+    const elPub = document.getElementById('res-stat-published');
+    const elDrafts = document.getElementById('res-stat-drafts');
+    const elViews = document.getElementById('res-stat-views');
+    const elBadge = document.getElementById('res-badge-live-count');
+    const elSideBadge = document.getElementById('resources-count-badge');
+
+    if (elTotal) elTotal.textContent = total;
+    if (elPub) elPub.textContent = published;
+    if (elDrafts) elDrafts.textContent = drafts;
+    if (elViews) elViews.textContent = views.toLocaleString();
+    if (elBadge) elBadge.textContent = `${published} Live / ${total} Total`;
+    if (elSideBadge) {
+      elSideBadge.textContent = total;
+      elSideBadge.style.display = total > 0 ? 'inline-block' : 'none';
+    }
+
+    window.filterAdminResourcesList();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:1.5rem; color:var(--danger);">${escapeHtml(err.message)}</td></tr>`;
+  }
+};
+
+window.filterAdminResourcesList = function() {
+  const tbody = document.getElementById('admin-resources-table-body');
+  if (!tbody) return;
+
+  const q = String(document.getElementById('res-filter-search')?.value || '').trim().toLowerCase();
+  const cat = String(document.getElementById('res-filter-category')?.value || 'all');
+  const status = String(document.getElementById('res-filter-status')?.value || 'all');
+
+  let list = cachedAdminResources.slice();
+
+  if (q) {
+    list = list.filter(r =>
+      (r.title || '').toLowerCase().includes(q) ||
+      (r.slug || '').toLowerCase().includes(q) ||
+      (r.summary || '').toLowerCase().includes(q) ||
+      (r.tags || '').toLowerCase().includes(q)
+    );
+  }
+  if (cat !== 'all') {
+    list = list.filter(r => (r.category || '').toLowerCase() === cat.toLowerCase());
+  }
+  if (status === 'published') {
+    list = list.filter(r => Boolean(r.is_published));
+  } else if (status === 'draft') {
+    list = list.filter(r => !Boolean(r.is_published));
+  }
+
+  renderAdminResourcesTable(list);
+};
+
+function renderAdminResourcesTable(list) {
+  const tbody = document.getElementById('admin-resources-table-body');
+  if (!tbody) return;
+
+  if (!list.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" style="text-align:center; padding:2rem; color:var(--text-muted);">
+          <i class="bi bi-journal-x" style="font-size:1.6rem; display:block; margin-bottom:0.4rem; color:var(--text-muted);"></i>
+          No articles match your filter criteria. Click <strong>+ Add New Article</strong> to publish one!
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const categoryColorMap = {
+    'guides': 'badge-primary',
+    'comparisons': 'badge-purple',
+    'tech hiring': 'badge-success',
+    'engineering': 'badge-warning',
+    'company news': 'badge-info'
+  };
+
+  tbody.innerHTML = list.map(r => {
+    const catClass = categoryColorMap[String(r.category || '').toLowerCase()] || 'badge-neutral';
+    const cleanDate = r.updated_at ? new Date(r.updated_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : '--';
+
+    return `
+      <tr>
+        <td style="max-width:280px;">
+          <div style="font-weight:700; color:var(--text); line-height:1.35; margin-bottom:0.25rem;">${escapeHtml(r.title)}</div>
+          <div style="display:flex; align-items:center; gap:0.4rem; font-size:0.72rem; color:var(--text-muted);">
+            <code style="background:var(--surface-elevated); padding:1px 5px; border-radius:3px;">/${escapeHtml(r.slug)}</code>
+            <a href="/blog.html?slug=${encodeURIComponent(r.slug)}" target="_blank" style="color:var(--primary); text-decoration:none;" title="Preview Live Post"><i class="bi bi-box-arrow-up-right"></i></a>
+          </div>
+          ${r.tags ? `<div style="font-size:0.68rem; color:var(--text-muted); margin-top:0.2rem;"><i class="bi bi-tags"></i> ${escapeHtml(r.tags)}</div>` : ''}
+        </td>
+        <td>
+          <span class="badge ${catClass}">${escapeHtml(r.category || 'Guides')}</span>
+        </td>
+        <td>
+          <div style="font-weight:600; font-size:0.8rem; color:var(--text);">${escapeHtml(r.author_name || 'RoundOne Team')}</div>
+          <div style="font-size:0.7rem; color:var(--text-muted);">${escapeHtml(r.author_role || 'Staff')}</div>
+        </td>
+        <td style="font-size:0.78rem; color:var(--text-muted);">
+          <i class="bi bi-clock"></i> ${escapeHtml(r.read_time || '5 min read')}
+        </td>
+        <td>
+          <button type="button" class="badge ${r.is_published ? 'badge-success' : 'badge-neutral'}" onclick="toggleResourcePublishStatus('${r.id}', ${Boolean(r.is_published)})" style="cursor:pointer; border:none;" title="Click to toggle status">
+            ${r.is_published ? '<i class="bi bi-check2"></i> Published' : '<i class="bi bi-lock-fill"></i> Draft'}
+          </button>
+        </td>
+        <td style="font-size:0.8rem; font-weight:600; color:var(--text);">
+          <i class="bi bi-eye" style="color:var(--text-muted);"></i> ${(r.views_count || 0).toLocaleString()}
+        </td>
+        <td style="font-size:0.74rem; color:var(--text-muted);">
+          ${cleanDate}
+        </td>
+        <td style="text-align:right;">
+          <div style="display:inline-flex; gap:0.35rem; align-items:center;">
+            <a href="/blog.html?slug=${encodeURIComponent(r.slug)}" target="_blank" class="btn btn-secondary btn-sm" title="View live article" style="padding:0.25rem 0.5rem;">
+              <i class="bi bi-eye"></i>
+            </a>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openResourceEditorModal('${r.id}')" title="Edit article" style="padding:0.25rem 0.5rem;">
+              <i class="bi bi-pencil-fill"></i>
+            </button>
+            <button type="button" class="btn btn-danger btn-sm" onclick="deleteAdminResource('${r.id}', '${escapeHtml(r.title).replace(/'/g, "\\'")}')" title="Delete article" style="padding:0.25rem 0.5rem;">
+              <i class="bi bi-trash3-fill"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+window.openResourceEditorModal = async function(resourceId = null) {
+  const modal = document.getElementById('modal-resource-editor');
+  if (!modal) return;
+
+  const elId = document.getElementById('res-input-id');
+  const elTitle = document.getElementById('res-input-title');
+  const elSlug = document.getElementById('res-input-slug');
+  const elCat = document.getElementById('res-input-category');
+  const elRead = document.getElementById('res-input-readtime');
+  const elAuthor = document.getElementById('res-input-author');
+  const elRole = document.getElementById('res-input-role');
+  const elSort = document.getElementById('res-input-sort');
+  const elImage = document.getElementById('res-input-image');
+  const elTags = document.getElementById('res-input-tags');
+  const elSummary = document.getElementById('res-input-summary');
+  const elContent = document.getElementById('res-input-content');
+  const elPub = document.getElementById('res-input-published');
+  const elModalTitle = document.getElementById('resource-modal-title');
+
+  if (resourceId) {
+    if (elModalTitle) elModalTitle.innerHTML = '<i class="bi bi-pencil-square" style="color:var(--primary);"></i> Edit Resource Article';
+    let r = cachedAdminResources.find(x => x.id === resourceId);
+    if (!r) {
+      try {
+        const res = await fetch(`${API_BASE}/resources/${encodeURIComponent(resourceId)}`, {
+          headers: { 'Authorization': `Bearer ${adminToken}` }
+        });
+        const data = await res.json();
+        r = data.resource;
+      } catch (_) {}
+    }
+    if (r) {
+      if (elId) elId.value = r.id;
+      if (elTitle) elTitle.value = r.title || '';
+      if (elSlug) elSlug.value = r.slug || '';
+      if (elCat) elCat.value = r.category || 'Guides';
+      if (elRead) elRead.value = r.read_time || '5 min read';
+      if (elAuthor) elAuthor.value = r.author_name || 'RoundOne Team';
+      if (elRole) elRole.value = r.author_role || 'Technical Recruitment';
+      if (elSort) elSort.value = r.sort_order || 0;
+      if (elImage) elImage.value = r.cover_image || '';
+      if (elTags) elTags.value = r.tags || '';
+      if (elSummary) elSummary.value = r.summary || '';
+      if (elContent) elContent.value = r.content || '';
+      if (elPub) elPub.checked = Boolean(r.is_published);
+    }
+  } else {
+    if (elModalTitle) elModalTitle.innerHTML = '<i class="bi bi-plus-circle-fill" style="color:var(--primary);"></i> Create New Resource Article';
+    if (elId) elId.value = '';
+    if (elTitle) elTitle.value = '';
+    if (elSlug) elSlug.value = '';
+    if (elCat) elCat.value = 'Guides';
+    if (elRead) elRead.value = '5 min read';
+    if (elAuthor) elAuthor.value = 'RoundOne Team';
+    if (elRole) elRole.value = 'Technical Recruitment';
+    if (elSort) elSort.value = 0;
+    if (elImage) elImage.value = '';
+    if (elTags) elTags.value = '';
+    if (elSummary) elSummary.value = '';
+    if (elContent) elContent.value = '';
+    if (elPub) elPub.checked = true;
+  }
+
+  modal.style.display = 'flex';
+};
+
+window.closeResourceEditorModal = function() {
+  const modal = document.getElementById('modal-resource-editor');
+  if (modal) modal.style.display = 'none';
+};
+
+window.autoGenerateResourceSlug = function(title) {
+  const editId = document.getElementById('res-input-id')?.value;
+  // Only auto-generate slug for new articles
+  if (editId) return;
+  const slugInput = document.getElementById('res-input-slug');
+  if (slugInput) {
+    slugInput.value = String(title || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 80);
+  }
+};
+
+window.insertResourceMarkdown = function(prefix) {
+  const textarea = document.getElementById('res-input-content');
+  if (!textarea) return;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const text = textarea.value;
+  textarea.value = text.substring(0, start) + prefix + text.substring(end);
+  textarea.focus();
+  textarea.selectionStart = textarea.selectionEnd = start + prefix.length;
+};
+
+window.wrapResourceSelection = function(before, after) {
+  const textarea = document.getElementById('res-input-content');
+  if (!textarea) return;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const text = textarea.value;
+  const selected = text.substring(start, end) || 'text';
+  textarea.value = text.substring(0, start) + before + selected + after + text.substring(end);
+  textarea.focus();
+  textarea.selectionStart = start + before.length;
+  textarea.selectionEnd = textarea.selectionStart + selected.length;
+};
+
+window.submitResourceForm = async function(forcePublish = null) {
+  const editId = document.getElementById('res-input-id')?.value.trim();
+  const title = String(document.getElementById('res-input-title')?.value || '').trim();
+  const slug = String(document.getElementById('res-input-slug')?.value || '').trim();
+
+  if (!title) {
+    showToast('Please enter an article title.', 'warning');
+    document.getElementById('res-input-title')?.focus();
+    return;
+  }
+  if (!slug) {
+    showToast('Please enter or generate a URL slug.', 'warning');
+    document.getElementById('res-input-slug')?.focus();
+    return;
+  }
+
+  let isPublished = Boolean(document.getElementById('res-input-published')?.checked);
+  if (forcePublish !== null) isPublished = forcePublish;
+
+  const payload = {
+    title,
+    slug,
+    category: document.getElementById('res-input-category')?.value || 'Guides',
+    read_time: document.getElementById('res-input-readtime')?.value.trim() || '5 min read',
+    author_name: document.getElementById('res-input-author')?.value.trim() || 'RoundOne Team',
+    author_role: document.getElementById('res-input-role')?.value.trim() || 'Technical Recruitment',
+    sort_order: parseInt(document.getElementById('res-input-sort')?.value, 10) || 0,
+    cover_image: document.getElementById('res-input-image')?.value.trim() || '',
+    tags: document.getElementById('res-input-tags')?.value.trim() || '',
+    summary: document.getElementById('res-input-summary')?.value.trim() || '',
+    content: document.getElementById('res-input-content')?.value || '',
+    is_published: isPublished
+  };
+
+  try {
+    const url = editId ? `${API_BASE}/resources/${encodeURIComponent(editId)}` : `${API_BASE}/resources`;
+    const res = await fetch(url, {
+      method: editId ? 'PUT' : 'POST',
+      headers: {
+        'Authorization': `Bearer ${adminToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to save resource article');
+
+    showToast(`Article "${data.resource?.title || title}" ${isPublished ? 'published live' : 'saved as draft'}!`, 'success');
+    closeResourceEditorModal();
+    loadAdminResourcesList();
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+};
+
+window.toggleResourcePublishStatus = async function(id, currentStatus) {
+  try {
+    const res = await fetch(`${API_BASE}/resources/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${adminToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ is_published: currentStatus ? 0 : 1 }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update article status');
+
+    showToast(`Article is now ${currentStatus ? 'saved as Draft' : 'Published Live'}!`, 'info');
+    loadAdminResourcesList();
+  } catch (err) {
+    showToast(err.message, 'danger');
+  }
+};
+
+window.deleteAdminResource = function(id, title) {
+  if (typeof openConfirmModal === 'function') {
+    openConfirmModal({
+      title: 'Delete Resource Article',
+      message: `Are you sure you want to delete "${title}"?`,
+      subtext: 'This article will be immediately removed from the live public blog and cannot be restored.',
+      buttonText: 'Delete Article',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`${API_BASE}/resources/${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${adminToken}` },
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Failed to delete article');
+          showToast(`Article "${title}" deleted.`, 'info');
+          loadAdminResourcesList();
+        } catch (err) {
+          showToast(err.message, 'danger');
+        }
+      }
+    });
+  } else {
+    if (!confirm(`Delete article "${title}"?`)) return;
+    fetch(`${API_BASE}/resources/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${adminToken}` },
+    }).then(async res => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete article');
+      showToast(`Article deleted.`, 'info');
+      loadAdminResourcesList();
+    }).catch(err => showToast(err.message, 'danger'));
   }
 };
 

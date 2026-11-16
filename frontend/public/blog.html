@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resources & Blog — RoundOne AI</title>
+  <meta name="description" content="Technical hiring insights, guides, and engineering interview best practices by RoundOne AI." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --bg2: #111827;
+      --card: #162032;
+      --card-hover: #1e2c45;
+      --border: #26354f;
+      --border-subtle: #1c273c;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --accent-glow: rgba(59, 130, 246, 0.25);
+      --green: #10b981;
+      --purple: #8b5cf6;
+      --amber: #f59e0b;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.6;
+    }
+
+    /* NAV */
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 32px;
+      background: rgba(11, 15, 25, 0.92);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 1.25rem; font-weight: 800; color: #fff;
+      text-decoration: none;
+    }
+    .brand-icon {
+      width: 28px; height: 28px; border-radius: 7px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 0.9rem;
+    }
+    .brand-badge {
+      font-size: 0.65rem; font-weight: 700;
+      padding: 2px 6px; border-radius: 4px;
+      background: rgba(59, 130, 246, 0.2); color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .nav-links {
+      display: flex; gap: 24px; align-items: center;
+    }
+    .nav-link {
+      color: var(--text-muted); text-decoration: none; font-size: 0.9rem; font-weight: 500;
+      transition: color .2s; display: flex; align-items: center; gap: 5px;
+    }
+    .nav-link:hover, .nav-link.active { color: #fff; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 18px; border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; border: none; text-decoration: none; transition: all 0.2s ease;
+    }
+    .btn-primary {
+      background: #2563eb; color: #fff;
+    }
+    .btn-primary:hover {
+      background: #1d4ed8; transform: translateY(-1px);
+      box-shadow: 0 4px 16px var(--accent-glow);
+    }
+    .btn-outline {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover {
+      background: rgba(255, 255, 255, 0.05); border-color: #64748b;
+    }
+
+    /* HERO */
+    .hero-banner {
+      padding: 64px 24px 32px;
+      text-align: center;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .hero-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 999px;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #93c5fd; font-size: 0.78rem; font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .hero-title {
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 800; line-height: 1.2;
+      margin-bottom: 12px; color: #fff;
+    }
+    .hero-title span {
+      background: linear-gradient(135deg, #60a5fa, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-subtitle {
+      color: var(--text-muted); font-size: 1.05rem;
+      max-width: 620px; margin: 0 auto 28px;
+    }
+
+    /* SEARCH & FILTER BAR */
+    .filter-wrapper {
+      max-width: 1100px; margin: 0 auto 36px; padding: 0 24px;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .search-box-row {
+      display: flex; gap: 12px; align-items: center;
+    }
+    .search-input-wrap {
+      flex: 1; position: relative;
+    }
+    .search-input-wrap i {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      color: var(--text-muted); font-size: 0.95rem;
+    }
+    .search-input {
+      width: 100%; padding: 10px 16px 10px 40px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; color: #fff; font-size: 0.9rem;
+      outline: none; transition: border-color 0.2s;
+    }
+    .search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+    .category-pills {
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    }
+    .cat-pill {
+      padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;
+      background: var(--card); border: 1px solid var(--border); color: var(--text-muted);
+      cursor: pointer; transition: all 0.2s; user-select: none;
+    }
+    .cat-pill:hover { color: #fff; border-color: #475569; }
+    .cat-pill.active {
+      background: #2563eb; color: #fff; border-color: #2563eb;
+      box-shadow: 0 2px 10px rgba(37,99,235,0.3);
+    }
+
+    /* MAIN CONTENT WRAPPER */
+    .content-area {
+      max-width: 1100px; margin: 0 auto; padding: 0 24px 64px;
+      flex: 1; width: 100%;
+    }
+
+    /* FEATURED ARTICLE HERO */
+    .featured-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden; margin-bottom: 36px;
+      display: grid; grid-template-columns: 1fr 1fr;
+      cursor: pointer; transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+    .featured-card:hover {
+      transform: translateY(-2px); border-color: #3b82f6;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+    }
+    @media(max-width: 768px) {
+      .featured-card { grid-template-columns: 1fr; }
+    }
+    .featured-img-wrap {
+      width: 100%; height: 100%; min-height: 240px; background: #000;
+      position: relative; overflow: hidden;
+    }
+    .featured-img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+      transition: transform 0.3s ease;
+    }
+    .featured-card:hover .featured-img { transform: scale(1.03); }
+    .featured-body {
+      padding: 32px; display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .card-meta-top {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+    }
+    .badge-category {
+      font-size: 0.72rem; font-weight: 700; padding: 3px 8px; border-radius: 4px;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .cat-guides { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+    .cat-comparisons { background: rgba(139,92,246,0.15); color: #c084fc; border: 1px solid rgba(139,92,246,0.3); }
+    .cat-tech-hiring { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+    .cat-engineering { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+    .card-read-time {
+      font-size: 0.75rem; color: var(--text-muted);
+    }
+    .featured-title {
+      font-size: 1.5rem; font-weight: 700; color: #fff; line-height: 1.3;
+      margin-bottom: 12px;
+    }
+    .featured-summary {
+      font-size: 0.92rem; color: var(--text-muted); line-height: 1.55;
+      margin-bottom: 20px;
+    }
+    .card-author-row {
+      display: flex; align-items: center; justify-content: space-between;
+      border-top: 1px solid var(--border-subtle); padding-top: 16px;
+    }
+    .author-info {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .author-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: #fff; font-weight: 700; font-size: 0.82rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .author-name { font-size: 0.85rem; font-weight: 600; color: #fff; }
+    .author-role { font-size: 0.72rem; color: var(--text-muted); }
+    .read-link {
+      color: #60a5fa; font-size: 0.85rem; font-weight: 600;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+
+    /* ARTICLES GRID */
+    .articles-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 24px;
+    }
+    .article-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+      display: flex; flex-direction: column; cursor: pointer;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+    .article-card:hover {
+      transform: translateY(-3px); border-color: #3b82f6;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    .card-thumb {
+      width: 100%; height: 165px; background: #000;
+      position: relative; overflow: hidden;
+    }
+    .card-thumb img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+      transition: transform 0.3s;
+    }
+    .article-card:hover .card-thumb img { transform: scale(1.04); }
+    .card-body {
+      padding: 20px; display: flex; flex-direction: column; flex: 1; justify-content: space-between;
+    }
+    .card-title {
+      font-size: 1.15rem; font-weight: 700; color: #fff; line-height: 1.35;
+      margin-bottom: 8px;
+    }
+    .card-excerpt {
+      font-size: 0.84rem; color: var(--text-muted); line-height: 1.5;
+      margin-bottom: 16px; flex: 1;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    }
+
+    /* ARTICLE READER VIEW */
+    .reader-container {
+      max-width: 780px; margin: 0 auto; display: none;
+    }
+    .reader-back-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.85rem; font-weight: 600; color: #60a5fa;
+      background: transparent; border: none; cursor: pointer; margin-bottom: 24px;
+    }
+    .reader-back-btn:hover { text-decoration: underline; }
+    .reader-header { margin-bottom: 28px; }
+    .reader-title {
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 800; line-height: 1.25; color: #fff;
+      margin-top: 12px; margin-bottom: 16px;
+    }
+    .reader-author-bar {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+      padding: 16px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    .reader-content {
+      font-size: 1.05rem; line-height: 1.8; color: #cbd5e1;
+      margin-bottom: 48px;
+    }
+    .reader-content h2 {
+      color: #fff; font-size: 1.55rem; font-weight: 800; margin: 36px 0 16px;
+      border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;
+    }
+    .reader-content h3 {
+      color: #f1f5f9; font-size: 1.25rem; font-weight: 700; margin: 28px 0 12px;
+    }
+    .reader-content p { margin-bottom: 18px; }
+    .reader-content ul, .reader-content ol {
+      margin: 0 0 20px 24px;
+    }
+    .reader-content li { margin-bottom: 8px; }
+    .reader-content blockquote {
+      border-left: 4px solid #3b82f6; padding: 12px 18px; margin: 24px 0;
+      background: rgba(59, 130, 246, 0.08); border-radius: 0 8px 8px 0;
+      color: #e2e8f0; font-style: italic;
+    }
+    .reader-content pre {
+      background: #090d16; border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px; overflow-x: auto; margin: 20px 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.88rem;
+    }
+    .reader-content code {
+      background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.88rem;
+    }
+    .reader-content pre code { background: none; padding: 0; }
+    .reader-content table {
+      width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 0.88rem;
+    }
+    .reader-content th, .reader-content td {
+      border: 1px solid var(--border); padding: 10px 14px; text-align: left;
+    }
+    .reader-content th { background: rgba(255,255,255,0.04); color: #fff; }
+
+    /* CTA BOX */
+    .cta-banner {
+      background: linear-gradient(135deg, rgba(37,99,235,0.15), rgba(139,92,246,0.15));
+      border: 1px solid rgba(59,130,246,0.3); border-radius: 16px;
+      padding: 32px; text-align: center; margin: 48px 0 24px;
+    }
+    .cta-banner h3 { font-size: 1.4rem; color: #fff; margin-bottom: 8px; }
+    .cta-banner p { color: var(--text-muted); font-size: 0.95rem; max-width: 520px; margin: 0 auto 20px; }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border); padding: 28px 32px;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 16px; font-size: 0.82rem; color: var(--text-muted);
+      background: rgba(11,15,25,0.6);
+    }
+    footer a { color: var(--text-muted); text-decoration: none; }
+    footer a:hover { color: #fff; }
+
+    /* LOADING & EMPTY STATES */
+    .state-box {
+      text-align: center; padding: 60px 20px; color: var(--text-muted);
+    }
+    .state-box i { font-size: 2.5rem; margin-bottom: 12px; display: block; opacity: 0.5; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <nav>
+    <a href="/" class="nav-brand">
+      <div class="brand-icon"><i class="bi bi-cpu-fill"></i></div>
+      <span>RoundOne AI</span>
+      <span class="brand-badge">Resources</span>
+    </a>
+    <div class="nav-links">
+      <a href="/" class="nav-link"><i class="bi bi-house"></i> Product</a>
+      <a href="/pricing.html" class="nav-link"><i class="bi bi-credit-card"></i> Pricing</a>
+      <a href="/blog.html" class="nav-link active"><i class="bi bi-journal-text"></i> Resources &amp; Blog</a>
+      <a href="/careers.html" class="nav-link"><i class="bi bi-briefcase"></i> Careers</a>
+      <a href="/" class="btn btn-outline"><i class="bi bi-box-arrow-in-right"></i> Recruiter Portal</a>
+      <a href="/?trial=1" class="btn btn-primary"><i class="bi bi-gift-fill"></i> Try Free</a>
+    </div>
+  </nav>
+
+  <!-- CATALOG VIEW (Default) -->
+  <div id="view-catalog">
+    <section class="hero-banner">
+      <div class="hero-pill"><i class="bi bi-stars"></i> Technical Hiring &amp; Engineering AI Hub</div>
+      <h1 class="hero-title">Insights for <span>Engineering Leaders</span></h1>
+      <p class="hero-subtitle">
+        In-depth guides, benchmark comparisons, and research on screening top technical talent with anti-cheat AI.
+      </p>
+    </section>
+
+    <!-- Search & Filter Controls -->
+    <div class="filter-wrapper">
+      <div class="search-box-row">
+        <div class="search-input-wrap">
+          <i class="bi bi-search"></i>
+          <input type="text" id="blog-search-input" class="search-input" placeholder="Search guides by keywords (e.g. anti-cheat, DSA, HackerRank, screening)..." oninput="handleSearchInput(this.value)">
+        </div>
+      </div>
+      <div class="category-pills" id="category-pills-bar">
+        <button type="button" class="cat-pill active" onclick="selectCategoryFilter('all')">All Articles</button>
+        <button type="button" class="cat-pill" onclick="selectCategoryFilter('guides')">Guides</button>
+        <button type="button" class="cat-pill" onclick="selectCategoryFilter('comparisons')">Comparisons</button>
+        <button type="button" class="cat-pill" onclick="selectCategoryFilter('tech hiring')">Tech Hiring</button>
+        <button type="button" class="cat-pill" onclick="selectCategoryFilter('engineering')">Engineering</button>
+      </div>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="content-area">
+      <!-- Featured Top Post -->
+      <div id="featured-article-container"></div>
+
+      <!-- Articles Grid -->
+      <div class="articles-grid" id="articles-grid-container">
+        <div class="state-box" style="grid-column: 1 / -1;">
+          <i class="bi bi-arrow-repeat" style="animation: spin 1s infinite linear;"></i>
+          Loading resources...
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ARTICLE READER VIEW -->
+  <div id="view-reader" class="reader-container content-area" style="padding-top: 40px;">
+    <button type="button" class="reader-back-btn" onclick="navigateToCatalog()">
+      <i class="bi bi-arrow-left"></i> Back to all articles
+    </button>
+
+    <div class="reader-header">
+      <div class="card-meta-top">
+        <span class="badge-category cat-guides" id="reader-category">Guides</span>
+        <span class="card-read-time" id="reader-readtime"><i class="bi bi-clock"></i> 5 min read</span>
+        <span class="card-read-time" style="margin-left:auto;" id="reader-views"><i class="bi bi-eye"></i> 0 views</span>
+      </div>
+      <h1 class="reader-title" id="reader-title">Loading Article...</h1>
+      <p style="font-size: 1.1rem; color: var(--text-muted); line-height: 1.6;" id="reader-summary"></p>
+    </div>
+
+    <div class="reader-author-bar">
+      <div class="author-info">
+        <div class="author-avatar" id="reader-avatar">RO</div>
+        <div>
+          <div class="author-name" id="reader-author">RoundOne Team</div>
+          <div class="author-role" id="reader-role">Technical Recruitment</div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button type="button" class="btn btn-outline" onclick="copyCurrentArticleUrl()" title="Copy Link">
+          <i class="bi bi-link-45deg"></i> Share
+        </button>
+        <button type="button" class="btn btn-outline" onclick="shareOnTwitter()" title="Share on X">
+          <i class="bi bi-twitter-x"></i>
+        </button>
+        <button type="button" class="btn btn-outline" onclick="shareOnLinkedIn()" title="Share on LinkedIn">
+          <i class="bi bi-linkedin"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Rendered Markdown Body -->
+    <article class="reader-content" id="reader-body">
+      <!-- Loaded dynamically -->
+    </article>
+
+    <!-- Bottom CTA Banner -->
+    <div class="cta-banner">
+      <h3>Ready to Automate Technical Screening?</h3>
+      <p>Screen hundreds of software engineering applicants in 15 minutes with verified anti-cheat video proctoring and automated code evaluation.</p>
+      <a href="/?trial=1" class="btn btn-primary" style="padding: 10px 24px; font-size: 0.95rem;">
+        <i class="bi bi-stars"></i> Try 10 Free AI Interviews
+      </a>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div>
+      <strong>RoundOne AI</strong> — Autonomous Technical &amp; Coding Assessment Platform
+    </div>
+    <div style="display:flex; gap:18px;">
+      <a href="/">Product</a>
+      <a href="/pricing.html">Pricing</a>
+      <a href="/blog.html">Resources</a>
+      <a href="/careers.html">Careers</a>
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+    </div>
+  </footer>
+
+  <script>
+    let allArticles = [];
+    let activeCategory = 'all';
+    let searchQuery = '';
+
+    // Category styling helper
+    function getCategoryClass(cat) {
+      const c = String(cat || '').toLowerCase();
+      if (c === 'comparisons') return 'cat-comparisons';
+      if (c === 'tech hiring') return 'cat-tech-hiring';
+      if (c === 'engineering') return 'cat-engineering';
+      return 'cat-guides';
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // Markdown Parser
+    function parseMarkdown(md) {
+      if (!md) return '';
+      let html = escapeHtml(md);
+
+      // Code blocks (```lang ... ```)
+      html = html.replace(/```([\s\S]*?)```/g, (match, code) => {
+        return `<pre><code>${code.trim()}</code></pre>`;
+      });
+
+      // Headers (###, ##, #)
+      html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+      html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+      html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+
+      // Blockquotes (> ...)
+      html = html.replace(/^\> (.*$)/gim, '<blockquote>$1</blockquote>');
+
+      // Bold & Italic
+      html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+      html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+      // Tables (| ... |)
+      html = html.replace(/((?:\|[^\n]+\|\r?\n)+)/g, (match) => {
+        const rows = match.trim().split('\n').filter(r => !/\|\s*[-:]+[-| :]*\|/.test(r));
+        if (rows.length === 0) return '';
+        const header = rows[0].split('|').filter(c => c.trim().length > 0);
+        const bodyRows = rows.slice(1);
+        let tableHtml = '<table><thead><tr>';
+        header.forEach(h => { tableHtml += `<th>${h.trim()}</th>`; });
+        tableHtml += '</tr></thead><tbody>';
+        bodyRows.forEach(row => {
+          const cells = row.split('|').filter(c => c.trim().length > 0);
+          tableHtml += '<tr>';
+          cells.forEach(c => { tableHtml += `<td>${c.trim()}</td>`; });
+          tableHtml += '</tr>';
+        });
+        tableHtml += '</tbody></table>';
+        return tableHtml;
+      });
+
+      // Bullet lists
+      html = html.replace(/^\s*-\s+(.*$)/gim, '<li>$1</li>');
+      html = html.replace(/(<li>[\s\S]*?<\/li>)/gim, '<ul>$1</ul>');
+      html = html.replace(/<\/ul>\s*<ul>/g, '');
+
+      // Paragraphs
+      html = html.split(/\n{2,}/).map(chunk => {
+        chunk = chunk.trim();
+        if (/^<(h[1-6]|ul|pre|table|blockquote)/.test(chunk)) return chunk;
+        return `<p>${chunk.replace(/\n/g, '<br>')}</p>`;
+      }).join('\n');
+
+      return html;
+    }
+
+    async function loadResources() {
+      try {
+        const res = await fetch('/api/resources');
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to load resources');
+        allArticles = data.articles || [];
+
+        // Check if URL has ?slug=...
+        const urlParams = new URLSearchParams(window.location.search);
+        const slug = urlParams.get('slug');
+        if (slug) {
+          openArticleBySlug(slug);
+        } else {
+          renderCatalog();
+        }
+      } catch (err) {
+        document.getElementById('articles-grid-container').innerHTML = `
+          <div class="state-box" style="grid-column:1 / -1; color:#ef4444;">
+            <i class="bi bi-exclamation-triangle"></i>
+            Could not load resources: ${escapeHtml(err.message)}
+          </div>
+        `;
+      }
+    }
+
+    function renderCatalog() {
+      document.getElementById('view-catalog').style.display = 'block';
+      document.getElementById('view-reader').style.display = 'none';
+
+      let list = allArticles.slice();
+
+      if (activeCategory !== 'all') {
+        list = list.filter(a => (a.category || '').toLowerCase() === activeCategory.toLowerCase());
+      }
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        list = list.filter(a =>
+          (a.title || '').toLowerCase().includes(q) ||
+          (a.summary || '').toLowerCase().includes(q) ||
+          (a.tags || '').toLowerCase().includes(q)
+        );
+      }
+
+      const featuredEl = document.getElementById('featured-article-container');
+      const gridEl = document.getElementById('articles-grid-container');
+
+      if (!list.length) {
+        featuredEl.innerHTML = '';
+        gridEl.innerHTML = `
+          <div class="state-box" style="grid-column: 1 / -1;">
+            <i class="bi bi-journal-x"></i>
+            No resources match "${escapeHtml(searchQuery || activeCategory)}". Try searching another topic!
+          </div>
+        `;
+        return;
+      }
+
+      // If no search filter active, show 1st as Hero Featured Card
+      if (!searchQuery && activeCategory === 'all' && list.length > 0) {
+        const top = list[0];
+        const rest = list.slice(1);
+
+        const imgUrl = top.cover_image || 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1200&q=80';
+        featuredEl.innerHTML = `
+          <div class="featured-card" onclick="navigateToArticle('${escapeHtml(top.slug)}')">
+            <div class="featured-img-wrap">
+              <img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(top.title)}" class="featured-img">
+            </div>
+            <div class="featured-body">
+              <div>
+                <div class="card-meta-top">
+                  <span class="badge-category ${getCategoryClass(top.category)}">${escapeHtml(top.category || 'Guides')}</span>
+                  <span class="card-read-time"><i class="bi bi-clock"></i> ${escapeHtml(top.read_time || '5 min read')}</span>
+                </div>
+                <h2 class="featured-title">${escapeHtml(top.title)}</h2>
+                <p class="featured-summary">${escapeHtml(top.summary)}</p>
+              </div>
+              <div class="card-author-row">
+                <div class="author-info">
+                  <div class="author-avatar">${(top.author_name || 'RO').slice(0, 2).toUpperCase()}</div>
+                  <div>
+                    <div class="author-name">${escapeHtml(top.author_name || 'RoundOne Team')}</div>
+                    <div class="author-role">${escapeHtml(top.author_role || 'Staff')}</div>
+                  </div>
+                </div>
+                <span class="read-link">Read Full Guide <i class="bi bi-arrow-right"></i></span>
+              </div>
+            </div>
+          </div>
+        `;
+
+        renderGridCards(rest, gridEl);
+      } else {
+        featuredEl.innerHTML = '';
+        renderGridCards(list, gridEl);
+      }
+    }
+
+    function renderGridCards(articles, container) {
+      if (!articles.length) {
+        container.innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = articles.map(a => {
+        const img = a.cover_image || 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80';
+        return `
+          <div class="article-card" onclick="navigateToArticle('${escapeHtml(a.slug)}')">
+            <div class="card-thumb">
+              <img src="${escapeHtml(img)}" alt="${escapeHtml(a.title)}" loading="lazy">
+            </div>
+            <div class="card-body">
+              <div>
+                <div class="card-meta-top">
+                  <span class="badge-category ${getCategoryClass(a.category)}">${escapeHtml(a.category || 'Guides')}</span>
+                  <span class="card-read-time"><i class="bi bi-clock"></i> ${escapeHtml(a.read_time || '5 min read')}</span>
+                </div>
+                <h3 class="card-title">${escapeHtml(a.title)}</h3>
+                <p class="card-excerpt">${escapeHtml(a.summary)}</p>
+              </div>
+              <div class="card-author-row">
+                <div class="author-info">
+                  <div class="author-avatar" style="width:28px; height:28px; font-size:0.75rem;">${(a.author_name || 'RO').slice(0, 2).toUpperCase()}</div>
+                  <div class="author-name" style="font-size:0.8rem;">${escapeHtml(a.author_name || 'RoundOne Team')}</div>
+                </div>
+                <span class="read-link">Read <i class="bi bi-arrow-right"></i></span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function openArticleBySlug(slug) {
+      try {
+        const res = await fetch(`/api/resources/${encodeURIComponent(slug)}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Article not found');
+        const a = data.article;
+
+        document.getElementById('view-catalog').style.display = 'none';
+        const reader = document.getElementById('view-reader');
+        reader.style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        document.title = `${a.title} — RoundOne AI Resources`;
+        document.getElementById('reader-category').textContent = a.category || 'Guides';
+        document.getElementById('reader-category').className = `badge-category ${getCategoryClass(a.category)}`;
+        document.getElementById('reader-readtime').innerHTML = `<i class="bi bi-clock"></i> ${escapeHtml(a.read_time || '5 min read')}`;
+        document.getElementById('reader-views').innerHTML = `<i class="bi bi-eye"></i> ${(a.views_count || 0).toLocaleString()} views`;
+        document.getElementById('reader-title').textContent = a.title;
+        document.getElementById('reader-summary').textContent = a.summary || '';
+        document.getElementById('reader-avatar').textContent = (a.author_name || 'RO').slice(0, 2).toUpperCase();
+        document.getElementById('reader-author').textContent = a.author_name || 'RoundOne Team';
+        document.getElementById('reader-role').textContent = a.author_role || 'Technical Recruitment';
+
+        document.getElementById('reader-body').innerHTML = parseMarkdown(a.content || '');
+
+        history.pushState(null, '', `/blog.html?slug=${encodeURIComponent(slug)}`);
+      } catch (err) {
+        alert(err.message);
+        navigateToCatalog();
+      }
+    }
+
+    function navigateToArticle(slug) {
+      openArticleBySlug(slug);
+    }
+
+    function navigateToCatalog() {
+      history.pushState(null, '', '/blog.html');
+      document.title = 'Resources & Blog — RoundOne AI';
+      renderCatalog();
+    }
+
+    function selectCategoryFilter(cat) {
+      activeCategory = cat;
+      const pills = document.querySelectorAll('#category-pills-bar .cat-pill');
+      pills.forEach(p => {
+        if (p.textContent.toLowerCase().includes(cat.toLowerCase()) || (cat === 'all' && p.textContent.toLowerCase().includes('all'))) {
+          p.classList.add('active');
+        } else {
+          p.classList.remove('active');
+        }
+      });
+      renderCatalog();
+    }
+
+    function handleSearchInput(val) {
+      searchQuery = val.trim();
+      renderCatalog();
+    }
+
+    function copyCurrentArticleUrl() {
+      navigator.clipboard.writeText(window.location.href).then(() => {
+        alert('Article link copied to clipboard!');
+      }).catch(() => {});
+    }
+
+    function shareOnTwitter() {
+      const title = document.getElementById('reader-title')?.textContent || '';
+      const url = encodeURIComponent(window.location.href);
+      const text = encodeURIComponent(`Insightful read on engineering hiring: "${title}" via @RoundOneAI\n`);
+      window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
+    }
+
+    function shareOnLinkedIn() {
+      const url = encodeURIComponent(window.location.href);
+      window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank');
+    }
+
+    // Handle back button browser navigation
+    window.addEventListener('popstate', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const slug = urlParams.get('slug');
+      if (slug) openArticleBySlug(slug);
+      else renderCatalog();
+    });
+
+    // Initialize
+    loadResources();
+  </script>
+</body>
+</html>

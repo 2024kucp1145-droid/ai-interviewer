@@ -144,6 +144,83 @@ app.get('/api/pages/:slug', (req, res) => {
   }
 });
 
+// ─── Public Blog & Editorial Resources API ────────────────────────────────────
+app.get('/api/resources', (req, res) => {
+  try {
+    const q = String(req.query?.q || '').trim().toLowerCase();
+    const cat = String(req.query?.category || '').trim();
+
+    let sql = `
+      SELECT id, slug, title, summary, category, author_name, author_role,
+             read_time, cover_image, tags, views_count, created_at, updated_at
+      FROM resources
+      WHERE is_published = 1
+    `;
+    const params = [];
+
+    if (q) {
+      sql += ' AND (LOWER(title) LIKE ? OR LOWER(summary) LIKE ? OR LOWER(tags) LIKE ?)';
+      params.push(`%${q}%`, `%${q}%`, `%${q}%`);
+    }
+    if (cat && cat.toLowerCase() !== 'all') {
+      sql += ' AND LOWER(category) = ?';
+      params.push(cat.toLowerCase());
+    }
+
+    sql += ' ORDER BY sort_order ASC, created_at DESC';
+    const articles = db.prepare(sql).all(...params);
+
+    // Also get categories with counts
+    const categories = db.prepare(`
+      SELECT category, COUNT(*) as count
+      FROM resources
+      WHERE is_published = 1
+      GROUP BY category
+      ORDER BY count DESC
+    `).all();
+
+    res.json({ success: true, articles, categories });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/resources/:slug', (req, res) => {
+  try {
+    const slug = String(req.params.slug || '').trim().toLowerCase();
+    const article = db.prepare(`
+      SELECT * FROM resources WHERE LOWER(slug) = ? AND is_published = 1
+    `).get(slug);
+
+    if (!article) return res.status(404).json({ error: 'Article not found' });
+
+    // Increment view count asynchronously
+    try {
+      db.prepare('UPDATE resources SET views_count = views_count + 1 WHERE id = ?').run(article.id);
+      article.views_count = (article.views_count || 0) + 1;
+    } catch (_) {}
+
+    // Fetch related articles in same or other categories
+    const related = db.prepare(`
+      SELECT id, slug, title, summary, category, author_name, read_time, cover_image, created_at
+      FROM resources
+      WHERE is_published = 1 AND id != ?
+      ORDER BY CASE WHEN category = ? THEN 0 ELSE 1 END, created_at DESC
+      LIMIT 3
+    `).all(article.id, article.category);
+
+    res.json({ success: true, article, related });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Clean friendly URL redirect: /blog/:slug -> /blog.html?slug=:slug
+app.get('/blog/:slug', (req, res) => {
+  const slug = encodeURIComponent(String(req.params.slug || '').trim());
+  res.redirect(`/blog.html?slug=${slug}`);
+});
+
 app.get('/p/:slug', (req, res) => {
   try {
     const slug = String(req.params.slug || '').trim().toLowerCase();
