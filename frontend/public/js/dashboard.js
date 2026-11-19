@@ -8251,7 +8251,8 @@ window.addEventListener('DOMContentLoaded', () => {
 function initAmbientScrollLight() {
   const spotlight = document.getElementById('ambient-blue-spotlight');
   const secondary = document.getElementById('ambient-blue-secondary');
-  if (!spotlight && !secondary) return;
+  const leftAura = document.getElementById('ambient-blue-left');
+  if (!spotlight && !secondary && !leftAura) return;
 
   let ticking = false;
 
@@ -8268,10 +8269,16 @@ function initAmbientScrollLight() {
       spotlight.style.transform = 'translate(-50%, ' + yOffset.toFixed(1) + 'px)';
     }
 
-    // Secondary ambient aura travels on the side with parallax
+    // Secondary ambient aura travels on the right side with parallax
     if (secondary) {
       const ySec = (progress * (window.innerHeight * 0.65)) + 40;
       secondary.style.transform = 'translateY(' + ySec.toFixed(1) + 'px)';
+    }
+
+    // Left ambient aura travels along the left edge dynamically with scroll
+    if (leftAura) {
+      const yLeft = (progress * (window.innerHeight * 0.7)) + 60;
+      leftAura.style.transform = 'translateY(' + yLeft.toFixed(1) + 'px)';
     }
 
     ticking = false;
@@ -8286,9 +8293,15 @@ function initAmbientScrollLight() {
 
   // Gentle subtle mouse drift (-30px to +30px)
   window.addEventListener('mousemove', (e) => {
+    const normX = (e.clientX / window.innerWidth) - 0.5;
     if (spotlight) {
-      const driftX = ((e.clientX / window.innerWidth) - 0.5) * 60;
-      spotlight.style.marginLeft = driftX.toFixed(1) + 'px';
+      spotlight.style.marginLeft = (normX * 60).toFixed(1) + 'px';
+    }
+    if (leftAura) {
+      leftAura.style.marginLeft = (normX * 35).toFixed(1) + 'px';
+    }
+    if (secondary) {
+      secondary.style.marginRight = (-normX * 35).toFixed(1) + 'px';
     }
   }, { passive: true });
 

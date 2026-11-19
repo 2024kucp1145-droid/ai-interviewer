@@ -2385,6 +2385,24 @@
       opacity: 0.8;
     }
 
+    #ambient-blue-left {
+      position: absolute;
+      top: 20%;
+      left: -120px;
+      width: 700px;
+      height: 700px;
+      background: radial-gradient(circle, 
+        rgba(37, 99, 235, 0.25) 0%, 
+        rgba(56, 189, 248, 0.14) 35%, 
+        rgba(30, 64, 175, 0.05) 60%, 
+        transparent 75%);
+      filter: blur(85px);
+      border-radius: 50%;
+      will-change: transform, margin-left;
+      transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), margin-left 0.12s ease-out;
+      opacity: 0.88;
+    }
+
     #ambient-laser-line {
       position: fixed;
       top: 60px;
@@ -2461,6 +2479,7 @@
   <div id="ambient-light-container" aria-hidden="true">
     <div id="ambient-blue-spotlight"></div>
     <div id="ambient-blue-secondary"></div>
+    <div id="ambient-blue-left"></div>
     <div id="ambient-laser-line"></div>
   </div>
 
