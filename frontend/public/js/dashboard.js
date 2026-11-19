@@ -8150,6 +8150,9 @@ window.switchFrontTab = function(tabName) {
   }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (window.updateAmbientLight) {
+    setTimeout(window.updateAmbientLight, 100);
+  }
 };
 
 // Front blog articles loader
@@ -8233,10 +8236,63 @@ window.openFrontArticle = function(slug) {
   window.location.href = '/blog.html?slug=' + encodeURIComponent(slug);
 };
 
-// On page load, check URL hash for initial tab
+// On page load, check URL hash for initial tab and initialize ambient scroll light
 window.addEventListener('DOMContentLoaded', () => {
   const hash = window.location.hash.replace('#', '');
   if (['home', 'pricing', 'blog', 'about'].includes(hash)) {
     window.switchFrontTab(hash);
   }
+  initAmbientScrollLight();
 });
+
+// =========================================================================
+// Dynamic Ambient Blue Light (Scroll-Tracking Spotlight & Atmospheric Aurora)
+// =========================================================================
+function initAmbientScrollLight() {
+  const spotlight = document.getElementById('ambient-blue-spotlight');
+  const secondary = document.getElementById('ambient-blue-secondary');
+  if (!spotlight && !secondary) return;
+
+  let ticking = false;
+
+  function updateLightPosition() {
+    const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const progress = docHeight > 0 ? Math.min(Math.max(scrollY / docHeight, 0), 1) : 0;
+
+    // The primary blue spotlight glides down smoothly with scroll
+    if (spotlight) {
+      // Moves from -120px at top down through viewport
+      const maxTravel = window.innerHeight * 0.75;
+      const yOffset = -120 + (progress * maxTravel);
+      spotlight.style.transform = 'translate(-50%, ' + yOffset.toFixed(1) + 'px)';
+    }
+
+    // Secondary ambient aura travels on the side with parallax
+    if (secondary) {
+      const ySec = (progress * (window.innerHeight * 0.65)) + 40;
+      secondary.style.transform = 'translateY(' + ySec.toFixed(1) + 'px)';
+    }
+
+    ticking = false;
+  }
+
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      window.requestAnimationFrame(updateLightPosition);
+      ticking = true;
+    }
+  }, { passive: true });
+
+  // Gentle subtle mouse drift (-30px to +30px)
+  window.addEventListener('mousemove', (e) => {
+    if (spotlight) {
+      const driftX = ((e.clientX / window.innerWidth) - 0.5) * 60;
+      spotlight.style.marginLeft = driftX.toFixed(1) + 'px';
+    }
+  }, { passive: true });
+
+  // Initial call on load
+  updateLightPosition();
+  window.updateAmbientLight = updateLightPosition;
+}

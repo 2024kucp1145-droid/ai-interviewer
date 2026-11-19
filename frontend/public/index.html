@@ -2335,10 +2335,134 @@
       color: #a1a1aa;
       font-weight: 500;
     }
+
+    /* =====================================================================
+       DYNAMIC AMBIENT BLUE SPOTLIGHT & SCROLL-TRACKING LIGHT BEAM
+       ===================================================================== */
+    #ambient-light-container {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+      contain: layout style paint;
+    }
+
+    #ambient-blue-spotlight {
+      position: absolute;
+      top: -120px;
+      left: 50%;
+      transform: translate(-50%, 0px);
+      width: 1000px;
+      max-width: 95vw;
+      height: 700px;
+      background: radial-gradient(ellipse 65% 55% at 50% 30%, 
+        rgba(37, 99, 235, 0.32) 0%, 
+        rgba(59, 130, 246, 0.18) 35%, 
+        rgba(14, 165, 233, 0.08) 60%, 
+        rgba(0, 0, 0, 0) 80%);
+      filter: blur(75px);
+      border-radius: 50%;
+      will-change: transform, margin-left;
+      transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), margin-left 0.1s ease-out;
+      opacity: 0.95;
+    }
+
+    #ambient-blue-secondary {
+      position: absolute;
+      top: 10%;
+      right: -100px;
+      width: 650px;
+      height: 650px;
+      background: radial-gradient(circle, 
+        rgba(30, 64, 175, 0.22) 0%, 
+        rgba(59, 130, 246, 0.10) 45%, 
+        transparent 75%);
+      filter: blur(85px);
+      border-radius: 50%;
+      will-change: transform;
+      transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+      opacity: 0.8;
+    }
+
+    #ambient-laser-line {
+      position: fixed;
+      top: 60px;
+      left: 0;
+      right: 0;
+      height: 1.5px;
+      background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(59, 130, 246, 0.1) 15%, 
+        rgba(96, 165, 250, 0.85) 50%, 
+        rgba(59, 130, 246, 0.1) 85%, 
+        transparent 100%);
+      z-index: 101;
+      pointer-events: none;
+      box-shadow: 0 0 16px rgba(59, 130, 246, 0.6);
+    }
+
+    /* Ambient Blue Accents & Card Shading */
+    .bolt-prompt-box:focus-within {
+      border-color: rgba(59, 130, 246, 0.65) !important;
+      box-shadow: 0 0 28px rgba(37, 99, 235, 0.25) !important;
+    }
+
+    .bolt-chip:hover {
+      border-color: rgba(59, 130, 246, 0.5) !important;
+      color: #93c5fd !important;
+      background: rgba(30, 58, 138, 0.2) !important;
+    }
+
+    .if-then-card:hover {
+      border-color: rgba(59, 130, 246, 0.45) !important;
+      box-shadow: 0 8px 32px rgba(37, 99, 235, 0.16) !important;
+    }
+
+    .front-blog-card:hover, .front-stat-card:hover, .pricing-card-luxury:hover {
+      border-color: rgba(59, 130, 246, 0.45) !important;
+      box-shadow: 0 10px 32px rgba(37, 99, 235, 0.14) !important;
+    }
+
+    .bolt-pill {
+      border-color: rgba(59, 130, 246, 0.35) !important;
+      box-shadow: 0 0 18px rgba(37, 99, 235, 0.18) !important;
+    }
+
+    .bolt-pill-badge {
+      background: #2563eb !important;
+      color: #ffffff !important;
+    }
+
+    .btn-primary {
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.28) !important;
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 0 30px rgba(59, 130, 246, 0.5) !important;
+    }
+
+    /* Ensure content layers cleanly above ambient background light */
+    main {
+      position: relative;
+      z-index: 1;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
 </style>
   <script src="/js/theme.js"></script>
 </head>
 <body>
+
+  <!-- Dynamic Ambient Blue Spotlight & Aurora Light (Scroll-Tracking) -->
+  <div id="ambient-light-container" aria-hidden="true">
+    <div id="ambient-blue-spotlight"></div>
+    <div id="ambient-blue-secondary"></div>
+    <div id="ambient-laser-line"></div>
+  </div>
 
   <!-- Admin-controlled Global Announcement Banner -->
   <div id="site-announcement-bar" style="display:none;padding:9px 18px;text-align:center;font-size:.82rem;font-weight:600;border-bottom:1px solid rgba(255,255,255,0.08);"></div>
