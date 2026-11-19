@@ -8117,3 +8117,126 @@ window.switchFrontMode = function(mode) {
     }
   }
 };
+
+
+// --- Front Page Tab Switching (Home, Pricing, Blog, About Us) ---
+window.switchFrontTab = function(tabName) {
+  const tabs = ['home', 'pricing', 'blog', 'about'];
+  if (!tabs.includes(tabName)) tabName = 'home';
+
+  // Toggle active button in front-nav-tabs
+  tabs.forEach(t => {
+    const btn = document.getElementById('nav-btn-' + t);
+    const view = document.getElementById('front-tab-' + t);
+    if (btn) {
+      if (t === tabName) btn.classList.add('active');
+      else btn.classList.remove('active');
+    }
+    if (view) {
+      view.style.display = (t === tabName) ? 'block' : 'none';
+    }
+  });
+
+  // Update hash
+  if (history.replaceState) {
+    history.replaceState(null, '', '#' + tabName);
+  } else {
+    window.location.hash = '#' + tabName;
+  }
+
+  // If blog tab selected, load articles
+  if (tabName === 'blog') {
+    loadFrontBlogArticles();
+  }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+// Front blog articles loader
+window.frontBlogArticlesCache = [];
+window.loadFrontBlogArticles = async function() {
+  const grid = document.getElementById('front-blog-grid');
+  if (!grid) return;
+
+  if (window.frontBlogArticlesCache.length > 0) {
+    renderFrontBlogGrid(window.frontBlogArticlesCache);
+    return;
+  }
+
+  grid.innerHTML = '<div style="color:#71717a; font-size:0.85rem; padding:2rem; text-align:center;"><i class="bi bi-arrow-repeat spinning"></i> Loading articles...</div>';
+
+  try {
+    const res = await fetch('/api/resources');
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.resources && data.resources.length > 0) {
+        window.frontBlogArticlesCache = data.resources;
+        renderFrontBlogGrid(data.resources);
+        return;
+      }
+    }
+  } catch (e) {
+    console.error('Notice loading resources:', e);
+  }
+
+  // Fallback high-quality engineering seed articles
+  window.frontBlogArticlesCache = [
+    {
+      title: "How AI Voice Screening Saves 15+ Engineering Hours Every Week",
+      slug: "how-ai-voice-screening-saves-engineering-hours",
+      summary: "Traditional phone screens burn senior developer time on basic checks. Here is how autonomous sub-second voice interviews automate initial screening.",
+      category: "Engineering Leadership",
+      read_time_minutes: 5,
+      views_count: 142
+    },
+    {
+      title: "Continuous Keystroke Dynamics & Multi-Modal Anti-Cheating in 2026",
+      slug: "keystroke-dynamics-and-anti-cheating-in-2026",
+      summary: "How modern AI interviewers detect secondary screens, copy-pasting, and AI-assisted prompt injection using passive client-side telemetry.",
+      category: "Anti-Cheat",
+      read_time_minutes: 6,
+      views_count: 189
+    },
+    {
+      title: "The Top 50 LeetCode Patterns for Senior Engineering Screenings",
+      slug: "top-50-leetcode-patterns-for-senior-screenings",
+      summary: "Why testing Two-Pointers, Monotonic Stacks, and Graph BFS reveals more about production problem-solving than memorized dynamic programming tricks.",
+      category: "LeetCode & DSA",
+      read_time_minutes: 7,
+      views_count: 231
+    }
+  ];
+  renderFrontBlogGrid(window.frontBlogArticlesCache);
+};
+
+window.renderFrontBlogGrid = function(articles) {
+  const grid = document.getElementById('front-blog-grid');
+  if (!grid) return;
+
+  grid.innerHTML = articles.map(a => `
+    <div class="front-blog-card" onclick="window.openFrontArticle('${a.slug}')">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
+        <span class="bolt-pill-badge" style="font-size:0.6rem; padding:0.12rem 0.45rem;">${a.category || 'Article'}</span>
+        <span style="font-size:0.7rem; color:#71717a;">${a.read_time_minutes || 5} min read</span>
+      </div>
+      <h3 style="font-size:1.05rem; font-weight:700; color:#ffffff; margin-bottom:0.4rem; line-height:1.35;">${a.title}</h3>
+      <p style="font-size:0.78rem; color:#a1a1aa; line-height:1.5; margin-bottom:1rem; flex-grow:1;">${a.summary || ''}</p>
+      <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.72rem; color:#71717a; border-top:1px solid #27272a; padding-top:0.6rem;">
+        <span>Read Article &rarr;</span>
+        <span><i class="bi bi-eye"></i> ${a.views_count || 42} views</span>
+      </div>
+    </div>
+  `).join('');
+};
+
+window.openFrontArticle = function(slug) {
+  window.location.href = '/blog.html?slug=' + encodeURIComponent(slug);
+};
+
+// On page load, check URL hash for initial tab
+window.addEventListener('DOMContentLoaded', () => {
+  const hash = window.location.hash.replace('#', '');
+  if (['home', 'pricing', 'blog', 'about'].includes(hash)) {
+    window.switchFrontTab(hash);
+  }
+});

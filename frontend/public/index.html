@@ -2282,6 +2282,59 @@
       gap: 1.5rem;
       flex-wrap: wrap;
     }
+
+    .front-blog-card {
+      background: #121215;
+      border: 1px solid #27272a;
+      border-radius: 12px;
+      padding: 1.4rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.2s ease;
+    }
+    .front-blog-card:hover {
+      border-color: #52525b;
+      transform: translateY(-2px);
+    }
+    .front-faq-item {
+      background: #09090b;
+      border: 1px solid #27272a;
+      border-radius: 10px;
+      padding: 1.15rem 1.35rem;
+      margin-bottom: 0.85rem;
+    }
+    .front-faq-question {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 0.35rem;
+    }
+    .front-faq-answer {
+      font-size: 0.8rem;
+      color: #a1a1aa;
+      line-height: 1.55;
+    }
+    .front-stat-card {
+      background: #09090b;
+      border: 1px solid #27272a;
+      border-radius: 12px;
+      padding: 1.5rem 1.25rem;
+      text-align: center;
+    }
+    .front-stat-val {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.25rem;
+    }
+    .front-stat-lbl {
+      font-size: 0.75rem;
+      color: #a1a1aa;
+      font-weight: 500;
+    }
 </style>
   <script src="/js/theme.js"></script>
 </head>
@@ -2302,44 +2355,46 @@
 
   <!-- Top Navigation Bar -->
   <header>
-    <div class="brand">
-      <i class="bi bi-cpu-fill"></i>
-      <span id="site-brand-title">RoundOne AI</span>
-      <span class="brand-badge" id="site-brand-badge">Autonomous</span>
+    <!-- Left Corner: Logo + Tabs (Home, Pricing, Blog, About Us) immediately after logo -->
+    <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+      <div class="brand" onclick="switchFrontTab('home')" style="cursor: pointer;" title="RoundOne AI Home">
+        <i class="bi bi-cpu-fill"></i>
+        <span id="site-brand-title">RoundOne AI</span>
+        <span class="brand-badge" id="site-brand-badge">Autonomous</span>
+      </div>
+
+      <!-- Navigation Tabs (Home, Pricing, Blog, About Us) -->
+      <nav class="nav-tabs" id="front-nav-tabs">
+        <button type="button" class="nav-btn active" id="nav-btn-home" onclick="switchFrontTab('home')">Home</button>
+        <button type="button" class="nav-btn" id="nav-btn-pricing" onclick="switchFrontTab('pricing')">Pricing</button>
+        <button type="button" class="nav-btn" id="nav-btn-blog" onclick="switchFrontTab('blog')">Blog</button>
+        <button type="button" class="nav-btn" id="nav-btn-about" onclick="switchFrontTab('about')">About Us</button>
+      </nav>
     </div>
 
-    <!-- Public Navigation: ONLY shown when logged out (clean, 1-2 items) -->
-    <nav class="nav-tabs" id="public-nav-tabs">
-      <a href="#front-simulator" class="nav-btn" style="text-decoration:none;">Demo</a>
-      <a href="#front-outcomes" class="nav-btn" style="text-decoration:none;">Outcomes</a>
-      <a href="#front-pricing" class="nav-btn" style="text-decoration:none;">Pricing</a>
-      <a href="/blog.html" class="nav-btn" style="text-decoration:none;">Blog</a>
-    </nav>
-
-    <!-- Recruiter Navigation: ONLY shown when logged in -->
-    <nav class="nav-tabs" id="main-nav-tabs" style="display: none;">
-      <button class="nav-btn active" onclick="switchTab('jobs')"><i class="bi bi-briefcase"></i> Roles &amp; Skills</button>
-      <button class="nav-btn" onclick="switchTab('candidates')"><i class="bi bi-people"></i> Candidate Pipeline</button>
-      <button class="nav-btn" onclick="openQuestionBankModal()"><i class="bi bi-collection"></i> Question Bank</button>
-      <button class="nav-btn" onclick="switchTab('keys')"><i class="bi bi-key"></i> API Key</button>
-      <button class="nav-btn" onclick="switchTab('metrics')"><i class="bi bi-graph-up"></i> Usage &amp; Billing</button>
-      <a href="/blog.html" class="nav-btn" style="text-decoration:none;"><i class="bi bi-journal-text"></i> Blog</a>
-    </nav>
-
+    <!-- Right Corner: Start Free Trial, Feedback, Sign In -->
     <div class="header-user">
       <!-- Free Trial Header CTA Button -->
       <button class="btn btn-primary btn-sm" id="btn-header-trial" onclick="handleStartTrialClick()" title="Claim your 10 free AI technical interviews">
         Start Free Trial
       </button>
 
-      <!-- Responses & Scores Trigger (Logged in only) -->
-      <button class="btn btn-sm btn-responses-top" id="btn-top-responses" onclick="openResponsesDrawer()" style="display: none;">
+      <!-- Feedback Button -->
+      <button class="btn btn-outline btn-sm" id="btn-open-feedback" onclick="openFeedbackModal()" title="Share feedback and receive an instant response">
+        <i class="bi bi-chat-heart"></i> Feedback
+      </button>
+
+      <!-- Sign In Button -->
+      <button class="btn btn-outline btn-sm" id="btn-auth-switch" onclick="openAuthModal()">
+        <i class="bi bi-person"></i> Sign In
+      </button>
+
+      <!-- Responses & Scores Trigger (When logged in) -->
+      <button class="btn btn-sm btn-responses-top" id="btn-top-responses" onclick="openResponsesDrawer()" style="display: none;" title="View candidate responses and scores">
         <i class="bi bi-chat-square-quote-fill"></i> Responses &amp; Scores
         <span id="responses-count-badge" class="badge responses-badge">0</span>
       </button>
-      <button class="btn btn-outline btn-sm" id="btn-open-feedback" onclick="openFeedbackModal()" title="Share feedback"><i class="bi bi-chat-heart"></i></button>
       <span id="user-display" style="font-size: 0.75rem; color: #a1a1aa; font-weight: 500; display: none;"></span>
-      <button class="btn btn-outline btn-sm" id="btn-auth-switch" onclick="openAuthModal()"><i class="bi bi-person"></i> Sign In</button>
     </div>
   </header>
 
@@ -2369,165 +2424,164 @@
         </div>
       </div>
 
-<!-- BOLT.NEW STYLE HERO SHOWCASE (Clean Black & White Studio) -->
-      <div id="bolt-hero-showcase" class="bolt-hero-wrapper">
-        <!-- Hero Content Center -->
-        <div style="text-align: center; margin-bottom: 2.5rem;">
-          <!-- Pill Badge -->
-          <div class="bolt-pill" onclick="handleStartTrialClick()">
-            <span class="bolt-pill-badge">NEW</span>
-            <span>Autonomous Technical Screening • 10 Free Trials Included</span>
-            <i class="bi bi-arrow-right" style="font-size: 0.75rem;"></i>
-          </div>
-
-          <!-- Main Title -->
-          <h1 class="bolt-title">
-            The AI that screens software engineers.<br>
-            Before your team spends a single hour.
-          </h1>
-
-          <!-- Subtitle -->
-          <p class="bolt-subhead">
-            Sub-second conversational voice interviews. Live coding in <strong>4,111+ LeetCode problems</strong>. Continuous camera anti-cheat proctoring. Objective scorecards delivered in 30 seconds.
-          </p>
-
-          <!-- Minimalist Prompt Bar -->
-          <div class="bolt-prompt-container">
-            <div class="bolt-prompt-box">
-              <i class="bi bi-search" style="color: #71717a;"></i>
-              <input type="text" id="bolt-prompt-input" class="bolt-prompt-input" placeholder="Create an interview (e.g. Senior Backend Engineer, React + Node...)" onkeydown="if(event.key==='Enter') handleBoltPromptSubmit()">
-              <button type="button" class="bolt-prompt-btn" onclick="handleBoltPromptSubmit()">
-                <span>Start Screening</span>
-                <i class="bi bi-arrow-right"></i>
-              </button>
-            </div>
-            <!-- Quick Chips -->
-            <div class="bolt-prompt-chips">
-              <span style="font-size: 0.72rem; color: #71717a; margin-right: 0.2rem;">Quick roles:</span>
-              <button type="button" class="bolt-chip" onclick="handleBoltChipClick('Full-Stack Engineer (React + Node.js)')">Full-Stack</button>
-              <button type="button" class="bolt-chip" onclick="handleBoltChipClick('Python &amp; Machine Learning Engineer')">Python &amp; AI</button>
-              <button type="button" class="bolt-chip" onclick="handleBoltChipClick('Java Enterprise Systems Architect')">Java Enterprise</button>
-              <button type="button" class="bolt-chip" onclick="handleBoltChipClick('LeetCode DSA Live Coding')">LeetCode DSA</button>
-            </div>
-          </div>
-
-          <!-- Hero Action CTAs -->
-          <div class="hero-cta-row">
-            <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()" style="padding: 0.7rem 1.6rem; font-size: 0.85rem;">
-              Start Free Trial — 10 Free Rounds
-            </button>
-            <button type="button" class="btn btn-outline" onclick="openQuestionBankModal()" style="padding: 0.7rem 1.4rem; font-size: 0.85rem;">
-              Explore 4,111+ Question Bank &rarr;
-            </button>
-          </div>
-        </div>
+<!-- BOLT.NEW STYLE HERO SHOWCASE CONTAINER (Holds dedicated tabs: Home, Pricing, Blog, About Us) -->
+      <div id="bolt-hero-showcase" class="bolt-hero-wrapper" style="padding: 2rem 1.75rem;">
 
         <!-- ========================================================
-             INTERACTIVE ASSESSMENT DEMO (Black & White Studio View)
+             TAB VIEW 1: HOME (Hero, Prompt, Live Simulator, Outcomes, Comparison, Banner)
              ======================================================== -->
-        <div id="front-simulator" class="hero-simulator-window">
-          <div class="hero-simulator-header">
-            <div style="display: flex; align-items: center; gap: 0.65rem;">
-              <span style="display: inline-flex; gap: 6px;">
-                <span style="width: 10px; height: 10px; border-radius: 50%; background: #3f3f46; display: inline-block;"></span>
-                <span style="width: 10px; height: 10px; border-radius: 50%; background: #3f3f46; display: inline-block;"></span>
-                <span style="width: 10px; height: 10px; border-radius: 50%; background: #3f3f46; display: inline-block;"></span>
-              </span>
-              <span style="font-weight: 700; color: #ffffff; font-size: 0.78rem;">
-                Candidate Session #8421 • LeetCode #1: Two Sum
-              </span>
+        <div id="front-tab-home" class="front-tab-view" style="display: block;">
+          <!-- Hero Header -->
+          <div style="text-align: center; margin-bottom: 2.5rem; padding: 1.5rem 0;">
+            <div class="bolt-pill" onclick="handleStartTrialClick()">
+              <span class="bolt-pill-badge">NEW</span>
+              <span>Autonomous Technical Screening • 10 Free Trials Included</span>
+              <i class="bi bi-arrow-right" style="font-size: 0.75rem;"></i>
             </div>
 
-            <!-- Tab Switcher -->
-            <div style="display: flex; align-items: center; gap: 0.3rem; background: #000000; padding: 0.2rem; border-radius: 8px; border: 1px solid #27272a;">
-              <button type="button" class="sim-tab-btn active" id="sim-btn-voice" onclick="switchSimTab('voice')">
-                01 • Voice Interview
-              </button>
-              <button type="button" class="sim-tab-btn" id="sim-btn-compiler" onclick="switchSimTab('compiler')">
-                02 • Code Sandbox
-              </button>
-              <button type="button" class="sim-tab-btn" id="sim-btn-scorecard" onclick="switchSimTab('scorecard')">
-                03 • Scorecard
-              </button>
-            </div>
+            <h1 class="bolt-title">
+              The AI that screens software engineers.<br>
+              Before your team spends a single hour.
+            </h1>
 
-            <div>
-              <span style="font-size: 0.7rem; color: #a1a1aa; font-family: monospace;">● Live Demo</span>
-            </div>
-          </div>
+            <p class="bolt-subhead">
+              Sub-second conversational voice interviews. Live coding in <strong>4,111+ LeetCode problems</strong>. Continuous camera anti-cheat proctoring. Objective scorecards delivered in 30 seconds.
+            </p>
 
-          <!-- TAB PANEL 1: VOICE SCREENING -->
-          <div id="sim-panel-voice" class="sim-tab-panel hero-simulator-grid">
-            <div class="hero-sim-left">
-              <div class="sim-card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                  <div style="font-size: 0.78rem; font-weight: 700; color: #ffffff;">Alex • AI Tech Lead</div>
-                  <span style="font-size: 0.65rem; color: #a1a1aa;">Latency: 420ms</span>
-                </div>
-                <div id="sim-alex-speech" style="background: #000000; border-radius: 8px; padding: 0.75rem; border: 1px solid #27272a; font-size: 0.78rem; color: #e4e4e7; line-height: 1.5;">
-                  <strong style="color: #ffffff;">AI Follow-up:</strong>
-                  "Great! You used a HashMap for Two Sum in O(N) time. But if memory is strictly O(1) auxiliary space and the array is already sorted, how would you redesign your pointers?"
-                </div>
-                <div style="margin-top: 0.75rem; display: flex; justify-content: flex-end;">
-                  <button type="button" id="btn-sim-followup" class="btn btn-outline btn-xs" onclick="simulateAlexFollowup()" style="font-size: 0.72rem; padding: 0.35rem 0.75rem;">
-                    Simulate Follow-up Response &rarr;
-                  </button>
-                </div>
-              </div>
-
-              <!-- Anti-Cheat Status -->
-              <div class="sim-card" style="margin-top: auto;">
-                <div style="font-size: 0.68rem; font-weight: 700; color: #71717a; text-transform: uppercase; margin-bottom: 0.4rem;">
-                  Proctoring Telemetry
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.72rem; color: #a1a1aa;">
-                  <div>● Webcam Gaze: <strong style="color: #ffffff;">Focused (Face in Center)</strong></div>
-                  <div>● Keystrokes: <strong style="color: #ffffff;">Human Typing (0 Pastes)</strong></div>
-                  <div>● Browser Window: <strong style="color: #ffffff;">100% Locked</strong></div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Right: Candidate Response -->
-            <div class="hero-sim-right" style="padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem;">
-              <div class="sim-card">
-                <div style="font-size: 0.78rem; font-weight: 700; color: #ffffff; margin-bottom: 0.5rem;">
-                  Candidate Audio Transcript
-                </div>
-                <div id="sim-candidate-speech" style="background: #000000; border-radius: 8px; padding: 0.75rem; border: 1px solid #27272a; font-size: 0.78rem; color: #a1a1aa; line-height: 1.5; font-style: italic;">
-                  "I'd use a two-pointer approach starting at left=0 and right=n-1, moving inward based on the target sum. That runs in O(N) time and strictly O(1) auxiliary space."
-                </div>
-              </div>
-
-              <div class="sim-card" style="margin-top: auto;">
-                <div style="font-size: 0.8rem; font-weight: 700; color: #ffffff; margin-bottom: 0.25rem;">
-                  Test the code execution sandbox
-                </div>
-                <div style="font-size: 0.72rem; color: #71717a; margin-bottom: 0.75rem;">
-                  Switch to Tab 02 to run the candidate solution against automated test cases live.
-                </div>
-                <button type="button" class="btn btn-primary btn-sm" onclick="switchSimTab('compiler')" style="font-size: 0.75rem;">
-                  Open Code Sandbox &rarr;
+            <!-- Minimalist Prompt Bar -->
+            <div class="bolt-prompt-container">
+              <div class="bolt-prompt-box">
+                <i class="bi bi-search" style="color: #71717a;"></i>
+                <input type="text" id="bolt-prompt-input" class="bolt-prompt-input" placeholder="Create an interview (e.g. Senior Backend Engineer, React + Node...)" onkeydown="if(event.key==='Enter') handleBoltPromptSubmit()">
+                <button type="button" class="bolt-prompt-btn" onclick="handleBoltPromptSubmit()">
+                  <span>Start Screening</span>
+                  <i class="bi bi-arrow-right"></i>
                 </button>
               </div>
+              <!-- Quick Chips -->
+              <div class="bolt-prompt-chips">
+                <span style="font-size: 0.72rem; color: #71717a; margin-right: 0.2rem;">Quick roles:</span>
+                <button type="button" class="bolt-chip" onclick="handleBoltChipClick('Full-Stack Engineer (React + Node.js)')">Full-Stack</button>
+                <button type="button" class="bolt-chip" onclick="handleBoltChipClick('Python &amp; Machine Learning Engineer')">Python &amp; AI</button>
+                <button type="button" class="bolt-chip" onclick="handleBoltChipClick('Java Enterprise Systems Architect')">Java Enterprise</button>
+                <button type="button" class="bolt-chip" onclick="handleBoltChipClick('LeetCode DSA Live Coding')">LeetCode DSA</button>
+              </div>
+            </div>
+
+            <!-- CTAs -->
+            <div class="hero-cta-row">
+              <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()" style="padding: 0.7rem 1.6rem; font-size: 0.85rem;">
+                Start Free Trial — 10 Free Rounds
+              </button>
+              <button type="button" class="btn btn-outline" onclick="openQuestionBankModal()" style="padding: 0.7rem 1.4rem; font-size: 0.85rem;">
+                Explore 4,111+ Question Bank &rarr;
+              </button>
             </div>
           </div>
 
-          <!-- TAB PANEL 2: CODE SANDBOX COMPILER -->
-          <div id="sim-panel-compiler" class="sim-tab-panel" style="display: none;">
-            <div class="hero-sim-right">
-              <div class="sim-editor-toolbar">
-                <span style="color: #a1a1aa; font-size: 0.75rem; font-family: monospace;">solution.js (JavaScript / Node.js)</span>
-                <div style="display: flex; gap: 0.5rem;">
-                  <button type="button" class="btn btn-outline btn-xs" onclick="window.resetSandboxCode()" style="font-size: 0.7rem;">Reset</button>
-                  <button type="button" id="btn-run-sandbox" class="sim-run-btn" onclick="window.runDemoSandboxCode()">
-                    Run Test Cases
-                  </button>
+          <!-- Interactive Assessment Demo (Black & White Studio View) -->
+          <div id="front-simulator" class="hero-simulator-window">
+            <div class="hero-simulator-header">
+              <div style="display: flex; align-items: center; gap: 0.65rem;">
+                <span style="display: inline-flex; gap: 6px;">
+                  <span style="width: 10px; height: 10px; border-radius: 50%; background: #3f3f46; display: inline-block;"></span>
+                  <span style="width: 10px; height: 10px; border-radius: 50%; background: #3f3f46; display: inline-block;"></span>
+                  <span style="width: 10px; height: 10px; border-radius: 50%; background: #3f3f46; display: inline-block;"></span>
+                </span>
+                <span style="font-weight: 700; color: #ffffff; font-size: 0.78rem;">
+                  Candidate Session #8421 • LeetCode #1: Two Sum
+                </span>
+              </div>
+
+              <!-- Simulator Sub-Tabs -->
+              <div style="display: flex; align-items: center; gap: 0.3rem; background: #000000; padding: 0.2rem; border-radius: 8px; border: 1px solid #27272a;">
+                <button type="button" class="sim-tab-btn active" id="sim-btn-voice" onclick="switchSimTab('voice')">
+                  01 • Voice Interview
+                </button>
+                <button type="button" class="sim-tab-btn" id="sim-btn-compiler" onclick="switchSimTab('compiler')">
+                  02 • Code Sandbox
+                </button>
+                <button type="button" class="sim-tab-btn" id="sim-btn-scorecard" onclick="switchSimTab('scorecard')">
+                  03 • Scorecard
+                </button>
+              </div>
+
+              <div>
+                <span style="font-size: 0.7rem; color: #a1a1aa; font-family: monospace;">● Live Demo</span>
+              </div>
+            </div>
+
+            <!-- TAB 1: Voice Interview -->
+            <div id="sim-panel-voice" class="sim-tab-panel hero-simulator-grid">
+              <div class="hero-sim-left">
+                <div class="sim-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <div style="font-size: 0.78rem; font-weight: 700; color: #ffffff;">Alex • AI Tech Lead</div>
+                    <span style="font-size: 0.65rem; color: #a1a1aa;">Latency: 420ms</span>
+                  </div>
+                  <div id="sim-alex-speech" style="background: #000000; border-radius: 8px; padding: 0.75rem; border: 1px solid #27272a; font-size: 0.78rem; color: #e4e4e7; line-height: 1.5;">
+                    <strong style="color: #ffffff;">AI Follow-up:</strong>
+                    "Great! You used a HashMap for Two Sum in O(N) time. But if memory is strictly O(1) auxiliary space and the array is already sorted, how would you redesign your pointers?"
+                  </div>
+                  <div style="margin-top: 0.75rem; display: flex; justify-content: flex-end;">
+                    <button type="button" id="btn-sim-followup" class="btn btn-outline btn-xs" onclick="simulateAlexFollowup()" style="font-size: 0.72rem; padding: 0.35rem 0.75rem;">
+                      Simulate Follow-up Response &rarr;
+                    </button>
+                  </div>
+                </div>
+
+                <div class="sim-card" style="margin-top: auto;">
+                  <div style="font-size: 0.68rem; font-weight: 700; color: #71717a; text-transform: uppercase; margin-bottom: 0.4rem;">
+                    Proctoring Telemetry
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.72rem; color: #a1a1aa;">
+                    <div>● Webcam Gaze: <strong style="color: #ffffff;">Focused (Face in Center)</strong></div>
+                    <div>● Keystrokes: <strong style="color: #ffffff;">Human Typing (0 Pastes)</strong></div>
+                    <div>● Browser Window: <strong style="color: #ffffff;">100% Locked</strong></div>
+                  </div>
                 </div>
               </div>
 
-              <div class="sim-code-area">
-                <textarea id="sandbox-code-editor" class="sim-code-textarea" spellcheck="false">/**
+              <!-- Right: Candidate Response -->
+              <div class="hero-sim-right" style="padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem;">
+                <div class="sim-card">
+                  <div style="font-size: 0.78rem; font-weight: 700; color: #ffffff; margin-bottom: 0.5rem;">
+                    Candidate Audio Transcript
+                  </div>
+                  <div id="sim-candidate-speech" style="background: #000000; border-radius: 8px; padding: 0.75rem; border: 1px solid #27272a; font-size: 0.78rem; color: #a1a1aa; line-height: 1.5; font-style: italic;">
+                    "I'd use a two-pointer approach starting at left=0 and right=n-1, moving inward based on the target sum. That runs in O(N) time and strictly O(1) auxiliary space."
+                  </div>
+                </div>
+
+                <div class="sim-card" style="margin-top: auto;">
+                  <div style="font-size: 0.8rem; font-weight: 700; color: #ffffff; margin-bottom: 0.25rem;">
+                    Test the code execution sandbox
+                  </div>
+                  <div style="font-size: 0.72rem; color: #71717a; margin-bottom: 0.75rem;">
+                    Switch to Tab 02 to run the candidate solution against automated test cases live.
+                  </div>
+                  <button type="button" class="btn btn-primary btn-sm" onclick="switchSimTab('compiler')" style="font-size: 0.75rem;">
+                    Open Code Sandbox &rarr;
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 2: Code Sandbox -->
+            <div id="sim-panel-compiler" class="sim-tab-panel" style="display: none;">
+              <div class="hero-sim-right">
+                <div class="sim-editor-toolbar">
+                  <span style="color: #a1a1aa; font-size: 0.75rem; font-family: monospace;">solution.js (JavaScript / Node.js)</span>
+                  <div style="display: flex; gap: 0.5rem;">
+                    <button type="button" class="btn btn-outline btn-xs" onclick="window.resetSandboxCode()" style="font-size: 0.7rem;">Reset</button>
+                    <button type="button" id="btn-run-sandbox" class="sim-run-btn" onclick="window.runDemoSandboxCode()">
+                      Run Test Cases
+                    </button>
+                  </div>
+                </div>
+
+                <div class="sim-code-area">
+                  <textarea id="sandbox-code-editor" class="sim-code-textarea" spellcheck="false">/**
  * LeetCode #1: Two Sum
  * Time Limit: 2.0s | Memory Limit: 256MB
  * @param {number[]} nums
@@ -2545,201 +2599,214 @@ function twoSum(nums, target) {
   }
   return [];
 }</textarea>
-              </div>
+                </div>
 
-              <div id="sandbox-output-console" class="sim-console-output">
-                <div style="color: #71717a; font-size: 0.72rem; font-family: monospace;">
-                  Click "Run Test Cases" above to compile and execute live against test suites.
+                <div id="sandbox-output-console" class="sim-console-output">
+                  <div style="color: #71717a; font-size: 0.72rem; font-family: monospace;">
+                    Click "Run Test Cases" above to compile and execute live against test suites.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 3: Scorecard -->
+            <div id="sim-panel-scorecard" class="sim-tab-panel" style="display: none; padding: 1.5rem;">
+              <div style="display: grid; grid-template-columns: 1fr 1.4fr; gap: 1.5rem; width: 100%;">
+                <div class="sim-card" style="text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 1.75rem;">
+                  <div style="font-size: 0.7rem; font-weight: 700; color: #71717a; text-transform: uppercase; margin-bottom: 0.5rem;">Automated Verdict</div>
+                  <div style="font-size: 3.5rem; font-weight: 800; color: #ffffff; line-height: 1;">94<span style="font-size: 1.5rem; color: #71717a;">/100</span></div>
+                  <div style="font-size: 1rem; font-weight: 700; color: #ffffff; margin: 0.5rem 0 0.2rem;">STRONG HIRE</div>
+                  <div style="font-size: 0.72rem; color: #a1a1aa; margin-bottom: 1.25rem;">Candidate in Top 3.8% of Full-Stack benchmark.</div>
+                  <button type="button" class="btn btn-outline btn-sm" onclick="alert('Demo: Full candidate PDF scorecard downloaded with timestamps and proctoring telemetry.')">
+                    Download PDF Scorecard
+                  </button>
+                </div>
+
+                <div class="sim-card" style="display: flex; flex-direction: column; gap: 0.85rem; padding: 1.4rem;">
+                  <div style="font-size: 0.72rem; font-weight: 700; color: #71717a; text-transform: uppercase;">Rubric Breakdown</div>
+                  <div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 0.25rem;">
+                      <span>Data Structures &amp; Algorithms</span>
+                      <strong style="color: #ffffff;">96 / 100</strong>
+                    </div>
+                    <div style="background: #27272a; height: 4px; border-radius: 99px;">
+                      <div style="background: #ffffff; width: 96%; height: 100%; border-radius: 99px;"></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 0.25rem;">
+                      <span>Code Quality &amp; Clean Architecture</span>
+                      <strong style="color: #ffffff;">92 / 100</strong>
+                    </div>
+                    <div style="background: #27272a; height: 4px; border-radius: 99px;">
+                      <div style="background: #ffffff; width: 92%; height: 100%; border-radius: 99px;"></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 0.25rem;">
+                      <span>System Design &amp; Trade-offs</span>
+                      <strong style="color: #ffffff;">94 / 100</strong>
+                    </div>
+                    <div style="background: #27272a; height: 4px; border-radius: 99px;">
+                      <div style="background: #ffffff; width: 94%; height: 100%; border-radius: 99px;"></div>
+                    </div>
+                  </div>
+                  <div style="background: #000000; border: 1px solid #27272a; border-radius: 6px; padding: 0.6rem 0.75rem; font-size: 0.72rem; color: #a1a1aa; line-height: 1.45; margin-top: 0.35rem;">
+                    <strong style="color: #ffffff;">Evidence Quote (12:44):</strong> "Candidate proactively recognized two-pointer optimization to reach O(1) space."
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- TAB PANEL 3: 0–100 SCORECARD -->
-          <div id="sim-panel-scorecard" class="sim-tab-panel" style="display: none; padding: 1.5rem;">
-            <div style="display: grid; grid-template-columns: 1fr 1.4fr; gap: 1.5rem; width: 100%;">
-              <div class="sim-card" style="text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 1.75rem;">
-                <div style="font-size: 0.7rem; font-weight: 700; color: #71717a; text-transform: uppercase; margin-bottom: 0.5rem;">Automated Verdict</div>
-                <div style="font-size: 3.5rem; font-weight: 800; color: #ffffff; line-height: 1;">94<span style="font-size: 1.5rem; color: #71717a;">/100</span></div>
-                <div style="font-size: 1rem; font-weight: 700; color: #ffffff; margin: 0.5rem 0 0.2rem;">STRONG HIRE</div>
-                <div style="font-size: 0.72rem; color: #a1a1aa; margin-bottom: 1.25rem;">Candidate in Top 3.8% of Full-Stack benchmark.</div>
-                <button type="button" class="btn btn-outline btn-sm" onclick="alert('Demo: Full candidate PDF scorecard downloaded with timestamps and proctoring telemetry.')">
-                  Download PDF Scorecard
-                </button>
+          <!-- Outcomes Section (3 Cards) -->
+          <div class="if-then-section">
+            <div class="if-then-header">
+              <h2 style="font-size: 1.65rem; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; margin-bottom: 0.35rem;">
+                If You Want This ➔ RoundOne Delivers This
+              </h2>
+              <p style="font-size: 0.85rem; color: #a1a1aa; margin: 0;">
+                Direct outcomes. No lengthy sales cycles.
+              </p>
+            </div>
+
+            <div class="if-then-grid">
+              <div class="if-then-card">
+                <div class="if-block">
+                  <div class="if-label">IF YOU WANT:</div>
+                  <div class="if-text">Zero Senior Engineers Burned Out on First-Round Interviews</div>
+                </div>
+                <div class="then-block">
+                  <div class="then-label">ROUNDONE DELIVERS:</div>
+                  <div class="then-text">Autonomous 45-min voice &amp; coding rounds 24/7. Your engineers only spend time on pre-vetted top 5% finalists.</div>
+                </div>
               </div>
 
-              <div class="sim-card" style="display: flex; flex-direction: column; gap: 0.85rem; padding: 1.4rem;">
-                <div style="font-size: 0.72rem; font-weight: 700; color: #71717a; text-transform: uppercase;">Rubric Breakdown</div>
-                <div>
-                  <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 0.25rem;">
-                    <span>Data Structures &amp; Algorithms</span>
-                    <strong style="color: #ffffff;">96 / 100</strong>
-                  </div>
-                  <div style="background: #27272a; height: 4px; border-radius: 99px;">
-                    <div style="background: #ffffff; width: 96%; height: 100%; border-radius: 99px;"></div>
-                  </div>
+              <div class="if-then-card">
+                <div class="if-block">
+                  <div class="if-label">IF YOU WANT:</div>
+                  <div class="if-text">Real-Time Technical Follow-ups (Not Static MCQs or Silent Code)</div>
                 </div>
-                <div>
-                  <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 0.25rem;">
-                    <span>Code Quality &amp; Clean Architecture</span>
-                    <strong style="color: #ffffff;">92 / 100</strong>
-                  </div>
-                  <div style="background: #27272a; height: 4px; border-radius: 99px;">
-                    <div style="background: #ffffff; width: 92%; height: 100%; border-radius: 99px;"></div>
-                  </div>
-                </div>
-                <div>
-                  <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 0.25rem;">
-                    <span>System Design &amp; Trade-offs</span>
-                    <strong style="color: #ffffff;">94 / 100</strong>
-                  </div>
-                  <div style="background: #27272a; height: 4px; border-radius: 99px;">
-                    <div style="background: #ffffff; width: 94%; height: 100%; border-radius: 99px;"></div>
-                  </div>
-                </div>
-                <div style="background: #000000; border: 1px solid #27272a; border-radius: 6px; padding: 0.6rem 0.75rem; font-size: 0.72rem; color: #a1a1aa; line-height: 1.45; margin-top: 0.35rem;">
-                  <strong style="color: #ffffff;">Evidence Quote (12:44):</strong> "Candidate proactively recognized two-pointer optimization to reach O(1) space."
+                <div class="then-block">
+                  <div class="then-label">ROUNDONE DELIVERS:</div>
+                  <div class="then-text">Conversational AI Alex probes O(N) space/time trade-offs, challenges edge cases, and verifies candidate code explanations in sub-second voice.</div>
                 </div>
               </div>
+
+              <div class="if-then-card">
+                <div class="if-block">
+                  <div class="if-label">IF YOU WANT:</div>
+                  <div class="if-text">Pay-As-You-Go ($0.50 / ₹42) vs $5,000 Upfront Annual Contracts</div>
+                </div>
+                <div class="then-block">
+                  <div class="then-label">ROUNDONE DELIVERS:</div>
+                  <div class="then-text">No locked yearly licenses. Pay $0.50 (₹42) per completed interview. 10 free rounds included on signup.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Competitor Benchmark Table -->
+          <div class="compare-section">
+            <div style="text-align: center; max-width: 620px; margin: 0 auto 1.5rem;">
+              <h2 style="font-size: 1.45rem; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; margin-bottom: 0.35rem;">
+                RoundOne AI vs Legacy Screening
+              </h2>
+              <p style="font-size: 0.8rem; color: #a1a1aa;">
+                Why engineering teams are replacing static tests and expensive Karat interviews.
+              </p>
+            </div>
+
+            <div class="compare-table-wrapper">
+              <table class="compare-table">
+                <thead>
+                  <tr>
+                    <th>Capability</th>
+                    <th class="col-highlight">RoundOne AI (Autonomous)</th>
+                    <th>HackerRank / Codility</th>
+                    <th>Karat ($150/screen)</th>
+                    <th>Manual Phone Screen</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Cost per Screen</strong></td>
+                    <td class="col-highlight">$0.50 (₹42) • Pay-as-you-go</td>
+                    <td>$3,500 – $8,000 / yr min</td>
+                    <td>$150 – $250 / interview</td>
+                    <td>$150+ in engineer wages</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Voice Follow-ups</strong></td>
+                    <td class="col-highlight">Yes • Sub-second voice AI (Alex)</td>
+                    <td>No • Silent compiler only</td>
+                    <td>Human interviewer only</td>
+                    <td>Yes • Burns senior dev hours</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Anti-Cheat Telemetry</strong></td>
+                    <td class="col-highlight">Webcam + Keystrokes + Window lock</td>
+                    <td>Basic tab blur</td>
+                    <td>Human proctor</td>
+                    <td>Subjective • Ghost proxy risk</td>
+                  </tr>
+                  <tr>
+                    <td><strong>DSA Problem Bank</strong></td>
+                    <td class="col-highlight">4,111+ LeetCode Bank + Custom JDs</td>
+                    <td>Fixed vendor catalog</td>
+                    <td>Closed proprietary set</td>
+                    <td>Ad-hoc whiteboard</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Scorecard Turnaround</strong></td>
+                    <td class="col-highlight">30 Seconds (Rubric &amp; PDF)</td>
+                    <td>2–4 hours manual review</td>
+                    <td>24–48 hours</td>
+                    <td>3–7 business days</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Bottom CTA Banner -->
+          <div class="bolt-bottom-banner">
+            <div>
+              <div style="font-size: 1.15rem; font-weight: 800; color: #ffffff;">Automate Technical Screening in 60 Seconds</div>
+              <div style="font-size: 0.78rem; color: #a1a1aa; margin-top: 0.2rem;">Sign up today and get <strong>10 Free AI Technical Interviews</strong> credited instantly to your workspace.</div>
+            </div>
+            <div>
+              <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()" style="padding: 0.65rem 1.4rem;">
+                Claim 10 Free Interviews
+              </button>
             </div>
           </div>
         </div>
 
         <!-- ========================================================
-             "IF YOU WANT THIS ➔ ROUNDONE DELIVERS THIS" (Clean 3 Cards)
+             TAB VIEW 2: PRICING (Dedicated Standalone Pricing Page)
              ======================================================== -->
-        <div id="front-outcomes" class="if-then-section">
-          <div class="if-then-header">
-            <h2 style="font-size: 1.65rem; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; margin-bottom: 0.35rem;">
-              If You Want This ➔ RoundOne Delivers This
-            </h2>
-            <p style="font-size: 0.85rem; color: #a1a1aa; margin: 0;">
-              Direct outcomes. No lengthy sales cycles.
+        <div id="front-tab-pricing" class="front-tab-view" style="display: none;">
+          <div style="text-align: center; margin-bottom: 2.5rem; padding-top: 1rem;">
+            <div class="bolt-pill" onclick="handleStartTrialClick()">
+              <span class="bolt-pill-badge">TRANSPARENT</span>
+              <span>10 Free AI Interviews Included • No Credit Card Required</span>
+            </div>
+            <h1 class="bolt-title" style="font-size: 2.4rem;">
+              Simple, Predictable Pricing.<br>
+              Zero Annual Lock-in.
+            </h1>
+            <p class="bolt-subhead">
+              Pay only for what you screen. Transparent rates in USD ($) and INR (₹). Start with 10 free trial rounds.
             </p>
           </div>
 
-          <div class="if-then-grid">
-            <!-- Card 1 -->
-            <div class="if-then-card">
-              <div class="if-block">
-                <div class="if-label">IF YOU WANT:</div>
-                <div class="if-text">Zero Senior Engineers Burned Out on First-Round Interviews</div>
-              </div>
-              <div class="then-block">
-                <div class="then-label">ROUNDONE DELIVERS:</div>
-                <div class="then-text">Autonomous 45-min voice &amp; coding rounds 24/7. Your engineers only spend time on pre-vetted top 5% finalists.</div>
-              </div>
-            </div>
-
-            <!-- Card 2 -->
-            <div class="if-then-card">
-              <div class="if-block">
-                <div class="if-label">IF YOU WANT:</div>
-                <div class="if-text">Real-Time Technical Follow-ups (Not Static MCQs or Silent Code)</div>
-              </div>
-              <div class="then-block">
-                <div class="then-label">ROUNDONE DELIVERS:</div>
-                <div class="then-text">Conversational AI Alex probes O(N) space/time trade-offs, challenges edge cases, and verifies candidate code explanations in sub-second voice.</div>
-              </div>
-            </div>
-
-            <!-- Card 3 -->
-            <div class="if-then-card">
-              <div class="if-block">
-                <div class="if-label">IF YOU WANT:</div>
-                <div class="if-text">Pay-As-You-Go ($0.50 / ₹42) vs $5,000 Upfront Annual Contracts</div>
-              </div>
-              <div class="then-block">
-                <div class="then-label">ROUNDONE DELIVERS:</div>
-                <div class="then-text">No locked yearly licenses. Pay $0.50 (₹42) per completed interview. 10 free rounds included on signup.</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ========================================================
-             COMPETITOR BENCHMARK TABLE
-             ======================================================== -->
-        <div class="compare-section">
-          <div style="text-align: center; max-width: 620px; margin: 0 auto 1.5rem;">
-            <h2 style="font-size: 1.45rem; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; margin-bottom: 0.35rem;">
-              RoundOne AI vs Legacy Screening
-            </h2>
-            <p style="font-size: 0.8rem; color: #a1a1aa;">
-              Why engineering teams are replacing static tests and expensive Karat interviews.
-            </p>
-          </div>
-
-          <div class="compare-table-wrapper">
-            <table class="compare-table">
-              <thead>
-                <tr>
-                  <th>Capability</th>
-                  <th class="col-highlight">RoundOne AI (Autonomous)</th>
-                  <th>HackerRank / Codility</th>
-                  <th>Karat ($150/screen)</th>
-                  <th>Manual Phone Screen</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><strong>Cost per Screen</strong></td>
-                  <td class="col-highlight">$0.50 (₹42) • Pay-as-you-go</td>
-                  <td>$3,500 – $8,000 / yr min</td>
-                  <td>$150 – $250 / interview</td>
-                  <td>$150+ in engineer wages</td>
-                </tr>
-                <tr>
-                  <td><strong>Voice Follow-ups</strong></td>
-                  <td class="col-highlight">Yes • Sub-second voice AI (Alex)</td>
-                  <td>No • Silent compiler only</td>
-                  <td>Human interviewer only</td>
-                  <td>Yes • Burns senior dev hours</td>
-                </tr>
-                <tr>
-                  <td><strong>Anti-Cheat Telemetry</strong></td>
-                  <td class="col-highlight">Webcam + Keystrokes + Window lock</td>
-                  <td>Basic tab blur</td>
-                  <td>Human proctor</td>
-                  <td>Subjective • Ghost proxy risk</td>
-                </tr>
-                <tr>
-                  <td><strong>DSA Problem Bank</strong></td>
-                  <td class="col-highlight">4,111+ LeetCode Bank + Custom JDs</td>
-                  <td>Fixed vendor catalog</td>
-                  <td>Closed proprietary set</td>
-                  <td>Ad-hoc whiteboard</td>
-                </tr>
-                <tr>
-                  <td><strong>Scorecard Turnaround</strong></td>
-                  <td class="col-highlight">30 Seconds (Rubric &amp; PDF)</td>
-                  <td>2–4 hours manual review</td>
-                  <td>24–48 hours</td>
-                  <td>3–7 business days</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- ========================================================
-             TRANSPARENT PRICING
-             ======================================================== -->
-        <div id="front-pricing" class="front-pricing-box">
-          <div class="front-pricing-header">
-            <h2 style="font-size: 1.45rem; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; margin-bottom: 0.35rem;">
-              Simple, Transparent Pricing
-            </h2>
-            <p style="font-size: 0.8rem; color: #a1a1aa; margin: 0;">
-              Every account includes <strong>10 Free AI Interviews</strong> on signup. No credit card required.
-            </p>
-          </div>
-
-          <div class="front-pricing-grid">
+          <!-- Pricing Cards Grid -->
+          <div class="front-pricing-grid" style="margin-bottom: 2.5rem;">
             <!-- Plan 1 -->
             <div class="front-pricing-card">
               <div style="font-size: 0.75rem; font-weight: 700; color: #71717a; text-transform: uppercase;">Pay-As-You-Go</div>
-              <h3 style="font-size: 1.1rem; font-weight: 800; color: #ffffff; margin: 0.2rem 0;">Rapid Screening</h3>
+              <h3 style="font-size: 1.15rem; font-weight: 800; color: #ffffff; margin: 0.2rem 0;">Rapid Screening</h3>
               <p style="font-size: 0.72rem; color: #a1a1aa; margin-bottom: 0.5rem;">For startups &amp; hiring on demand.</p>
               <div class="front-price-row">
                 <span class="front-price-usd">$0.50</span>
@@ -2748,10 +2815,10 @@ function twoSum(nums, target) {
               </div>
               <div class="front-price-unit">per completed interview • credits never expire</div>
               <ul class="front-pricing-features">
-                <li><i class="bi bi-check2"></i> 10 Free AI Interviews on sign up</li>
+                <li><i class="bi bi-check2"></i> <strong>10 Free AI Interviews</strong> on sign up</li>
                 <li><i class="bi bi-check2"></i> 4,111+ LeetCode DSA challenge bank</li>
                 <li><i class="bi bi-check2"></i> AI Tech Lead voice interviewer (Alex)</li>
-                <li><i class="bi bi-check2"></i> Keystroke telemetry &amp; anti-cheating</li>
+                <li><i class="bi bi-check2"></i> Keystroke telemetry &amp; camera anti-cheat</li>
                 <li><i class="bi bi-check2"></i> Instant 0–100 rubric &amp; PDF report</li>
               </ul>
               <button type="button" class="btn btn-outline" onclick="handleStartTrialClick()" style="width: 100%;">
@@ -2763,7 +2830,7 @@ function twoSum(nums, target) {
             <div class="front-pricing-card popular">
               <span class="front-pricing-badge-popular">Most Popular</span>
               <div style="font-size: 0.75rem; font-weight: 700; color: #ffffff; text-transform: uppercase;">Starter Plan</div>
-              <h3 style="font-size: 1.1rem; font-weight: 800; color: #ffffff; margin: 0.2rem 0;">Growing Teams</h3>
+              <h3 style="font-size: 1.15rem; font-weight: 800; color: #ffffff; margin: 0.2rem 0;">Growing Teams</h3>
               <p style="font-size: 0.72rem; color: #a1a1aa; margin-bottom: 0.5rem;">For teams screening 10–50 candidates each month.</p>
               <div class="front-price-row">
                 <span class="front-price-usd">$49</span>
@@ -2772,21 +2839,21 @@ function twoSum(nums, target) {
               </div>
               <div class="front-price-unit">per month • includes 120 interviews (~$0.41 / ₹34 each)</div>
               <ul class="front-pricing-features">
-                <li><i class="bi bi-check2"></i> 120 AI Interviews / month included</li>
+                <li><i class="bi bi-check2"></i> <strong>120 AI Interviews / month</strong> included</li>
                 <li><i class="bi bi-check2"></i> Branded public careers portal</li>
                 <li><i class="bi bi-check2"></i> Bulk candidate invite via CSV &amp; email</li>
-                <li><i class="bi bi-check2"></i> Custom role questions &amp; rubrics</li>
+                <li><i class="bi bi-check2"></i> Custom role rubrics &amp; question weighting</li>
                 <li><i class="bi bi-check2"></i> Priority low-latency voice streaming</li>
               </ul>
               <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()" style="width: 100%;">
-                Start 14-Day Trial
+                Start 14-Day Free Trial
               </button>
             </div>
 
             <!-- Plan 3 -->
             <div class="front-pricing-card">
               <div style="font-size: 0.75rem; font-weight: 700; color: #71717a; text-transform: uppercase;">Scale</div>
-              <h3 style="font-size: 1.1rem; font-weight: 800; color: #ffffff; margin: 0.2rem 0;">High-Volume</h3>
+              <h3 style="font-size: 1.15rem; font-weight: 800; color: #ffffff; margin: 0.2rem 0;">High-Volume</h3>
               <p style="font-size: 0.72rem; color: #a1a1aa; margin-bottom: 0.5rem;">For staffing agencies &amp; enterprise hiring.</p>
               <div class="front-price-row">
                 <span class="front-price-usd">$149</span>
@@ -2795,7 +2862,7 @@ function twoSum(nums, target) {
               </div>
               <div class="front-price-unit">per month • includes 450 interviews (~$0.33 / ₹27 each)</div>
               <ul class="front-pricing-features">
-                <li><i class="bi bi-check2"></i> 450 AI Interviews / month included</li>
+                <li><i class="bi bi-check2"></i> <strong>450 AI Interviews / month</strong> included</li>
                 <li><i class="bi bi-check2"></i> Multi-recruiter team seats &amp; roles</li>
                 <li><i class="bi bi-check2"></i> ATS integrations &amp; real-time webhooks</li>
                 <li><i class="bi bi-check2"></i> Custom DSA challenges &amp; sandbox environments</li>
@@ -2806,20 +2873,235 @@ function twoSum(nums, target) {
               </button>
             </div>
           </div>
+
+          <!-- Feature Comparison Matrix -->
+          <div style="background: #09090b; border: 1px solid #27272a; border-radius: 14px; padding: 1.75rem; margin-bottom: 2.5rem;">
+            <h3 style="font-size: 1.1rem; font-weight: 800; color: #ffffff; margin-bottom: 1rem;">Plan Comparison</h3>
+            <div style="overflow-x: auto;">
+              <table class="compare-table">
+                <thead>
+                  <tr>
+                    <th>Feature</th>
+                    <th>Pay-As-You-Go</th>
+                    <th class="col-highlight">Starter Plan</th>
+                    <th>Scale &amp; Enterprise</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Included Interviews</td>
+                    <td>Pay per interview ($0.50)</td>
+                    <td class="col-highlight">120 / month</td>
+                    <td>450 / month</td>
+                  </tr>
+                  <tr>
+                    <td>LeetCode Problem Bank</td>
+                    <td>4,111+ Questions</td>
+                    <td class="col-highlight">4,111+ Questions</td>
+                    <td>4,111+ &amp; Custom JDs</td>
+                  </tr>
+                  <tr>
+                    <td>Camera &amp; Keystroke Proctoring</td>
+                    <td>Yes</td>
+                    <td class="col-highlight">Yes</td>
+                    <td>Yes (Advanced)</td>
+                  </tr>
+                  <tr>
+                    <td>Public Careers Portal</td>
+                    <td>Optional add-on</td>
+                    <td class="col-highlight">Included</td>
+                    <td>Custom domain ready</td>
+                  </tr>
+                  <tr>
+                    <td>ATS Webhooks &amp; Exports</td>
+                    <td>PDF export only</td>
+                    <td class="col-highlight">CSV &amp; PDF exports</td>
+                    <td>Full REST API &amp; Webhooks</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Pricing FAQ -->
+          <div style="max-width: 800px; margin: 0 auto 2.5rem;">
+            <h3 style="font-size: 1.25rem; font-weight: 800; color: #ffffff; text-align: center; margin-bottom: 1.5rem;">Pricing FAQ</h3>
+            <div class="front-faq-item">
+              <div class="front-faq-question">What happens when my 10 free trial rounds end?</div>
+              <div class="front-faq-answer">You can easily top up credits at $0.50 (₹42) per interview on pay-as-you-go, or subscribe to the Starter Plan ($49 / month) for 120 interviews. You are never automatically charged without your explicit confirmation.</div>
+            </div>
+            <div class="front-faq-item">
+              <div class="front-faq-question">Do pay-as-you-go interview credits expire?</div>
+              <div class="front-faq-answer">No. Pay-as-you-go credits never expire. Use them whenever you need to screen candidates, whether this week or 6 months from now.</div>
+            </div>
+            <div class="front-faq-item">
+              <div class="front-faq-question">Can I use custom Job Descriptions and rubrics?</div>
+              <div class="front-faq-answer">Yes! You can paste any JD or syllabus. Our AI automatically parses requirements and sets up custom voice screening criteria and matching DSA problems.</div>
+            </div>
+          </div>
+
+          <!-- Bottom CTA -->
+          <div class="bolt-bottom-banner">
+            <div>
+              <div style="font-size: 1.15rem; font-weight: 800; color: #ffffff;">Ready to screen candidates without annual lock-in?</div>
+              <div style="font-size: 0.78rem; color: #a1a1aa; margin-top: 0.2rem;">Claim 10 free interviews on signup. Takes under 60 seconds.</div>
+            </div>
+            <div>
+              <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()" style="padding: 0.65rem 1.4rem;">
+                Claim 10 Free Rounds
+              </button>
+            </div>
+          </div>
         </div>
 
-        <!-- Callout Banner -->
-        <div class="bolt-bottom-banner">
-          <div>
-            <div style="font-size: 1.15rem; font-weight: 800; color: #ffffff;">Automate Technical Screening in 60 Seconds</div>
-            <div style="font-size: 0.78rem; color: #a1a1aa; margin-top: 0.2rem;">Sign up today and get <strong>10 Free AI Technical Interviews</strong> credited instantly to your workspace.</div>
+        <!-- ========================================================
+             TAB VIEW 3: BLOG (Dedicated Standalone Blog & Resources View)
+             ======================================================== -->
+        <div id="front-tab-blog" class="front-tab-view" style="display: none;">
+          <div style="text-align: center; margin-bottom: 2rem; padding-top: 1rem;">
+            <div class="bolt-pill" onclick="window.location.href='/blog.html'">
+              <span class="bolt-pill-badge">RESOURCES</span>
+              <span>Engineering Hiring Insights &amp; DSA Benchmarks</span>
+            </div>
+            <h1 class="bolt-title" style="font-size: 2.4rem;">
+              Resources &amp; Engineering Research
+            </h1>
+            <p class="bolt-subhead">
+              Insights, technical interview benchmarks, and actionable guides on scaling engineering screening.
+            </p>
           </div>
-          <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
-            <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()" style="padding: 0.65rem 1.4rem;">
-              Claim 10 Free Interviews
-            </button>
+
+          <!-- Blog Articles Grid -->
+          <div id="front-blog-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.35rem; margin-bottom: 2.5rem;">
+            <!-- Dynamically populated or seed fallback -->
+          </div>
+
+          <div style="text-align: center; margin-bottom: 2.5rem;">
+            <a href="/blog.html" class="btn btn-outline" style="text-decoration: none; padding: 0.65rem 1.4rem;">
+              <i class="bi bi-journal-text"></i> Open Full Standalone Blog Portal &rarr;
+            </a>
+          </div>
+
+          <!-- Blog CTA -->
+          <div class="bolt-bottom-banner">
+            <div>
+              <div style="font-size: 1.15rem; font-weight: 800; color: #ffffff;">Stay ahead in technical hiring</div>
+              <div style="font-size: 0.78rem; color: #a1a1aa; margin-top: 0.2rem;">Start screening top 5% software engineers with RoundOne AI today.</div>
+            </div>
+            <div>
+              <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()" style="padding: 0.65rem 1.4rem;">
+                Start Free Trial
+              </button>
+            </div>
           </div>
         </div>
+
+        <!-- ========================================================
+             TAB VIEW 4: ABOUT US (Dedicated Standalone About Us Page)
+             ======================================================== -->
+        <div id="front-tab-about" class="front-tab-view" style="display: none;">
+          <div style="text-align: center; margin-bottom: 2.5rem; padding-top: 1rem;">
+            <div class="bolt-pill">
+              <span class="bolt-pill-badge">MISSION</span>
+              <span>Built by Engineers • For Engineering Teams</span>
+            </div>
+            <h1 class="bolt-title" style="font-size: 2.4rem;">
+              Engineering Time is Sacred.<br>
+              Stop Wasting it on First Rounds.
+            </h1>
+            <p class="bolt-subhead">
+              We started RoundOne AI with a single mission: eliminate the 15+ hours senior software engineers lose every week conducting repetitive initial phone screens.
+            </p>
+          </div>
+
+          <!-- 4 Stats Banner -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 3rem;">
+            <div class="front-stat-card">
+              <div class="front-stat-val">4,111+</div>
+              <div class="front-stat-lbl">Curated LeetCode DSA Problems</div>
+            </div>
+            <div class="front-stat-card">
+              <div class="front-stat-val">&lt; 450ms</div>
+              <div class="front-stat-lbl">Real-time Voice Latency</div>
+            </div>
+            <div class="front-stat-card">
+              <div class="front-stat-val">99.8%</div>
+              <div class="front-stat-lbl">Anti-Cheat Detection Accuracy</div>
+            </div>
+            <div class="front-stat-card">
+              <div class="front-stat-val">$0.50</div>
+              <div class="front-stat-lbl">Starting Price (₹42) per Screen</div>
+            </div>
+          </div>
+
+          <!-- Story & Philosophy (Monochrome Cards) -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 3rem;">
+            <div style="background: #09090b; border: 1px solid #27272a; border-radius: 14px; padding: 1.85rem;">
+              <h3 style="font-size: 1.15rem; font-weight: 800; color: #ffffff; margin-bottom: 0.75rem;">
+                Why Technical Screening is Broken
+              </h3>
+              <p style="font-size: 0.825rem; color: #a1a1aa; line-height: 1.6; margin-bottom: 0.85rem;">
+                Every hiring season, engineering leads get pulled into dozens of 45-minute screening calls. Most candidates either don't meet minimum requirements, or submitted multiple-choice tests solved by ChatGPT.
+              </p>
+              <p style="font-size: 0.825rem; color: #a1a1aa; line-height: 1.6;">
+                Legacy assessment tools like HackerRank charge $5,000+ upfront for silent code editors, while human interview services like Karat charge $150 to $250 for every single screening call.
+              </p>
+            </div>
+
+            <div style="background: #09090b; border: 1px solid #27272a; border-radius: 14px; padding: 1.85rem;">
+              <h3 style="font-size: 1.15rem; font-weight: 800; color: #ffffff; margin-bottom: 0.75rem;">
+                The RoundOne AI Solution
+              </h3>
+              <p style="font-size: 0.825rem; color: #a1a1aa; line-height: 1.6; margin-bottom: 0.85rem;">
+                RoundOne AI deploys an autonomous technical lead (Alex) that conducts natural voice interviews, challenges candidate algorithmic choices in real time, and evaluates code execution across 4,111+ LeetCode problems.
+              </p>
+              <p style="font-size: 0.825rem; color: #a1a1aa; line-height: 1.6;">
+                Recruiters receive an objective 0–100 rubric with verbatim audio quote timestamps and PDF summaries within 30 seconds. Your engineering team only interviews pre-vetted top 5% finalists.
+              </p>
+            </div>
+          </div>
+
+          <!-- 3 Pillars -->
+          <div style="margin-bottom: 3rem;">
+            <h3 style="font-size: 1.3rem; font-weight: 800; color: #ffffff; text-align: center; margin-bottom: 1.5rem;">Our Core Principles</h3>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem;">
+              <div style="background: #09090b; border: 1px solid #27272a; border-radius: 12px; padding: 1.5rem;">
+                <div style="font-size: 1rem; font-weight: 700; color: #ffffff; margin-bottom: 0.4rem;">01 • Zero Bias</div>
+                <p style="font-size: 0.78rem; color: #a1a1aa; line-height: 1.55; margin: 0;">
+                  Every candidate is evaluated strictly on problem-solving clarity, algorithmic trade-offs, and code quality. Every score is backed by verifiable audio quote citations.
+                </p>
+              </div>
+
+              <div style="background: #09090b; border: 1px solid #27272a; border-radius: 12px; padding: 1.5rem;">
+                <div style="font-size: 1rem; font-weight: 700; color: #ffffff; margin-bottom: 0.4rem;">02 • Real Technical Rigor</div>
+                <p style="font-size: 0.78rem; color: #a1a1aa; line-height: 1.55; margin: 0;">
+                  No multiple-choice trivia. Candidates write real code in Monaco VS Code editors and answer sub-second live follow-ups on edge cases, O(N) complexity, and memory optimizations.
+                </p>
+              </div>
+
+              <div style="background: #09090b; border: 1px solid #27272a; border-radius: 12px; padding: 1.5rem;">
+                <div style="font-size: 1rem; font-weight: 700; color: #ffffff; margin-bottom: 0.4rem;">03 • Accessible to Everyone</div>
+                <p style="font-size: 0.78rem; color: #a1a1aa; line-height: 1.55; margin: 0;">
+                  We rejected enterprise sales extortion. Starting at $0.50 (₹42) per interview with 10 free trial rounds, world-class hiring infrastructure is available to every founder and hiring team.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom CTA -->
+          <div class="bolt-bottom-banner">
+            <div>
+              <div style="font-size: 1.15rem; font-weight: 800; color: #ffffff;">Experience autonomous screening today</div>
+              <div style="font-size: 0.78rem; color: #a1a1aa; margin-top: 0.2rem;">Claim 10 free AI technical interviews and screen your first candidate in 60 seconds.</div>
+            </div>
+            <div>
+              <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()" style="padding: 0.65rem 1.4rem;">
+                Claim 10 Free Rounds
+              </button>
+            </div>
+          </div>
+        </div>
+
       </div>
 
             <!-- SUB-VIEW 1: Clean Interview Dashboard (Default View) -->
