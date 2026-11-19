@@ -2470,6 +2470,146 @@
       top: 0;
       z-index: 100;
     }
+
+    /* =====================================================================
+       FRONT LUXURY FOOTER (Rendered below every front tab view)
+       ===================================================================== */
+    .front-luxury-footer {
+      margin-top: 5rem;
+      padding-top: 3.5rem;
+      padding-bottom: 2.5rem;
+      border-top: 1px solid #27272a;
+      position: relative;
+    }
+    .front-luxury-footer::before {
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: 10%;
+      right: 10%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(59, 130, 246, 0.6) 50%, transparent 100%);
+      box-shadow: 0 0 14px rgba(59, 130, 246, 0.45);
+    }
+    .flf-top-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1.2fr 1fr;
+      gap: 2.5rem;
+      margin-bottom: 3rem;
+    }
+    @media (max-width: 900px) {
+      .flf-top-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+      }
+    }
+    @media (max-width: 600px) {
+      .flf-top-grid {
+        grid-template-columns: 1fr;
+        gap: 1.75rem;
+      }
+    }
+    .flf-brand-row {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      margin-bottom: 0.85rem;
+    }
+    .flf-brand-desc {
+      font-size: 0.8rem;
+      color: #a1a1aa;
+      line-height: 1.55;
+      margin: 0 0 1.25rem 0;
+      max-width: 320px;
+    }
+    .flf-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #09090b;
+      border: 1px solid #27272a;
+      border-radius: 99px;
+      padding: 0.35rem 0.75rem;
+      font-size: 0.7rem;
+      color: #a1a1aa;
+    }
+    .flf-status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+      display: inline-block;
+    }
+    .flf-nav-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #ffffff;
+      margin-bottom: 1rem;
+    }
+    .flf-nav-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+    .flf-nav-list a {
+      font-size: 0.8rem;
+      color: #a1a1aa;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      display: inline-block;
+    }
+    .flf-nav-list a:hover {
+      color: #ffffff;
+      transform: translateX(2px);
+      text-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+    }
+    .flf-divider {
+      height: 1px;
+      background: #18181b;
+      margin-bottom: 1.75rem;
+    }
+    .flf-bottom-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+    }
+    .flf-copy-text {
+      font-size: 0.75rem;
+      color: #71717a;
+    }
+    .flf-trust-badges {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .flf-trust-chip {
+      font-size: 0.68rem;
+      color: #a1a1aa;
+      background: #09090b;
+      border: 1px solid #27272a;
+      border-radius: 6px;
+      padding: 0.25rem 0.55rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: border-color 0.15s ease;
+    }
+    .flf-trust-chip i {
+      color: #3b82f6;
+    }
+    .flf-trust-chip:hover {
+      border-color: rgba(59, 130, 246, 0.4);
+      color: #ffffff;
+    }
 </style>
   <script src="/js/theme.js"></script>
 </head>
@@ -3064,6 +3204,94 @@
             </div>
           </div>
         </div>
+
+        <!-- ========================================================
+             UNIVERSAL LUXURY FRONT FOOTER (Rendered below every front tab view)
+             ======================================================== -->
+        <footer class="front-luxury-footer">
+          <!-- Top Row: Brand Info + Operational Status -->
+          <div class="flf-top-grid">
+            <div class="flf-brand-col">
+              <div class="flf-brand-row" onclick="switchFrontTab('home')" style="cursor: pointer;" title="RoundOne AI Home">
+                <i class="bi bi-cpu-fill" style="color: #ffffff; font-size: 1.15rem;"></i>
+                <span style="font-weight: 800; font-size: 1.05rem; color: #ffffff; letter-spacing: -0.02em;">RoundOne AI</span>
+                <span class="brand-badge" style="background: #18181b; border: 1px solid rgba(59, 130, 246, 0.4); color: #93c5fd; font-size: 0.65rem; padding: 0.15rem 0.5rem; border-radius: 99px;">Autonomous</span>
+              </div>
+              <p class="flf-brand-desc">
+                Autonomous technical screening platform engineered for high-velocity software teams. Conversational voice AI, 4,111+ sandboxed coding problems, and sub-450ms adaptive evaluation.
+              </p>
+              <div class="flf-status-pill">
+                <span class="flf-status-dot"></span>
+                <span>All Systems Operational • Latency: 412ms</span>
+              </div>
+            </div>
+
+            <!-- Col 1: Product -->
+            <div class="flf-nav-col">
+              <div class="flf-nav-title">Product</div>
+              <ul class="flf-nav-list">
+                <li><a href="javascript:void(0)" onclick="switchFrontTab('home')">Voice Screening</a></li>
+                <li><a href="javascript:void(0)" onclick="switchFrontTab('home')">Sandboxed Code Runner</a></li>
+                <li><a href="javascript:void(0)" onclick="openQuestionBankModal()">4,111+ Question Bank</a></li>
+                <li><a href="javascript:void(0)" onclick="switchFrontTab('home')">Multi-Factor Anti-Cheat</a></li>
+                <li><a href="javascript:void(0)" onclick="switchFrontTab('home')">Objective Scorecards</a></li>
+              </ul>
+            </div>
+
+            <!-- Col 2: Solutions -->
+            <div class="flf-nav-col">
+              <div class="flf-nav-title">Solutions</div>
+              <ul class="flf-nav-list">
+                <li><a href="javascript:void(0)" onclick="switchFrontTab('home')">High-Volume Hiring</a></li>
+                <li><a href="javascript:void(0)" onclick="switchFrontTab('pricing')">Startups &amp; Scale-ups</a></li>
+                <li><a href="javascript:void(0)" onclick="switchFrontTab('pricing')">Enterprise Teams</a></li>
+                <li><a href="javascript:void(0)" onclick="switchFrontTab('about')">Zero-Bias Protocol</a></li>
+                <li><a href="javascript:void(0)" onclick="switchFrontTab('about')">Candidate Experience</a></li>
+              </ul>
+            </div>
+
+            <!-- Col 3: Pricing & Access -->
+            <div class="flf-nav-col">
+              <div class="flf-nav-title">Pricing</div>
+              <ul class="flf-nav-list">
+                <li><a href="javascript:void(0)" onclick="switchFrontTab('pricing')">Pay-As-You-Go ($0.50 / ₹42)</a></li>
+                <li><a href="javascript:void(0)" onclick="switchFrontTab('pricing')">Starter Plan ($49 / ₹4,100)</a></li>
+                <li><a href="javascript:void(0)" onclick="switchFrontTab('pricing')">Enterprise Tier</a></li>
+                <li><a href="javascript:void(0)" onclick="handleStartTrialClick()">Claim 10 Free Trials</a></li>
+                <li><a href="javascript:void(0)" onclick="openFeedbackModal()">Enterprise Custom RFP</a></li>
+              </ul>
+            </div>
+
+            <!-- Col 4: Company & Trust -->
+            <div class="flf-nav-col">
+              <div class="flf-nav-title">Company</div>
+              <ul class="flf-nav-list">
+                <li><a href="javascript:void(0)" onclick="switchFrontTab('about')">About Us</a></li>
+                <li><a href="javascript:void(0)" onclick="switchFrontTab('blog')">Engineering Blog</a></li>
+                <li><a href="javascript:void(0)" onclick="openFeedbackModal()">Support &amp; Feedback</a></li>
+                <li><a href="/admin.html">Admin Console</a></li>
+                <li><a href="javascript:void(0)" onclick="switchFrontTab('about')">Security &amp; Compliance</a></li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Divider with Subtle Blue Glow Beam -->
+          <div class="flf-divider"></div>
+
+          <!-- Bottom Row: Copyright + Trust Badges -->
+          <div class="flf-bottom-row">
+            <div class="flf-copy-text">
+              &copy; 2026 RoundOne AI, Inc. Built for engineering leaders and high-growth hiring teams.
+            </div>
+
+            <div class="flf-trust-badges">
+              <span class="flf-trust-chip"><i class="bi bi-shield-check"></i> SOC-2 Type II</span>
+              <span class="flf-trust-chip"><i class="bi bi-lock-fill"></i> AES-256 Vault</span>
+              <span class="flf-trust-chip"><i class="bi bi-check2-circle"></i> GDPR Compliant</span>
+              <span class="flf-trust-chip"><i class="bi bi-slash-circle"></i> Zero Data Training</span>
+            </div>
+          </div>
+        </footer>
 
       </div>
 
