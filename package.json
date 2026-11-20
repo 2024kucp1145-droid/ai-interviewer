@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build": "node -e \"console.log('Build completed')\"",
     "start": "node backend/src/server.js",
     "dev": "node --watch backend/src/server.js",
     "test": "node tests/run_tests.js",
