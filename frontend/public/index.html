@@ -2100,43 +2100,43 @@
       }
     }
     .glow-marquee-card {
-      width: 420px;
+      width: 295px;
       flex-shrink: 0;
-      background: radial-gradient(ellipse at 50% -15%, rgba(37, 99, 235, 0.32) 0%, rgba(14, 165, 233, 0.12) 35%, rgba(9, 9, 11, 0.98) 75%);
-      border: 1.5px solid rgba(59, 130, 246, 0.52);
-      border-radius: 16px;
-      padding: 1.15rem 1.15rem 1.35rem;
+      background: rgba(13, 16, 26, 0.92);
+      border: 1px solid rgba(59, 130, 246, 0.32);
+      border-radius: 14px;
+      padding: 0.75rem;
       display: flex;
       flex-direction: column;
-      gap: 0.95rem;
-      box-shadow: 0 0 25px rgba(37, 99, 235, 0.32), 0 10px 30px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(56, 189, 248, 0.12);
+      gap: 0.65rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(59, 130, 246, 0.08);
       position: relative;
       overflow: hidden;
       transition: all 0.25s ease;
       cursor: default;
     }
     .glow-marquee-card:hover {
-      border-color: rgba(96, 165, 250, 0.85);
-      box-shadow: 0 0 45px rgba(59, 130, 246, 0.6), 0 16px 45px rgba(0, 0, 0, 0.9), inset 0 0 20px rgba(56, 189, 248, 0.25);
-      transform: translateY(-4px);
+      border-color: rgba(96, 165, 250, 0.75);
+      box-shadow: 0 0 25px rgba(59, 130, 246, 0.45), 0 10px 30px rgba(0, 0, 0, 0.85);
+      transform: translateY(-3px);
     }
     .glow-marquee-card::before {
       content: '';
       position: absolute;
       top: 0;
-      left: 10%;
-      right: 10%;
+      left: 15%;
+      right: 15%;
       height: 2px;
-      background: linear-gradient(90deg, transparent 0%, rgba(56, 189, 248, 1) 50%, transparent 100%);
-      box-shadow: 0 0 16px rgba(56, 189, 248, 0.9);
+      background: linear-gradient(90deg, transparent 0%, rgba(56, 189, 248, 0.9) 50%, transparent 100%);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.8);
       pointer-events: none;
     }
     .card-img-wrap {
       width: 100%;
-      height: 215px;
-      border-radius: 10px;
+      height: 155px;
+      border-radius: 9px;
       overflow: hidden;
-      border: 1px solid rgba(59, 130, 246, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       background: #020617;
       position: relative;
       box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.6);
@@ -2151,66 +2151,23 @@
     .glow-marquee-card:hover .card-img-wrap img {
       transform: scale(1.02);
     }
-    .if-block-glow {
-      background: rgba(18, 18, 21, 0.85);
-      border: 1px solid rgba(59, 130, 246, 0.3);
-      border-radius: 9px;
-      padding: 0.85rem 1rem;
+    .card-caption {
+      padding: 0.15rem 0.25rem 0.35rem;
     }
-    .if-label-glow {
-      font-size: 0.68rem;
-      font-weight: 800;
-      color: #93c5fd;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      margin-bottom: 0.35rem;
-      display: flex;
-      align-items: center;
-      gap: 0.35rem;
-      text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
-    }
-    .if-text-glow {
-      font-size: 0.85rem;
+    .card-title {
+      font-size: 0.92rem;
       font-weight: 700;
       color: #ffffff;
-      line-height: 1.45;
-    }
-    .then-block-glow {
-      background: rgba(0, 0, 0, 0.85);
-      border: 1px solid rgba(56, 189, 248, 0.45);
-      border-radius: 9px;
-      padding: 0.85rem 1rem;
-      box-shadow: inset 0 0 20px rgba(37, 99, 235, 0.18);
-    }
-    .then-label-glow {
-      font-size: 0.68rem;
-      font-weight: 800;
-      color: #38bdf8;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      margin-bottom: 0.35rem;
+      margin-bottom: 0.3rem;
       display: flex;
       align-items: center;
       gap: 0.4rem;
-      text-shadow: 0 0 12px rgba(56, 189, 248, 0.7);
     }
-    .then-text-glow {
-      font-size: 0.82rem;
-      color: #e4e4e7;
-      line-height: 1.5;
-    }
-    .glow-pulse-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #38bdf8;
-      box-shadow: 0 0 10px #38bdf8;
-      display: inline-block;
-      animation: pulse-dot 1.8s ease-in-out infinite;
-    }
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.85); }
+    .card-desc {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      line-height: 1.45;
+      margin: 0;
     }
 
     /* Comparison Table (Monochrome) */
@@ -2839,14 +2796,14 @@
             </div>
           </div>
 
-          <!-- Outcomes Section (Running Marquee with Glowing Cards) -->
+          <!-- Platform Highlights Marquee -->
           <div class="if-then-section">
             <div class="if-then-header">
-              <h2 style="font-size: 1.65rem; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; margin-bottom: 0.35rem;">
-                If You Want This ➔ RoundOne Delivers This
+              <h2 style="font-size: 1.55rem; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; margin-bottom: 0.35rem;">
+                Platform Capabilities &amp; Live Features
               </h2>
-              <p style="font-size: 0.85rem; color: #a1a1aa; margin: 0;">
-                Direct outcomes. Continuous autonomous screening. No lengthy sales cycles.
+              <p style="font-size: 0.82rem; color: #a1a1aa; margin: 0;">
+                Autonomous voice screening, sandboxed code evaluation, and objective hiring telemetry.
               </p>
             </div>
 
@@ -2857,13 +2814,9 @@
                   <div class="card-img-wrap">
                     <img src="img/card-voice.svg" alt="Autonomous AI Voice Screening" loading="lazy" />
                   </div>
-                  <div class="if-block-glow">
-                    <div class="if-label-glow"><i class="bi bi-mic"></i> IF YOU WANT:</div>
-                    <div class="if-text-glow">Zero Senior Engineers Burned Out on First-Round Interviews</div>
-                  </div>
-                  <div class="then-block-glow">
-                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
-                    <div class="then-text-glow">Autonomous 45-min voice &amp; coding rounds 24/7. Alex conducts dynamic technical follow-ups so engineers only meet top 5% finalists.</div>
+                  <div class="card-caption">
+                    <div class="card-title"><i class="bi bi-mic-fill" style="color: #38bdf8;"></i> Autonomous Voice AI</div>
+                    <div class="card-desc">Alex conducts 45-min rounds with dynamic technical follow-ups in sub-second conversational speech.</div>
                   </div>
                 </div>
 
@@ -2872,13 +2825,9 @@
                   <div class="card-img-wrap">
                     <img src="img/card-compiler.svg" alt="Sandboxed Code Editor & Compiler" loading="lazy" />
                   </div>
-                  <div class="if-block-glow">
-                    <div class="if-label-glow"><i class="bi bi-code-slash"></i> IF YOU WANT:</div>
-                    <div class="if-text-glow">Real-Time Technical Follow-ups (Not Static MCQs or Silent Code)</div>
-                  </div>
-                  <div class="then-block-glow">
-                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
-                    <div class="then-text-glow">In-browser Node/Python compiler runs live test suites against candidate code, challenging edge cases in sub-second voice.</div>
+                  <div class="card-caption">
+                    <div class="card-title"><i class="bi bi-code-slash" style="color: #60a5fa;"></i> Live Monaco Compiler</div>
+                    <div class="card-desc">In-browser Node/Python compiler runs live test suites against candidate code, challenging edge cases.</div>
                   </div>
                 </div>
 
@@ -2887,13 +2836,9 @@
                   <div class="card-img-wrap">
                     <img src="img/card-scorecard.svg" alt="Objective Scorecards with Evidence Quotes" loading="lazy" />
                   </div>
-                  <div class="if-block-glow">
-                    <div class="if-label-glow"><i class="bi bi-file-earmark-bar-graph"></i> IF YOU WANT:</div>
-                    <div class="if-text-glow">Objective Scoring with Timestamped Evidence Quotes</div>
-                  </div>
-                  <div class="then-block-glow">
-                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
-                    <div class="then-text-glow">Instant 0–100 scorecards with exact timestamped candidate quotes, code complexity metrics, and downloadable PDF receipts.</div>
+                  <div class="card-caption">
+                    <div class="card-title"><i class="bi bi-file-earmark-bar-graph-fill" style="color: #34d399;"></i> Instant Audit Scorecards</div>
+                    <div class="card-desc">0–100 candidate scoring with exact timestamped quotes, code metrics, and downloadable PDF receipts.</div>
                   </div>
                 </div>
 
@@ -2902,13 +2847,9 @@
                   <div class="card-img-wrap">
                     <img src="img/card-proctor.svg" alt="Multi-Factor Anti-Cheat Proctoring" loading="lazy" />
                   </div>
-                  <div class="if-block-glow">
-                    <div class="if-label-glow"><i class="bi bi-shield-lock"></i> IF YOU WANT:</div>
-                    <div class="if-text-glow">100% Anti-Cheat Telemetry &amp; Zero Leaked Solutions</div>
-                  </div>
-                  <div class="then-block-glow">
-                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
-                    <div class="then-text-glow">Continuous webcam gaze detection, keystroke dynamics, copy-paste lock, and dynamic unique seed problems.</div>
+                  <div class="card-caption">
+                    <div class="card-title"><i class="bi bi-shield-check" style="color: #f43f5e;"></i> Dual-Camera Proctoring</div>
+                    <div class="card-desc">Continuous gaze detection, keystroke dynamics, copy-paste lock, and dynamic seed problems.</div>
                   </div>
                 </div>
 
@@ -2917,13 +2858,9 @@
                   <div class="card-img-wrap">
                     <img src="img/card-pricing.svg" alt="Transparent Pay-As-You-Go Pricing" loading="lazy" />
                   </div>
-                  <div class="if-block-glow">
-                    <div class="if-label-glow"><i class="bi bi-currency-dollar"></i> IF YOU WANT:</div>
-                    <div class="if-text-glow">Pay-As-You-Go ($0.50 / ₹42) vs $5,000 Upfront Annual Contracts</div>
-                  </div>
-                  <div class="then-block-glow">
-                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
-                    <div class="then-text-glow">No locked yearly licenses. Pay $0.50 (₹42) per completed interview. 10 free rounds included on signup.</div>
+                  <div class="card-caption">
+                    <div class="card-title"><i class="bi bi-lightning-charge-fill" style="color: #fbbf24;"></i> Pay-As-You-Go ($0.50 / ₹42)</div>
+                    <div class="card-desc">Zero locked yearly contracts. Pay only per completed interview. 10 free rounds included on signup.</div>
                   </div>
                 </div>
 
@@ -2933,13 +2870,9 @@
                   <div class="card-img-wrap">
                     <img src="img/card-voice.svg" alt="Autonomous AI Voice Screening" loading="lazy" />
                   </div>
-                  <div class="if-block-glow">
-                    <div class="if-label-glow"><i class="bi bi-mic"></i> IF YOU WANT:</div>
-                    <div class="if-text-glow">Zero Senior Engineers Burned Out on First-Round Interviews</div>
-                  </div>
-                  <div class="then-block-glow">
-                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
-                    <div class="then-text-glow">Autonomous 45-min voice &amp; coding rounds 24/7. Alex conducts dynamic technical follow-ups so engineers only meet top 5% finalists.</div>
+                  <div class="card-caption">
+                    <div class="card-title"><i class="bi bi-mic-fill" style="color: #38bdf8;"></i> Autonomous Voice AI</div>
+                    <div class="card-desc">Alex conducts 45-min rounds with dynamic technical follow-ups in sub-second conversational speech.</div>
                   </div>
                 </div>
 
@@ -2948,13 +2881,9 @@
                   <div class="card-img-wrap">
                     <img src="img/card-compiler.svg" alt="Sandboxed Code Editor & Compiler" loading="lazy" />
                   </div>
-                  <div class="if-block-glow">
-                    <div class="if-label-glow"><i class="bi bi-code-slash"></i> IF YOU WANT:</div>
-                    <div class="if-text-glow">Real-Time Technical Follow-ups (Not Static MCQs or Silent Code)</div>
-                  </div>
-                  <div class="then-block-glow">
-                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
-                    <div class="then-text-glow">In-browser Node/Python compiler runs live test suites against candidate code, challenging edge cases in sub-second voice.</div>
+                  <div class="card-caption">
+                    <div class="card-title"><i class="bi bi-code-slash" style="color: #60a5fa;"></i> Live Monaco Compiler</div>
+                    <div class="card-desc">In-browser Node/Python compiler runs live test suites against candidate code, challenging edge cases.</div>
                   </div>
                 </div>
 
@@ -2963,13 +2892,9 @@
                   <div class="card-img-wrap">
                     <img src="img/card-scorecard.svg" alt="Objective Scorecards with Evidence Quotes" loading="lazy" />
                   </div>
-                  <div class="if-block-glow">
-                    <div class="if-label-glow"><i class="bi bi-file-earmark-bar-graph"></i> IF YOU WANT:</div>
-                    <div class="if-text-glow">Objective Scoring with Timestamped Evidence Quotes</div>
-                  </div>
-                  <div class="then-block-glow">
-                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
-                    <div class="then-text-glow">Instant 0–100 scorecards with exact timestamped candidate quotes, code complexity metrics, and downloadable PDF receipts.</div>
+                  <div class="card-caption">
+                    <div class="card-title"><i class="bi bi-file-earmark-bar-graph-fill" style="color: #34d399;"></i> Instant Audit Scorecards</div>
+                    <div class="card-desc">0–100 candidate scoring with exact timestamped quotes, code metrics, and downloadable PDF receipts.</div>
                   </div>
                 </div>
 
@@ -2978,13 +2903,9 @@
                   <div class="card-img-wrap">
                     <img src="img/card-proctor.svg" alt="Multi-Factor Anti-Cheat Proctoring" loading="lazy" />
                   </div>
-                  <div class="if-block-glow">
-                    <div class="if-label-glow"><i class="bi bi-shield-lock"></i> IF YOU WANT:</div>
-                    <div class="if-text-glow">100% Anti-Cheat Telemetry &amp; Zero Leaked Solutions</div>
-                  </div>
-                  <div class="then-block-glow">
-                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
-                    <div class="then-text-glow">Continuous webcam gaze detection, keystroke dynamics, copy-paste lock, and dynamic unique seed problems.</div>
+                  <div class="card-caption">
+                    <div class="card-title"><i class="bi bi-shield-check" style="color: #f43f5e;"></i> Dual-Camera Proctoring</div>
+                    <div class="card-desc">Continuous gaze detection, keystroke dynamics, copy-paste lock, and dynamic seed problems.</div>
                   </div>
                 </div>
 
@@ -2993,13 +2914,9 @@
                   <div class="card-img-wrap">
                     <img src="img/card-pricing.svg" alt="Transparent Pay-As-You-Go Pricing" loading="lazy" />
                   </div>
-                  <div class="if-block-glow">
-                    <div class="if-label-glow"><i class="bi bi-currency-dollar"></i> IF YOU WANT:</div>
-                    <div class="if-text-glow">Pay-As-You-Go ($0.50 / ₹42) vs $5,000 Upfront Annual Contracts</div>
-                  </div>
-                  <div class="then-block-glow">
-                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
-                    <div class="then-text-glow">No locked yearly licenses. Pay $0.50 (₹42) per completed interview. 10 free rounds included on signup.</div>
+                  <div class="card-caption">
+                    <div class="card-title"><i class="bi bi-lightning-charge-fill" style="color: #fbbf24;"></i> Pay-As-You-Go ($0.50 / ₹42)</div>
+                    <div class="card-desc">Zero locked yearly contracts. Pay only per completed interview. 10 free rounds included on signup.</div>
                   </div>
                 </div>
               </div>
