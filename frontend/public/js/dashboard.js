@@ -8309,3 +8309,42 @@ function initAmbientScrollLight() {
   updateLightPosition();
   window.updateAmbientLight = updateLightPosition;
 }
+
+// Global Running Benefits Marquee Runner (Smooth 60fps / 120fps requestAnimationFrame)
+window.startGlobalBenefitsMarquee = function() {
+  const track = document.getElementById('benefits-marquee-track');
+  if (!track || track.__marqueeStarted) return;
+  track.__marqueeStarted = true;
+
+  track.style.animation = 'none';
+  track.style.webkitAnimation = 'none';
+
+  let pos = 0;
+  const speed = 1.15;
+  let isPaused = false;
+
+  track.addEventListener('mouseenter', () => { isPaused = true; });
+  track.addEventListener('mouseleave', () => { isPaused = false; });
+  track.addEventListener('touchstart', () => { isPaused = true; }, { passive: true });
+  track.addEventListener('touchend', () => { isPaused = false; }, { passive: true });
+
+  function tick() {
+    if (!isPaused) {
+      pos += speed;
+      const half = track.scrollWidth / 2;
+      if (half > 100 && pos >= half) {
+        pos -= half;
+      }
+      track.style.transform = `translate3d(-${pos.toFixed(1)}px, 0, 0)`;
+      track.style.webkitTransform = `translate3d(-${pos.toFixed(1)}px, 0, 0)`;
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+};
+
+window.addEventListener('DOMContentLoaded', () => {
+  if (typeof window.startGlobalBenefitsMarquee === 'function') {
+    window.startGlobalBenefitsMarquee();
+  }
+});

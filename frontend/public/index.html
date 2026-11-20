@@ -2067,67 +2067,77 @@
       position: relative;
       width: 100%;
       overflow: hidden;
-      padding: 1.25rem 0;
+      padding: 1.5rem 0;
       /* Side edge gradient fade */
-      mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,1) 8%, rgba(0,0,0,1) 92%, transparent 100%);
-      -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,1) 8%, rgba(0,0,0,1) 92%, transparent 100%);
+      mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,1) 5%, rgba(0,0,0,1) 95%, transparent 100%);
+      -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,1) 5%, rgba(0,0,0,1) 95%, transparent 100%);
     }
     .marquee-track {
       display: flex;
       gap: 1.5rem;
       width: max-content;
-      animation: marquee-scroll 35s linear infinite;
-    }
-    .marquee-track:hover {
-      animation-play-state: paused;
+      flex-wrap: nowrap;
+      will-change: transform;
+      user-select: none;
+      /* Fallback CSS animation in case JS is slow to start */
+      -webkit-animation: marquee-scroll 24s linear infinite;
+      animation: marquee-scroll 24s linear infinite;
     }
     @keyframes marquee-scroll {
       0% {
-        transform: translateX(0);
+        transform: translate3d(0, 0, 0);
       }
       100% {
-        transform: translateX(-50%);
+        transform: translate3d(-50%, 0, 0);
+      }
+    }
+    @-webkit-keyframes marquee-scroll {
+      0% {
+        -webkit-transform: translate3d(0, 0, 0);
+      }
+      100% {
+        -webkit-transform: translate3d(-50%, 0, 0);
       }
     }
     .glow-marquee-card {
       width: 380px;
       flex-shrink: 0;
-      background: radial-gradient(ellipse at 50% -10%, rgba(37, 99, 235, 0.22) 0%, rgba(9, 9, 11, 0.96) 65%);
-      border: 1px solid rgba(59, 130, 246, 0.35);
+      background: radial-gradient(ellipse at 50% -20%, rgba(37, 99, 235, 0.35) 0%, rgba(14, 165, 233, 0.12) 35%, rgba(9, 9, 11, 0.98) 75%);
+      border: 1.5px solid rgba(59, 130, 246, 0.55);
       border-radius: 14px;
       padding: 1.5rem 1.4rem;
       display: flex;
       flex-direction: column;
       gap: 0.9rem;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 25px rgba(37, 99, 235, 0.15), inset 0 1px 0 rgba(147, 197, 253, 0.25);
+      box-shadow: 0 0 25px rgba(37, 99, 235, 0.3), 0 10px 30px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(56, 189, 248, 0.12);
       position: relative;
       overflow: hidden;
       transition: all 0.25s ease;
       cursor: default;
     }
     .glow-marquee-card:hover {
-      border-color: rgba(96, 165, 250, 0.75);
-      box-shadow: 0 16px 45px rgba(0, 0, 0, 0.85), 0 0 40px rgba(59, 130, 246, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      border-color: rgba(96, 165, 250, 0.85);
+      box-shadow: 0 0 45px rgba(59, 130, 246, 0.6), 0 16px 45px rgba(0, 0, 0, 0.9), inset 0 0 20px rgba(56, 189, 248, 0.25);
       transform: translateY(-4px);
     }
     .glow-marquee-card::before {
       content: '';
       position: absolute;
       top: 0;
-      left: 15%;
-      right: 15%;
-      height: 1.5px;
-      background: linear-gradient(90deg, transparent 0%, rgba(96, 165, 250, 0.9) 50%, transparent 100%);
-      box-shadow: 0 0 12px rgba(59, 130, 246, 0.7);
+      left: 10%;
+      right: 10%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent 0%, rgba(56, 189, 248, 1) 50%, transparent 100%);
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.9);
     }
     .if-block-glow {
       background: rgba(18, 18, 21, 0.85);
-      border: 1px solid #27272a;
+      border: 1px solid rgba(59, 130, 246, 0.3);
       border-radius: 9px;
       padding: 0.85rem 1rem;
     }
     .if-label-glow {
-      font-size: 0.65rem;
+      font-size: 0.68rem;
       font-weight: 800;
       color: #93c5fd;
       letter-spacing: 0.06em;
@@ -2136,36 +2146,50 @@
       display: flex;
       align-items: center;
       gap: 0.35rem;
+      text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
     }
     .if-text-glow {
-      font-size: 0.835rem;
+      font-size: 0.85rem;
       font-weight: 700;
       color: #ffffff;
       line-height: 1.45;
     }
     .then-block-glow {
-      background: rgba(0, 0, 0, 0.8);
-      border: 1px solid rgba(59, 130, 246, 0.3);
+      background: rgba(0, 0, 0, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.45);
       border-radius: 9px;
       padding: 0.85rem 1rem;
-      box-shadow: inset 0 0 15px rgba(37, 99, 235, 0.08);
+      box-shadow: inset 0 0 20px rgba(37, 99, 235, 0.18);
     }
     .then-label-glow {
-      font-size: 0.65rem;
+      font-size: 0.68rem;
       font-weight: 800;
-      color: #60a5fa;
+      color: #38bdf8;
       letter-spacing: 0.06em;
       text-transform: uppercase;
       margin-bottom: 0.35rem;
       display: flex;
       align-items: center;
-      gap: 0.35rem;
-      text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+      gap: 0.4rem;
+      text-shadow: 0 0 12px rgba(56, 189, 248, 0.7);
     }
     .then-text-glow {
-      font-size: 0.8rem;
-      color: #d4d4d8;
+      font-size: 0.82rem;
+      color: #e4e4e7;
       line-height: 1.5;
+    }
+    .glow-pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #38bdf8;
+      box-shadow: 0 0 10px #38bdf8;
+      display: inline-block;
+      animation: pulse-dot 1.8s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
     }
 
     /* Comparison Table (Monochrome) */
@@ -2805,8 +2829,8 @@
               </p>
             </div>
 
-            <div class="marquee-wrapper">
-              <div class="marquee-track">
+            <div class="marquee-wrapper" id="benefits-marquee-wrapper">
+              <div class="marquee-track" id="benefits-marquee-track">
                 <!-- CARD 1 -->
                 <div class="glow-marquee-card">
                   <div class="if-block-glow">
@@ -2814,7 +2838,7 @@
                     <div class="if-text-glow">Zero Senior Engineers Burned Out on First-Round Interviews</div>
                   </div>
                   <div class="then-block-glow">
-                    <div class="then-label-glow"><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
+                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
                     <div class="then-text-glow">Autonomous 45-min voice &amp; coding rounds 24/7. Your engineers only spend time on pre-vetted top 5% finalists.</div>
                   </div>
                 </div>
@@ -2826,7 +2850,7 @@
                     <div class="if-text-glow">Real-Time Technical Follow-ups (Not Static MCQs or Silent Code)</div>
                   </div>
                   <div class="then-block-glow">
-                    <div class="then-label-glow"><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
+                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
                     <div class="then-text-glow">Conversational AI Alex probes O(N) space/time trade-offs, challenges edge cases, and verifies candidate code explanations in sub-second voice.</div>
                   </div>
                 </div>
@@ -2838,7 +2862,7 @@
                     <div class="if-text-glow">Pay-As-You-Go ($0.50 / ₹42) vs $5,000 Upfront Annual Contracts</div>
                   </div>
                   <div class="then-block-glow">
-                    <div class="then-label-glow"><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
+                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
                     <div class="then-text-glow">No locked yearly licenses. Pay $0.50 (₹42) per completed interview. 10 free rounds included on signup.</div>
                   </div>
                 </div>
@@ -2850,7 +2874,7 @@
                     <div class="if-text-glow">100% Anti-Cheat Telemetry &amp; Zero Leaked Solutions</div>
                   </div>
                   <div class="then-block-glow">
-                    <div class="then-label-glow"><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
+                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
                     <div class="then-text-glow">Continuous webcam gaze detection, keystroke dynamics, copy-paste lock, and dynamic unique seed problems.</div>
                   </div>
                 </div>
@@ -2862,7 +2886,7 @@
                     <div class="if-text-glow">Objective Scoring with Timestamped Evidence Quotes</div>
                   </div>
                   <div class="then-block-glow">
-                    <div class="then-label-glow"><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
+                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
                     <div class="then-text-glow">Delivers instant 0–100 rubric ratings with exact candidate voice quotes, algorithmic scorecards, and verifiable PDF summaries.</div>
                   </div>
                 </div>
@@ -2875,7 +2899,7 @@
                     <div class="if-text-glow">Zero Senior Engineers Burned Out on First-Round Interviews</div>
                   </div>
                   <div class="then-block-glow">
-                    <div class="then-label-glow"><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
+                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
                     <div class="then-text-glow">Autonomous 45-min voice &amp; coding rounds 24/7. Your engineers only spend time on pre-vetted top 5% finalists.</div>
                   </div>
                 </div>
@@ -2887,7 +2911,7 @@
                     <div class="if-text-glow">Real-Time Technical Follow-ups (Not Static MCQs or Silent Code)</div>
                   </div>
                   <div class="then-block-glow">
-                    <div class="then-label-glow"><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
+                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
                     <div class="then-text-glow">Conversational AI Alex probes O(N) space/time trade-offs, challenges edge cases, and verifies candidate code explanations in sub-second voice.</div>
                   </div>
                 </div>
@@ -2899,7 +2923,7 @@
                     <div class="if-text-glow">Pay-As-You-Go ($0.50 / ₹42) vs $5,000 Upfront Annual Contracts</div>
                   </div>
                   <div class="then-block-glow">
-                    <div class="then-label-glow"><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
+                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
                     <div class="then-text-glow">No locked yearly licenses. Pay $0.50 (₹42) per completed interview. 10 free rounds included on signup.</div>
                   </div>
                 </div>
@@ -2911,7 +2935,7 @@
                     <div class="if-text-glow">100% Anti-Cheat Telemetry &amp; Zero Leaked Solutions</div>
                   </div>
                   <div class="then-block-glow">
-                    <div class="then-label-glow"><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
+                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
                     <div class="then-text-glow">Continuous webcam gaze detection, keystroke dynamics, copy-paste lock, and dynamic unique seed problems.</div>
                   </div>
                 </div>
@@ -2923,12 +2947,55 @@
                     <div class="if-text-glow">Objective Scoring with Timestamped Evidence Quotes</div>
                   </div>
                   <div class="then-block-glow">
-                    <div class="then-label-glow"><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
+                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
                     <div class="then-text-glow">Delivers instant 0–100 rubric ratings with exact candidate voice quotes, algorithmic scorecards, and verifiable PDF summaries.</div>
                   </div>
                 </div>
               </div>
             </div>
+
+            <!-- Instant Running Marquee JS Engine -->
+            <script>
+              (function initBenefitsMarquee() {
+                function run() {
+                  var track = document.getElementById('benefits-marquee-track');
+                  if (!track) return;
+
+                  // Clear CSS animation so JS requestAnimationFrame drives smooth 60fps movement
+                  track.style.animation = 'none';
+                  track.style.webkitAnimation = 'none';
+
+                  var pos = 0;
+                  var speed = 1.15; // smooth scrolling pixels per frame
+                  var isPaused = false;
+
+                  track.addEventListener('mouseenter', function() { isPaused = true; });
+                  track.addEventListener('mouseleave', function() { isPaused = false; });
+                  track.addEventListener('touchstart', function() { isPaused = true; }, { passive: true });
+                  track.addEventListener('touchend', function() { isPaused = false; }, { passive: true });
+
+                  function tick() {
+                    if (!isPaused) {
+                      pos += speed;
+                      var half = track.scrollWidth / 2;
+                      if (half > 100 && pos >= half) {
+                        pos -= half;
+                      }
+                      track.style.transform = 'translate3d(-' + pos.toFixed(1) + 'px, 0, 0)';
+                      track.style.webkitTransform = 'translate3d(-' + pos.toFixed(1) + 'px, 0, 0)';
+                    }
+                    requestAnimationFrame(tick);
+                  }
+                  requestAnimationFrame(tick);
+                }
+
+                if (document.readyState === 'loading') {
+                  document.addEventListener('DOMContentLoaded', run);
+                } else {
+                  run();
+                }
+              })();
+            </script>
           </div>
 
           <!-- Competitor Benchmark Table -->
