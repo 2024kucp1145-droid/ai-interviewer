@@ -2100,16 +2100,16 @@
       }
     }
     .glow-marquee-card {
-      width: 380px;
+      width: 420px;
       flex-shrink: 0;
-      background: radial-gradient(ellipse at 50% -20%, rgba(37, 99, 235, 0.35) 0%, rgba(14, 165, 233, 0.12) 35%, rgba(9, 9, 11, 0.98) 75%);
-      border: 1.5px solid rgba(59, 130, 246, 0.55);
-      border-radius: 14px;
-      padding: 1.5rem 1.4rem;
+      background: radial-gradient(ellipse at 50% -15%, rgba(37, 99, 235, 0.32) 0%, rgba(14, 165, 233, 0.12) 35%, rgba(9, 9, 11, 0.98) 75%);
+      border: 1.5px solid rgba(59, 130, 246, 0.52);
+      border-radius: 16px;
+      padding: 1.15rem 1.15rem 1.35rem;
       display: flex;
       flex-direction: column;
-      gap: 0.9rem;
-      box-shadow: 0 0 25px rgba(37, 99, 235, 0.3), 0 10px 30px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(56, 189, 248, 0.12);
+      gap: 0.95rem;
+      box-shadow: 0 0 25px rgba(37, 99, 235, 0.32), 0 10px 30px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(56, 189, 248, 0.12);
       position: relative;
       overflow: hidden;
       transition: all 0.25s ease;
@@ -2129,6 +2129,27 @@
       height: 2px;
       background: linear-gradient(90deg, transparent 0%, rgba(56, 189, 248, 1) 50%, transparent 100%);
       box-shadow: 0 0 16px rgba(56, 189, 248, 0.9);
+      pointer-events: none;
+    }
+    .card-img-wrap {
+      width: 100%;
+      height: 215px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      background: #020617;
+      position: relative;
+      box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.6);
+    }
+    .card-img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.3s ease;
+    }
+    .glow-marquee-card:hover .card-img-wrap img {
+      transform: scale(1.02);
     }
     .if-block-glow {
       background: rgba(18, 18, 21, 0.85);
@@ -2831,44 +2852,56 @@
 
             <div class="marquee-wrapper" id="benefits-marquee-wrapper">
               <div class="marquee-track" id="benefits-marquee-track">
-                <!-- CARD 1 -->
+                <!-- CARD 1: Voice AI Assessment -->
                 <div class="glow-marquee-card">
+                  <div class="card-img-wrap">
+                    <img src="/img/card-voice.svg" alt="Autonomous AI Voice Screening" loading="lazy" />
+                  </div>
                   <div class="if-block-glow">
-                    <div class="if-label-glow"><i class="bi bi-person-x"></i> IF YOU WANT:</div>
+                    <div class="if-label-glow"><i class="bi bi-mic"></i> IF YOU WANT:</div>
                     <div class="if-text-glow">Zero Senior Engineers Burned Out on First-Round Interviews</div>
                   </div>
                   <div class="then-block-glow">
                     <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
-                    <div class="then-text-glow">Autonomous 45-min voice &amp; coding rounds 24/7. Your engineers only spend time on pre-vetted top 5% finalists.</div>
+                    <div class="then-text-glow">Autonomous 45-min voice &amp; coding rounds 24/7. Alex conducts dynamic technical follow-ups so engineers only meet top 5% finalists.</div>
                   </div>
                 </div>
 
-                <!-- CARD 2 -->
+                <!-- CARD 2: Sandboxed Monaco Code Compiler -->
                 <div class="glow-marquee-card">
+                  <div class="card-img-wrap">
+                    <img src="/img/card-compiler.svg" alt="Sandboxed Code Editor & Compiler" loading="lazy" />
+                  </div>
                   <div class="if-block-glow">
-                    <div class="if-label-glow"><i class="bi bi-mic"></i> IF YOU WANT:</div>
+                    <div class="if-label-glow"><i class="bi bi-code-slash"></i> IF YOU WANT:</div>
                     <div class="if-text-glow">Real-Time Technical Follow-ups (Not Static MCQs or Silent Code)</div>
                   </div>
                   <div class="then-block-glow">
                     <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
-                    <div class="then-text-glow">Conversational AI Alex probes O(N) space/time trade-offs, challenges edge cases, and verifies candidate code explanations in sub-second voice.</div>
+                    <div class="then-text-glow">In-browser Node/Python compiler runs live test suites against candidate code, challenging edge cases in sub-second voice.</div>
                   </div>
                 </div>
 
-                <!-- CARD 3 -->
+                <!-- CARD 3: Automated PDF Scorecard & Rubrics -->
                 <div class="glow-marquee-card">
+                  <div class="card-img-wrap">
+                    <img src="/img/card-scorecard.svg" alt="Objective Scorecards with Evidence Quotes" loading="lazy" />
+                  </div>
                   <div class="if-block-glow">
-                    <div class="if-label-glow"><i class="bi bi-currency-dollar"></i> IF YOU WANT:</div>
-                    <div class="if-text-glow">Pay-As-You-Go ($0.50 / ₹42) vs $5,000 Upfront Annual Contracts</div>
+                    <div class="if-label-glow"><i class="bi bi-file-earmark-bar-graph"></i> IF YOU WANT:</div>
+                    <div class="if-text-glow">Objective Scoring with Timestamped Evidence Quotes</div>
                   </div>
                   <div class="then-block-glow">
                     <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
-                    <div class="then-text-glow">No locked yearly licenses. Pay $0.50 (₹42) per completed interview. 10 free rounds included on signup.</div>
+                    <div class="then-text-glow">Instant 0–100 scorecards with exact timestamped candidate quotes, code complexity metrics, and downloadable PDF receipts.</div>
                   </div>
                 </div>
 
-                <!-- CARD 4 -->
+                <!-- CARD 4: Multi-Factor Anti-Cheat Proctoring -->
                 <div class="glow-marquee-card">
+                  <div class="card-img-wrap">
+                    <img src="/img/card-proctor.svg" alt="Multi-Factor Anti-Cheat Proctoring" loading="lazy" />
+                  </div>
                   <div class="if-block-glow">
                     <div class="if-label-glow"><i class="bi bi-shield-lock"></i> IF YOU WANT:</div>
                     <div class="if-text-glow">100% Anti-Cheat Telemetry &amp; Zero Leaked Solutions</div>
@@ -2879,45 +2912,11 @@
                   </div>
                 </div>
 
-                <!-- CARD 5 -->
+                <!-- CARD 5: Transparent Pay-As-You-Go Pricing -->
                 <div class="glow-marquee-card">
-                  <div class="if-block-glow">
-                    <div class="if-label-glow"><i class="bi bi-file-earmark-text"></i> IF YOU WANT:</div>
-                    <div class="if-text-glow">Objective Scoring with Timestamped Evidence Quotes</div>
+                  <div class="card-img-wrap">
+                    <img src="/img/card-pricing.svg" alt="Transparent Pay-As-You-Go Pricing" loading="lazy" />
                   </div>
-                  <div class="then-block-glow">
-                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
-                    <div class="then-text-glow">Delivers instant 0–100 rubric ratings with exact candidate voice quotes, algorithmic scorecards, and verifiable PDF summaries.</div>
-                  </div>
-                </div>
-
-                <!-- DUPLICATE TRACK FOR SEAMLESS INFINITE LOOP -->
-                <!-- CARD 1 (DUP) -->
-                <div class="glow-marquee-card" aria-hidden="true">
-                  <div class="if-block-glow">
-                    <div class="if-label-glow"><i class="bi bi-person-x"></i> IF YOU WANT:</div>
-                    <div class="if-text-glow">Zero Senior Engineers Burned Out on First-Round Interviews</div>
-                  </div>
-                  <div class="then-block-glow">
-                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
-                    <div class="then-text-glow">Autonomous 45-min voice &amp; coding rounds 24/7. Your engineers only spend time on pre-vetted top 5% finalists.</div>
-                  </div>
-                </div>
-
-                <!-- CARD 2 (DUP) -->
-                <div class="glow-marquee-card" aria-hidden="true">
-                  <div class="if-block-glow">
-                    <div class="if-label-glow"><i class="bi bi-mic"></i> IF YOU WANT:</div>
-                    <div class="if-text-glow">Real-Time Technical Follow-ups (Not Static MCQs or Silent Code)</div>
-                  </div>
-                  <div class="then-block-glow">
-                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
-                    <div class="then-text-glow">Conversational AI Alex probes O(N) space/time trade-offs, challenges edge cases, and verifies candidate code explanations in sub-second voice.</div>
-                  </div>
-                </div>
-
-                <!-- CARD 3 (DUP) -->
-                <div class="glow-marquee-card" aria-hidden="true">
                   <div class="if-block-glow">
                     <div class="if-label-glow"><i class="bi bi-currency-dollar"></i> IF YOU WANT:</div>
                     <div class="if-text-glow">Pay-As-You-Go ($0.50 / ₹42) vs $5,000 Upfront Annual Contracts</div>
@@ -2928,8 +2927,57 @@
                   </div>
                 </div>
 
+                <!-- DUPLICATE TRACK FOR SEAMLESS INFINITE LOOP (LIKE A TRAIN) -->
+                <!-- CARD 1 (DUP) -->
+                <div class="glow-marquee-card" aria-hidden="true">
+                  <div class="card-img-wrap">
+                    <img src="/img/card-voice.svg" alt="Autonomous AI Voice Screening" loading="lazy" />
+                  </div>
+                  <div class="if-block-glow">
+                    <div class="if-label-glow"><i class="bi bi-mic"></i> IF YOU WANT:</div>
+                    <div class="if-text-glow">Zero Senior Engineers Burned Out on First-Round Interviews</div>
+                  </div>
+                  <div class="then-block-glow">
+                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
+                    <div class="then-text-glow">Autonomous 45-min voice &amp; coding rounds 24/7. Alex conducts dynamic technical follow-ups so engineers only meet top 5% finalists.</div>
+                  </div>
+                </div>
+
+                <!-- CARD 2 (DUP) -->
+                <div class="glow-marquee-card" aria-hidden="true">
+                  <div class="card-img-wrap">
+                    <img src="/img/card-compiler.svg" alt="Sandboxed Code Editor & Compiler" loading="lazy" />
+                  </div>
+                  <div class="if-block-glow">
+                    <div class="if-label-glow"><i class="bi bi-code-slash"></i> IF YOU WANT:</div>
+                    <div class="if-text-glow">Real-Time Technical Follow-ups (Not Static MCQs or Silent Code)</div>
+                  </div>
+                  <div class="then-block-glow">
+                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
+                    <div class="then-text-glow">In-browser Node/Python compiler runs live test suites against candidate code, challenging edge cases in sub-second voice.</div>
+                  </div>
+                </div>
+
+                <!-- CARD 3 (DUP) -->
+                <div class="glow-marquee-card" aria-hidden="true">
+                  <div class="card-img-wrap">
+                    <img src="/img/card-scorecard.svg" alt="Objective Scorecards with Evidence Quotes" loading="lazy" />
+                  </div>
+                  <div class="if-block-glow">
+                    <div class="if-label-glow"><i class="bi bi-file-earmark-bar-graph"></i> IF YOU WANT:</div>
+                    <div class="if-text-glow">Objective Scoring with Timestamped Evidence Quotes</div>
+                  </div>
+                  <div class="then-block-glow">
+                    <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
+                    <div class="then-text-glow">Instant 0–100 scorecards with exact timestamped candidate quotes, code complexity metrics, and downloadable PDF receipts.</div>
+                  </div>
+                </div>
+
                 <!-- CARD 4 (DUP) -->
                 <div class="glow-marquee-card" aria-hidden="true">
+                  <div class="card-img-wrap">
+                    <img src="/img/card-proctor.svg" alt="Multi-Factor Anti-Cheat Proctoring" loading="lazy" />
+                  </div>
                   <div class="if-block-glow">
                     <div class="if-label-glow"><i class="bi bi-shield-lock"></i> IF YOU WANT:</div>
                     <div class="if-text-glow">100% Anti-Cheat Telemetry &amp; Zero Leaked Solutions</div>
@@ -2942,13 +2990,16 @@
 
                 <!-- CARD 5 (DUP) -->
                 <div class="glow-marquee-card" aria-hidden="true">
+                  <div class="card-img-wrap">
+                    <img src="/img/card-pricing.svg" alt="Transparent Pay-As-You-Go Pricing" loading="lazy" />
+                  </div>
                   <div class="if-block-glow">
-                    <div class="if-label-glow"><i class="bi bi-file-earmark-text"></i> IF YOU WANT:</div>
-                    <div class="if-text-glow">Objective Scoring with Timestamped Evidence Quotes</div>
+                    <div class="if-label-glow"><i class="bi bi-currency-dollar"></i> IF YOU WANT:</div>
+                    <div class="if-text-glow">Pay-As-You-Go ($0.50 / ₹42) vs $5,000 Upfront Annual Contracts</div>
                   </div>
                   <div class="then-block-glow">
                     <div class="then-label-glow"><span class="glow-pulse-dot"></span><i class="bi bi-check2-circle"></i> ROUNDONE DELIVERS:</div>
-                    <div class="then-text-glow">Delivers instant 0–100 rubric ratings with exact candidate voice quotes, algorithmic scorecards, and verifiable PDF summaries.</div>
+                    <div class="then-text-glow">No locked yearly licenses. Pay $0.50 (₹42) per completed interview. 10 free rounds included on signup.</div>
                   </div>
                 </div>
               </div>
