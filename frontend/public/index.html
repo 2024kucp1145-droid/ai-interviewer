@@ -4366,7 +4366,17 @@
               </div>
             </div>
 
-            <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+              <!-- Round Filter Dropdown -->
+              <div style="display: flex; align-items: center; gap: 0.35rem;">
+                <label for="roster-round-select" style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; margin: 0; white-space: nowrap;">
+                  <i class="bi bi-filter-circle"></i> Round:
+                </label>
+                <select id="roster-round-select" class="form-select" onchange="window.handleRosterRoundChange(this.value)" style="padding: 0.3rem 0.6rem; font-size: 0.78rem; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); min-width: 200px; max-width: 320px;">
+                  <option value="">All Interview Rounds (Combined Pipeline)</option>
+                </select>
+              </div>
+
               <!-- View Mode Toggle -->
               <div style="display: inline-flex; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 6px; padding: 0.15rem;">
                 <button id="view-mode-cards-btn" class="btn btn-ghost btn-sm active" style="font-size: 0.72rem; padding: 0.25rem 0.55rem; border-radius: 4px;" onclick="setCandidateViewMode('cards')">

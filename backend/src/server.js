@@ -1354,6 +1354,37 @@ function getOrgJobOrNull(jobId, orgId) {
 }
 
 function fetchEnrichedJobInterviews(job, orgId, selectedCutoff, borderlineCutoff) {
+  // Auto-heal: Ensure any candidates belonging to this organization have an interview row for this job
+  try {
+    const orphanedCandidates = db.prepare(`
+      SELECT c.id, c.name, c.email, c.phone, c.source, c.resume_text
+      FROM candidates c
+      WHERE c.org_id = ?
+        AND c.deleted_at IS NULL
+        AND c.name != '[DELETED_DPDP]'
+        AND NOT EXISTS (SELECT 1 FROM interviews i WHERE i.candidate_id = c.id)
+    `).all(job.org_id || orgId);
+
+    if (orphanedCandidates.length > 0) {
+      const timerMins = (job.max_minutes || 15) + 10080;
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      const insertIv = db.prepare(`
+        INSERT OR IGNORE INTO interviews (id, job_id, candidate_id, token_hash, state, link_timer_minutes, expires_at, source, dispatch_status)
+        VALUES (?, ?, ?, ?, 'created', ?, ?, ?, 'dispatched')
+      `);
+      db.transaction(() => {
+        for (const c of orphanedCandidates) {
+          const ivId = 'int_' + crypto.randomUUID();
+          const mockToken = crypto.randomBytes(32).toString('hex');
+          const tokenHash = crypto.createHash('sha256').update(mockToken).digest('hex');
+          insertIv.run(ivId, job.id, c.id, tokenHash, timerMins, expiresAt, c.source || 'direct_invite');
+        }
+      })();
+    }
+  } catch (healErr) {
+    console.warn('[fetchEnrichedJobInterviews] Auto-heal notice:', healErr.message);
+  }
+
   const rows = db.prepare(`
     SELECT 
       i.id as interview_id,
@@ -1385,9 +1416,9 @@ function fetchEnrichedJobInterviews(job, orgId, selectedCutoff, borderlineCutoff
     JOIN jobs j ON i.job_id = j.id
     LEFT JOIN reports r ON r.interview_id = i.id
     WHERE j.id = ?
-      AND (j.org_id = ? OR c.org_id = ? OR c.org_id = 'org_default' OR c.org_id IS NULL)
+      AND (c.deleted_at IS NULL AND c.name != '[DELETED_DPDP]')
     ORDER BY COALESCE(i.ended_at, i.started_at, i.expires_at) DESC, i.id DESC
-  `).all(job.id, orgId, orgId);
+  `).all(job.id);
 
   return rows.map(r => enrichInterviewRow(r, selectedCutoff, borderlineCutoff));
 }
@@ -1415,8 +1446,8 @@ app.get('/jobs', requireAuth, (req, res) => {
       JOIN jobs j ON i.job_id = j.id
       LEFT JOIN reports r ON r.interview_id = i.id
       WHERE (j.org_id = ? OR j.org_id = 'org_default' OR j.org_id IS NULL)
-        AND (j.org_id = ? OR c.org_id = ? OR c.org_id = 'org_default' OR c.org_id IS NULL)
-    `).all(req.user.org_id, req.user.org_id, req.user.org_id);
+        AND (c.deleted_at IS NULL AND c.name != '[DELETED_DPDP]')
+    `).all(req.user.org_id);
 
     const rowsByJob = new Map();
     for (const r of rows) {
@@ -2093,6 +2124,7 @@ app.get('/org/responses', requireAuth, (req, res) => {
     const rows = db.prepare(`
       SELECT 
         i.id as interview_id,
+        i.job_id,
         i.state,
         i.proctor_warnings,
         i.disqualified_reason,
@@ -2101,39 +2133,48 @@ app.get('/org/responses', requireAuth, (req, res) => {
         i.ended_at,
         i.expires_at,
         i.link_timer_minutes,
+        i.dispatch_status,
+        i.dispatch_channel,
+        i.source as interview_source,
+        i.dsa_result,
         j.id as job_id,
         j.title as job_title,
         j.skills as job_skills,
         j.interview_type,
+        j.selected_threshold,
+        j.borderline_threshold,
         c.id as candidate_id,
+        c.org_id as candidate_org_id,
         c.name as candidate_name,
         c.email as candidate_email,
+        c.phone as candidate_phone,
+        c.source as candidate_source,
         c.resume_text,
         r.id as report_id,
-        r.json as report_json
+        r.json as report_json,
+        r.reviewed_by,
+        r.reviewer_note,
+        r.manual_decision
       FROM interviews i
       JOIN candidates c ON i.candidate_id = c.id
       JOIN jobs j ON i.job_id = j.id
       LEFT JOIN reports r ON r.interview_id = i.id
-      WHERE (j.org_id = ? OR j.org_id = 'org_default' OR j.org_id IS NULL)
-      ORDER BY i.ended_at DESC, i.started_at DESC, i.id DESC
-    `).all(req.user.org_id);
+      WHERE (j.org_id = ? OR j.org_id = 'org_default' OR j.org_id IS NULL OR c.org_id = ?)
+        AND (c.deleted_at IS NULL AND c.name != '[DELETED_DPDP]')
+      ORDER BY COALESCE(i.ended_at, i.started_at, i.expires_at) DESC, i.id DESC
+    `).all(req.user.org_id, req.user.org_id);
 
     const formatted = rows.map(r => {
       let parsedReport = null;
       if (r.report_json) {
         try { parsedReport = JSON.parse(r.report_json); } catch {}
       }
+      const selCut = r.selected_threshold || 70;
+      const brdCut = r.borderline_threshold || 50;
+      const enriched = enrichInterviewRow(r, selCut, brdCut);
+
       return {
-        interview_id: r.interview_id,
-        state: r.state,
-        proctor_warnings: r.proctor_warnings || 0,
-        disqualified_reason: r.disqualified_reason || null,
-        proctor_logs: r.proctor_logs ? JSON.parse(r.proctor_logs) : [],
-        started_at: r.started_at,
-        ended_at: r.ended_at,
-        expires_at: r.expires_at,
-        link_timer_minutes: r.link_timer_minutes,
+        ...enriched,
         job_id: r.job_id,
         job_title: r.job_title,
         job_skills: r.job_skills,
@@ -2141,6 +2182,9 @@ app.get('/org/responses', requireAuth, (req, res) => {
         candidate_id: r.candidate_id,
         candidate_name: r.candidate_name,
         candidate_email: r.candidate_email,
+        candidate_phone: r.candidate_phone,
+        candidate_source: r.candidate_source || r.interview_source || 'direct',
+        interview_source: r.interview_source || r.candidate_source || 'direct',
         resume_text: r.resume_text,
         report_id: r.report_id,
         report: parsedReport

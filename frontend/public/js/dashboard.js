@@ -3655,10 +3655,19 @@ async function loadJobs() {
     filterDashboardJobs();
     renderInterviewBlocks();
 
+    const rosterRoundSelect = document.getElementById('roster-round-select');
+    if (rosterRoundSelect) {
+      rosterRoundSelect.innerHTML = [
+        '<option value="">All Interview Rounds (Combined Pipeline)</option>',
+        ...allLoadedJobs.map(j => `<option value="${j.id}" ${j.id === activeJobId ? 'selected' : ''}>${escapeHtml(j.title)}</option>`)
+      ].join('');
+      if (activeJobId) rosterRoundSelect.value = activeJobId;
+    }
+
     if (inviteJobSelect) {
-      inviteJobSelect.innerHTML = allLoadedJobs.map(j => `<option value="${j.id}" ${j.id === activeJobId ? 'selected' : ''}>${j.title}</option>`).join('');
+      inviteJobSelect.innerHTML = allLoadedJobs.map(j => `<option value="${j.id}" ${j.id === activeJobId ? 'selected' : ''}>${escapeHtml(j.title)}</option>`).join('');
       if (!activeJobId && allLoadedJobs.length > 0) {
-        activeJobId = allLoadedJobs[0].id;
+        // Keep activeJobId unset so the default view is Combined Pipeline
       }
     }
   } catch (err) {
@@ -4482,9 +4491,19 @@ window.renderInterviewBlocks = function() {
 // 2. Select an Interview Round Block
 window.selectInterviewRoundBlock = function(jobId) {
   activeJobId = jobId;
-  if (inviteJobSelect) inviteJobSelect.value = jobId;
+  const rosterRoundSelect = document.getElementById('roster-round-select');
+  if (rosterRoundSelect) rosterRoundSelect.value = jobId || '';
+  if (inviteJobSelect && jobId) inviteJobSelect.value = jobId;
   // Switch to the Roster subtab and load candidates for this job
   switchPipelineSubtab('roster');
+  loadInterviews();
+};
+
+window.handleRosterRoundChange = function(jobId) {
+  activeJobId = jobId || null;
+  if (inviteJobSelect && jobId) {
+    inviteJobSelect.value = jobId;
+  }
   loadInterviews();
 };
 
@@ -4836,7 +4855,8 @@ window.applyCandidateFilters = function() {
 
 // 6. Load Interviews for the Active Job Round (or all organization responses if no job specified)
 async function loadInterviews() {
-  const jobId = (inviteJobSelect && inviteJobSelect.value) ? inviteJobSelect.value : activeJobId;
+  const rosterRoundSelect = document.getElementById('roster-round-select');
+  const jobId = (rosterRoundSelect && rosterRoundSelect.value !== undefined) ? rosterRoundSelect.value : (activeJobId || '');
   const titleEl = document.getElementById('active-round-title');
   const statsEl = document.getElementById('active-round-stats');
   const roundsCountEl = document.getElementById('pipeline-rounds-count');
@@ -4856,7 +4876,7 @@ async function loadInterviews() {
       list = await res.json();
     } else {
       if (titleEl) {
-        titleEl.textContent = 'All Candidates & Interview Sessions';
+        titleEl.textContent = 'All Candidates & Interview Sessions (Company-wide)';
       }
       const res = await apiRequest('/org/responses');
       const orgResponses = await res.json();
@@ -4870,12 +4890,16 @@ async function loadInterviews() {
         candidate_phone: r.candidate_phone,
         job_title: r.job_title,
         job_id: r.job_id,
-        candidate_source: r.source || 'Direct Link',
+        interview_source: r.interview_source || r.candidate_source || 'direct',
+        candidate_source: r.candidate_source || r.interview_source || 'Direct Link',
         report_id: r.report_id,
-        score: r.report?.overall_score ?? (r.state === 'disqualified' ? 0 : null),
-        verdict: r.report?.candidate_verdict || r.report?.recommendation || null,
-        summary: r.report?.hiring_clarification || r.report?.summary || '',
-        skills: Array.isArray(r.report?.skills) ? r.report.skills : []
+        score: (r.score !== undefined && r.score !== null) ? r.score : (r.report?.overall_score ?? (r.state === 'disqualified' ? 0 : null)),
+        verdict: r.verdict || r.report?.candidate_verdict || r.report?.recommendation || null,
+        category: r.category,
+        manual_decision: r.manual_decision,
+        duration_seconds: r.duration_seconds,
+        summary: r.summary || r.report?.hiring_clarification || r.report?.summary || '',
+        skills: Array.isArray(r.skills) && r.skills.length > 0 ? r.skills : (Array.isArray(r.report?.skills) ? r.report.skills : [])
       }));
     }
 
