@@ -28,6 +28,7 @@ import {
 import { getServerEvents, clearServerEvents, recordServerEvent } from '../services/serverMonitorService.js';
 import { resetRateLimits, getRateLimitStats } from '../middleware/rateLimit.js';
 import { checkPostgresConnection, getPostgresConfig } from '../db/postgres.js';
+import { getSupabasePublicConfig, isSupabaseConfigured } from '../services/supabaseService.js';
 import { runMigration as runPostgresMigration } from '../db/migrateToPostgres.js';
 
 export const adminRouter = express.Router();
@@ -2073,7 +2074,7 @@ adminRouter.get('/settings', requireAdmin, async (req, res) => {
     // Mask passwords and API secrets for security
     const maskSecretValue = (val) => (val && String(val).length > 6 ? String(val).slice(0, 5) + '••••••••' : (val ? '••••••••' : ''));
     if (responseSettings.smtp_pass) responseSettings.smtp_pass = '••••••••';
-    for (const secretKey of ['resend_api_key', 'stripe_secret_key', 'stripe_webhook_secret', 'razorpay_key_secret', 'razorpay_webhook_secret']) {
+    for (const secretKey of ['resend_api_key', 'stripe_secret_key', 'stripe_webhook_secret', 'razorpay_key_secret', 'razorpay_webhook_secret', 'supabase_service_role_key']) {
       if (responseSettings[secretKey]) {
         responseSettings[secretKey] = maskSecretValue(responseSettings[secretKey]);
       }
@@ -2127,6 +2128,10 @@ adminRouter.get('/settings', requireAdmin, async (req, res) => {
         postgresError: pgHealth.error || null,
         hasDatabaseUrl: Boolean(process.env.DATABASE_URL || settingsMap.database_url),
         sqliteFile: 'ai_interviewer.db'
+      },
+      supabaseStatus: {
+        isConfigured: isSupabaseConfigured(),
+        ...getSupabasePublicConfig()
       }
     });
   } catch (err) {
@@ -2143,7 +2148,7 @@ function upsertPlatformSettings(settings) {
   `);
 
   const maskedSecretKeys = new Set([
-    'smtp_pass', 'resend_api_key', 'stripe_secret_key', 'stripe_webhook_secret', 'razorpay_key_secret', 'razorpay_webhook_secret'
+    'smtp_pass', 'resend_api_key', 'stripe_secret_key', 'stripe_webhook_secret', 'razorpay_key_secret', 'razorpay_webhook_secret', 'supabase_service_role_key'
   ]);
   const preserveIfEmptyKeys = new Set([
     'email_provider', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_from_name', 'smtp_from_email'

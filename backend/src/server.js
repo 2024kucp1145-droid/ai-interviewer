@@ -50,6 +50,13 @@ import {
   sendWaitlistConfirmationEmail
 } from './services/emailService.js';
 import { startSupabaseLiveSync } from './services/supabaseLiveSync.js';
+import {
+  getSupabasePublicConfig,
+  verifySupabaseToken,
+  syncSupabaseUser,
+  sendSupabaseMagicLink,
+  isSupabaseConfigured
+} from './services/supabaseService.js';
 
 dotenv.config();
 validateJwtSecret();
@@ -1031,6 +1038,98 @@ app.get('/auth/me', requireAuth, (req, res) => {
     const user = db.prepare("SELECT id, full_name, email, phone, job_title, role, COALESCE(org_role, role, 'owner') as org_role, is_verified, approval_status FROM users WHERE id = ?").get(req.user.id);
     const org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(req.user.org_id);
     res.json({ user, org });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Supabase Authentication & User Sync Endpoints ───────────────────────────
+
+/**
+ * Returns safe public configuration for client-side Supabase SDK & Social OAuth
+ */
+app.get('/api/auth/supabase/config', (req, res) => {
+  try {
+    const config = getSupabasePublicConfig();
+    res.json({ success: true, ...config });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Syncs a Supabase authenticated session with local database
+ * Automatically creates recruiter profile and organization if first login
+ */
+app.post('/api/auth/supabase/sync', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const bodyToken = req.body?.accessToken || req.body?.token;
+    const token = (authHeader && authHeader.startsWith('Bearer '))
+      ? authHeader.split(' ')[1]
+      : bodyToken;
+
+    if (!token) {
+      return res.status(400).json({ error: 'Supabase access token is required' });
+    }
+
+    const supabaseUser = await verifySupabaseToken(token);
+    if (!supabaseUser) {
+      return res.status(401).json({ error: 'Invalid or expired Supabase authentication session' });
+    }
+
+    const { role = 'recruiter', companyName } = req.body || {};
+    const synced = syncSupabaseUser({
+      supabaseUser,
+      role,
+      orgName: companyName
+    });
+
+    const jwtToken = signToken({
+      id: synced.user.id,
+      org_id: synced.user.org_id,
+      email: synced.user.email,
+      role: synced.user.role
+    });
+
+    res.json({
+      success: true,
+      token: jwtToken,
+      user: synced.user,
+      org: synced.org,
+      supabaseUser: {
+        id: supabaseUser.id,
+        email: supabaseUser.email,
+        app_metadata: supabaseUser.app_metadata
+      }
+    });
+  } catch (err) {
+    console.error('Supabase user sync error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Dispatch Supabase Auth passwordless Magic Link or invite email
+ */
+app.post('/api/auth/supabase/magic-link', async (req, res) => {
+  try {
+    const { email, redirectTo } = req.body || {};
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const result = await sendSupabaseMagicLink(cleanEmail, redirectTo);
+
+    if (!result.sent) {
+      return res.status(400).json({ error: result.error || 'Failed to dispatch magic link' });
+    }
+
+    res.json({
+      success: true,
+      message: `Supabase magic link dispatched to ${cleanEmail}. Check your inbox to sign in instantly.`
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

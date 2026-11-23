@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { db } from '../db/database.js';
+import { isSupabaseConfigured, sendSupabaseMagicLink } from './supabaseService.js';
 
 /**
  * Unified Platform Email Service
@@ -31,9 +32,12 @@ export function getEmailConfig() {
 
   const isResendConfigured = Boolean(resendApiKey && resendApiKey.trim().length > 5);
   const isSmtpConfigured = Boolean(user && pass && user.trim().length > 3 && pass.trim().length > 3);
+  const isSupabase = isSupabaseConfigured();
 
   let provider = 'none';
-  if (preferredProvider === 'smtp') {
+  if (preferredProvider === 'supabase' && isSupabase) {
+    provider = 'supabase';
+  } else if (preferredProvider === 'smtp') {
     provider = isSmtpConfigured ? 'smtp' : 'none';
   } else if (preferredProvider === 'resend') {
     provider = isResendConfigured ? 'resend' : 'none';
@@ -41,6 +45,8 @@ export function getEmailConfig() {
     provider = 'resend';
   } else if (isSmtpConfigured) {
     provider = 'smtp';
+  } else if (isSupabase) {
+    provider = 'supabase';
   }
 
   return {
@@ -54,6 +60,7 @@ export function getEmailConfig() {
     secure,
     fromName,
     fromEmail,
+    isSupabaseConfigured: isSupabase,
     isConfigured: provider !== 'none'
   };
 }
@@ -93,7 +100,22 @@ export async function sendPlatformEmail({ to, subject, html }) {
   const config = getEmailConfig();
   const cleanEmail = (to || '').toLowerCase().trim();
 
-  // 1. Resend API Provider
+  // 1. Supabase Native Auth Delivery
+  if (config.provider === 'supabase') {
+    try {
+      const sbRes = await sendSupabaseMagicLink(cleanEmail);
+      if (sbRes.sent) {
+        console.log(`✓ [Supabase Auth] Magic link email dispatched to: ${cleanEmail}`);
+        return { sent: true, provider: 'supabase' };
+      } else {
+        console.warn(`⚠️ [Supabase Auth Notice] ${sbRes.error || 'Failed to dispatch magic link'}`);
+      }
+    } catch (err) {
+      console.warn(`Supabase email dispatch warning:`, err.message);
+    }
+  }
+
+  // 2. Resend API Provider
   if (config.provider === 'resend') {
     try {
       let fromAddress = config.fromEmail;

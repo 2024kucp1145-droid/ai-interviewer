@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { db } from '../db/database.js';
+import { isSupabaseConfigured, verifySupabaseToken, syncSupabaseUser } from '../services/supabaseService.js';
 
 const DEV_JWT_FALLBACK = 'dev_jwt_secret_key_849204910284019284019';
 const JWT_SECRET = process.env.JWT_SECRET || DEV_JWT_FALLBACK;
@@ -110,14 +111,38 @@ export function verifySignedAdminProfileReceipt(profileToken) {
 
 /**
  * Express middleware for authenticating recruiter requests
+ * Supports both Supabase Auth access tokens and native JWT tokens
  */
-export function requireAuth(req, res, next) {
+export async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Missing or invalid authorization header' });
   }
 
   const token = authHeader.split(' ')[1];
+
+  // 1. Check Supabase Auth verification if Supabase is configured
+  if (isSupabaseConfigured()) {
+    try {
+      const supabaseUser = await verifySupabaseToken(token);
+      if (supabaseUser) {
+        const synced = syncSupabaseUser({ supabaseUser });
+        req.user = {
+          id: synced.user.id,
+          org_id: synced.user.org_id,
+          email: synced.user.email,
+          role: synced.user.role || 'recruiter',
+          fullName: synced.user.fullName,
+          isSupabase: true
+        };
+        return next();
+      }
+    } catch (sbErr) {
+      // Non-fatal, fall back to native JWT token verification
+    }
+  }
+
+  // 2. Fall back to native JWT token verification
   const decoded = verifyToken(token);
   if (!decoded) {
     return res.status(401).json({ error: 'Token expired or invalid' });

@@ -8371,4 +8371,72 @@ window.addEventListener('DOMContentLoaded', () => {
   if (typeof window.startGlobalBenefitsMarquee === 'function') {
     window.startGlobalBenefitsMarquee();
   }
+  initSupabaseAuth();
 });
+
+// =========================================================================
+// Supabase Free Tier Auth & OAuth Integration (Google / GitHub / Magic Link)
+// =========================================================================
+let supabaseClient = null;
+
+async function initSupabaseAuth() {
+  try {
+    const res = await fetch('/api/auth/supabase/config');
+    const cfg = await res.json();
+    if (cfg.isConfigured && window.supabase) {
+      supabaseClient = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+      const sbSocial = document.getElementById('supabase-social-auth');
+      if (sbSocial) sbSocial.style.display = 'block';
+
+      // Listen for OAuth sign-in redirects (Google, GitHub, Magic Link)
+      supabaseClient.auth.onAuthStateChange(async (event, session) => {
+        if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.access_token) {
+          try {
+            const syncRes = await fetch('/api/auth/supabase/sync', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+              },
+              body: JSON.stringify({ accessToken: session.access_token })
+            });
+            const syncData = await syncRes.json();
+            if (syncData.success && syncData.token) {
+              authToken = syncData.token;
+              localStorage.setItem('roundone_token', authToken);
+              localStorage.setItem('ai_interviewer_token', authToken);
+              currentUser = syncData.user;
+              currentOrg = syncData.org;
+              const modal = document.getElementById('auth-modal');
+              if (modal) modal.style.display = 'none';
+              if (typeof updateUserBadge === 'function') updateUserBadge();
+              if (typeof updateVisitorUiState === 'function') updateVisitorUiState(true);
+              if (typeof loadJobs === 'function') loadJobs();
+              if (typeof loadRegisteredUsers === 'function') loadRegisteredUsers();
+            }
+          } catch (syncErr) {
+            console.warn('Supabase session sync notice:', syncErr.message);
+          }
+        }
+      });
+    }
+  } catch (err) {
+    // Non-fatal
+  }
+}
+
+window.loginWithSupabaseProvider = async function(provider) {
+  if (!supabaseClient) {
+    alert('Supabase Auth is not configured on this server yet.');
+    return;
+  }
+  const { error } = await supabaseClient.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo: window.location.origin
+    }
+  });
+  if (error) {
+    alert(`Supabase OAuth error: ${error.message}`);
+  }
+};
