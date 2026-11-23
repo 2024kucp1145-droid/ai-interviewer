@@ -1,5 +1,8 @@
 {
   "mcpServers": {
+    "supabase": {
+      "serverUrl": "https://mcp.supabase.com/mcp?project_ref=fsexlzwcidvlhymgscpk&features=docs%2Caccount%2Cdatabase%2Cdebugging%2Cdevelopment%2Cfunctions%2Cbranching%2Cfeedback%2Cnotebooks%2Cstorage"
+    },
     "roundone-ai": {
       "command": "node",
       "args": ["mcp/server.js"],
