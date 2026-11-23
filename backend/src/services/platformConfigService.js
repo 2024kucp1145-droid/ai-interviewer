@@ -97,7 +97,7 @@ export function getEffectiveAuthConfig() {
   return {
     allowPublicSignup: s.allow_public_signup !== '0',
     requireAdminApproval: s.require_admin_approval === '1',
-    requireEmailOtp: s.require_email_otp !== '0',
+    requireEmailOtp: s.require_email_otp === '1' || process.env.REQUIRE_EMAIL_OTP === 'true',
     allowDevOtpFallback: s.allow_dev_otp_fallback !== undefined
       ? s.allow_dev_otp_fallback === '1'
       : (process.env.ALLOW_DEV_OTP === 'true'),
