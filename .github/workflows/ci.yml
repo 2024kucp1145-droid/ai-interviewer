@@ -18,10 +18,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: 'npm'
@@ -34,6 +34,9 @@ jobs:
           node --check backend/src/server.js
           node --check backend/src/billing/billingRoutes.js
           node --check backend/src/admin/adminRoutes.js
+          node --check backend/src/services/captchaService.js
+          node --check backend/src/services/supabaseService.js
+          node --check backend/src/services/platformConfigService.js
           node --check backend/src/services/leetcodeJudge.js
           node --check backend/src/services/webhookService.js
           node --check backend/src/middleware/rateLimit.js
@@ -44,12 +47,14 @@ jobs:
 
       - name: Run unit, admin & full-stack integration tests
         run: |
-          # 1. Run unit test suite
+          # 1. Run unit & Supabase/CAPTCHA test suites
           npm test
+          node tests/test_supabase_integration.js
 
           # 2. Start backend server in background for HTTP integration tests
           node backend/src/server.js &
           SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
 
           # Wait up to 30 seconds for health check endpoint to respond
           echo "Waiting for backend server to be ready on port 3001..."
@@ -60,11 +65,9 @@ jobs:
             fi
             sleep 1
           done
+          curl -sf http://127.0.0.1:3001/health > /dev/null
 
           # 3. Run full HTTP integration suites
           node tests/test_admin_system.js
           node tests/test_problems_1_2_3.js
           node tests/test_fullstack_features.js
-
-          # 4. Clean up background server process
-          kill $SERVER_PID || true

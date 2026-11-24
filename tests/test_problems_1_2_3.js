@@ -112,25 +112,68 @@ console.log('   ✓ Problem 1: Pay-per-use and subscription purchases update cre
 // ─────────────────────────────────────────────────────────────────────────────
 console.log('Testing Problem 2: Email Delivery & Security Against Onscreen OTP Leaks...');
 
-const signupEmail = `new_recruiter_${Date.now()}@example.com`;
-const signupRes = await fetch(`${baseUrl}/auth/signup`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    email: signupEmail,
-    password: 'SecurePassword123!',
-    fullName: 'Bob Recruiter',
-    companyName: 'Beta Corp'
-  })
-});
-assert.strictEqual(signupRes.status, 200, 'Signup should succeed');
-const signupData = await signupRes.json();
+const prevRequireOtpRow = db.prepare("SELECT value FROM platform_settings WHERE key = 'require_email_otp'").get();
+const restoreRequireEmailOtp = () => {
+  if (prevRequireOtpRow === undefined) {
+    db.prepare("DELETE FROM platform_settings WHERE key = 'require_email_otp'").run();
+  } else {
+    db.prepare(`
+      INSERT INTO platform_settings (key, value, updated_at)
+      VALUES ('require_email_otp', ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = CURRENT_TIMESTAMP
+    `).run(prevRequireOtpRow.value, prevRequireOtpRow.value);
+  }
+};
 
-// Critical check: verificationCode must NOT be present in JSON response!
-assert.strictEqual(signupData.verificationCode, undefined, 'CRITICAL: verificationCode must NOT be leaked in signup response!');
-assert(signupData.token, 'Auth token must be returned');
-assert.strictEqual(signupData.requiresOtp, true, 'Recruiter signup must require Email OTP');
-assert(signupData.otpToken, 'Stateless otpToken must be returned for multi-container resilience');
+const instantEmail = `instant_recruiter_${Date.now()}@example.com`;
+const signupEmail = `new_recruiter_${Date.now()}@example.com`;
+const customJobId = 'job_test_acc_' + Date.now();
+const candIds = [];
+
+try {
+  // 2.0 Verify default friction-free instant signup never leaks verificationCode
+  db.prepare("DELETE FROM platform_settings WHERE key = 'require_email_otp'").run();
+  const instantRes = await fetch(`${baseUrl}/auth/signup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: instantEmail,
+      password: 'SecurePassword123!',
+      fullName: 'Instant Recruiter',
+      companyName: 'Instant Beta Corp'
+    })
+  });
+  assert.strictEqual(instantRes.status, 200, 'Default instant signup should succeed');
+  const instantData = await instantRes.json();
+  assert.strictEqual(instantData.verificationCode, undefined, 'CRITICAL: verificationCode must NOT be leaked in instant signup');
+  assert.strictEqual(instantData.requiresOtp, false, 'Default signup uses friction-free instant mode when require_email_otp is off');
+  assert(instantData.token, 'Auth token must be returned on instant signup');
+
+  // 2.1 Enable strict Email OTP enforcement and verify end-to-end OTP flow & leak guards
+  db.prepare(`
+    INSERT INTO platform_settings (key, value, updated_at)
+    VALUES ('require_email_otp', '1', CURRENT_TIMESTAMP)
+    ON CONFLICT(key) DO UPDATE SET value = '1', updated_at = CURRENT_TIMESTAMP
+  `).run();
+
+  const signupRes = await fetch(`${baseUrl}/auth/signup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: signupEmail,
+      password: 'SecurePassword123!',
+      fullName: 'Bob Recruiter',
+      companyName: 'Beta Corp'
+    })
+  });
+  assert.strictEqual(signupRes.status, 200, 'Signup should succeed');
+  const signupData = await signupRes.json();
+
+  // Critical check: verificationCode must NOT be present in JSON response!
+  assert.strictEqual(signupData.verificationCode, undefined, 'CRITICAL: verificationCode must NOT be leaked in signup response!');
+  assert(signupData.token, 'Auth token must be returned');
+  assert.strictEqual(signupData.requiresOtp, true, 'Recruiter signup must require Email OTP when require_email_otp=1');
+  assert(signupData.otpToken, 'Stateless otpToken must be returned for multi-container resilience');
 
 // Check /auth/me does not leak verification_code
 const meRes = await fetch(`${baseUrl}/auth/me`, {
@@ -349,13 +392,11 @@ assert.strictEqual(lastStatus, 429, 'Excessive failed login attempts must trigge
 // PROBLEM 4: Accurate Pipeline Metrics, Custom Thresholds, Overrides & Exports
 // ─────────────────────────────────────────────────────────────────────────────
 console.log('Testing Problem 4: Pipeline Accuracy, Customization & Download Exports...');
-const customJobId = 'job_test_acc_' + Date.now();
-const candIds = [];
-const intIds = [];
-db.prepare(`
-  INSERT INTO jobs (id, org_id, title, jd_text, skills, level, max_minutes, max_questions, interview_type, question_mode, category)
-  VALUES (?, ?, 'Accuracy QA Engineer', 'Automated accuracy test JD', 'JavaScript,SQL', 'senior', 15, 6, 'technical', 'ai_adaptive', 'Software & Tech')
-`).run(customJobId, testOrgId);
+  const intIds = [];
+  db.prepare(`
+    INSERT INTO jobs (id, org_id, title, jd_text, skills, level, max_minutes, max_questions, interview_type, question_mode, category)
+    VALUES (?, ?, 'Accuracy QA Engineer', 'Automated accuracy test JD', 'JavaScript,SQL', 'senior', 15, 6, 'technical', 'ai_adaptive', 'Software & Tech')
+  `).run(customJobId, testOrgId);
 
 const sampleResults = [
   { name: 'Alice Selected', email: `alice_${Date.now()}@test.com`, score: 76, verdict: 'RECOMMENDED_HIRE', state: 'completed' },
@@ -428,25 +469,30 @@ assert.strictEqual(jsonExpData.total_exported, 1);
 assert.strictEqual(jsonExpData.candidates[0].candidate_name, 'Bob Potential');
 console.log('   ✓ Problem 4: Pipeline metrics, custom cutoffs, manual override & CSV/JSON exports verified.\n');
 
-// Clean up temporary admin & test rows so database remains clean
-const signupUserRow = db.prepare('SELECT id, org_id FROM users WHERE email = ?').get(signupEmail);
-if (signupUserRow) {
-  db.prepare('DELETE FROM users WHERE id = ?').run(signupUserRow.id);
-  db.prepare('DELETE FROM organizations WHERE id = ?').run(signupUserRow.org_id);
-}
-db.prepare('DELETE FROM jobs WHERE id = ?').run(customJobId);
-for (const cId of candIds) {
-  db.prepare('DELETE FROM candidates WHERE id = ?').run(cId);
-}
-db.prepare('DELETE FROM users WHERE id IN (?, ?)').run(tempAdminId, testUserId);
-db.prepare('DELETE FROM admin_otps WHERE email = ?').run(tempAdminEmail);
-db.prepare('DELETE FROM feedbacks WHERE user_email = ?').run(signupEmail);
-db.prepare('DELETE FROM billing_orders WHERE org_id = ?').run(testOrgId);
-db.prepare('DELETE FROM organizations WHERE id = ?').run(testOrgId);
-db.prepare('DELETE FROM platform_activities WHERE actor_email IN (?, ?, ?) OR actor_name = ?').run(tempAdminEmail, testUserEmail, signupEmail, 'Attacker');
+  console.log('   ✓ Problem 3: Admin UI is separated from user portal and hardened against brute-force attacks.\n');
 
-console.log('   ✓ Problem 3: Admin UI is separated from user portal and hardened against brute-force attacks.\n');
+  console.log('====================================================');
+  console.log('🎉 ALL THREE PROBLEMS VERIFIED AND RESOLVED FULLY!');
+  console.log('====================================================\n');
+} finally {
+  restoreRequireEmailOtp();
 
-console.log('====================================================');
-console.log('🎉 ALL THREE PROBLEMS VERIFIED AND RESOLVED FULLY!');
-console.log('====================================================\n');
+  // Clean up temporary admin & test rows so database remains clean
+  for (const em of [instantEmail, signupEmail]) {
+    const row = db.prepare('SELECT id, org_id FROM users WHERE email = ?').get(em);
+    if (row) {
+      db.prepare('DELETE FROM users WHERE id = ?').run(row.id);
+      db.prepare('DELETE FROM organizations WHERE id = ?').run(row.org_id);
+    }
+  }
+  db.prepare('DELETE FROM jobs WHERE id = ?').run(customJobId);
+  for (const cId of candIds) {
+    db.prepare('DELETE FROM candidates WHERE id = ?').run(cId);
+  }
+  db.prepare('DELETE FROM users WHERE id IN (?, ?)').run(tempAdminId, testUserId);
+  db.prepare('DELETE FROM admin_otps WHERE email = ?').run(tempAdminEmail);
+  db.prepare('DELETE FROM feedbacks WHERE user_email = ?').run(signupEmail);
+  db.prepare('DELETE FROM billing_orders WHERE org_id = ?').run(testOrgId);
+  db.prepare('DELETE FROM organizations WHERE id = ?').run(testOrgId);
+  db.prepare('DELETE FROM platform_activities WHERE actor_email IN (?, ?, ?, ?) OR actor_name = ?').run(tempAdminEmail, testUserEmail, signupEmail, instantEmail, 'Attacker');
+}

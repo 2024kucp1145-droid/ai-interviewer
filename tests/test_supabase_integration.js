@@ -11,8 +11,9 @@ import {
   issueBuiltinCaptchaChallenge,
   verifyCaptchaResponse
 } from '../backend/src/services/captchaService.js';
-import { db } from '../backend/src/db/database.js';
+import { db, initDatabase } from '../backend/src/db/database.js';
 
+initDatabase();
 console.log('=== RoundOne AI: Supabase Integration Test Suite ===\n');
 
 // 1. Test getSupabasePublicConfig
