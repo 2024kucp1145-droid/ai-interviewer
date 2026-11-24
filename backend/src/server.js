@@ -1525,8 +1525,9 @@ function fetchEnrichedJobInterviews(job, orgId, selectedCutoff, borderlineCutoff
 app.get('/jobs', requireAuth, (req, res) => {
   try {
     const jobs = db.prepare(`
-      SELECT j.*
+      SELECT j.*, o.name as company_name, o.website as company_website, o.industry as company_industry
       FROM jobs j 
+      LEFT JOIN organizations o ON j.org_id = o.id
       WHERE j.org_id = ? OR j.org_id = 'org_default' OR j.org_id IS NULL
       ORDER BY j.created_at DESC
     `).all(req.user.org_id);
@@ -1544,9 +1545,9 @@ app.get('/jobs', requireAuth, (req, res) => {
       JOIN candidates c ON i.candidate_id = c.id
       JOIN jobs j ON i.job_id = j.id
       LEFT JOIN reports r ON r.interview_id = i.id
-      WHERE (j.org_id = ? OR j.org_id = 'org_default' OR j.org_id IS NULL)
+      WHERE (j.org_id = ? OR j.org_id = 'org_default' OR j.org_id IS NULL OR c.org_id = ?)
         AND (c.deleted_at IS NULL AND c.name != '[DELETED_DPDP]')
-    `).all(req.user.org_id);
+    `).all(req.user.org_id, req.user.org_id);
 
     const rowsByJob = new Map();
     for (const r of rows) {
@@ -1610,7 +1611,12 @@ app.get('/jobs', requireAuth, (req, res) => {
 
 app.get('/jobs/:id', requireAuth, (req, res) => {
   try {
-    const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(req.params.id);
+    const job = db.prepare(`
+      SELECT j.*, o.name as company_name, o.website as company_website, o.industry as company_industry
+      FROM jobs j
+      LEFT JOIN organizations o ON j.org_id = o.id
+      WHERE j.id = ?
+    `).get(req.params.id);
     if (!job) return res.status(404).json({ error: 'Interview not found' });
     res.json(job);
   } catch (err) {
@@ -3281,19 +3287,41 @@ app.get('/interviews/:id/snapshots', requireAuth, (req, res) => {
 });
 
 // --- Recruiter Report View ---
-app.get('/interviews/:id/report', requireAuth, (req, res) => {
+app.get('/interviews/:id/report', requireAuth, async (req, res) => {
   try {
     const interview = db.prepare(`
-      SELECT i.*, j.title as job_title, j.skills as job_skills, c.name as candidate_name, c.email as candidate_email
+      SELECT 
+        i.*,
+        j.title as job_title,
+        j.skills as job_skills,
+        j.interview_type,
+        c.name as candidate_name,
+        c.email as candidate_email,
+        c.phone as candidate_phone,
+        COALESCE(o.name, 'Technical Hiring Team') as company_name,
+        o.website as company_website,
+        o.industry as company_industry
       FROM interviews i
       JOIN jobs j ON i.job_id = j.id
       JOIN candidates c ON i.candidate_id = c.id
-      WHERE i.id = ? AND (j.org_id = ? OR j.org_id = 'org_default' OR j.org_id IS NULL)
-    `).get(req.params.id, req.user.org_id);
+      LEFT JOIN organizations o ON (j.org_id = o.id OR c.org_id = o.id)
+      WHERE i.id = ? AND (j.org_id = ? OR j.org_id = 'org_default' OR j.org_id IS NULL OR c.org_id = ?)
+    `).get(req.params.id, req.user.org_id, req.user.org_id);
 
     if (!interview) return res.status(404).json({ error: 'Interview not found' });
 
-    const reportRow = db.prepare('SELECT * FROM reports WHERE interview_id = ?').get(interview.id);
+    let reportRow = db.prepare('SELECT * FROM reports WHERE interview_id = ?').get(interview.id);
+    if (!reportRow && (interview.state === 'completed' || interview.state === 'report_ready')) {
+      try {
+        const generated = await generateReport(interview.id);
+        if (generated) {
+          reportRow = db.prepare('SELECT * FROM reports WHERE interview_id = ?').get(interview.id);
+        }
+      } catch (genErr) {
+        console.warn('Auto-generate report on view notice:', genErr.message);
+      }
+    }
+
     const turns = db.prepare('SELECT idx, role, text, skill, level, created_at FROM turns WHERE interview_id = ? ORDER BY idx ASC').all(interview.id);
     const snapshots = db.prepare('SELECT id, reason, image_data, created_at FROM proctor_snapshots WHERE interview_id = ? ORDER BY created_at DESC LIMIT 36').all(interview.id);
     let codeHistory = [];

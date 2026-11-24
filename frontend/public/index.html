@@ -4606,6 +4606,33 @@
         </div>
       </div>
 
+      <!-- Company Profile & Branding -->
+      <div class="card" style="margin-top: 1.5rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.35rem;">
+          <div class="card-title" style="margin:0;"><i class="bi bi-building"></i> Company Profile &amp; Branding</div>
+          <span id="settings-org-name-badge" class="badge badge-dark">Company Name</span>
+        </div>
+        <p class="card-desc">Your company details appear on candidate interview invitation links, proctoring screens, and evaluation reports.</p>
+        <form id="form-settings-company" style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem; margin-top:0.75rem;">
+          <div>
+            <label>Company / Organization Name</label>
+            <input type="text" id="settings-co-name" placeholder="e.g. Acme Tech Labs" required>
+          </div>
+          <div>
+            <label>Company Website</label>
+            <input type="url" id="settings-co-website" placeholder="https://company.com">
+          </div>
+          <div>
+            <label>Industry</label>
+            <input type="text" id="settings-co-industry" placeholder="Technology / SaaS">
+          </div>
+          <div style="display:flex; align-items:flex-end;">
+            <button type="submit" class="btn btn-sm btn-primary" style="height:36px; width:100%;"><i class="bi bi-check2"></i> Save Company Profile</button>
+          </div>
+        </form>
+        <div id="settings-co-status" style="display:none; margin-top:0.5rem; font-size:0.75rem; color:#10b981;"></div>
+      </div>
+
       <!-- Full-Stack Organization Team (RBAC) & Outbound Webhooks -->
       <div class="grid-2" style="margin-top: 1.5rem;">
         <div class="card">
@@ -5209,23 +5236,34 @@
           <form id="form-signup" style="display: none;">
             <div class="grid-2">
               <div>
-                <label>Your Full Name</label>
-                <input type="text" id="su-name" placeholder="Vikram Malhotra" required>
+                <label>Company / Organization Name</label>
+                <input type="text" id="su-company" placeholder="e.g. Acme Tech Labs" required>
               </div>
               <div>
-                <label>Your Job Role / Title</label>
-                <input type="text" id="su-title" placeholder="Lead Technical Recruiter" value="Recruiter">
+                <label>Your Full Name</label>
+                <input type="text" id="su-name" placeholder="Vikram Malhotra" required>
               </div>
             </div>
 
             <div class="grid-2">
               <div>
+                <label>Your Job Role / Title</label>
+                <input type="text" id="su-title" placeholder="Lead Technical Recruiter" value="Recruiter">
+              </div>
+              <div>
                 <label>Work Email Address</label>
                 <input type="email" id="su-email" placeholder="name@company.com" required>
               </div>
+            </div>
+
+            <div class="grid-2">
               <div>
                 <label>Contact Phone Number</label>
                 <input type="tel" id="su-phone" placeholder="+91 98765 43210">
+              </div>
+              <div>
+                <label>Industry</label>
+                <input type="text" id="su-industry" placeholder="Technology / SaaS" value="Technology">
               </div>
             </div>
 

@@ -130,6 +130,7 @@ function updateUserBadge() {
       </span>
     `;
     document.getElementById('btn-auth-switch').innerHTML = `<i class="bi bi-box-arrow-right"></i> Sign Out`;
+    if (typeof syncSettingsCompanyFields === 'function') syncSettingsCompanyFields();
   } else {
     if (trialBtn) trialBtn.style.display = 'inline-flex';
     userDisplayEl.innerHTML = `<span class="badge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;"><i class="bi bi-gift-fill"></i> 10 Free Trials Ready</span>`;
@@ -625,10 +626,12 @@ window.backToAuthStep1 = function() {
 // Step 1: Form Sign Up (Email + Password + Email OTP)
 document.getElementById('form-signup').addEventListener('submit', async (e) => {
   e.preventDefault();
+  const companyName = (document.getElementById('su-company')?.value || '').trim();
   const fullName = document.getElementById('su-name').value.trim();
   const jobTitle = (document.getElementById('su-title')?.value || 'Recruiter').trim();
   const email = document.getElementById('su-email').value.trim();
   const phone = (document.getElementById('su-phone')?.value || '').trim();
+  const industry = (document.getElementById('su-industry')?.value || 'Technology').trim();
   const password = document.getElementById('su-password').value;
   const confirmPassword = document.getElementById('su-confirm-password')?.value;
 
@@ -639,6 +642,12 @@ document.getElementById('form-signup').addEventListener('submit', async (e) => {
     alert('Passwords do not match! Please make sure both password fields are identical.');
     document.getElementById('su-confirm-password')?.focus();
     return;
+  }
+
+  // Pre-fill Step 3 company field if applicable
+  const coNameInput = document.getElementById('co-name');
+  if (coNameInput && companyName && !coNameInput.value) {
+    coNameInput.value = companyName;
   }
 
   const btn = e.target.querySelector('button[type=submit]');
@@ -653,6 +662,8 @@ document.getElementById('form-signup').addEventListener('submit', async (e) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        companyName,
+        industry,
         fullName,
         jobTitle,
         email,
@@ -1048,6 +1059,49 @@ document.getElementById('form-company').addEventListener('submit', async (e) => 
     alert(err.message);
   }
 });
+
+// Company Settings synchronization & update
+window.syncSettingsCompanyFields = function() {
+  if (currentOrg) {
+    const sName = document.getElementById('settings-co-name');
+    const sWeb = document.getElementById('settings-co-website');
+    const sInd = document.getElementById('settings-co-industry');
+    const sBadge = document.getElementById('settings-org-name-badge');
+    if (sName) sName.value = currentOrg.name || '';
+    if (sWeb) sWeb.value = currentOrg.website || '';
+    if (sInd) sInd.value = currentOrg.industry || '';
+    if (sBadge) sBadge.textContent = currentOrg.name || 'Company Profile';
+  }
+};
+
+const settingsCoForm = document.getElementById('form-settings-company');
+if (settingsCoForm) {
+  settingsCoForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const companyName = document.getElementById('settings-co-name')?.value.trim();
+    const website = document.getElementById('settings-co-website')?.value.trim();
+    const industry = document.getElementById('settings-co-industry')?.value.trim();
+    const statusEl = document.getElementById('settings-co-status');
+    try {
+      const res = await apiRequest('/auth/company-profile', {
+        method: 'POST',
+        body: JSON.stringify({ companyName, website, industry })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update company profile');
+      currentOrg = data.org || { ...currentOrg, name: companyName, website, industry };
+      updateUserBadge();
+      syncSettingsCompanyFields();
+      if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.textContent = '✓ Company profile updated successfully!';
+        setTimeout(() => { statusEl.style.display = 'none'; }, 3500);
+      }
+    } catch (err) {
+      alert('Error updating company profile: ' + err.message);
+    }
+  });
+}
 
 // --- Tab Switching ---
 window.switchTab = function(tabName) {

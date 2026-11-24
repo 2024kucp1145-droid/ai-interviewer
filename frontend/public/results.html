@@ -603,6 +603,7 @@
         <div>
           <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.35rem;">
             <span class="badge badge-dark" style="background: #2563eb; color: #fff;">Interview Assessment Round</span>
+            <span id="job-company-badge" class="badge" style="background:var(--surface-subtle); color:var(--text); border:1px solid var(--border); display:none; align-items:center; gap:0.35rem;"><i class="bi bi-building"></i> <span id="job-company-name"></span></span>
             <span id="job-level-badge" class="badge badge-outline">Mid-Level</span>
             <span id="job-type-badge" class="badge badge-outline">Technical</span>
             <span id="job-duration-badge" class="badge badge-outline"><i class="bi bi-clock"></i> 15m</span>
@@ -1384,7 +1385,18 @@
         document.getElementById('job-level-badge').textContent = levelLabel;
         document.getElementById('job-type-badge').textContent = currentJob.interview_type || 'Technical';
         document.getElementById('job-duration-badge').innerHTML = `<i class="bi bi-clock"></i> ${currentJob.max_minutes || 15}m`;
-        document.getElementById('print-job-title-sub').textContent = `${currentJob.title} (${levelLabel}) — Official Assessment Roster`;
+        
+        const companyBadge = document.getElementById('job-company-badge');
+        const companyNameEl = document.getElementById('job-company-name');
+        if (currentJob.company_name) {
+          if (companyNameEl) companyNameEl.textContent = currentJob.company_name;
+          if (companyBadge) companyBadge.style.display = 'inline-flex';
+          const metaEl = document.getElementById('job-description-meta');
+          if (metaEl) metaEl.textContent = `${currentJob.company_name} • Automated AI Candidate Screening & Merit Ranking`;
+          document.getElementById('print-job-title-sub').textContent = `${currentJob.company_name} — ${currentJob.title} (${levelLabel}) Official Assessment Roster`;
+        } else {
+          document.getElementById('print-job-title-sub').textContent = `${currentJob.title} (${levelLabel}) — Official Assessment Roster`;
+        }
         document.getElementById('print-date').textContent = new Date().toLocaleDateString();
 
         const intvRes = await fetch(`/jobs/${encodeURIComponent(jobId)}/interviews`, {
@@ -1932,7 +1944,8 @@
         activeModalReportData = data;
         const { interview, report, turns, snapshots, code_history } = data;
 
-        document.getElementById('modal-candidate-name').textContent = `${interview.candidate_name} — AI Audit`;
+        const companyTag = interview.company_name ? ` [${interview.company_name}]` : '';
+        document.getElementById('modal-candidate-name').textContent = `${interview.candidate_name}${companyTag} — AI Audit`;
 
         const safeSnapshots = (snapshots || []).filter(s => String(s.image_data || '').startsWith('data:image/'));
         window._activeModalSnapshots = safeSnapshots;
@@ -2145,6 +2158,13 @@
         const scoreDisp = (report && typeof report.overall_score === 'number') ? report.overall_score : (interview.state === 'disqualified' ? 0 : '--');
 
         content.innerHTML = `
+          ${interview.company_name ? `
+            <div style="margin-bottom:0.75rem; display:flex; align-items:center; gap:0.5rem; font-size:0.78rem; color:var(--text-muted); background:var(--surface-subtle); padding:0.4rem 0.75rem; border-radius:6px; border:1px solid var(--border);">
+              <i class="bi bi-building" style="color:var(--accent);"></i> <strong style="color:var(--text);">${escapeHtml(interview.company_name)}</strong>
+              <span>&bull;</span>
+              <span>Position: <strong style="color:var(--text);">${escapeHtml(interview.job_title || 'Software Engineer')}</strong></span>
+            </div>
+          ` : ''}
           <div style="margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center; background:var(--surface-subtle); padding:0.75rem 1rem; border-radius:8px;">
             <div>
               <div style="font-size:0.75rem; color:var(--text-muted);">Overall AI Verdict</div>
