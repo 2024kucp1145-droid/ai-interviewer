@@ -1,9 +1,16 @@
 import assert from 'assert';
+import 'dotenv/config';
 import {
   isSupabaseConfigured,
   getSupabasePublicConfig,
+  getSupabaseRuntimeConfig,
   syncSupabaseUser
 } from '../backend/src/services/supabaseService.js';
+import {
+  getEffectiveCaptchaConfig,
+  issueBuiltinCaptchaChallenge,
+  verifyCaptchaResponse
+} from '../backend/src/services/captchaService.js';
 import { db } from '../backend/src/db/database.js';
 
 console.log('=== RoundOne AI: Supabase Integration Test Suite ===\n');
@@ -67,4 +74,45 @@ db.prepare('DELETE FROM users WHERE id = ?').run(mockSupabaseId);
 db.prepare('DELETE FROM organizations WHERE id = ?').run(synced.org.id);
 console.log('   ✓ Cleaned up test records');
 
-console.log('\n🎉 ALL SUPABASE INTEGRATION TESTS PASSED SUCCESSFULLY!\n');
+// 6. Test CAPTCHA configuration & built-in challenge verification
+console.log('4. Testing CAPTCHA Protection Service...');
+const captchaCfg = getEffectiveCaptchaConfig();
+assert.strictEqual(captchaCfg.enabled, true, 'CAPTCHA should be ON by default');
+const ch = issueBuiltinCaptchaChallenge();
+assert(ch.challengeToken, 'Expected challengeToken');
+assert(ch.prompt, 'Expected math prompt');
+const expectedAns = ch.operator === '-' ? String(ch.a - ch.b) : String(ch.a + ch.b);
+
+const validCap = await verifyCaptchaResponse({
+  captchaChallengeToken: ch.challengeToken,
+  captchaAnswer: expectedAns
+});
+assert.strictEqual(validCap.valid, true, 'Correct CAPTCHA answer must verify');
+
+const wrongCap = await verifyCaptchaResponse({
+  captchaChallengeToken: ch.challengeToken,
+  captchaAnswer: '9999'
+});
+assert.strictEqual(wrongCap.valid, false, 'Incorrect CAPTCHA answer must be rejected');
+
+const tamperedCap = await verifyCaptchaResponse({
+  captchaChallengeToken: ch.challengeToken + 'tamper',
+  captchaAnswer: expectedAns
+});
+assert.strictEqual(tamperedCap.valid, false, 'Tampered CAPTCHA token must be rejected');
+console.log('   ✓ CAPTCHA enabled, verified valid challenge, and rejected wrong/tampered tokens');
+
+// 7. Test live Supabase Runtime Config & Enabled Providers discovery (if configured)
+if (isSupabaseConfigured()) {
+  console.log('5. Testing live Supabase enabled auth providers discovery...');
+  const rt = await getSupabaseRuntimeConfig({ forceRefresh: true });
+  assert.strictEqual(rt.isConfigured, true);
+  assert.strictEqual(typeof rt.enabledProviders, 'object');
+  const activeProviders = Object.entries(rt.enabledProviders)
+    .filter(([, v]) => Boolean(v))
+    .map(([k]) => k);
+  assert(activeProviders.length > 0, 'Expected at least one enabled Supabase auth provider');
+  console.log(`   ✓ Detected live Supabase providers: ${activeProviders.join(', ')} (passkeysEnabled=${rt.passkeysEnabled})`);
+}
+
+console.log('\n🎉 ALL SUPABASE & CAPTCHA INTEGRATION TESTS PASSED SUCCESSFULLY!\n');

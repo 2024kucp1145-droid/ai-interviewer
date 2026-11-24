@@ -52,11 +52,17 @@ import {
 import { startSupabaseLiveSync } from './services/supabaseLiveSync.js';
 import {
   getSupabasePublicConfig,
+  getSupabaseRuntimeConfig,
   verifySupabaseToken,
   syncSupabaseUser,
   sendSupabaseMagicLink,
   isSupabaseConfigured
 } from './services/supabaseService.js';
+import {
+  getEffectiveCaptchaConfig,
+  issueBuiltinCaptchaChallenge,
+  verifyCaptchaResponse
+} from './services/captchaService.js';
 
 dotenv.config();
 validateJwtSecret();
@@ -361,8 +367,35 @@ function verifyRecruiterOtpCode({ dbUser, cleanEmail, code, purposes = ['recruit
   return { valid: false, error: 'Invalid verification code. Please check your email and try again.' };
 }
 
+async function verifyAuthCaptchaIfApplicable(req) {
+  const captchaCfg = getEffectiveCaptchaConfig();
+  if (!captchaCfg.enabled) return { valid: true };
+
+  const hasCaptchaPayload = Boolean(
+    req.headers['x-captcha-ui'] === '1' ||
+    req.body?.captchaToken ||
+    req.body?.captchaChallengeToken
+  );
+
+  if (!hasCaptchaPayload && !captchaCfg.strictApiEnforcement && !captchaCfg.hasTurnstileKeys && !captchaCfg.hasHcaptchaKeys) {
+    return { valid: true };
+  }
+
+  return await verifyCaptchaResponse({
+    captchaToken: req.body?.captchaToken,
+    captchaChallengeToken: req.body?.captchaChallengeToken,
+    captchaAnswer: req.body?.captchaAnswer,
+    remoteIp: req.ip
+  });
+}
+
 app.post('/auth/signup', async (req, res) => {
   try {
+    const captchaCheck = await verifyAuthCaptchaIfApplicable(req);
+    if (!captchaCheck.valid) {
+      return res.status(400).json({ error: captchaCheck.error, captchaFailed: true });
+    }
+
     const authCfg = getEffectiveAuthConfig();
     const {
       email,
@@ -704,6 +737,11 @@ app.post('/auth/company-profile', requireAuth, (req, res) => {
 // Email + Password Login Step 1 -> Send 6-digit Email OTP
 app.post('/auth/login', async (req, res) => {
   try {
+    const captchaCheck = await verifyAuthCaptchaIfApplicable(req);
+    if (!captchaCheck.valid) {
+      return res.status(400).json({ error: captchaCheck.error, captchaFailed: true });
+    }
+
     const { email, password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
@@ -912,6 +950,11 @@ app.post('/auth/login-otp-verify', (req, res) => {
 // Password Reset Step 1 -> Send 6-digit Email OTP (never overwrites password without OTP verification)
 app.post('/auth/reset-password', async (req, res) => {
   try {
+    const captchaCheck = await verifyAuthCaptchaIfApplicable(req);
+    if (!captchaCheck.valid) {
+      return res.status(400).json({ error: captchaCheck.error, captchaFailed: true });
+    }
+
     const { email, password } = req.body || {};
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and new password are required' });
@@ -1046,12 +1089,56 @@ app.get('/auth/me', requireAuth, (req, res) => {
 // ─── Supabase Authentication & User Sync Endpoints ───────────────────────────
 
 /**
- * Returns safe public configuration for client-side Supabase SDK & Social OAuth
+ * Issue a CAPTCHA challenge & return active CAPTCHA configuration (Turnstile / hCaptcha / Built-in Shield)
  */
-app.get('/api/auth/supabase/config', (req, res) => {
+app.get('/api/auth/captcha/challenge', (req, res) => {
   try {
-    const config = getSupabasePublicConfig();
-    res.json({ success: true, ...config });
+    const cfg = getEffectiveCaptchaConfig();
+    if (!cfg.enabled) {
+      return res.json({ success: true, enabled: false, provider: 'disabled' });
+    }
+
+    if (cfg.provider === 'turnstile' || cfg.provider === 'hcaptcha') {
+      return res.json({
+        success: true,
+        enabled: true,
+        provider: cfg.provider,
+        siteKey: cfg.siteKey
+      });
+    }
+
+    const challenge = issueBuiltinCaptchaChallenge();
+    return res.json({
+      success: true,
+      enabled: true,
+      provider: 'builtin',
+      siteKey: '',
+      ...challenge
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Returns safe public configuration for client-side Supabase SDK, active OAuth providers, and CAPTCHA settings
+ */
+app.get('/api/auth/supabase/config', async (req, res) => {
+  try {
+    const forceRefresh = req.query.refresh === '1';
+    const config = await getSupabaseRuntimeConfig({ forceRefresh });
+    const captchaCfg = getEffectiveCaptchaConfig();
+
+    res.json({
+      success: true,
+      ...config,
+      captcha: {
+        enabled: captchaCfg.enabled || Boolean(config.supabaseCaptchaEnabled),
+        provider: captchaCfg.provider,
+        siteKey: captchaCfg.siteKey,
+        supabaseNativeEnabled: Boolean(config.supabaseCaptchaEnabled)
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1114,13 +1201,18 @@ app.post('/api/auth/supabase/sync', async (req, res) => {
  */
 app.post('/api/auth/supabase/magic-link', async (req, res) => {
   try {
-    const { email, redirectTo } = req.body || {};
+    const captchaCheck = await verifyAuthCaptchaIfApplicable(req);
+    if (!captchaCheck.valid) {
+      return res.status(400).json({ error: captchaCheck.error, captchaFailed: true });
+    }
+
+    const { email, redirectTo, captchaToken } = req.body || {};
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
     }
 
     const cleanEmail = email.toLowerCase().trim();
-    const result = await sendSupabaseMagicLink(cleanEmail, redirectTo);
+    const result = await sendSupabaseMagicLink(cleanEmail, redirectTo, captchaToken);
 
     if (!result.sent) {
       return res.status(400).json({ error: result.error || 'Failed to dispatch magic link' });

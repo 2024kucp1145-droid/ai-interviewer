@@ -29,6 +29,7 @@ import { getServerEvents, clearServerEvents, recordServerEvent } from '../servic
 import { resetRateLimits, getRateLimitStats } from '../middleware/rateLimit.js';
 import { checkPostgresConnection, getPostgresConfig } from '../db/postgres.js';
 import { getSupabasePublicConfig, isSupabaseConfigured } from '../services/supabaseService.js';
+import { getEffectiveCaptchaConfig } from '../services/captchaService.js';
 import { runMigration as runPostgresMigration } from '../db/migrateToPostgres.js';
 
 export const adminRouter = express.Router();
@@ -2074,7 +2075,7 @@ adminRouter.get('/settings', requireAdmin, async (req, res) => {
     // Mask passwords and API secrets for security
     const maskSecretValue = (val) => (val && String(val).length > 6 ? String(val).slice(0, 5) + '••••••••' : (val ? '••••••••' : ''));
     if (responseSettings.smtp_pass) responseSettings.smtp_pass = '••••••••';
-    for (const secretKey of ['resend_api_key', 'stripe_secret_key', 'stripe_webhook_secret', 'razorpay_key_secret', 'razorpay_webhook_secret', 'supabase_service_role_key']) {
+    for (const secretKey of ['resend_api_key', 'stripe_secret_key', 'stripe_webhook_secret', 'razorpay_key_secret', 'razorpay_webhook_secret', 'supabase_service_role_key', 'turnstile_secret_key', 'hcaptcha_secret_key']) {
       if (responseSettings[secretKey]) {
         responseSettings[secretKey] = maskSecretValue(responseSettings[secretKey]);
       }
@@ -2082,6 +2083,7 @@ adminRouter.get('/settings', requireAdmin, async (req, res) => {
 
     const pgHealth = await checkPostgresConnection();
     const pgConfig = getPostgresConfig();
+    const captchaStatus = getEffectiveCaptchaConfig();
 
     res.json({ 
       success: true, 
@@ -2107,6 +2109,7 @@ adminRouter.get('/settings', requireAdmin, async (req, res) => {
         autoApprovePayments: paymentConfig.autoApprovePayments !== false,
       },
       authConfig,
+      captchaStatus,
       siteConfig,
       emailStatus: {
         isConfigured: emailConfig.isConfigured,
@@ -2148,7 +2151,7 @@ function upsertPlatformSettings(settings) {
   `);
 
   const maskedSecretKeys = new Set([
-    'smtp_pass', 'resend_api_key', 'stripe_secret_key', 'stripe_webhook_secret', 'razorpay_key_secret', 'razorpay_webhook_secret', 'supabase_service_role_key'
+    'smtp_pass', 'resend_api_key', 'stripe_secret_key', 'stripe_webhook_secret', 'razorpay_key_secret', 'razorpay_webhook_secret', 'supabase_service_role_key', 'turnstile_secret_key', 'hcaptcha_secret_key'
   ]);
   const preserveIfEmptyKeys = new Set([
     'email_provider', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_from_name', 'smtp_from_email'

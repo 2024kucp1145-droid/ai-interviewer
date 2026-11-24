@@ -2645,6 +2645,7 @@
       gap: 1rem;
     }
 </style>
+  <link rel="stylesheet" href="/css/app-theme.css">
   <script src="/js/theme.js"></script>
 </head>
 <body>
@@ -2672,26 +2673,49 @@
 
   <!-- Top Navigation Bar -->
   <header>
-    <!-- Left Corner: Logo + Tabs (Home, Pricing, Blog, About Us) immediately after logo -->
-    <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
-      <div class="brand" onclick="switchFrontTab('home')" style="cursor: pointer;" title="RoundOne AI Home">
+    <!-- Left Corner: Logo + Contextual Navigation Tabs -->
+    <div class="header-left-group">
+      <div class="brand" onclick="if (authToken && currentUser) { switchTab('jobs'); } else { switchFrontTab('home'); }" style="cursor: pointer;" title="RoundOne AI Workspace">
         <i class="bi bi-cpu-fill"></i>
         <span id="site-brand-title">RoundOne AI</span>
         <span class="brand-badge" id="site-brand-badge">Autonomous</span>
       </div>
 
-      <!-- Navigation Tabs (Home, Pricing, Blog, About Us) -->
-      <nav class="nav-tabs" id="front-nav-tabs">
-        <button type="button" class="nav-btn active" id="nav-btn-home" onclick="switchFrontTab('home')">Home</button>
-        <button type="button" class="nav-btn" id="nav-btn-pricing" onclick="switchFrontTab('pricing')">Pricing</button>
-        <button type="button" class="nav-btn" id="nav-btn-blog" onclick="switchFrontTab('blog')">Blog</button>
-        <button type="button" class="nav-btn" id="nav-btn-about" onclick="switchFrontTab('about')">About Us</button>
+      <!-- Public Visitor Navigation (Hidden when logged into workspace) -->
+      <div id="public-nav-tabs" style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+        <nav class="nav-tabs" id="front-nav-tabs">
+          <button type="button" class="nav-btn active" id="nav-btn-home" onclick="switchFrontTab('home')">Home</button>
+          <button type="button" class="nav-btn" id="nav-btn-pricing" onclick="switchFrontTab('pricing')">Pricing</button>
+          <button type="button" class="nav-btn" id="nav-btn-blog" onclick="switchFrontTab('blog')">Blog</button>
+          <button type="button" class="nav-btn" id="nav-btn-about" onclick="switchFrontTab('about')">About Us</button>
+        </nav>
+        <div id="dynamic-header-links" style="display:flex;align-items:center;gap:0.35rem;flex-wrap:wrap;"></div>
+      </div>
+
+      <!-- Authenticated Recruiter Workspace Navigation (Shown when signed in) -->
+      <nav class="nav-tabs" id="main-nav-tabs" style="display: none;">
+        <button type="button" class="nav-btn active" data-tab="jobs" onclick="switchTab('jobs')">
+          <i class="bi bi-briefcase"></i> Interviews
+        </button>
+        <button type="button" class="nav-btn" data-tab="candidates" onclick="switchTab('candidates')">
+          <i class="bi bi-people"></i> Candidates
+        </button>
+        <button type="button" class="nav-btn" data-tab="keys" onclick="switchTab('keys')">
+          <i class="bi bi-shield-lock"></i> Team &amp; Keys
+        </button>
+        <button type="button" class="nav-btn" data-tab="metrics" onclick="switchTab('metrics')">
+          <i class="bi bi-credit-card"></i> Usage &amp; Billing
+        </button>
       </nav>
     </div>
 
-    <!-- Right Corner: Start Free Trial, Feedback, Sign In -->
+    <!-- Right Corner: Theme Toggle, Trial CTA, Responses, User Pill, Auth -->
     <div class="header-user">
-      <!-- Free Trial Header CTA Button -->
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Theme" aria-label="Switch Theme">
+        <i class="bi bi-sun-fill theme-toggle-icon"></i>
+      </button>
+
+      <!-- Free Trial Header CTA Button (Public visitors) -->
       <button class="btn btn-primary btn-sm" id="btn-header-trial" onclick="handleStartTrialClick()" title="Claim your 10 free AI technical interviews">
         Start Free Trial
       </button>
@@ -2701,17 +2725,18 @@
         <i class="bi bi-chat-heart"></i> Feedback
       </button>
 
-      <!-- Sign In Button -->
-      <button class="btn btn-outline btn-sm" id="btn-auth-switch" onclick="openAuthModal()">
-        <i class="bi bi-person"></i> Sign In
-      </button>
-
       <!-- Responses & Scores Trigger (When logged in) -->
       <button class="btn btn-sm btn-responses-top" id="btn-top-responses" onclick="openResponsesDrawer()" style="display: none;" title="View candidate responses and scores">
         <i class="bi bi-chat-square-quote-fill"></i> Responses &amp; Scores
         <span id="responses-count-badge" class="badge responses-badge">0</span>
       </button>
-      <span id="user-display" style="font-size: 0.75rem; color: #a1a1aa; font-weight: 500; display: none;"></span>
+
+      <span id="user-display" style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500; display: none;"></span>
+
+      <!-- Sign In / Sign Out Button -->
+      <button class="btn btn-outline btn-sm" id="btn-auth-switch" onclick="openAuthModal()">
+        <i class="bi bi-person"></i> Sign In
+      </button>
     </div>
   </header>
 
@@ -2720,24 +2745,27 @@
     <div id="tab-jobs" class="tab-pane">
 
       <!-- Recruiter Greeting / Quick Launch Bar (Shown when authenticated) -->
-      <div id="bolt-recruiter-welcome" style="display: none; align-items: center; justify-content: space-between; padding: 0.85rem 1.25rem; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 1.25rem; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #2563eb, #7c3aed); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem;">
+      <div id="bolt-recruiter-welcome" class="recruiter-command-bar" style="display: none;">
+        <div style="display: flex; align-items: center; gap: 0.85rem;">
+          <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #4f46e5, #06b6d4); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; flex-shrink: 0;">
             <i class="bi bi-stars"></i>
           </div>
           <div>
-            <div style="font-size: 0.85rem; font-weight: 700; color: var(--text);">
-              Welcome back, <span id="recruiter-welcome-name">Recruiter</span>!
+            <div style="font-size: 0.95rem; font-weight: 700; color: var(--text);">
+              Welcome back, <span id="recruiter-welcome-name">Recruiter</span>
             </div>
-            <div style="font-size: 0.72rem; color: var(--text-muted);">
-              You have <strong id="recruiter-welcome-credits" style="color: #059669;">10</strong> AI technical interview credits remaining. Ready to screen candidates?
+            <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 0.1rem;">
+              <strong id="recruiter-welcome-credits" style="color: #10b981;">10</strong> AI interview credits ready &bull; Create a round, send an invite link, or review candidate scorecards.
             </div>
           </div>
         </div>
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <div class="recruiter-command-actions">
+          <button class="btn btn-outline btn-sm" onclick="openOrgCareersPage()" title="Open your public branded careers portal &amp; copy URL">
+            <i class="bi bi-globe"></i> Careers Portal
+          </button>
           <button class="btn btn-outline btn-sm" onclick="openQuestionBankModal()"><i class="bi bi-collection"></i> 4,111+ LeetCode Qs</button>
-          <button class="btn btn-outline btn-sm" onclick="togglePublicShowcase()"><i class="bi bi-eye"></i> View Landing Page</button>
-          <button class="btn btn-primary btn-sm" onclick="startInterviewCreationWizard()"><i class="bi bi-plus-lg"></i> Create New Interview</button>
+          <button class="btn btn-outline btn-sm" onclick="togglePublicShowcase()"><i class="bi bi-eye"></i> Showcase</button>
+          <button class="btn btn-primary btn-sm" onclick="startInterviewCreationWizard()"><i class="bi bi-plus-lg"></i> New Interview</button>
         </div>
       </div>
 
@@ -2787,12 +2815,40 @@
 
             <!-- CTAs -->
             <div class="hero-cta-row">
-              <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()" style="padding: 0.7rem 1.6rem; font-size: 0.85rem;">
+              <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()" style="padding: 0.72rem 1.65rem; font-size: 0.86rem;">
                 Start Free Trial — 10 Free Rounds
               </button>
-              <button type="button" class="btn btn-outline" onclick="openQuestionBankModal()" style="padding: 0.7rem 1.4rem; font-size: 0.85rem;">
+              <button type="button" class="btn btn-outline" onclick="openAuthModal('login')" style="padding: 0.72rem 1.4rem; font-size: 0.86rem;">
+                <i class="bi bi-box-arrow-in-right"></i> Sign In to Workspace
+              </button>
+              <button type="button" class="btn btn-outline" onclick="openQuestionBankModal()" style="padding: 0.72rem 1.4rem; font-size: 0.86rem;">
                 Explore 4,111+ Question Bank &rarr;
               </button>
+            </div>
+
+            <!-- Quick 3-Step Operating Flow -->
+            <div class="quick-steps-strip">
+              <div class="quick-step-item">
+                <div class="quick-step-num">1</div>
+                <div>
+                  <div style="font-weight: 700; font-size: 0.82rem; color: var(--text); margin-bottom: 0.2rem;">Pick or Describe a Role</div>
+                  <div style="font-size: 0.74rem; color: var(--text-muted); line-height: 1.45;">Paste a JD or pick from 100+ curated templates and 4,111+ DSA coding challenges.</div>
+                </div>
+              </div>
+              <div class="quick-step-item">
+                <div class="quick-step-num">2</div>
+                <div>
+                  <div style="font-weight: 700; font-size: 0.82rem; color: var(--text); margin-bottom: 0.2rem;">Share 1 Candidate Link</div>
+                  <div style="font-size: 0.74rem; color: var(--text-muted); line-height: 1.45;">Alex runs voice follow-ups, live code compilation, and anti-cheat proctoring 24/7.</div>
+                </div>
+              </div>
+              <div class="quick-step-item">
+                <div class="quick-step-num">3</div>
+                <div>
+                  <div style="font-weight: 700; font-size: 0.82rem; color: var(--text); margin-bottom: 0.2rem;">Get Ranked Scorecards</div>
+                  <div style="font-size: 0.74rem; color: var(--text-muted); line-height: 1.45;">Review 0–100 rubric scores, audio quotes, and keystroke replays in 30 seconds.</div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -3411,34 +3467,17 @@
 
             <!-- SUB-VIEW 1: Clean Interview Dashboard (Default View) -->
       <div id="view-interview-dashboard" style="display: none;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-          <div>
-            <h2 style="font-size: 1.15rem; font-weight: 700; color: #ffffff; letter-spacing: -0.02em;">Interview Management</h2>
-            <p style="font-size: 0.775rem; color: var(--text-muted); margin-top: 0.15rem;">
-              Create customized technical screening rounds with compilers, rules, and LeetCode problems.
-            </p>
-          </div>
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <button class="btn btn-outline" onclick="openOrgCareersPage()" style="padding: 0.6rem 1rem; font-size: 0.85rem; font-weight: 600;" title="Open your public branded careers portal &amp; copy URL">
-              <i class="bi bi-globe"></i> Public Careers Page
-            </button>
-            <button class="btn btn-outline" onclick="openQuestionBankModal()" style="padding: 0.6rem 1rem; font-size: 0.85rem; font-weight: 600;">
-              <i class="bi bi-collection"></i> Question Bank
-            </button>
-            <button class="btn" onclick="startInterviewCreationWizard()" style="padding: 0.6rem 1.25rem; font-size: 0.85rem; font-weight: 600;">
-              <i class="bi bi-plus-circle-fill"></i> Create New Interview
-            </button>
-          </div>
-        </div>
-
         <!-- Active Interviews List -->
         <div class="card">
           <div class="card-title">
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap;">
               <span><i class="bi bi-folder2-open"></i> Configured Interviews</span>
               <span id="active-jobs-count" class="badge badge-dark">0 Active</span>
             </div>
-            <button class="btn btn-ghost btn-sm" onclick="window.refreshDashboard(this)"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <button class="btn btn-outline btn-sm" onclick="switchTab('candidates')"><i class="bi bi-people"></i> Invite Candidates</button>
+              <button class="btn btn-ghost btn-sm" onclick="window.refreshDashboard(this)"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+            </div>
           </div>
 
           <!-- Category, Search & Sort Filter Bar -->
@@ -4683,7 +4722,7 @@
       <div class="card" style="margin-top: 1.5rem; padding: 1.5rem;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
           <div>
-            <h3 style="font-size:1rem; font-weight:700; color:#000;"><i class="bi bi-code-square"></i> Custom Coding &amp; SQL Problem Builder</h3>
+            <h3 style="font-size:1rem; font-weight:700; color:var(--text);"><i class="bi bi-code-square"></i> Custom Coding &amp; SQL Problem Builder</h3>
             <p style="font-size:0.775rem; color:var(--text-muted); margin-top:0.2rem;">
               Author proprietary algorithmic or SQL problems with automated public &amp; hidden test cases. Select them directly inside any job interview round.
             </p>
@@ -5208,28 +5247,53 @@
 
         <!-- Step 1: Account / Sign In / Register -->
         <div id="auth-step-1">
-          <!-- Supabase Social OAuth / Fast Login Options -->
-          <div id="supabase-social-auth" style="display: none; margin-bottom: 1.15rem;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem;">
-              <button type="button" class="btn btn-outline btn-sm" onclick="loginWithSupabaseProvider('google')" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: var(--surface);">
-                <svg width="15" height="15" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/><path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15.1s.7 5.4 1.9 7.8l3.7-2.9z"/><path fill="#34A853" d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16.5C3.7 20.2 7.5 23.5 12 23.5z"/></svg>
-                Google
-              </button>
-              <button type="button" class="btn btn-outline btn-sm" onclick="loginWithSupabaseProvider('github')" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: var(--surface);">
-                <i class="bi bi-github" style="font-size: 0.95rem;"></i>
-                GitHub
-              </button>
+          <!-- Inline Error / Status Banner -->
+          <div id="auth-inline-alert" class="auth-inline-alert" role="alert"></div>
+
+          <!-- Dynamic Supabase Enabled Auth Providers -->
+          <div id="supabase-social-auth" style="display: none; margin-bottom: 1rem;">
+            <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.45rem;">
+              One-Click Sign In via Supabase Auth
             </div>
-            <div style="display: flex; align-items: center; margin: 0.85rem 0 0.4rem; color: var(--text-muted); font-size: 0.72rem;">
+            <div id="supabase-oauth-buttons" class="oauth-providers-grid">
+              <!-- Dynamically rendered from live Supabase enabled providers -->
+            </div>
+            <button type="button" id="btn-passkey-signin" class="oauth-passkey-btn" style="display: none;" onclick="loginWithSupabasePasskey()">
+              <i class="bi bi-fingerprint"></i> Sign in with Passkey (Biometric / Security Key)
+            </button>
+            <div style="display: flex; align-items: center; margin: 0.85rem 0 0.45rem; color: var(--text-muted); font-size: 0.72rem;">
               <div style="flex: 1; height: 1px; background: var(--border);"></div>
               <span style="padding: 0 0.6rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Or continue with email</span>
               <div style="flex: 1; height: 1px; background: var(--border);"></div>
             </div>
           </div>
 
-          <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
-            <button type="button" class="btn btn-outline btn-sm" id="btn-toggle-login" onclick="toggleAuthMode('login')">Existing User Sign In</button>
-            <button type="button" class="btn btn-sm" id="btn-toggle-signup" onclick="toggleAuthMode('signup')">Create Account</button>
+          <div style="display: flex; gap: 0.45rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.55rem; flex-wrap: wrap;">
+            <button type="button" class="btn btn-sm" id="btn-toggle-login" onclick="toggleAuthMode('login')">Sign In</button>
+            <button type="button" class="btn btn-outline btn-sm" id="btn-toggle-signup" onclick="toggleAuthMode('signup')">Create Account</button>
+            <button type="button" class="btn btn-outline btn-sm" id="btn-toggle-magic" onclick="toggleAuthMode('magic')" style="display: none;">
+              <i class="bi bi-magic"></i> Magic Link
+            </button>
+          </div>
+
+          <!-- Shared CAPTCHA Human Verification Widget (Controlled by backend/Supabase) -->
+          <div id="auth-captcha-container" class="captcha-shield-box" style="display: none;">
+            <div class="captcha-shield-header">
+              <span class="captcha-status-pill">
+                <i class="bi bi-shield-fill-check"></i> Bot &amp; CAPTCHA Protection ON
+              </span>
+              <span id="auth-captcha-provider-label" style="font-size: 0.68rem; color: var(--text-muted); font-weight: 600;">Verified Check</span>
+            </div>
+            <div id="auth-captcha-external" style="display: none; margin-top: 0.25rem;"></div>
+            <div id="auth-captcha-builtin" style="display: none;">
+              <div class="captcha-challenge-row">
+                <span class="captcha-prompt-badge" id="captcha-prompt-text">Loading...</span>
+                <input type="text" id="captcha-answer-input" class="captcha-answer-input" placeholder="Answer" inputmode="numeric" autocomplete="off">
+                <button type="button" class="btn btn-outline btn-sm" onclick="refreshAuthCaptcha()" title="New CAPTCHA Challenge" aria-label="Refresh CAPTCHA Challenge">
+                  <i class="bi bi-arrow-clockwise"></i>
+                </button>
+              </div>
+            </div>
           </div>
 
           <!-- Sign Up Form (Direct Password & Email) -->
@@ -5291,8 +5355,8 @@
               <i class="bi bi-exclamation-circle"></i> Passwords do not match. Please verify both fields.
             </div>
 
-            <button type="submit" class="btn" style="width: 100%; margin-top: 0.75rem;">
-              Create Account & Enter Dashboard <i class="bi bi-arrow-right"></i>
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.75rem;">
+              Create Account &amp; Enter Dashboard <i class="bi bi-arrow-right"></i>
             </button>
           </form>
 
@@ -5301,7 +5365,7 @@
             <label>Work Email</label>
             <input type="email" id="login-email" placeholder="name@company.com" required>
 
-            <label style="margin-top: 0.5rem;">Password</label>
+            <label style="margin-top: 0.35rem;">Password</label>
             <div style="position: relative;">
               <input type="password" id="login-password" placeholder="Enter your password" required style="padding-right: 2.5rem; width: 100%;">
               <button type="button" onclick="togglePasswordVisibility('login-password', this)" title="Show/Hide Password" style="position: absolute; right: 0.7rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 0.2rem; font-size: 1rem; display: flex; align-items: center;">
@@ -5309,21 +5373,33 @@
               </button>
             </div>
 
-            <button type="submit" class="btn" style="width: 100%; margin-top: 0.85rem;">
-              Sign In & Enter Dashboard <i class="bi bi-box-arrow-in-right"></i>
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.75rem;">
+              Sign In &amp; Enter Dashboard <i class="bi bi-box-arrow-in-right"></i>
             </button>
 
             <!-- Reset password quick-action if incorrect password entered -->
             <div id="login-error-container" style="display: none; margin-top: 0.65rem; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 6px; padding: 0.65rem;">
               <div id="login-error-msg" style="color: #ef4444; font-size: 0.75rem; margin-bottom: 0.4rem; font-weight: 500;"></div>
               <button type="button" id="btn-login-reset-pwd" class="btn btn-sm" style="width: 100%; font-size: 0.75rem; padding: 0.35rem; background: #6366f1; color: white;" onclick="resetPasswordFromLogin()">
-                <i class="bi bi-envelope-check"></i> Verify Email OTP & Set This Password
+                <i class="bi bi-envelope-check"></i> Verify Email OTP &amp; Set This Password
               </button>
             </div>
 
-            <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
-              <a href="#" onclick="resetPasswordFromLogin(); return false;" style="font-size: 0.725rem; color: var(--primary); text-decoration: underline;">Forgot Password? Reset via Email OTP</a>
+            <div style="display: flex; justify-content: flex-end; margin-top: 0.55rem;">
+              <a href="#" onclick="resetPasswordFromLogin(); return false;" style="font-size: 0.725rem; color: var(--accent); text-decoration: underline;">Forgot Password? Reset via Email</a>
             </div>
+          </form>
+
+          <!-- Supabase Passwordless Magic Link Form -->
+          <form id="form-magic-link" style="display: none;">
+            <p style="font-size: 0.76rem; color: var(--text-muted); margin-bottom: 0.75rem; line-height: 1.5;">
+              Enter your email address and Supabase will send a 1-click passwordless sign-in link straight to your inbox.
+            </p>
+            <label>Work Email</label>
+            <input type="email" id="magic-email" placeholder="name@company.com" required>
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
+              <i class="bi bi-envelope-paper-fill"></i> Send Passwordless Magic Link
+            </button>
           </form>
         </div>
 
@@ -5415,7 +5491,7 @@
       <div class="drawer-content">
         <div class="drawer-header">
           <div>
-            <div style="font-weight: 700; font-size: 0.95rem; color: #000; display: flex; align-items: center; gap: 0.45rem;">
+            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text); display: flex; align-items: center; gap: 0.45rem;">
               <i class="bi bi-chat-square-quote-fill"></i> Candidate Responses & Scores
             </div>
             <div style="font-size: 0.725rem; color: var(--text-muted); margin-top: 0.15rem;">
@@ -5426,7 +5502,7 @@
         </div>
 
         <div style="padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border); background: var(--surface-subtle); display: flex; gap: 0.5rem; align-items: center;">
-          <input type="text" id="responses-search" placeholder="Filter by candidate, email, or role..." style="margin-bottom: 0; font-size: 0.75rem; background: #fff;" oninput="filterResponsesList()">
+          <input type="text" id="responses-search" placeholder="Filter by candidate, email, or role..." style="margin-bottom: 0; font-size: 0.75rem;" oninput="filterResponsesList()">
           <select id="responses-filter-verdict" style="margin-bottom: 0; width: auto; font-size: 0.75rem;" onchange="filterResponsesList()">
             <option value="all">All Verdicts</option>
             <option value="RECOMMENDED_HIRE">Recommended Hire</option>
@@ -5448,7 +5524,7 @@
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
           <div>
             <span class="badge badge-dark">Evidence-Backed Report</span>
-            <div id="modal-report-candidate" style="font-size: 1.15rem; font-weight: 700; color: #000; margin-top: 0.2rem;">Candidate Name</div>
+            <div id="modal-report-candidate" style="font-size: 1.15rem; font-weight: 700; color: var(--text); margin-top: 0.2rem;">Candidate Name</div>
             <div id="modal-report-meta" style="color: var(--text-muted); font-size: 0.75rem;">Role · Date</div>
           </div>
           <button class="btn btn-ghost btn-sm" onclick="closeReportModal()"><i class="bi bi-x-lg"></i></button>

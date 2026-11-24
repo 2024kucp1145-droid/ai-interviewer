@@ -71,6 +71,101 @@ export function getSupabasePublicConfig() {
   };
 }
 
+let cachedAuthSettings = null;
+let cachedAuthSettingsAt = 0;
+let cachedAuthSettingsUrl = '';
+const AUTH_SETTINGS_TTL_MS = 60_000;
+
+/**
+ * Fetch live enabled OAuth & auth providers directly from Supabase GoTrue `/auth/v1/settings`.
+ * Cached briefly to keep login modals fast while reflecting dashboard changes quickly.
+ */
+export async function getSupabaseAuthSettings({ forceRefresh = false } = {}) {
+  const creds = getSupabaseCredentials();
+  if (!creds.isConfigured) {
+    return {
+      external: {},
+      passkeysEnabled: false,
+      disableSignup: false,
+      supabaseCaptchaEnabled: false,
+      supabaseCaptchaProvider: null
+    };
+  }
+
+  const now = Date.now();
+  if (
+    !forceRefresh &&
+    cachedAuthSettings &&
+    cachedAuthSettingsUrl === creds.url &&
+    (now - cachedAuthSettingsAt) < AUTH_SETTINGS_TTL_MS
+  ) {
+    return cachedAuthSettings;
+  }
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`${creds.url}/auth/v1/settings`, {
+      headers: { apikey: creds.anonKey },
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+
+    if (res.ok) {
+      const data = await res.json();
+      const parsed = {
+        external: data.external || {},
+        passkeysEnabled: Boolean(data.passkeys_enabled),
+        disableSignup: Boolean(data.disable_signup),
+        supabaseCaptchaEnabled: Boolean(data.security_captcha_enabled || data.captcha_enabled),
+        supabaseCaptchaProvider: data.security_captcha_provider || null
+      };
+      cachedAuthSettings = parsed;
+      cachedAuthSettingsAt = now;
+      cachedAuthSettingsUrl = creds.url;
+      return parsed;
+    }
+  } catch (err) {
+    if (cachedAuthSettings && cachedAuthSettingsUrl === creds.url) {
+      return cachedAuthSettings;
+    }
+  }
+
+  return {
+    external: { email: true },
+    passkeysEnabled: false,
+    disableSignup: false,
+    supabaseCaptchaEnabled: false,
+    supabaseCaptchaProvider: null
+  };
+}
+
+/**
+ * Resolve complete public Supabase runtime config including live enabled auth providers.
+ */
+export async function getSupabaseRuntimeConfig({ forceRefresh = false } = {}) {
+  const base = getSupabasePublicConfig();
+  if (!base.isConfigured) {
+    return {
+      ...base,
+      enabledProviders: {},
+      passkeysEnabled: false,
+      disableSignup: false,
+      supabaseCaptchaEnabled: false
+    };
+  }
+
+  const authSettings = await getSupabaseAuthSettings({ forceRefresh });
+  return {
+    ...base,
+    enabledProviders: authSettings.external || {},
+    passkeysEnabled: authSettings.passkeysEnabled,
+    disableSignup: authSettings.disableSignup,
+    supabaseCaptchaEnabled: authSettings.supabaseCaptchaEnabled,
+    supabaseCaptchaProvider: authSettings.supabaseCaptchaProvider
+  };
+}
+
 /**
  * Get the standard client (anon key)
  */
@@ -322,16 +417,19 @@ export async function uploadProctorSnapshot({ interviewId, snapshotBuffer, fileN
 /**
  * Supabase Auth: Send password reset or Magic Link email via native Supabase Auth
  */
-export async function sendSupabaseMagicLink(email, redirectTo = null) {
+export async function sendSupabaseMagicLink(email, redirectTo = null, captchaToken = null) {
   const client = getSupabaseClient() || getSupabaseAdmin();
   if (!client) return { sent: false, error: 'Supabase client not configured' };
 
   try {
+    const options = {
+      emailRedirectTo: redirectTo || undefined
+    };
+    if (captchaToken) options.captchaToken = captchaToken;
+
     const { data, error } = await client.auth.signInWithOtp({
       email: email.trim().toLowerCase(),
-      options: {
-        emailRedirectTo: redirectTo || undefined
-      }
+      options
     });
 
     if (error) {

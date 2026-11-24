@@ -101,6 +101,9 @@ export function getEffectiveAuthConfig() {
     allowDevOtpFallback: s.allow_dev_otp_fallback !== undefined
       ? s.allow_dev_otp_fallback === '1'
       : (process.env.ALLOW_DEV_OTP === 'true'),
+    captchaEnabled: s.captcha_enabled !== undefined
+      ? (s.captcha_enabled !== '0' && s.captcha_enabled !== 'false')
+      : (process.env.CAPTCHA_ENABLED !== 'false' && process.env.CAPTCHA_ENABLED !== '0'),
     defaultTrialCredits: Math.max(0, parseInt(s.default_trial_credits || '10', 10) || 10),
   };
 }

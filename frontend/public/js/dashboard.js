@@ -114,17 +114,17 @@ function updateUserBadge() {
   const trialBtn = document.getElementById('btn-header-trial');
   if (currentUser && currentOrg) {
     if (trialBtn) trialBtn.style.display = 'none';
-    const creditsCount = currentOrg.credits !== undefined ? currentOrg.credits : '—';
+    userDisplayEl.style.display = 'inline-flex';
+    const creditsCount = currentOrg.credits !== undefined
+      ? currentOrg.credits
+      : (currentOrg.included_interviews !== undefined ? currentOrg.included_interviews : 10);
     userDisplayEl.innerHTML = `
       <span style="display:inline-flex; align-items:center; gap:0.4rem; font-weight:600; color:var(--text);">
-        <span style="width:24px; height:24px; border-radius:50%; background:#eff6ff; color:#2563eb; font-weight:700; font-size:0.65rem; display:inline-flex; align-items:center; justify-content:center; border:1px solid #bfdbfe;">
-          ${escapeHtml((currentUser.full_name || currentUser.email || 'U')[0].toUpperCase())}
+        <span style="width:24px; height:24px; border-radius:50%; background:var(--accent-light); color:var(--accent); font-weight:700; font-size:0.68rem; display:inline-flex; align-items:center; justify-content:center; border:1px solid rgba(99,102,241,0.35);">
+          ${escapeHtml((currentUser.full_name || currentUser.fullName || currentUser.email || 'U')[0].toUpperCase())}
         </span>
-        <span style="font-size:0.775rem;">${escapeHtml(currentUser.full_name || currentUser.email)}</span>
-        <span class="badge" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; font-size:0.65rem; padding:0.15rem 0.45rem;">
-          <i class="bi bi-building"></i> ${escapeHtml(currentOrg.name)}
-        </span>
-        <span class="badge" style="background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; font-size:0.65rem; padding:0.15rem 0.45rem;" title="Available AI Interview credits">
+        <span style="font-size:0.76rem; max-width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(currentOrg.name || 'Workspace')}">${escapeHtml(currentUser.full_name || currentUser.fullName || currentUser.email)}</span>
+        <span class="badge" style="background:var(--success-light); color:var(--success); border:1px solid rgba(16,185,129,0.32); font-size:0.65rem; padding:0.16rem 0.45rem; white-space:nowrap;" title="Workspace: ${escapeHtml(currentOrg.name || 'Workspace')}">
           <i class="bi bi-lightning-charge-fill"></i> ${creditsCount} Credits
         </span>
       </span>
@@ -133,18 +133,39 @@ function updateUserBadge() {
     if (typeof syncSettingsCompanyFields === 'function') syncSettingsCompanyFields();
   } else {
     if (trialBtn) trialBtn.style.display = 'inline-flex';
-    userDisplayEl.innerHTML = `<span class="badge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;"><i class="bi bi-gift-fill"></i> 10 Free Trials Ready</span>`;
-    document.getElementById('btn-auth-switch').innerHTML = `<i class="bi bi-box-arrow-in-right"></i> Sign In / Register`;
+    userDisplayEl.style.display = 'none';
+    userDisplayEl.innerHTML = '';
+    document.getElementById('btn-auth-switch').innerHTML = `<i class="bi bi-box-arrow-in-right"></i> Sign In`;
   }
 }
 
+window.showAuthAlert = function(message, type = 'error') {
+  const el = document.getElementById('auth-inline-alert');
+  if (!el) return;
+  el.textContent = message;
+  el.className = `auth-inline-alert ${type === 'success' ? 'success' : 'error'}`;
+  el.style.display = 'block';
+};
+
+window.clearAuthAlert = function() {
+  const el = document.getElementById('auth-inline-alert');
+  if (el) {
+    el.style.display = 'none';
+    el.textContent = '';
+  }
+};
+
 // Modal open & close
 window.openAuthModal = function(initialMode = 'login') {
+  clearAuthAlert();
   if (authModal) authModal.style.display = 'flex';
   if (!authToken) {
     goToStep(1);
     if (typeof toggleAuthMode === 'function') {
       toggleAuthMode(initialMode || 'login');
+    }
+    if (typeof refreshAuthCaptcha === 'function') {
+      refreshAuthCaptcha();
     }
     if (pendingTeamInviteToken) {
       toggleAuthMode('signup');
@@ -193,33 +214,35 @@ function goToStep(stepNum) {
   t3.className = 'wizard-step-item' + (stepNum === 3 ? ' active' : '');
 }
 
-// Toggle sign up vs login
+// Toggle sign up vs login vs magic link
 window.toggleAuthMode = function(mode) {
   authMode = mode;
+  clearAuthAlert();
   const suBtn = document.getElementById('btn-toggle-signup');
   const liBtn = document.getElementById('btn-toggle-login');
+  const mlBtn = document.getElementById('btn-toggle-magic');
   const suForm = document.getElementById('form-signup');
   const liForm = document.getElementById('form-login');
+  const mlForm = document.getElementById('form-magic-link');
+  const titleEl = document.getElementById('auth-modal-title');
 
-  if (mode === 'signup') {
-    if (suBtn) suBtn.className = 'btn btn-sm';
-    if (liBtn) liBtn.className = 'btn btn-outline btn-sm';
-    if (suForm) suForm.style.display = 'block';
-    if (liForm) liForm.style.display = 'none';
-    const titleEl = document.getElementById('auth-modal-title');
-    if (titleEl) titleEl.textContent = 'Employer Registration';
-  } else {
-    if (suBtn) suBtn.className = 'btn btn-outline btn-sm';
-    if (liBtn) liBtn.className = 'btn btn-sm';
-    if (suForm) suForm.style.display = 'none';
-    if (liForm) liForm.style.display = 'block';
-    const titleEl = document.getElementById('auth-modal-title');
-    if (titleEl) titleEl.textContent = 'Employer Sign In';
+  if (suBtn) suBtn.className = mode === 'signup' ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm';
+  if (liBtn) liBtn.className = mode === 'login' ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm';
+  if (mlBtn) mlBtn.className = mode === 'magic' ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm';
+
+  if (suForm) suForm.style.display = mode === 'signup' ? 'block' : 'none';
+  if (liForm) liForm.style.display = mode === 'login' ? 'block' : 'none';
+  if (mlForm) mlForm.style.display = mode === 'magic' ? 'block' : 'none';
+
+  if (titleEl) {
+    titleEl.textContent = mode === 'signup'
+      ? 'Employer Registration'
+      : (mode === 'magic' ? 'Passwordless Magic Link' : 'Employer Sign In');
   }
 };
 
 // Handle Sign In / Out button click in navbar
-document.getElementById('btn-auth-switch').addEventListener('click', () => {
+document.getElementById('btn-auth-switch').addEventListener('click', async () => {
   if (authToken) {
     if (confirm('Do you want to sign out of your recruiter account?')) {
       authToken = null;
@@ -227,6 +250,9 @@ document.getElementById('btn-auth-switch').addEventListener('click', () => {
       currentOrg = null;
       localStorage.removeItem('roundone_token');
       localStorage.removeItem('ai_interviewer_token');
+      if (supabaseClient?.auth) {
+        try { await supabaseClient.auth.signOut(); } catch (_) {}
+      }
       updateUserBadge();
       updateVisitorUiState(false);
       openAuthModal('login');
@@ -261,10 +287,13 @@ window.updateVisitorUiState = function(isLoggedIn) {
       const nameEl = document.getElementById('recruiter-welcome-name');
       const credEl = document.getElementById('recruiter-welcome-credits');
       if (nameEl && currentUser) {
-        nameEl.textContent = currentUser.full_name || currentUser.email || 'Recruiter';
+        nameEl.textContent = currentUser.full_name || currentUser.fullName || currentUser.email || 'Recruiter';
       }
       if (credEl && currentOrg) {
-        credEl.textContent = currentOrg.credits !== undefined ? currentOrg.credits : 10;
+        const creds = currentOrg.credits !== undefined
+          ? currentOrg.credits
+          : (currentOrg.included_interviews !== undefined ? currentOrg.included_interviews : 10);
+        credEl.textContent = creds;
       }
     }
   } else {
@@ -623,9 +652,10 @@ window.backToAuthStep1 = function() {
   if (s3) s3.style.display = 'none';
 };
 
-// Step 1: Form Sign Up (Email + Password + Email OTP)
+// Step 1: Form Sign Up (Email + Password + CAPTCHA)
 document.getElementById('form-signup').addEventListener('submit', async (e) => {
   e.preventDefault();
+  clearAuthAlert();
   const companyName = (document.getElementById('su-company')?.value || '').trim();
   const fullName = document.getElementById('su-name').value.trim();
   const jobTitle = (document.getElementById('su-title')?.value || 'Recruiter').trim();
@@ -639,7 +669,7 @@ document.getElementById('form-signup').addEventListener('submit', async (e) => {
   if (confirmPassword !== undefined && password !== confirmPassword) {
     const err = document.getElementById('su-password-match-error');
     if (err) err.style.display = 'block';
-    alert('Passwords do not match! Please make sure both password fields are identical.');
+    showAuthAlert('Passwords do not match. Please make sure both password fields are identical.');
     document.getElementById('su-confirm-password')?.focus();
     return;
   }
@@ -650,17 +680,25 @@ document.getElementById('form-signup').addEventListener('submit', async (e) => {
     coNameInput.value = companyName;
   }
 
+  let captchaData;
+  try {
+    captchaData = getAuthCaptchaPayload();
+  } catch (capErr) {
+    showAuthAlert(capErr.message);
+    return;
+  }
+
   const btn = e.target.querySelector('button[type=submit]');
   const defaultBtnHtml = btn ? btn.innerHTML : '';
   try {
     if (btn) {
       btn.disabled = true;
-      btn.textContent = 'Sending verification code...';
+      btn.textContent = 'Creating account...';
     }
 
     const res = await fetch('/auth/signup', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...captchaData.headers },
       body: JSON.stringify({
         companyName,
         industry,
@@ -669,11 +707,15 @@ document.getElementById('form-signup').addEventListener('submit', async (e) => {
         email,
         phone,
         password,
+        ...captchaData.payload,
         ...(pendingTeamInviteToken ? { inviteToken: pendingTeamInviteToken } : {})
       })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to register account');
+    if (!res.ok) {
+      if (data.captchaFailed && typeof refreshAuthCaptcha === 'function') refreshAuthCaptcha();
+      throw new Error(data.error || 'Failed to register account');
+    }
     if (pendingTeamInviteToken) clearInviteQueryParams();
 
     if (data.requiresOtp) {
@@ -713,39 +755,51 @@ document.getElementById('form-signup').addEventListener('submit', async (e) => {
       }, 350);
     }
   } catch (err) {
-    alert(err.message);
+    showAuthAlert(err.message);
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = defaultBtnHtml || 'Create Account & Enter Dashboard <i class="bi bi-arrow-right"></i>';
+      btn.innerHTML = defaultBtnHtml || 'Create Account &amp; Enter Dashboard <i class="bi bi-arrow-right"></i>';
     }
   }
 });
 
-// Reset password action triggered from login form -> requires Email OTP verification
+// Reset password action triggered from login form
 window.resetPasswordFromLogin = async function() {
+  clearAuthAlert();
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
   if (!email || !password) {
-    alert('Please enter your email and the new password you want to set first.');
+    showAuthAlert('Please enter your email and the new password you want to set first.');
     document.getElementById(!email ? 'login-email' : 'login-password')?.focus();
+    return;
+  }
+
+  let captchaData;
+  try {
+    captchaData = getAuthCaptchaPayload();
+  } catch (capErr) {
+    showAuthAlert(capErr.message);
     return;
   }
 
   const btn = document.getElementById('btn-login-reset-pwd');
   if (btn) {
     btn.disabled = true;
-    btn.textContent = 'Sending reset OTP...';
+    btn.textContent = 'Sending reset verification...';
   }
 
   try {
     const res = await fetch('/auth/reset-password', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      headers: { 'Content-Type': 'application/json', ...captchaData.headers },
+      body: JSON.stringify({ email, password, ...captchaData.payload })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to initiate password reset');
+    if (!res.ok) {
+      if (data.captchaFailed && typeof refreshAuthCaptcha === 'function') refreshAuthCaptcha();
+      throw new Error(data.error || 'Failed to initiate password reset');
+    }
 
     const errBox = document.getElementById('login-error-container');
     if (errBox) errBox.style.display = 'none';
@@ -788,41 +842,51 @@ window.resetPasswordFromLogin = async function() {
       }, 350);
     }
   } catch (err) {
-    alert(err.message);
+    showAuthAlert(err.message);
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = '<i class="bi bi-envelope-check"></i> Verify Email OTP & Set This Password';
+      btn.innerHTML = '<i class="bi bi-envelope-check"></i> Verify Email OTP &amp; Set This Password';
     }
   }
 };
 
-// Step 1: Form Login (Email + Password -> Email OTP + Verified Reset Safeguard)
+// Step 1: Form Login (Email + Password + CAPTCHA)
 document.getElementById('form-login').addEventListener('submit', async (e) => {
   e.preventDefault();
+  clearAuthAlert();
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
   const errBox = document.getElementById('login-error-container');
   const errMsg = document.getElementById('login-error-msg');
   if (errBox) errBox.style.display = 'none';
 
+  let captchaData;
+  try {
+    captchaData = getAuthCaptchaPayload();
+  } catch (capErr) {
+    showAuthAlert(capErr.message);
+    return;
+  }
+
   const btn = e.target.querySelector('button[type=submit]');
   const defaultBtnHtml = btn ? btn.innerHTML : '';
   try {
     if (btn) {
       btn.disabled = true;
-      btn.textContent = 'Sending verification code...';
+      btn.textContent = 'Signing in...';
     }
 
     const res = await fetch('/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      headers: { 'Content-Type': 'application/json', ...captchaData.headers },
+      body: JSON.stringify({ email, password, ...captchaData.payload })
     });
     const data = await res.json();
     if (!res.ok) {
+      if (data.captchaFailed && typeof refreshAuthCaptcha === 'function') refreshAuthCaptcha();
       if (data.canReset && errBox && errMsg) {
-        errMsg.innerHTML = `⚠️ Incorrect password for <strong>${escapeAuthHtml(email)}</strong>.<br>Want to set what you typed as your new password? Click below to verify via Email OTP:`;
+        errMsg.innerHTML = `Incorrect password for <strong>${escapeAuthHtml(email)}</strong>. Want to set what you typed as your new password?`;
         errBox.style.display = 'block';
         return;
       }
@@ -866,14 +930,69 @@ document.getElementById('form-login').addEventListener('submit', async (e) => {
       }, 350);
     }
   } catch (err) {
-    alert(err.message);
+    showAuthAlert(err.message);
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = defaultBtnHtml || 'Sign In & Enter Dashboard <i class="bi bi-box-arrow-in-right"></i>';
+      btn.innerHTML = defaultBtnHtml || 'Sign In &amp; Enter Dashboard <i class="bi bi-box-arrow-in-right"></i>';
     }
   }
 });
+
+// Passwordless Magic Link Sign In (via Supabase Auth)
+const magicFormEl = document.getElementById('form-magic-link');
+if (magicFormEl) {
+  magicFormEl.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearAuthAlert();
+    const email = document.getElementById('magic-email')?.value.trim();
+    if (!email) {
+      showAuthAlert('Please enter your work email address.');
+      return;
+    }
+
+    let captchaData;
+    try {
+      captchaData = getAuthCaptchaPayload();
+    } catch (capErr) {
+      showAuthAlert(capErr.message);
+      return;
+    }
+
+    const btn = magicFormEl.querySelector('button[type=submit]');
+    const defaultBtnHtml = btn ? btn.innerHTML : '';
+    try {
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Sending magic link...';
+      }
+
+      const res = await fetch('/api/auth/supabase/magic-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...captchaData.headers },
+        body: JSON.stringify({
+          email,
+          redirectTo: window.location.origin,
+          ...captchaData.payload
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.captchaFailed && typeof refreshAuthCaptcha === 'function') refreshAuthCaptcha();
+        throw new Error(data.error || 'Failed to send magic link');
+      }
+
+      showAuthAlert(data.message || `Magic link sent to ${email}! Check your inbox.`, 'success');
+    } catch (err) {
+      showAuthAlert(err.message);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = defaultBtnHtml || '<i class="bi bi-envelope-paper-fill"></i> Send Passwordless Magic Link';
+      }
+    }
+  });
+}
 
 // Step 2: Form Verify Code (handles both Signup OTP & Login OTP)
 document.getElementById('form-verify').addEventListener('submit', async (e) => {
@@ -1108,21 +1227,23 @@ window.switchTab = function(tabName) {
   document.querySelectorAll('.tab-pane').forEach(el => el.style.display = 'none');
   const mainNav = document.getElementById('main-nav-tabs');
   if (mainNav) {
-    mainNav.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+    mainNav.querySelectorAll('.nav-btn').forEach(el => {
+      if (el.dataset.tab === tabName) el.classList.add('active');
+      else el.classList.remove('active');
+    });
   }
+
+  const showcaseEl = document.getElementById('bolt-hero-showcase');
+  if (showcaseEl && authToken) showcaseEl.style.display = 'none';
 
   const tab = document.getElementById(`tab-${tabName}`);
   if (tab) tab.style.display = 'block';
 
-  if (mainNav) {
-    const buttons = mainNav.querySelectorAll('.nav-btn');
-    if (tabName === 'jobs') buttons[0]?.classList.add('active');
-    if (tabName === 'candidates') buttons[1]?.classList.add('active');
-    if (tabName === 'keys') buttons[3]?.classList.add('active');
-    if (tabName === 'metrics') buttons[4]?.classList.add('active');
+  if (tabName === 'jobs') {
+    const dashEl = document.getElementById('view-interview-dashboard');
+    if (dashEl && authToken) dashEl.style.display = 'block';
+    loadJobs();
   }
-
-  if (tabName === 'jobs') loadJobs();
   if (tabName === 'candidates') {
     loadJobs();
     loadInterviews();
@@ -8429,45 +8550,274 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // =========================================================================
-// Supabase Free Tier Auth & OAuth Integration (Google / GitHub / Magic Link)
+// Supabase Auth Providers, Passkeys, Magic Link & CAPTCHA Integration
 // =========================================================================
 let supabaseClient = null;
+let supabaseRuntimeConfig = null;
+const authCaptchaState = {
+  enabled: false,
+  provider: 'builtin',
+  siteKey: '',
+  token: '',
+  challengeToken: '',
+  widgetId: null
+};
+
+const SUPABASE_OAUTH_CATALOG = [
+  {
+    key: 'google',
+    label: 'Google',
+    iconHtml: '<svg width="15" height="15" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/><path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15.1s.7 5.4 1.9 7.8l3.7-2.9z"/><path fill="#34A853" d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16.5C3.7 20.2 7.5 23.5 12 23.5z"/></svg>'
+  },
+  {
+    key: 'github',
+    label: 'GitHub',
+    iconHtml: '<i class="bi bi-github" style="font-size: 0.95rem;"></i>'
+  },
+  {
+    key: 'linkedin_oidc',
+    label: 'LinkedIn',
+    iconHtml: '<i class="bi bi-linkedin" style="color: #0a66c2; font-size: 0.95rem;"></i>'
+  },
+  {
+    key: 'discord',
+    label: 'Discord',
+    iconHtml: '<i class="bi bi-discord" style="color: #5865f2; font-size: 0.95rem;"></i>'
+  },
+  {
+    key: 'facebook',
+    label: 'Facebook',
+    iconHtml: '<i class="bi bi-facebook" style="color: #1877f2; font-size: 0.95rem;"></i>'
+  },
+  {
+    key: 'zoom',
+    label: 'Zoom',
+    iconHtml: '<i class="bi bi-camera-video-fill" style="color: #2d8cff; font-size: 0.92rem;"></i>'
+  },
+  {
+    key: 'slack_oidc',
+    label: 'Slack',
+    iconHtml: '<i class="bi bi-slack" style="color: #e01e5a; font-size: 0.92rem;"></i>'
+  },
+  {
+    key: 'apple',
+    label: 'Apple',
+    iconHtml: '<i class="bi bi-apple" style="font-size: 0.95rem;"></i>'
+  }
+];
+
+function renderSupabaseProviders(cfg) {
+  const sbSocial = document.getElementById('supabase-social-auth');
+  const grid = document.getElementById('supabase-oauth-buttons');
+  const passkeyBtn = document.getElementById('btn-passkey-signin');
+  const magicBtn = document.getElementById('btn-toggle-magic');
+
+  const enabledMap = cfg?.enabledProviders || {};
+  if (magicBtn) {
+    magicBtn.style.display = (cfg?.isConfigured && enabledMap.email !== false) ? 'inline-flex' : 'none';
+  }
+
+  if (!sbSocial || !grid) return;
+
+  const activeOAuth = SUPABASE_OAUTH_CATALOG.filter((p) => Boolean(enabledMap[p.key]));
+  if (activeOAuth.length === 0 && !cfg?.passkeysEnabled) {
+    sbSocial.style.display = 'none';
+    return;
+  }
+
+  grid.innerHTML = activeOAuth.map((p) => `
+    <button type="button" class="oauth-provider-btn" onclick="loginWithSupabaseProvider('${p.key}')">
+      ${p.iconHtml}
+      <span>${p.label}</span>
+    </button>
+  `).join('');
+
+  if (passkeyBtn) {
+    passkeyBtn.style.display = cfg?.passkeysEnabled ? 'flex' : 'none';
+  }
+
+  sbSocial.style.display = 'block';
+}
+
+function loadExternalScript(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) return resolve();
+    const s = document.createElement('script');
+    s.src = src;
+    s.async = true;
+    s.defer = true;
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+window.refreshAuthCaptcha = async function() {
+  const box = document.getElementById('auth-captcha-container');
+  const extEl = document.getElementById('auth-captcha-external');
+  const builtinEl = document.getElementById('auth-captcha-builtin');
+  const labelEl = document.getElementById('auth-captcha-provider-label');
+  const promptEl = document.getElementById('captcha-prompt-text');
+  const ansInput = document.getElementById('captcha-answer-input');
+  if (!box) return;
+
+  try {
+    const res = await fetch('/api/auth/captcha/challenge');
+    if (!res.ok) return;
+    const data = await res.json();
+
+    authCaptchaState.enabled = Boolean(data.enabled);
+    authCaptchaState.provider = data.provider || 'builtin';
+    authCaptchaState.siteKey = data.siteKey || '';
+    authCaptchaState.token = '';
+    authCaptchaState.challengeToken = data.challengeToken || '';
+
+    if (!authCaptchaState.enabled) {
+      box.style.display = 'none';
+      return;
+    }
+
+    box.style.display = 'block';
+    if (ansInput) ansInput.value = '';
+
+    if (authCaptchaState.provider === 'turnstile' && authCaptchaState.siteKey) {
+      if (labelEl) labelEl.textContent = 'Cloudflare Turnstile';
+      if (builtinEl) builtinEl.style.display = 'none';
+      if (extEl) {
+        extEl.style.display = 'block';
+        extEl.innerHTML = '<div id="cf-turnstile-mount"></div>';
+        await loadExternalScript('https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit');
+        if (window.turnstile) {
+          window.turnstile.render('#cf-turnstile-mount', {
+            sitekey: authCaptchaState.siteKey,
+            theme: document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark',
+            callback: (tok) => { authCaptchaState.token = tok; },
+            'expired-callback': () => { authCaptchaState.token = ''; }
+          });
+        }
+      }
+      return;
+    }
+
+    if (authCaptchaState.provider === 'hcaptcha' && authCaptchaState.siteKey) {
+      if (labelEl) labelEl.textContent = 'hCaptcha';
+      if (builtinEl) builtinEl.style.display = 'none';
+      if (extEl) {
+        extEl.style.display = 'block';
+        extEl.innerHTML = '<div id="hcaptcha-mount"></div>';
+        await loadExternalScript('https://js.hcaptcha.com/1/api.js?render=explicit');
+        if (window.hcaptcha) {
+          window.hcaptcha.render('hcaptcha-mount', {
+            sitekey: authCaptchaState.siteKey,
+            theme: document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark',
+            callback: (tok) => { authCaptchaState.token = tok; },
+            'expired-callback': () => { authCaptchaState.token = ''; }
+          });
+        }
+      }
+      return;
+    }
+
+    // Built-in Signed Human Challenge
+    if (labelEl) labelEl.textContent = 'Human Verification Shield';
+    if (extEl) extEl.style.display = 'none';
+    if (builtinEl) builtinEl.style.display = 'block';
+    if (promptEl) promptEl.textContent = data.prompt || 'Verify';
+  } catch (err) {
+    // Non-fatal
+  }
+};
+
+window.getAuthCaptchaPayload = function() {
+  if (!authCaptchaState.enabled) {
+    return { headers: {}, payload: {} };
+  }
+
+  if (authCaptchaState.provider === 'turnstile' || authCaptchaState.provider === 'hcaptcha') {
+    if (!authCaptchaState.token) {
+      throw new Error('Please complete the CAPTCHA verification check first.');
+    }
+    return {
+      headers: { 'x-captcha-ui': '1' },
+      payload: { captchaToken: authCaptchaState.token }
+    };
+  }
+
+  const ansEl = document.getElementById('captcha-answer-input');
+  const ans = ansEl ? ansEl.value.trim() : '';
+  if (!ans) {
+    if (ansEl) ansEl.focus();
+    throw new Error('Please solve the CAPTCHA security check before continuing.');
+  }
+
+  return {
+    headers: { 'x-captcha-ui': '1' },
+    payload: {
+      captchaChallengeToken: authCaptchaState.challengeToken,
+      captchaAnswer: ans
+    }
+  };
+};
+
+let lastSyncedSupabaseToken = null;
+
+async function syncSupabaseAccessToken(accessToken) {
+  if (!accessToken || accessToken === lastSyncedSupabaseToken) return;
+  lastSyncedSupabaseToken = accessToken;
+
+  const syncRes = await fetch('/api/auth/supabase/sync', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`
+    },
+    body: JSON.stringify({ accessToken })
+  });
+  const syncData = await syncRes.json();
+  if (syncData.success && syncData.token) {
+    authToken = syncData.token;
+    localStorage.setItem('roundone_token', authToken);
+    localStorage.setItem('ai_interviewer_token', authToken);
+    currentUser = syncData.user;
+    currentOrg = syncData.org;
+    const modal = document.getElementById('auth-modal');
+    if (modal) modal.style.display = 'none';
+    if (window.location.hash && window.location.hash.includes('access_token=')) {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+    if (typeof updateUserBadge === 'function') updateUserBadge();
+    if (typeof updateVisitorUiState === 'function') updateVisitorUiState(true);
+    if (typeof loadJobs === 'function') loadJobs();
+  }
+}
 
 async function initSupabaseAuth() {
+  refreshAuthCaptcha();
   try {
     const res = await fetch('/api/auth/supabase/config');
     const cfg = await res.json();
-    if (cfg.isConfigured && window.supabase) {
-      supabaseClient = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
-      const sbSocial = document.getElementById('supabase-social-auth');
-      if (sbSocial) sbSocial.style.display = 'block';
+    supabaseRuntimeConfig = cfg;
+    renderSupabaseProviders(cfg);
 
-      // Listen for OAuth sign-in redirects (Google, GitHub, Magic Link)
+    if (cfg.isConfigured && window.supabase) {
+      supabaseClient = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, {
+        auth: {
+          detectSessionInUrl: true,
+          persistSession: true,
+          autoRefreshToken: true
+        }
+      });
+
+      // Handle OAuth / Magic Link redirect callback
+      const { data: sessData } = await supabaseClient.auth.getSession();
+      if (sessData?.session?.access_token && !authToken) {
+        await syncSupabaseAccessToken(sessData.session.access_token);
+      }
+
       supabaseClient.auth.onAuthStateChange(async (event, session) => {
         if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.access_token) {
           try {
-            const syncRes = await fetch('/api/auth/supabase/sync', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session.access_token}`
-              },
-              body: JSON.stringify({ accessToken: session.access_token })
-            });
-            const syncData = await syncRes.json();
-            if (syncData.success && syncData.token) {
-              authToken = syncData.token;
-              localStorage.setItem('roundone_token', authToken);
-              localStorage.setItem('ai_interviewer_token', authToken);
-              currentUser = syncData.user;
-              currentOrg = syncData.org;
-              const modal = document.getElementById('auth-modal');
-              if (modal) modal.style.display = 'none';
-              if (typeof updateUserBadge === 'function') updateUserBadge();
-              if (typeof updateVisitorUiState === 'function') updateVisitorUiState(true);
-              if (typeof loadJobs === 'function') loadJobs();
-              if (typeof loadRegisteredUsers === 'function') loadRegisteredUsers();
-            }
+            await syncSupabaseAccessToken(session.access_token);
           } catch (syncErr) {
             console.warn('Supabase session sync notice:', syncErr.message);
           }
@@ -8481,9 +8831,10 @@ async function initSupabaseAuth() {
 
 window.loginWithSupabaseProvider = async function(provider) {
   if (!supabaseClient) {
-    alert('Supabase Auth is not configured on this server yet.');
+    showAuthAlert('Supabase Auth is not configured on this server yet.');
     return;
   }
+  clearAuthAlert();
   const { error } = await supabaseClient.auth.signInWithOAuth({
     provider,
     options: {
@@ -8491,6 +8842,23 @@ window.loginWithSupabaseProvider = async function(provider) {
     }
   });
   if (error) {
-    alert(`Supabase OAuth error: ${error.message}`);
+    showAuthAlert(`Sign in error (${provider}): ${error.message}`);
+  }
+};
+
+window.loginWithSupabasePasskey = async function() {
+  if (!supabaseClient?.auth?.signInWithPasskey) {
+    showAuthAlert('Passkey sign-in requires a supported modern browser and Supabase configuration.');
+    return;
+  }
+  clearAuthAlert();
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPasskey();
+    if (error) throw error;
+    if (data?.session?.access_token) {
+      await syncSupabaseAccessToken(data.session.access_token);
+    }
+  } catch (err) {
+    showAuthAlert(err?.message || 'Passkey sign-in was cancelled or not registered for this account.');
   }
 };
