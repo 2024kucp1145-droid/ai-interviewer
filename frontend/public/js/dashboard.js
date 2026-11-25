@@ -226,9 +226,9 @@ window.toggleAuthMode = function(mode) {
   const mlForm = document.getElementById('form-magic-link');
   const titleEl = document.getElementById('auth-modal-title');
 
-  if (suBtn) suBtn.className = mode === 'signup' ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm';
-  if (liBtn) liBtn.className = mode === 'login' ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm';
-  if (mlBtn) mlBtn.className = mode === 'magic' ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm';
+  if (suBtn) suBtn.className = mode === 'signup' ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm';
+  if (liBtn) liBtn.className = mode === 'login' ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm';
+  if (mlBtn) mlBtn.className = mode === 'magic' ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm';
 
   if (suForm) suForm.style.display = mode === 'signup' ? 'block' : 'none';
   if (liForm) liForm.style.display = mode === 'login' ? 'block' : 'none';
@@ -4815,40 +4815,35 @@ window.applyCandidateFilters = function() {
     const rankNum = idx + 1;
 
     let cardClass = 'candidate-merit-card ';
-    let scoreColor = '#059669';
-    let scoreBg = '#ecfdf5';
-    let scoreBorder = '#a7f3d0';
+    let toneClass = 'roster-tone-pending';
+    let scoreColor = 'var(--text-muted)';
     let statusBadge = '';
     let rankBadge = '';
 
     if (cls.category === 'selected') {
       cardClass += 'candidate-card-selected';
-      scoreColor = '#047857';
-      scoreBg = '#ecfdf5';
-      scoreBorder = '#a7f3d0';
-      statusBadge = `<span class="badge" style="background:#ecfdf5; color:#047857; border:1.5px solid #a7f3d0; font-weight:800; font-size:0.75rem;"><i class="bi bi-check-circle-fill" style="color:#10b981;"></i> SELECTED &bull; RECOMMENDED HIRE</span>`;
-      rankBadge = `<span class="badge" style="background:#10b981; color:#fff; font-weight:800; font-size:0.765rem; padding:0.25rem 0.6rem;"><i class="bi bi-trophy-fill" style="color:#fbbf24;"></i> #${rankNum} Merit Rank</span>`;
+      toneClass = 'roster-tone-selected';
+      scoreColor = 'var(--success)';
+      statusBadge = `<span class="badge roster-tone-selected" style="font-weight:800; font-size:0.74rem;"><i class="bi bi-check-circle-fill"></i> SELECTED &bull; RECOMMENDED HIRE</span>`;
+      rankBadge = `<span class="badge" style="background:var(--success); color:#fff; font-weight:800; font-size:0.75rem; padding:0.25rem 0.6rem;"><i class="bi bi-trophy-fill" style="color:#fde68a;"></i> #${rankNum} Merit Rank</span>`;
     } else if (cls.category === 'borderline') {
       cardClass += 'candidate-card-borderline';
-      scoreColor = '#b45309';
-      scoreBg = '#fffbeb';
-      scoreBorder = '#fde68a';
-      statusBadge = `<span class="badge" style="background:#fffbeb; color:#b45309; border:1.5px solid #fde68a; font-weight:700; font-size:0.75rem;"><i class="bi bi-exclamation-circle-fill" style="color:#f59e0b;"></i> BORDERLINE &bull; IN REVIEW</span>`;
-      rankBadge = `<span class="badge" style="background:#f59e0b; color:#fff; font-weight:700; font-size:0.75rem; padding:0.25rem 0.55rem;">#${rankNum} Rank</span>`;
+      toneClass = 'roster-tone-borderline';
+      scoreColor = 'var(--warning)';
+      statusBadge = `<span class="badge roster-tone-borderline" style="font-weight:700; font-size:0.74rem;"><i class="bi bi-exclamation-circle-fill"></i> BORDERLINE &bull; IN REVIEW</span>`;
+      rankBadge = `<span class="badge" style="background:var(--warning); color:#fff; font-weight:700; font-size:0.74rem; padding:0.25rem 0.55rem;">#${rankNum} Rank</span>`;
     } else if (cls.category === 'rejected') {
       cardClass += 'candidate-card-rejected';
-      scoreColor = '#b91c1c';
-      scoreBg = '#fef2f2';
-      scoreBorder = '#fecaca';
-      statusBadge = `<span class="badge" style="background:#fef2f2; color:#b91c1c; border:1.5px solid #fecaca; font-weight:800; font-size:0.75rem;"><i class="bi bi-x-circle-fill" style="color:#ef4444;"></i> NOT SELECTED &bull; REJECTED</span>`;
-      rankBadge = `<span class="badge" style="background:#ef4444; color:#fff; font-weight:700; font-size:0.75rem; padding:0.25rem 0.55rem;">#${rankNum} Rank</span>`;
+      toneClass = 'roster-tone-rejected';
+      scoreColor = 'var(--danger)';
+      statusBadge = `<span class="badge roster-tone-rejected" style="font-weight:800; font-size:0.74rem;"><i class="bi bi-x-circle-fill"></i> NOT SELECTED &bull; REJECTED</span>`;
+      rankBadge = `<span class="badge" style="background:var(--danger); color:#fff; font-weight:700; font-size:0.74rem; padding:0.25rem 0.55rem;">#${rankNum} Rank</span>`;
     } else {
       cardClass += 'candidate-card-pending';
-      scoreColor = '#475569';
-      scoreBg = '#f8fafc';
-      scoreBorder = '#cbd5e1';
-      statusBadge = `<span class="badge" style="background:#f8fafc; color:#475569; border:1px solid #cbd5e1; font-weight:600;"><i class="bi bi-clock"></i> LINK ACTIVE / PENDING</span>`;
-      rankBadge = `<span class="badge badge-outline" style="font-size:0.75rem;">#${rankNum}</span>`;
+      toneClass = 'roster-tone-pending';
+      scoreColor = 'var(--text-muted)';
+      statusBadge = `<span class="badge roster-tone-pending" style="font-weight:600; font-size:0.74rem;"><i class="bi bi-clock"></i> LINK ACTIVE / PENDING</span>`;
+      rankBadge = `<span class="badge roster-tone-pending" style="font-size:0.74rem;">#${rankNum}</span>`;
     }
 
     const initials = (item.candidate_name || 'Candidate')
@@ -4874,10 +4869,8 @@ window.applyCandidateFilters = function() {
     if (Array.isArray(item.skills) && item.skills.length > 0) {
       skillsChips = item.skills.slice(0, 4).map(s => {
         const sScore = s.score || 0;
-        const color = sScore >= 4 ? '#059669' : (sScore >= 3 ? '#d97706' : '#dc2626');
-        const bg = sScore >= 4 ? '#ecfdf5' : (sScore >= 3 ? '#fffbeb' : '#fef2f2');
-        const border = sScore >= 4 ? '#a7f3d0' : (sScore >= 3 ? '#fde68a' : '#fecaca');
-        return `<span class="badge" style="background:${bg}; color:${color}; border:1px solid ${border}; font-size:0.68rem; font-weight:600;">${escapeHtml(s.skill)}: ${sScore}/5</span>`;
+        const sTone = sScore >= 4 ? 'roster-tone-selected' : (sScore >= 3 ? 'roster-tone-borderline' : 'roster-tone-rejected');
+        return `<span class="badge ${sTone}" style="font-size:0.68rem; font-weight:600;">${escapeHtml(s.skill)}: ${sScore}/5</span>`;
       }).join(' ');
     }
 
@@ -4927,7 +4920,7 @@ window.applyCandidateFilters = function() {
       <div class="${cardClass}">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
           <div style="display: flex; align-items: center; gap: 0.85rem; flex: 1; min-width: 250px;">
-            <div style="width: 44px; height: 44px; border-radius: 50%; background: ${scoreBg}; color: ${scoreColor}; font-weight: 800; font-size: 0.88rem; display: flex; align-items: center; justify-content: center; border: 2px solid ${scoreBorder}; flex-shrink: 0;">
+            <div class="roster-avatar ${toneClass}">
               ${initials}
             </div>
             <div>
@@ -4938,13 +4931,13 @@ window.applyCandidateFilters = function() {
               </div>
               <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 0.75rem; flex-wrap: wrap;">
                 ${item.candidate_email && !item.candidate_email.endsWith('@candidate.local') ? `<span><i class="bi bi-envelope"></i> ${escapeHtml(item.candidate_email)}</span>` : ''}
-                ${item.candidate_phone ? `<a href="https://wa.me/${item.candidate_phone.replace(/[^0-9]/g, '')}" target="_blank" style="color:#059669; font-weight:600;"><i class="bi bi-whatsapp"></i> ${escapeHtml(item.candidate_phone)}</a>` : ''}
+                ${item.candidate_phone ? `<a href="https://wa.me/${item.candidate_phone.replace(/[^0-9]/g, '')}" target="_blank" style="color:var(--success); font-weight:600;"><i class="bi bi-whatsapp"></i> ${escapeHtml(item.candidate_phone)}</a>` : ''}
               </div>
             </div>
           </div>
 
           <div style="display: flex; align-items: center; gap: 1rem; text-align: right; flex-shrink: 0;">
-            <div style="background: ${scoreBg}; border: 1.5px solid ${scoreBorder}; border-radius: 8px; padding: 0.35rem 0.85rem; text-align: center; min-width: 110px;">
+            <div class="roster-score-box ${toneClass}">
               ${scoreDisplay}
               <div style="font-size: 0.62rem; font-weight: 700; color: ${scoreColor}; text-transform: uppercase; margin-top: 0.15rem;">${cls.label}</div>
             </div>
@@ -6803,16 +6796,12 @@ function renderDurGrid() {
   grid.innerHTML = DURATION_TIERS.map(t => {
     const isSelected = t.minutes === billingSelectedDuration;
     return `
-      <div onclick="selectDuration(${t.minutes})" style="
-        padding:0.75rem 0.65rem; border-radius:8px; border:2px solid ${isSelected ? '#000' : 'var(--border)'};
-        background:${isSelected ? '#000' : 'var(--surface)'};
-        color:${isSelected ? '#fff' : 'var(--text)'};
-        cursor:pointer; transition:all .15s ease; position:relative; display:flex; flex-direction:column; justify-content:space-between; box-shadow:${isSelected ? '0 4px 12px rgba(0,0,0,0.1)' : 'none'};">
+      <div onclick="selectDuration(${t.minutes})" class="dur-tier-card${isSelected ? ' selected' : ''}">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
-          <strong style="font-size:0.92rem;">${t.label}</strong>
-          <span style="font-size:0.9rem; font-weight:800; color:${isSelected ? '#fff' : 'var(--text)'};">$${t.priceUsd.toFixed(2)}</span>
+          <strong style="font-size:0.92rem; color:var(--text);">${t.label}</strong>
+          <span style="font-size:0.9rem; font-weight:800; color:${isSelected ? 'var(--accent)' : 'var(--text)'};">$${t.priceUsd.toFixed(2)}</span>
         </div>
-        <div style="font-size:0.7rem; color:${isSelected ? 'rgba(255,255,255,0.75)' : 'var(--text-muted)'}; line-height:1.2;">
+        <div style="font-size:0.7rem; color:var(--text-muted); line-height:1.25;">
           ${t.subtitle || ''}
         </div>
       </div>
@@ -6935,11 +6924,11 @@ function renderSubPlans() {
     const isPopular = p.popular;
     return `
       <div onclick="selectSubPlan('${p.id}')" id="subcard-${p.id}" style="
-        border:2px solid ${isPopular ? '#000' : 'var(--border)'};
-        border-radius:10px; padding:1.25rem; background:var(--surface); cursor:pointer;
+        border:2px solid ${isPopular ? 'var(--accent)' : 'var(--border)'};
+        border-radius:12px; padding:1.25rem; background:var(--surface); cursor:pointer;
         transition:all .15s ease; position:relative; display:flex; flex-direction:column; justify-content:space-between;
-        box-shadow:${isPopular ? '0 8px 24px -4px rgba(0,0,0,0.12)' : 'none'};">
-        ${isPopular ? '<div style="position:absolute; top:-10px; left:50%; transform:translateX(-50%); background:#000; color:#fff; font-size:0.65rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; padding:0.2rem 0.65rem; border-radius:20px; white-space:nowrap;"><i class="bi bi-star-fill" style="color:#f59e0b;"></i> Most Popular</div>' : ''}
+        box-shadow:${isPopular ? '0 10px 26px -6px rgba(79,70,229,0.28)' : 'none'};">
+        ${isPopular ? '<div style="position:absolute; top:-10px; left:50%; transform:translateX(-50%); background:linear-gradient(135deg,#4f46e5,#6366f1); color:#fff; font-size:0.65rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; padding:0.2rem 0.65rem; border-radius:20px; white-space:nowrap;"><i class="bi bi-star-fill" style="color:#fde68a;"></i> Most Popular</div>' : ''}
         
         <div>
           <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); margin-bottom:0.4rem;">
@@ -6968,7 +6957,7 @@ function renderSubPlans() {
           </ul>
         </div>
 
-        <button class="btn btn-sm ${isPopular ? '' : 'btn-outline'}" style="width:100%; font-size:0.8rem; font-weight:700; padding:0.5rem; ${isPopular ? 'background:#000; color:#fff;' : ''}" onclick="event.stopPropagation(); selectSubPlan('${p.id}')">
+        <button class="btn btn-sm ${isPopular ? 'btn-primary' : 'btn-outline'}" style="width:100%; font-size:0.8rem; font-weight:700; padding:0.5rem;" onclick="event.stopPropagation(); selectSubPlan('${p.id}')">
           Choose ${p.label} Plan <i class="bi bi-arrow-right"></i>
         </button>
       </div>`;
@@ -6980,8 +6969,8 @@ window.selectSubPlan = function(planId) {
   SUBSCRIPTION_PLANS.forEach(p => {
     const card = document.getElementById(`subcard-${p.id}`);
     if (card) {
-      card.style.border = p.id === planId ? '2px solid #000' : (p.popular ? '2px solid #000' : '1px solid var(--border)');
-      card.style.background = p.id === planId ? 'var(--surface-subtle)' : 'var(--surface)';
+      card.style.border = p.id === planId ? '2px solid var(--accent)' : (p.popular ? '2px solid var(--accent)' : '1px solid var(--border)');
+      card.style.background = p.id === planId ? 'var(--accent-light)' : 'var(--surface)';
     }
   });
   openBillingCheckout('sub');
@@ -7242,8 +7231,7 @@ window.selectPaymentMethodTab = function(tab) {
     const active = t === tab;
     if (panel) panel.style.display = active ? 'block' : 'none';
     if (btn) {
-      btn.style.background = active ? '#000' : 'transparent';
-      btn.style.color = active ? '#fff' : 'var(--text)';
+      btn.className = active ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm';
     }
   });
 };
@@ -8096,52 +8084,9 @@ window.exportRegisteredUsersCsv = function() {
     setTimeout(() => _origSwitchTab(hash), 100);
   }
 
-  // ---- 8. BACK BUTTON VISUAL (floating) ----
-  // Show a "← Back" pill when navigated deeper in tabs or modals
-  function updateBackButton() {
-    // Only show if we can go back (history length > 1 and there's a valid previous state)
-    let btn = document.getElementById('ux-back-btn');
-    // We show back button when any modal is open (simpler UX)
-    const modalOpen = anyModalOpen();
-    if (!btn) return;
-    btn.style.display = modalOpen ? 'flex' : 'none';
-  }
-
-  // Create floating back button
-  const backBtn = document.createElement('button');
-  backBtn.id = 'ux-back-btn';
-  backBtn.innerHTML = '<i class="bi bi-arrow-left"></i> Back';
-  backBtn.style.cssText = `
-    display: none;
-    position: fixed;
-    bottom: 1.25rem;
-    left: 1.25rem;
-    z-index: 99999;
-    align-items: center;
-    gap: 0.4rem;
-    background: var(--surface, #fff);
-    color: var(--text, #000);
-    border: 1.5px solid var(--border, #e5e7eb);
-    border-radius: 999px;
-    padding: 0.5rem 1rem;
-    font-size: 0.8rem;
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-    transition: all 0.18s ease;
-  `;
-  backBtn.onmouseover = () => backBtn.style.transform = 'scale(1.04)';
-  backBtn.onmouseleave = () => backBtn.style.transform = 'scale(1)';
-  backBtn.onclick = () => history.back();
-  document.body.appendChild(backBtn);
-
-  // Update back button visibility on modal changes
-  const observer2 = new MutationObserver(updateBackButton);
-  allModalIds.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) observer2.observe(el, { attributes: true, attributeFilter: ['style'] });
-  });
-
+  // Remove any legacy floating back button on modals
+  const existingBackBtn = document.getElementById('ux-back-btn');
+  if (existingBackBtn) existingBackBtn.remove();
 })();
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -8418,13 +8363,13 @@ window.renderFrontBlogGrid = function(articles) {
   grid.innerHTML = articles.map(a => `
     <div class="front-blog-card" onclick="window.openFrontArticle('${a.slug}')">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
-        <span class="bolt-pill-badge" style="font-size:0.6rem; padding:0.12rem 0.45rem;">${a.category || 'Article'}</span>
-        <span style="font-size:0.7rem; color:#71717a;">${a.read_time_minutes || 5} min read</span>
+        <span class="bolt-pill-badge" style="font-size:0.62rem; padding:0.16rem 0.5rem; border-radius:999px;">${a.category || 'Article'}</span>
+        <span style="font-size:0.72rem; color:var(--text-muted);">${a.read_time_minutes || 5} min read</span>
       </div>
-      <h3 style="font-size:1.05rem; font-weight:700; color:#ffffff; margin-bottom:0.4rem; line-height:1.35;">${a.title}</h3>
-      <p style="font-size:0.78rem; color:#a1a1aa; line-height:1.5; margin-bottom:1rem; flex-grow:1;">${a.summary || ''}</p>
-      <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.72rem; color:#71717a; border-top:1px solid #27272a; padding-top:0.6rem;">
-        <span>Read Article &rarr;</span>
+      <h3 style="font-size:1.05rem; font-weight:700; color:var(--text); margin-bottom:0.45rem; line-height:1.35;">${a.title}</h3>
+      <p style="font-size:0.8rem; color:var(--text-muted); line-height:1.55; margin-bottom:1rem; flex-grow:1;">${a.summary || ''}</p>
+      <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.74rem; color:var(--text-muted); border-top:1px solid var(--border); padding-top:0.65rem;">
+        <span style="color:var(--accent); font-weight:600;">Read Article &rarr;</span>
         <span><i class="bi bi-eye"></i> ${a.views_count || 42} views</span>
       </div>
     </div>
@@ -8663,7 +8608,8 @@ window.refreshAuthCaptcha = async function() {
 
   try {
     const res = await fetch('/api/auth/captcha/challenge');
-    if (!res.ok) return;
+    const ct = res.headers.get('content-type') || '';
+    if (!res.ok || !ct.includes('application/json')) return;
     const data = await res.json();
 
     authCaptchaState.enabled = Boolean(data.enabled);
@@ -8761,6 +8707,49 @@ window.getAuthCaptchaPayload = function() {
 
 let lastSyncedSupabaseToken = null;
 
+const SUPABASE_PUBLIC_FALLBACK = {
+  supabaseUrl: 'https://fsexlzwcidvlhymgscpk.supabase.co',
+  supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZzZXhsendjaWR2bGh5bWdzY3BrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ1NjM1NDcsImV4cCI6MjExMDEzOTU0N30.bhk7CbbqtELWdv8JBMtFBcCBC4GjXQP_xmTs1mwklqQ'
+};
+
+async function fetchDirectSupabaseAuthConfig() {
+  const { supabaseUrl, supabaseAnonKey } = SUPABASE_PUBLIC_FALLBACK;
+  try {
+    const res = await fetch(`${supabaseUrl}/auth/v1/settings`, {
+      headers: { apikey: supabaseAnonKey }
+    });
+    if (!res.ok) throw new Error('Supabase settings unavailable');
+    const settings = await res.json();
+    const ext = settings.external || {};
+    return {
+      isConfigured: true,
+      supabaseUrl,
+      supabaseAnonKey,
+      enabledProviders: {
+        google: Boolean(ext.google),
+        github: Boolean(ext.github),
+        linkedin_oidc: Boolean(ext.linkedin_oidc),
+        discord: Boolean(ext.discord),
+        facebook: Boolean(ext.facebook),
+        zoom: Boolean(ext.zoom),
+        slack_oidc: Boolean(ext.slack_oidc),
+        apple: Boolean(ext.apple),
+        email: ext.email !== false
+      },
+      passkeysEnabled: Boolean(settings.passkeys_enabled),
+      supabaseCaptchaEnabled: Boolean(settings.security_captcha_enabled)
+    };
+  } catch (_) {
+    return {
+      isConfigured: true,
+      supabaseUrl,
+      supabaseAnonKey,
+      enabledProviders: { google: true, github: true, linkedin_oidc: true, discord: true, facebook: true, zoom: true, email: true },
+      passkeysEnabled: true
+    };
+  }
+}
+
 async function syncSupabaseAccessToken(accessToken) {
   if (!accessToken || accessToken === lastSyncedSupabaseToken) return;
   lastSyncedSupabaseToken = accessToken;
@@ -8773,33 +8762,53 @@ async function syncSupabaseAccessToken(accessToken) {
     },
     body: JSON.stringify({ accessToken })
   });
-  const syncData = await syncRes.json();
-  if (syncData.success && syncData.token) {
-    authToken = syncData.token;
-    localStorage.setItem('roundone_token', authToken);
-    localStorage.setItem('ai_interviewer_token', authToken);
-    currentUser = syncData.user;
-    currentOrg = syncData.org;
-    const modal = document.getElementById('auth-modal');
-    if (modal) modal.style.display = 'none';
-    if (window.location.hash && window.location.hash.includes('access_token=')) {
-      history.replaceState(null, '', window.location.pathname + window.location.search);
-    }
-    if (typeof updateUserBadge === 'function') updateUserBadge();
-    if (typeof updateVisitorUiState === 'function') updateVisitorUiState(true);
-    if (typeof loadJobs === 'function') loadJobs();
+  const ct = syncRes.headers.get('content-type') || '';
+  if (!ct.includes('application/json')) {
+    showAuthAlert('Signed in via Supabase OAuth, but the backend sync endpoint returned an unexpected response.');
+    return;
   }
+  const syncData = await syncRes.json();
+  if (!syncRes.ok || !syncData.success || !syncData.token) {
+    lastSyncedSupabaseToken = null;
+    showAuthAlert(syncData.error || 'Could not sync Supabase session with the workspace backend.');
+    return;
+  }
+
+  authToken = syncData.token;
+  localStorage.setItem('roundone_token', authToken);
+  localStorage.setItem('ai_interviewer_token', authToken);
+  currentUser = syncData.user;
+  currentOrg = syncData.org;
+  const modal = document.getElementById('auth-modal');
+  if (modal) modal.style.display = 'none';
+  if (window.location.hash && window.location.hash.includes('access_token=')) {
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
+  if (typeof updateUserBadge === 'function') updateUserBadge();
+  if (typeof updateVisitorUiState === 'function') updateVisitorUiState(true);
+  if (typeof loadJobs === 'function') loadJobs();
 }
 
 async function initSupabaseAuth() {
   refreshAuthCaptcha();
+  let cfg = null;
   try {
     const res = await fetch('/api/auth/supabase/config');
-    const cfg = await res.json();
+    const ct = res.headers.get('content-type') || '';
+    if (res.ok && ct.includes('application/json')) {
+      cfg = await res.json();
+    }
+  } catch (_) {}
+
+  if (!cfg || !cfg.isConfigured || !cfg.enabledProviders) {
+    cfg = await fetchDirectSupabaseAuthConfig();
+  }
+
+  try {
     supabaseRuntimeConfig = cfg;
     renderSupabaseProviders(cfg);
 
-    if (cfg.isConfigured && window.supabase) {
+    if (cfg?.isConfigured && window.supabase) {
       supabaseClient = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, {
         auth: {
           detectSessionInUrl: true,
