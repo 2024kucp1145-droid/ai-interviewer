@@ -1463,3 +1463,115 @@ body:not(.is-authenticated) #front-tab-about {
 [data-theme="dark"] .wp-scene-score-label {
   color: rgba(226, 238, 255, 0.9);
 }
+
+
+/* ==========================================================================
+   Whitepace Figma Polish: Navy Orbital, Pricing Triad, Stack Bar, CTA & Footer
+   ========================================================================== */
+
+/* Band 4 Navy Orbital Apps Showcase */
+.wp-band-navy .wp-orbit-hub {
+  background: #ffffff;
+  color: var(--wp-navy);
+  border-color: rgba(196, 222, 253, 0.55);
+  box-shadow: 0 20px 50px rgba(2, 16, 40, 0.55), 0 0 0 8px rgba(79, 156, 249, 0.14);
+}
+.wp-band-navy .wp-orbit-hub i {
+  color: var(--wp-azure);
+}
+.wp-band-navy .wp-orbit-node {
+  background: #ffffff;
+  color: var(--wp-navy);
+  border-color: rgba(196, 222, 253, 0.45);
+  box-shadow: 0 14px 34px rgba(2, 16, 40, 0.48);
+}
+
+/* Whitepace Trusted Stack / Sponsors Bar */
+.wp-sponsors-bar {
+  margin-top: 2.5rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid rgba(4, 56, 115, 0.08);
+  text-align: center;
+}
+[data-theme="dark"] .wp-sponsors-bar {
+  border-color: rgba(148, 163, 184, 0.14);
+}
+.wp-sponsors-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-muted);
+  margin-bottom: 0.35rem;
+}
+
+/* Pricing Triad Alignment & Figma Button Contrast */
+.wp-plan-price {
+  display: flex;
+  align-items: baseline;
+  gap: 0.38rem;
+}
+.wp-plan-unit {
+  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
+  font-size: 0.84rem;
+  font-weight: 500;
+  opacity: 0.72;
+}
+.wp-plan-btn-outline {
+  width: 100%;
+  padding: 0.72rem 1rem;
+  background: transparent;
+  border: 1.5px solid var(--wp-gold);
+  color: var(--wp-ink);
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+[data-theme="dark"] .wp-plan-btn-outline {
+  color: #ffffff;
+  border-color: rgba(255, 228, 146, 0.58);
+}
+.wp-plan-btn-outline:hover {
+  background: var(--wp-gold);
+  color: var(--wp-navy);
+}
+[data-theme="dark"] .wp-plan-card.is-featured {
+  border: 1.5px solid rgba(79, 156, 249, 0.56);
+  box-shadow: 0 24px 60px rgba(79, 156, 249, 0.2);
+}
+
+/* Testimonials Author Alignment in Dark/Light */
+.wp-testimonial-card .wp-testimonial-author div {
+  color: inherit;
+}
+
+/* Final CTA Platform Badges & Distinct Footer Tone */
+.wp-cta-platforms {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(226, 238, 255, 0.78);
+}
+.wp-cta-platforms span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.wp-cta-platforms i {
+  font-size: 1rem;
+  color: var(--wp-gold);
+}
+
+body:not(.is-authenticated) footer#site-dynamic-footer {
+  background: #02254d !important;
+  border-top: 1px solid rgba(196, 222, 253, 0.22) !important;
+}
+[data-theme="dark"] body:not(.is-authenticated) footer#site-dynamic-footer {
+  background: #021530 !important;
+}
