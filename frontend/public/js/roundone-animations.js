@@ -334,6 +334,121 @@
     });
   }
 
+  /* ==============================================================================
+     5. LANDING & 3D PERSPECTIVE STAGE: Pointer Parallax & Specular Card Sheen
+     ============================================================================== */
+  function prefersReducedMotion() {
+    return typeof window !== 'undefined'
+      && typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  /**
+   * Subtle damped 3D perspective stage for desktop hero preview.
+   * Automatically relaxes flat whenever user focuses/hovers the interactive code editor.
+   */
+  function initLanding3DStage(stageSelector = '#hero-3d-stage', viewportSelector = '.hero-3d-viewport') {
+    if (typeof document === 'undefined' || prefersReducedMotion()) return;
+    const stage = document.querySelector(stageSelector);
+    const viewport = document.querySelector(viewportSelector);
+    if (!stage || !viewport || stage.__tiltBound) return;
+    stage.__tiltBound = true;
+
+    const backLayer = stage.querySelector('.hero-float-voice');
+    const frontLayer = stage.querySelector('.hero-float-integrity');
+    let targetRx = 2.5;
+    let targetRy = -4.5;
+    let currRx = 2.5;
+    let currRy = -4.5;
+    let editorFocused = false;
+    let rafId = null;
+
+    function applyTransforms() {
+      currRx += (targetRx - currRx) * 0.12;
+      currRy += (targetRy - currRy) * 0.12;
+      viewport.style.transform = `rotateX(${currRx.toFixed(2)}deg) rotateY(${currRy.toFixed(2)}deg)`;
+      if (backLayer) {
+        backLayer.style.transform = `translate3d(${(-currRy * 1.6).toFixed(1)}px, ${(currRx * 1.4).toFixed(1)}px, 34px)`;
+      }
+      if (frontLayer) {
+        frontLayer.style.transform = `translate3d(${(currRy * 2.0).toFixed(1)}px, ${(-currRx * 1.6).toFixed(1)}px, 48px)`;
+      }
+      if (Math.abs(targetRx - currRx) > 0.02 || Math.abs(targetRy - currRy) > 0.02) {
+        rafId = requestAnimationFrame(applyTransforms);
+      } else {
+        rafId = null;
+      }
+    }
+
+    function scheduleFrame() {
+      if (!rafId) rafId = requestAnimationFrame(applyTransforms);
+    }
+
+    const editor = stage.querySelector('#sandbox-code-editor');
+    if (editor) {
+      editor.addEventListener('focus', function () {
+        editorFocused = true;
+        targetRx = 0;
+        targetRy = 0;
+        scheduleFrame();
+      });
+      editor.addEventListener('blur', function () {
+        editorFocused = false;
+        targetRx = 2.5;
+        targetRy = -4.5;
+        scheduleFrame();
+      });
+    }
+
+    stage.addEventListener('pointermove', function (e) {
+      if (e.pointerType === 'touch' || editorFocused || window.innerWidth < 980) return;
+      const rect = stage.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const nx = ((e.clientX - rect.left) / rect.width) - 0.5;
+      const ny = ((e.clientY - rect.top) / rect.height) - 0.5;
+      targetRy = nx * 7.5;
+      targetRx = -ny * 5.5;
+      scheduleFrame();
+    }, { passive: true });
+
+    stage.addEventListener('pointerleave', function () {
+      if (editorFocused) return;
+      targetRx = 2.5;
+      targetRy = -4.5;
+      scheduleFrame();
+    });
+  }
+
+  /**
+   * Subtle cursor-tracked hairline spotlight on feature/pricing cards without layout jitter
+   */
+  function initCardSurfaceSheen(selector = '.front-pricing-card, .front-surface-card, .front-blog-card, .glow-marquee-card') {
+    if (typeof document === 'undefined' || prefersReducedMotion()) return;
+    document.querySelectorAll(selector).forEach(function (card) {
+      if (card.__sheenBound) return;
+      card.__sheenBound = true;
+      card.addEventListener('pointermove', function (e) {
+        if (e.pointerType === 'touch') return;
+        const r = card.getBoundingClientRect();
+        card.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
+        card.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%');
+      }, { passive: true });
+    });
+  }
+
+  function animateHeroEntrance() {
+    if (typeof document === 'undefined' || prefersReducedMotion()) return;
+    const targets = document.querySelectorAll('.hero-stagger');
+    if (!targets.length) return;
+    animeRun(targets, {
+      opacity: [0.01, 1],
+      translateY: [12, 0],
+      delay: animeStagger(55, { start: 30 }),
+      duration: 460,
+      ease: 'outCubic'
+    });
+  }
+
   return {
     animeRun,
     animeStagger,
@@ -349,6 +464,9 @@
     animateScoreCounter,
     animateSkillCards,
     animateDashboardStats,
-    animateStaggeredEntrance
+    animateStaggeredEntrance,
+    initLanding3DStage,
+    initCardSurfaceSheen,
+    animateHeroEntrance
   };
 });

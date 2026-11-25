@@ -4,2686 +4,40 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RoundOne AI | Technical Screening & Hiring Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/hackerrank-theme.css">
-  <style>
-    :root {
-      --bg: #000000;
-      --surface: #090d16;
-      --surface-subtle: #0f172a;
-      --border: rgba(255, 255, 255, 0.08);
-      --border-dark: rgba(255, 255, 255, 0.16);
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
-      --text-subtle: #64748b;
-      --accent: #6366f1;
-      --accent-hover: #4f46e5;
-      --accent-light: rgba(99, 102, 241, 0.15);
-      --success: #10b981;
-      --success-light: rgba(16, 185, 129, 0.15);
-      --warning: #f59e0b;
-      --warning-light: rgba(245, 158, 11, 0.15);
-      --danger: #ef4444;
-      --danger-light: rgba(239, 68, 68, 0.15);
-      --tag-bg: #1e293b;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #000000;
-      background-image: 
-        radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.18) 0%, rgba(14, 165, 233, 0.06) 35%, transparent 70%),
-        radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.08) 0%, transparent 50%);
-      background-attachment: fixed;
-      color: #f8fafc;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      font-size: 0.8125rem;
-      line-height: 1.5;
-      letter-spacing: -0.01em;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    /* Top Navigation (Glassmorphic Obsidian) */
-    header {
-      background-color: rgba(3, 7, 18, 0.85);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 0.75rem 2rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      box-shadow: 0 4px 25px rgba(0, 0, 0, 0.7);
-    }
-
-    .brand {
-      font-size: 1.05rem;
-      font-weight: 800;
-      color: #ffffff;
-      display: flex;
-      align-items: center;
-      gap: 0.55rem;
-      letter-spacing: -0.02em;
-    }
-    .brand i {
-      color: #818cf8;
-      font-size: 1.35rem;
-      filter: drop-shadow(0 0 10px rgba(129, 140, 248, 0.7));
-    }
-    .brand-badge {
-      background: rgba(99, 102, 241, 0.18);
-      color: #a5b4fc;
-      border: 1px solid rgba(99, 102, 241, 0.35);
-      font-size: 0.65rem;
-      font-weight: 700;
-      padding: 0.18rem 0.5rem;
-      border-radius: 999px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-
-    .nav-tabs {
-      display: flex;
-      gap: 0.3rem;
-      background: rgba(15, 23, 42, 0.75);
-      padding: 0.25rem;
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .nav-btn {
-      background: none;
-      border: none;
-      color: #94a3b8;
-      font-size: 0.775rem;
-      font-weight: 600;
-      padding: 0.45rem 0.85rem;
-      border-radius: 7px;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-
-    .nav-btn:hover {
-      color: #ffffff;
-      background-color: rgba(255, 255, 255, 0.06);
-    }
-
-    .nav-btn.active {
-      background: linear-gradient(135deg, #4f46e5, #6366f1);
-      color: #ffffff;
-      font-weight: 700;
-      box-shadow: 0 0 14px rgba(99, 102, 241, 0.5);
-    }
-    .nav-btn.active i {
-      color: #ffffff;
-    }
-
-    .header-user {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.4rem;
-      background: #1e293b;
-      color: #ffffff;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 8px;
-      padding: 0.45rem 0.95rem;
-      font-weight: 600;
-      font-size: 0.785rem;
-      cursor: pointer;
-      transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
-      text-decoration: none;
-      white-space: nowrap;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    }
-
-    .btn:hover {
-      background: #334155;
-      border-color: rgba(255, 255, 255, 0.25);
-      color: #ffffff;
-      transform: translateY(-0.5px);
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
-      border: 1px solid rgba(129, 140, 248, 0.4) !important;
-      color: #ffffff !important;
-      box-shadow: 0 0 16px rgba(99, 102, 241, 0.4);
-    }
-    .btn-primary:hover {
-      opacity: 0.95;
-      box-shadow: 0 0 22px rgba(99, 102, 241, 0.6);
-      transform: translateY(-1px);
-    }
-
-    .btn-outline {
-      background: rgba(15, 23, 42, 0.65);
-      color: #f8fafc;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-    }
-    .btn-outline:hover {
-      background: rgba(30, 41, 59, 0.85);
-      border-color: rgba(255, 255, 255, 0.3);
-      color: #ffffff;
-      transform: translateY(-0.5px);
-    }
-
-    .btn-ghost {
-      background: none;
-      border: none;
-      color: #94a3b8;
-      padding: 0.35rem 0.55rem;
-      box-shadow: none;
-    }
-    .btn-ghost:hover {
-      background: rgba(255, 255, 255, 0.06);
-      color: #ffffff;
-      transform: none;
-    }
-
-    /* Main Container */
-    main {
-      flex: 1;
-      padding: 1.75rem 2rem;
-      max-width: 1280px;
-      margin: 0 auto;
-      width: 100%;
-    }
-
-    /* Mode Switcher Bar */
-    .workspace-mode-switcher {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      margin-bottom: 1.5rem;
-      padding: 0.4rem;
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 12px;
-      width: fit-content;
-    }
-    .mode-pill {
-      background: transparent;
-      border: none;
-      color: #94a3b8;
-      padding: 0.45rem 1rem;
-      border-radius: 8px;
-      font-size: 0.775rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.45rem;
-      transition: all 0.2s ease;
-    }
-    .mode-pill:hover {
-      color: #ffffff;
-      background: rgba(255, 255, 255, 0.05);
-    }
-    .mode-pill.active {
-      background: rgba(99, 102, 241, 0.22);
-      color: #a5b4fc;
-      border: 1px solid rgba(99, 102, 241, 0.4);
-      box-shadow: 0 0 14px rgba(99, 102, 241, 0.25);
-    }
-
-    /* Cards */
-    .card {
-      background-color: #090d16;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 14px;
-      padding: 1.4rem 1.6rem;
-      margin-bottom: 1.35rem;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
-      color: #f8fafc;
-    }
-    .card-title {
-      font-size: 0.95rem;
-      font-weight: 700;
-      margin-bottom: 0.95rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      color: #ffffff;
-      letter-spacing: -0.01em;
-    }
-
-    label {
-      font-size: 0.725rem;
-      font-weight: 600;
-      color: #94a3b8;
-      display: block;
-      margin-bottom: 0.25rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-    input, textarea, select {
-      width: 100%;
-      background-color: #0b0f19;
-      border: 1.5px solid rgba(255, 255, 255, 0.12);
-      color: #f8fafc;
-      padding: 0.55rem 0.85rem;
-      border-radius: 8px;
-      font-family: inherit;
-      font-size: 0.8125rem;
-      margin-bottom: 0.75rem;
-      transition: all 0.15s ease;
-    }
-    input:focus, textarea:focus, select:focus {
-      outline: none;
-      border-color: #818cf8;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
-      background-color: #0d121f;
-    }
-
-    table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 0.5rem; }
-    th {
-      text-align: left;
-      padding: 0.75rem 0.95rem;
-      background-color: #0d121f;
-      color: #94a3b8;
-      font-size: 0.7rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      border-bottom: 2px solid rgba(255, 255, 255, 0.08);
-    }
-    td {
-      padding: 0.85rem 0.95rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-      font-size: 0.8rem;
-      color: #cbd5e1;
-    }
-    tr:hover td {
-      background-color: rgba(255, 255, 255, 0.03);
-    }
-
-    .modal-content {
-      background-color: #090d16;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      border-radius: 16px;
-      padding: 1.85rem;
-      max-width: 640px;
-      width: 100%;
-      color: #f8fafc;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85);
-    }
-    .drawer-content {
-      background: #090d16;
-      border-left: 1px solid rgba(255, 255, 255, 0.1);
-      width: 100%;
-      max-width: 660px;
-      height: 100vh;
-      color: #f8fafc;
-    }
-    .response-card {
-      background: #0d121f;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 10px;
-      padding: 1.15rem 1.35rem;
-      margin-bottom: 1.15rem;
-      color: #f8fafc;
-    }
-    .metric-card {
-      background: #090d16;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 12px;
-      padding: 1.15rem 1.25rem;
-      color: #f8fafc;
-    }
-    .metric-val {
-      color: #ffffff;
-    }
-
-    /* Cards */
-    .card {
-      background-color: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1.35rem 1.6rem;
-      margin-bottom: 1.35rem;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-      transition: border-color 0.15s ease;
-    }
-
-    .card-title {
-      font-size: 0.9rem;
-      font-weight: 700;
-      margin-bottom: 0.95rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      color: #0f172a;
-      letter-spacing: -0.01em;
-    }
-
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
-    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
-    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.85rem; }
-    @media (max-width: 860px) {
-      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
-    }
-
-    /* Forms */
-    label {
-      font-size: 0.725rem;
-      font-weight: 600;
-      color: #3f3f46;
-      display: block;
-      margin-bottom: 0.25rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-
-    input, textarea, select {
-      width: 100%;
-      background-color: #ffffff;
-      border: 1.5px solid var(--border);
-      color: #0f172a;
-      padding: 0.5rem 0.75rem;
-      border-radius: 6px;
-      font-family: inherit;
-      font-size: 0.8125rem;
-      margin-bottom: 0.75rem;
-      transition: all 0.15s ease;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-    }
-
-    input:focus, textarea:focus, select:focus {
-      outline: none;
-      border-color: #2563eb;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-      background-color: #ffffff;
-    }
-
-    /* Tables */
-    table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 0.5rem; }
-    th {
-      text-align: left;
-      padding: 0.65rem 0.85rem;
-      background-color: #f8fafc;
-      color: #475569;
-      font-size: 0.7rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      border-bottom: 2px solid var(--border);
-    }
-    td {
-      padding: 0.75rem 0.85rem;
-      border-bottom: 1px solid var(--border);
-      font-size: 0.8rem;
-      transition: background-color 0.1s ease;
-    }
-    tr:hover td {
-      background-color: #f8fafc;
-    }
-
-    /* Badges - Modern Colorful SaaS Hierarchy */
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      padding: 0.22rem 0.55rem;
-      border-radius: 5px;
-      font-size: 0.6875rem;
-      font-weight: 600;
-      border: 1px solid var(--border);
-      background: var(--tag-bg);
-      color: #334155;
-      letter-spacing: -0.01em;
-    }
-    .badge-dark { background: #0f172a; color: #fff; border-color: #0f172a; }
-    .badge-outline { background: #fff; border-color: var(--border-dark); color: #0f172a; }
-    .badge-primary { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
-    .badge-success { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
-    .badge-warning { background: #fffbeb; color: #b45309; border-color: #fde68a; }
-    .badge-danger { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
-
-    /* Metric Cards */
-    .metric-card {
-      background: #ffffff;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1.15rem 1.25rem;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-      transition: all 0.15s ease;
-    }
-    .metric-card:hover {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-      border-color: #cbd5e1;
-    }
-    .metric-sub { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
-    .metric-val { font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 0.25rem 0; letter-spacing: -0.03em; }
-
-    /* Modals & Overlays */
-    .modal-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-color: rgba(15, 23, 42, 0.55);
-      backdrop-filter: blur(4px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 1.25rem;
-      z-index: 100;
-      animation: modalFadeIn 0.18s ease;
-    }
-    @keyframes modalFadeIn {
-      from { opacity: 0; }
-      to   { opacity: 1; }
-    }
-
-    .modal-content {
-      background-color: #ffffff;
-      border: 1px solid var(--border-dark);
-      border-radius: 12px;
-      padding: 1.85rem;
-      max-width: 620px;
-      width: 100%;
-      max-height: 90vh;
-      overflow-y: auto;
-      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.16);
-      animation: modalSlideIn 0.2s cubic-bezier(.4,0,.2,1);
-    }
-    @keyframes modalSlideIn {
-      from { opacity: 0; transform: scale(0.96) translateY(-8px); }
-      to   { opacity: 1; transform: scale(1) translateY(0); }
-    }
-
-    .quote-box {
-      background-color: #f8fafc;
-      border-left: 3px solid #2563eb;
-      padding: 0.65rem 0.85rem;
-      margin-top: 0.45rem;
-      border-radius: 4px;
-      font-size: 0.775rem;
-      color: #1e293b;
-      line-height: 1.5;
-    }
-
-    /* Responses Drawer (Slide-out from right) */
-    .drawer-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 23, 42, 0.55);
-      backdrop-filter: blur(4px);
-      z-index: 90;
-      display: none;
-      justify-content: flex-end;
-    }
-    .drawer-content {
-      background: #ffffff;
-      width: 100%;
-      max-width: 660px;
-      height: 100vh;
-      box-shadow: -8px 0 35px rgba(0, 0, 0, 0.16);
-      display: flex;
-      flex-direction: column;
-      animation: slideInRight 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    @keyframes slideInRight {
-      from { transform: translateX(100%); }
-      to { transform: translateX(0); }
-    }
-    .drawer-header {
-      padding: 1.25rem 1.6rem;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #fafcff;
-    }
-    .drawer-body {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1.35rem 1.6rem;
-    }
-    .response-card {
-      background: #ffffff;
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      padding: 1.15rem 1.35rem;
-      margin-bottom: 1.15rem;
-      transition: all 0.15s ease;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-    }
-    .response-card:hover {
-      border-color: #93c5fd;
-      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.08);
-      transform: translateY(-1px);
-    }
-    .clarification-box {
-      background: #f8fafc;
-      border-left: 3px solid #7c3aed;
-      padding: 0.7rem 0.9rem;
-      border-radius: 5px;
-      margin-top: 0.6rem;
-      font-size: 0.775rem;
-      line-height: 1.5;
-    }
-
-    /* Multi-Step Interview Creation Wizard Styles */
-    .selection-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 0.95rem;
-      margin: 0.95rem 0;
-    }
-    .selection-card {
-      background: #ffffff;
-      border: 1.5px solid var(--border);
-      border-radius: 9px;
-      padding: 1.25rem 1.15rem;
-      cursor: pointer;
-      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-    }
-    .selection-card:hover {
-      border-color: #93c5fd;
-      background: #fafcff;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
-    }
-    .selection-card.selected {
-      border: 2px solid #2563eb;
-      background: #eff6ff;
-      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.14);
-    }
-    .selection-card.selected::after {
-      content: '✔';
-      position: absolute;
-      top: 0.7rem;
-      right: 0.7rem;
-      background: #2563eb;
-      color: #ffffff;
-      font-size: 0.7rem;
-      font-weight: 700;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
-    }
-    .selection-card .card-icon {
-      font-size: 1.5rem;
-      color: #2563eb;
-      margin-bottom: 0.5rem;
-    }
-    .selection-card .card-title-text {
-      font-size: 0.88rem;
-      font-weight: 700;
-      color: #0f172a;
-      margin-bottom: 0.25rem;
-    }
-    .selection-card .card-desc-text {
-      font-size: 0.735rem;
-      color: var(--text-muted);
-      line-height: 1.45;
-    }
-
-    /* Chips / Tags for Qualifications & Skills */
-    .chip-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.45rem;
-      margin: 0.5rem 0 1rem 0;
-    }
-    .chip-tag {
-      background: #f1f5f9;
-      color: #334155;
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 0.32rem 0.8rem;
-      font-size: 0.735rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.12s ease;
-      user-select: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-    }
-    .chip-tag:hover {
-      background: #e2e8f0;
-      border-color: #cbd5e1;
-      color: #0f172a;
-      transform: translateY(-0.5px);
-    }
-    .chip-tag.selected {
-      background: #2563eb;
-      color: #ffffff;
-      border-color: #2563eb;
-      font-weight: 600;
-      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
-    }
-
-    /* Role Category Browser */
-    .role-category-group { margin-bottom: 0.6rem; }
-    .role-category-header {
-      font-size: 0.68rem;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: #475569;
-      padding: 0.25rem 0.35rem;
-      margin-bottom: 0.3rem;
-      border-bottom: 1px solid var(--border);
-    }
-    .role-item {
-      display: inline-block;
-      padding: 0.25rem 0.7rem;
-      margin: 0.2rem 0.2rem;
-      font-size: 0.735rem;
-      font-weight: 500;
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      cursor: pointer;
-      background: var(--surface);
-      color: var(--text);
-      transition: all 0.12s ease;
-      user-select: none;
-    }
-    .role-item:hover {
-      background: #eff6ff;
-      color: #1d4ed8;
-      border-color: #bfdbfe;
-      transform: translateY(-0.5px);
-    }
-    .role-item.active {
-      background: #2563eb;
-      color: #ffffff;
-      border-color: #2563eb;
-      font-weight: 600;
-      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
-    }
-    [data-theme="dark"] .role-item { background: #27272a; color: #f4f4f5; border-color: var(--border-dark); }
-    [data-theme="dark"] .role-item:hover { background: #3b82f6; color: #ffffff; border-color: #3b82f6; }
-    [data-theme="dark"] .role-item.active { background: #3b82f6; color: #ffffff; border-color: #3b82f6; font-weight: 600; }
-
-    /* Drag & Drop Resume Upload Area */
-    .resume-dropzone {
-      border: 2px dashed #93c5fd;
-      border-radius: 10px;
-      background: #f8fafc;
-      transition: all 0.18s ease;
-      margin-bottom: 1.15rem;
-      cursor: pointer;
-    }
-    .resume-dropzone:hover {
-      border-color: #2563eb;
-      background: #eff6ff;
-      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.08);
-    }
-    .resume-dropzone.dragover {
-      border-color: #1d4ed8;
-      background: #eff6ff;
-      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
-    }
-    [data-theme="dark"] .resume-dropzone {
-      border-color: #3f3f46;
-      background: #18181b;
-    }
-    [data-theme="dark"] .resume-dropzone:hover {
-      border-color: #3b82f6;
-      background: #1e1e24;
-    }
-    [data-theme="dark"] .resume-dropzone.dragover {
-      border-color: #3b82f6;
-      background: #1e1e24;
-      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
-    }
-    .resume-skill-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.3rem;
-      background: #f1f5f9;
-      color: #334155;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 0.22rem 0.6rem;
-      font-size: 0.72rem;
-      font-weight: 600;
-    }
-    [data-theme="dark"] .resume-skill-pill {
-      background: #27272a;
-      border-color: var(--border-dark);
-      color: #f4f4f5;
-    }
-
-    /* Wizard steps progress strip */
-    .wizard-nav-strip {
-      display: flex;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 1.5rem;
-      background: #f1f5f9;
-      border-radius: 8px;
-      padding: 0.3rem;
-      overflow-x: auto;
-      gap: 0.25rem;
-    }
-    .wizard-nav-step {
-      flex: 1;
-      padding: 0.55rem 0.8rem;
-      font-size: 0.735rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-align: center;
-      border-radius: 6px;
-      white-space: nowrap;
-      cursor: default;
-      transition: all 0.15s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.4rem;
-    }
-    .wizard-nav-step.active {
-      color: #ffffff;
-      background: #2563eb;
-      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
-    }
-    .wizard-nav-step.done {
-      color: #047857;
-      background: #ecfdf5;
-      border: 1px solid #a7f3d0;
-    }
-
-    /* Switch row for Rules and Tool toggles */
-    .switch-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.85rem 1.15rem;
-      background: #ffffff;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      margin-bottom: 0.65rem;
-      transition: all 0.15s ease;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-    }
-    .switch-row:hover {
-      border-color: #93c5fd;
-      background: #fafcff;
-    }
-    .switch-label-title {
-      font-weight: 700;
-      font-size: 0.82rem;
-      color: #0f172a;
-      display: flex;
-      align-items: center;
-      gap: 0.45rem;
-    }
-    .switch-label-title i {
-      color: #2563eb;
-    }
-    .switch-label-desc {
-      font-size: 0.735rem;
-      color: var(--text-muted);
-      margin-top: 0.2rem;
-    }
-
-    /* LeetCode Problem Preview Card */
-    .leetcode-card {
-      background: #fffbeb;
-      border: 1px solid #fde68a;
-      border-left: 4px solid #d97706;
-      border-radius: 8px;
-      padding: 1.1rem 1.35rem;
-      margin-top: 0.85rem;
-      box-shadow: 0 1px 3px rgba(217, 119, 6, 0.08);
-    }
-
-    /* Theme Toggle Button */
-    .theme-toggle-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0.4rem 0.75rem;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.88rem;
-      background: #ffffff;
-      color: #334155;
-      border: 1px solid var(--border-dark);
-      transition: all 0.15s ease;
-      line-height: 1;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-    }
-    .theme-toggle-btn:hover {
-      background: #f8fafc;
-      border-color: #2563eb;
-      color: #2563eb;
-      transform: translateY(-0.5px);
-    }
-
-    .btn-responses-top {
-      background: #0f172a;
-      color: #ffffff;
-      border: 1px solid #0f172a;
-      font-weight: 600;
-      transition: all 0.15s ease;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    }
-    .btn-responses-top:hover {
-      background: #1e293b;
-      border-color: #1e293b;
-      transform: translateY(-0.5px);
-    }
-    .btn-responses-top .responses-badge {
-      background: #2563eb;
-      color: #ffffff;
-      font-size: 0.65rem;
-      font-weight: 700;
-      padding: 0.12rem 0.45rem;
-      margin-left: 0.35rem;
-      border-radius: 9999px;
-    }
-
-    /* ========================================================
-       DARK THEME STYLES (High-Contrast Black & Deep Charcoal)
-       ======================================================== */
-    [data-theme="dark"] {
-      --bg: #09090b;
-      --surface: #121215;
-      --surface-subtle: #18181b;
-      --border: #27272a;
-      --border-dark: #3f3f46;
-      --text: #f4f4f5;
-      --text-muted: #a1a1aa;
-      --text-subtle: #71717a;
-      --accent: #ffffff;
-      --accent-hover: #e4e4e7;
-      --tag-bg: #1f1f23;
-    }
-
-    [data-theme="dark"] body {
-      background-color: var(--bg);
-      color: var(--text);
-    }
-
-    [data-theme="dark"] header {
-      background-color: #121215;
-      border-bottom-color: var(--border);
-    }
-
-    [data-theme="dark"] .brand {
-      color: #ffffff;
-    }
-
-    [data-theme="dark"] .brand-badge {
-      background: #ffffff;
-      color: #000000;
-    }
-
-    [data-theme="dark"] .nav-tabs {
-      background: #18181b;
-      border-color: var(--border);
-    }
-
-    [data-theme="dark"] .nav-btn {
-      color: var(--text-muted);
-    }
-
-    [data-theme="dark"] .nav-btn:hover {
-      color: #ffffff;
-      background: #27272a;
-    }
-
-    [data-theme="dark"] .nav-btn.active {
-      background-color: #2563eb;
-      color: #ffffff;
-      box-shadow: 0 1px 4px rgba(37, 99, 235, 0.4);
-    }
-    [data-theme="dark"] .nav-btn.active i {
-      color: #ffffff;
-    }
-
-    [data-theme="dark"] .card {
-      background-color: var(--surface);
-      border-color: var(--border);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-    }
-
-    [data-theme="dark"] .card-title,
-    [data-theme="dark"] h1,
-    [data-theme="dark"] h2,
-    [data-theme="dark"] h3,
-    [data-theme="dark"] h4 {
-      color: #ffffff !important;
-    }
-
-    [data-theme="dark"] .hero-strip {
-      background: #18181b;
-      border-color: var(--border);
-    }
-
-    [data-theme="dark"] .hero-title {
-      color: #ffffff;
-    }
-
-    [data-theme="dark"] label {
-      color: #d4d4d8;
-    }
-
-    [data-theme="dark"] input,
-    [data-theme="dark"] textarea,
-    [data-theme="dark"] select {
-      background-color: #18181b;
-      border-color: var(--border);
-      color: #f4f4f5;
-    }
-
-    [data-theme="dark"] input:focus,
-    [data-theme="dark"] textarea:focus,
-    [data-theme="dark"] select:focus {
-      border-color: #ffffff;
-      box-shadow: 0 0 0 1px #ffffff;
-    }
-
-    [data-theme="dark"] .btn {
-      background-color: #ffffff;
-      color: #000000;
-      border-color: #ffffff;
-    }
-
-    [data-theme="dark"] .btn:hover {
-      background-color: #e4e4e7;
-      border-color: #e4e4e7;
-    }
-
-    [data-theme="dark"] .btn-outline {
-      background-color: #18181b;
-      color: #f4f4f5;
-      border-color: var(--border-dark);
-    }
-
-    [data-theme="dark"] .btn-outline:hover {
-      background-color: #27272a;
-      border-color: #ffffff;
-      color: #ffffff;
-    }
-
-    [data-theme="dark"] .btn-danger-outline {
-      background-color: #18181b;
-      color: #f87171;
-      border-color: #7f1d1d;
-    }
-    [data-theme="dark"] .btn-danger-outline:hover {
-      background-color: #2d1515;
-      border-color: #ef4444;
-      color: #fca5a5;
-    }
-
-    [data-theme="dark"] .btn-ghost {
-      color: var(--text-muted);
-    }
-
-    [data-theme="dark"] .btn-ghost:hover {
-      background-color: #27272a;
-      color: #ffffff;
-    }
-
-    [data-theme="dark"] .btn-responses-top {
-      background: #ffffff !important;
-      color: #000000 !important;
-      border-color: #ffffff !important;
-    }
-    [data-theme="dark"] .btn-responses-top .responses-badge {
-      background: #000000 !important;
-      color: #ffffff !important;
-    }
-
-    [data-theme="dark"] .theme-toggle-btn {
-      background: #18181b;
-      color: #f4f4f5;
-      border-color: var(--border-dark);
-    }
-    [data-theme="dark"] .theme-toggle-btn:hover {
-      background: #27272a;
-      border-color: #ffffff;
-    }
-
-    [data-theme="dark"] .badge-dark {
-      background: #ffffff;
-      color: #000000;
-      border-color: #ffffff;
-    }
-
-    [data-theme="dark"] .badge-outline {
-      background: transparent;
-      border-color: var(--border-dark);
-      color: #e4e4e7;
-    }
-
-    [data-theme="dark"] table th {
-      background-color: #18181b;
-      color: var(--text-muted);
-      border-bottom-color: var(--border);
-    }
-
-    [data-theme="dark"] table td {
-      border-bottom-color: var(--border);
-      color: #f4f4f5;
-    }
-
-    [data-theme="dark"] table tr:hover td {
-      background-color: #1c1c22;
-    }
-
-    [data-theme="dark"] .metric-card {
-      background-color: #18181b;
-      border-color: var(--border);
-    }
-
-    [data-theme="dark"] .metric-val {
-      color: #ffffff;
-    }
-
-    [data-theme="dark"] .modal-overlay {
-      background-color: rgba(0, 0, 0, 0.7);
-    }
-
-    [data-theme="dark"] .modal-content {
-      background-color: #121215;
-      border-color: var(--border-dark);
-      color: var(--text);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-    }
-
-    [data-theme="dark"] .drawer-content {
-      background-color: #121215;
-      color: var(--text);
-      border-left: 1px solid var(--border);
-      box-shadow: -8px 0 30px rgba(0, 0, 0, 0.6);
-    }
-
-    [data-theme="dark"] .drawer-header {
-      border-bottom-color: var(--border);
-    }
-
-    [data-theme="dark"] .response-card {
-      background-color: #18181b;
-      border-color: var(--border);
-    }
-
-    [data-theme="dark"] .response-card:hover {
-      border-color: #52525b;
-    }
-
-    [data-theme="dark"] .clarification-box {
-      background-color: #121215;
-      border-left-color: #ffffff;
-      color: #f4f4f5;
-      border: 1px solid var(--border);
-      border-left-width: 3px;
-    }
-
-    [data-theme="dark"] .quote-box {
-      background-color: #18181b;
-      border-left-color: #ffffff;
-      color: #e4e4e7;
-    }
-
-    [data-theme="dark"] .selection-card {
-      background-color: #18181b;
-      border-color: var(--border);
-    }
-
-    [data-theme="dark"] .selection-card:hover {
-      border-color: #52525b;
-      background-color: #202026;
-    }
-
-    [data-theme="dark"] .selection-card.selected {
-      border-color: #ffffff;
-      background-color: #22222a;
-    }
-
-    [data-theme="dark"] .selection-card .card-icon {
-      color: #ffffff;
-    }
-
-    [data-theme="dark"] .selection-card .card-title-text {
-      color: #ffffff;
-    }
-
-    [data-theme="dark"] .selection-card.selected::after {
-      background: #ffffff;
-      color: #000000;
-    }
-
-    [data-theme="dark"] .chip-tag {
-      background: #1f1f23;
-      color: #e4e4e7;
-      border-color: var(--border);
-    }
-
-    [data-theme="dark"] .chip-tag:hover {
-      background: #27272a;
-      border-color: #52525b;
-    }
-
-    [data-theme="dark"] .chip-tag.selected {
-      background: #ffffff;
-      color: #000000;
-      border-color: #ffffff;
-    }
-
-    [data-theme="dark"] .wizard-nav-strip {
-      background: #18181b;
-      border-color: var(--border);
-    }
-
-    [data-theme="dark"] .wizard-nav-step {
-      color: var(--text-muted);
-    }
-
-    [data-theme="dark"] .wizard-nav-step.active {
-      background: #27272a;
-      color: #ffffff;
-    }
-
-    [data-theme="dark"] .wizard-nav-step.done {
-      color: #e4e4e7;
-    }
-
-    [data-theme="dark"] .switch-row {
-      background-color: #18181b;
-      border-color: var(--border);
-    }
-
-    [data-theme="dark"] .switch-row:hover {
-      border-color: var(--border-dark);
-    }
-
-    [data-theme="dark"] .switch-label-title {
-      color: #ffffff;
-    }
-
-    [data-theme="dark"] .leetcode-card {
-      background: #18181b;
-      border-color: var(--border);
-    }
-
-    [data-theme="dark"] .wizard-steps {
-      border-bottom-color: var(--border);
-    }
-    [data-theme="dark"] .wizard-step-item.active {
-      color: #ffffff;
-      border-bottom-color: #ffffff;
-    }
-
-    /* Auto-reconcile dynamically created inline background/colors */
-    [data-theme="dark"] [style*="background:#ffffff"],
-    [data-theme="dark"] [style*="background: #ffffff"],
-    [data-theme="dark"] [style*="background:#fff"],
-    [data-theme="dark"] [style*="background: #fff"] {
-      background-color: #18181b !important;
-      color: #f4f4f5 !important;
-      border-color: var(--border) !important;
-    }
-
-    [data-theme="dark"] [style*="color:#000"],
-    [data-theme="dark"] [style*="color: #000"] {
-      color: #f4f4f5 !important;
-    }
-
-    [data-theme="dark"] [style*="border:2px solid #000"],
-    [data-theme="dark"] [style*="border: 2px solid #000"] {
-      border-color: #52525b !important;
-      background-color: #18181b !important;
-    }
-    /* Professional High-Contrast Dashboard & Interview Management Styles */
-    .pulse-live-dot {
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background-color: #10b981;
-      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-      animation: pulse-green 2s infinite;
-      flex-shrink: 0;
-    }
-    @keyframes pulse-green {
-      0% {
-        transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-      }
-      70% {
-        transform: scale(1);
-        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
-      }
-      100% {
-        transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-      }
-    }
-
-    .configured-job-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-left: 4px solid #2563eb;
-      border-radius: 10px;
-      padding: 1.15rem 1.35rem;
-      margin-bottom: 0.9rem;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-    }
-    .configured-job-card:hover {
-      border-color: #93c5fd;
-      border-left-color: #1d4ed8;
-      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.08);
-      transform: translateY(-1px);
-    }
-    [data-theme="dark"] .configured-job-card {
-      background: #18181b;
-      border-color: #27272a;
-      border-left-color: #3b82f6;
-    }
-    [data-theme="dark"] .configured-job-card:hover {
-      border-color: #3f3f46;
-      border-left-color: #60a5fa;
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
-    }
-
-    .catalog-role-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      padding: 0.95rem 1.15rem;
-      margin-bottom: 0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      transition: all 0.18s ease;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-    }
-    .catalog-role-card:hover {
-      border-color: #60a5fa;
-      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.09);
-      transform: translateY(-1px);
-      background: #fafcff;
-    }
-    [data-theme="dark"] .catalog-role-card {
-      background: #18181b;
-      border-color: #27272a;
-    }
-    [data-theme="dark"] .catalog-role-card:hover {
-      border-color: #3b82f6;
-      background: #1e1e24;
-    }
-
-    .dashboard-search-box {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      flex: 1;
-      min-width: 260px;
-      background: var(--surface);
-      border: 1.5px solid var(--border);
-      border-radius: 8px;
-      padding: 0.42rem 0.85rem;
-      transition: all 0.2s ease;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-    }
-    .dashboard-search-box:focus-within {
-      border-color: #2563eb;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-      background: #ffffff;
-    }
-    [data-theme="dark"] .dashboard-search-box {
-      background: #18181b;
-      border-color: #27272a;
-    }
-    [data-theme="dark"] .dashboard-search-box:focus-within {
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-      background: #18181b;
-    }
-
-    .category-badge-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      padding: 0.2rem 0.6rem;
-      border-radius: 9999px;
-      font-size: 0.68rem;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-      color: var(--cat-color);
-      background: var(--cat-bg);
-      border: 1px solid var(--cat-border);
-      cursor: pointer;
-      transition: all 0.15s ease;
-      white-space: nowrap;
-    }
-    .category-badge-pill:hover {
-      filter: brightness(0.94);
-      transform: translateY(-0.5px);
-    }
-    [data-theme="dark"] .category-badge-pill {
-      background: rgba(255, 255, 255, 0.06);
-      border-color: rgba(255, 255, 255, 0.14);
-      color: #e4e4e7;
-    }
-
-    .skill-pill {
-      display: inline-flex;
-      align-items: center;
-      background: #f1f5f9;
-      color: #334155;
-      border: 1px solid #e2e8f0;
-      padding: 0.15rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.72rem;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-      margin-right: 0.35rem;
-      margin-bottom: 0.25rem;
-      white-space: nowrap;
-    }
-    [data-theme="dark"] .skill-pill {
-      background: #27272a;
-      color: #e4e4e7;
-      border-color: #3f3f46;
-    }
-
-    .btn-share-link {
-      background: #2563eb !important;
-      color: #ffffff !important;
-      font-weight: 600;
-      border: none !important;
-      box-shadow: 0 2px 4px rgba(37, 99, 235, 0.25);
-      transition: all 0.15s ease;
-    }
-    .btn-share-link:hover {
-      background: #1d4ed8 !important;
-      box-shadow: 0 4px 8px rgba(37, 99, 235, 0.35);
-      transform: translateY(-1px);
-    }
-
-    .btn-view-candidates {
-      background: #ecfdf5 !important;
-      color: #047857 !important;
-      border: 1px solid #a7f3d0 !important;
-      font-weight: 600;
-      transition: all 0.15s ease;
-    }
-    .btn-view-candidates:hover {
-      background: #d1fae5 !important;
-      color: #065f46 !important;
-      border-color: #6ee7b7 !important;
-      transform: translateY(-1px);
-    }
-    [data-theme="dark"] .btn-view-candidates {
-      background: rgba(16, 185, 129, 0.12) !important;
-      color: #34d399 !important;
-      border-color: rgba(16, 185, 129, 0.3) !important;
-    }
-    [data-theme="dark"] .btn-view-candidates:hover {
-      background: rgba(16, 185, 129, 0.2) !important;
-    }
-
-    .btn-delete-job {
-      background: #fff !important;
-      color: #dc2626 !important;
-      border: 1px solid #fecaca !important;
-      transition: all 0.15s ease;
-    }
-    .btn-delete-job:hover {
-      background: #fef2f2 !important;
-      color: #b91c1c !important;
-      border-color: #fca5a5 !important;
-    }
-    [data-theme="dark"] .btn-delete-job {
-      background: #18181b !important;
-      color: #f87171 !important;
-      border-color: #7f1d1d !important;
-    }
-    [data-theme="dark"] .btn-delete-job:hover {
-      background: rgba(220, 38, 38, 0.15) !important;
-    }
-
-    .btn-create-catalog {
-      background: #0f172a !important;
-      color: #ffffff !important;
-      font-weight: 600;
-      border: none;
-      transition: all 0.15s ease;
-      white-space: nowrap;
-    }
-    .btn-create-catalog:hover {
-      background: #2563eb !important;
-      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
-      transform: translateY(-1px);
-    }
-
-    /* --- Candidate Pipeline: Interview Blocks & Ranked Merit Cards --- */
-    .interview-blocks-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 1rem;
-      margin-top: 0.75rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .interview-round-block {
-      background: var(--surface);
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      padding: 1.15rem;
-      cursor: pointer;
-      transition: all 0.2s ease-in-out;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      gap: 0.85rem;
-    }
-
-    .interview-round-block:hover {
-      transform: translateY(-2px);
-      border-color: #93c5fd;
-      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.08);
-    }
-
-    .interview-round-block.active {
-      border-color: #2563eb;
-      background: #f8faff;
-      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18), 0 6px 16px rgba(37, 99, 235, 0.1);
-    }
-
-    [data-theme="dark"] .interview-round-block {
-      background: #18181b;
-      border-color: var(--border);
-    }
-
-    [data-theme="dark"] .interview-round-block:hover {
-      border-color: #3b82f6;
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-    }
-
-    [data-theme="dark"] .interview-round-block.active {
-      border-color: #3b82f6;
-      background: #1e293b;
-      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
-    }
-
-    .candidate-roster-cards {
-      display: flex;
-      flex-direction: column;
-      gap: 0.85rem;
-      margin-top: 1rem;
-    }
-
-    .candidate-merit-card {
-      border-radius: 10px;
-      padding: 1.15rem 1.25rem;
-      transition: all 0.2s ease;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-
-    .candidate-card-selected {
-      background: #f0fdf4;
-      border: 1.5px solid #86efac;
-      border-left: 5px solid #10b981;
-    }
-
-    .candidate-card-selected:hover {
-      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.14);
-    }
-
-    .candidate-card-borderline {
-      background: #fffbeb;
-      border: 1.5px solid #fde68a;
-      border-left: 5px solid #f59e0b;
-    }
-
-    .candidate-card-borderline:hover {
-      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.14);
-    }
-
-    .candidate-card-rejected {
-      background: #fef2f2;
-      border: 1.5px solid #fecaca;
-      border-left: 5px solid #ef4444;
-    }
-
-    .candidate-card-rejected:hover {
-      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.14);
-    }
-
-    .candidate-card-pending {
-      background: #f8fafc;
-      border: 1.5px solid #e2e8f0;
-      border-left: 5px solid #94a3b8;
-    }
-
-    [data-theme="dark"] .candidate-card-selected {
-      background: rgba(6, 78, 59, 0.2);
-      border-color: #065f46;
-      border-left-color: #10b981;
-    }
-
-    [data-theme="dark"] .candidate-card-borderline {
-      background: rgba(120, 53, 15, 0.2);
-      border-color: #78350f;
-      border-left-color: #f59e0b;
-    }
-
-    [data-theme="dark"] .candidate-card-rejected {
-      background: rgba(127, 29, 29, 0.2);
-      border-color: #7f1d1d;
-      border-left-color: #ef4444;
-    }
-
-    [data-theme="dark"] .candidate-card-pending {
-      background: #18181b;
-      border-color: #27272a;
-      border-left-color: #64748b;
-    }
-
-    .roster-filter-btn {
-      padding: 0.35rem 0.75rem;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--text-muted);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      transition: all 0.15s ease;
-    }
-
-    .roster-filter-btn:hover {
-      background: var(--surface-subtle);
-      color: var(--text);
-    }
-
-    .roster-filter-btn.active {
-      background: #0f172a;
-      color: #ffffff;
-      border-color: #0f172a;
-    }
-
-    [data-theme="dark"] .roster-filter-btn.active {
-      background: #ffffff;
-      color: #000000;
-      border-color: #ffffff;
-    }
-
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-    .spinning {
-      animation: spin 0.75s linear infinite !important;
-      display: inline-block !important;
-    }
-
-    /* ============================================================
-       BOLT.NEW INSPIRED MODERN HERO & SANDBOX SHOWCASE
-       ============================================================ */
-    .btn-pulse-trial {
-      background: linear-gradient(135deg, #2563eb, #7c3aed) !important;
-      color: #ffffff !important;
-      border: none !important;
-      font-weight: 700 !important;
-      padding: 0.42rem 0.95rem !important;
-      border-radius: 8px !important;
-      box-shadow: 0 0 16px rgba(124, 58, 237, 0.35);
-      animation: trialPulse 2.4s infinite;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      transition: all 0.2s ease;
-    }
-    .btn-pulse-trial:hover {
-      opacity: 0.94;
-      transform: translateY(-1px);
-      box-shadow: 0 0 22px rgba(124, 58, 237, 0.55);
-    }
-    @keyframes trialPulse {
-      0% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.5); }
-      70% { box-shadow: 0 0 0 10px rgba(124, 58, 237, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0); }
-    }
-
-    /* =====================================================================
-       MINIMALIST BLACK & WHITE ENTERPRISE STYLING (High-Contrast Monochrome)
-       ===================================================================== */
-    :root {
-      --bg: #000000;
-      --surface: #09090b;
-      --surface-subtle: #121215;
-      --border: #27272a;
-      --border-dark: #3f3f46;
-      --text: #ffffff;
-      --text-muted: #a1a1aa;
-      --text-subtle: #71717a;
-      --accent: #ffffff;
-      --accent-hover: #e4e4e7;
-    }
-
-    body {
-      background-color: #000000 !important;
-      color: #ffffff !important;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }
-
-    header {
-      background-color: rgba(0, 0, 0, 0.9) !important;
-      backdrop-filter: blur(12px) !important;
-      border-bottom: 1px solid #27272a !important;
-    }
-
-    .brand {
-      color: #ffffff !important;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-    }
-    .brand i {
-      color: #ffffff !important;
-    }
-    .brand-badge {
-      background: #18181b !important;
-      color: #ffffff !important;
-      border: 1px solid #27272a !important;
-    }
-
-    .nav-tabs {
-      background: #09090b !important;
-      border: 1px solid #27272a !important;
-      border-radius: 8px !important;
-    }
-    .nav-btn {
-      color: #a1a1aa !important;
-      font-weight: 500 !important;
-      border-radius: 6px !important;
-      transition: all 0.15s ease !important;
-    }
-    .nav-btn:hover {
-      color: #ffffff !important;
-      background: #18181b !important;
-    }
-    .nav-btn.active {
-      background: #27272a !important;
-      color: #ffffff !important;
-      font-weight: 600 !important;
-      box-shadow: none !important;
-    }
-
-    /* Buttons: Monochrome Luxury */
-    .btn {
-      background: #18181b;
-      color: #ffffff;
-      border: 1px solid #27272a;
-      border-radius: 8px;
-      font-weight: 600;
-      transition: all 0.15s ease;
-    }
-    .btn:hover {
-      background: #27272a;
-      border-color: #3f3f46;
-      color: #ffffff;
-    }
-    .btn-primary {
-      background: #ffffff !important;
-      color: #000000 !important;
-      border: 1px solid #ffffff !important;
-      font-weight: 700 !important;
-      box-shadow: 0 0 20px rgba(255, 255, 255, 0.2) !important;
-    }
-    .btn-primary:hover {
-      background: #e4e4e7 !important;
-      border-color: #e4e4e7 !important;
-      color: #000000 !important;
-      transform: translateY(-1px) !important;
-    }
-    .btn-outline {
-      background: transparent !important;
-      color: #ffffff !important;
-      border: 1px solid #27272a !important;
-    }
-    .btn-outline:hover {
-      background: #18181b !important;
-      border-color: #3f3f46 !important;
-      color: #ffffff !important;
-    }
-
-    /* Hero Section (Black & White Minimalism) */
-    .bolt-hero-wrapper {
-      background: #000000;
-      border: 1px solid #27272a;
-      border-radius: 16px;
-      padding: 3.5rem 2rem 2.5rem;
-      margin-bottom: 2.5rem;
-      position: relative;
-      color: #ffffff;
-    }
-    .bolt-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.35rem 0.9rem;
-      border-radius: 9999px;
-      background: #09090b;
-      border: 1px solid #27272a;
-      color: #a1a1aa;
-      font-size: 0.75rem;
-      font-weight: 600;
-      margin-bottom: 1.5rem;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .bolt-pill:hover {
-      border-color: #52525b;
-      color: #ffffff;
-    }
-    .bolt-pill-badge {
-      background: #ffffff;
-      color: #000000;
-      font-size: 0.625rem;
-      font-weight: 800;
-      padding: 0.12rem 0.5rem;
-      border-radius: 9999px;
-      letter-spacing: 0.04em;
-    }
-    .bolt-title {
-      font-size: 2.85rem;
-      font-weight: 800;
-      line-height: 1.15;
-      letter-spacing: -0.035em;
-      color: #ffffff;
-      margin-bottom: 1rem;
-      max-width: 820px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    @media (max-width: 768px) {
-      .bolt-title { font-size: 2rem; }
-    }
-    .bolt-subhead {
-      font-size: 1rem;
-      color: #a1a1aa;
-      max-width: 680px;
-      margin: 0 auto 2rem;
-      line-height: 1.6;
-    }
-    .bolt-subhead strong {
-      color: #ffffff;
-    }
-
-    /* Prompt Box */
-    .bolt-prompt-container {
-      max-width: 660px;
-      margin: 0 auto 2rem;
-    }
-    .bolt-prompt-box {
-      background: #09090b;
-      border: 1px solid #27272a;
-      border-radius: 12px;
-      padding: 0.4rem 0.5rem 0.4rem 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      transition: all 0.2s ease;
-    }
-    .bolt-prompt-box:focus-within {
-      border-color: #52525b;
-      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
-    }
-    .bolt-prompt-input {
-      flex: 1;
-      background: transparent;
-      border: none;
-      outline: none;
-      color: #ffffff;
-      font-size: 0.85rem;
-      font-family: inherit;
-    }
-    .bolt-prompt-input::placeholder {
-      color: #71717a;
-    }
-    .bolt-prompt-btn {
-      padding: 0.5rem 1.15rem;
-      font-size: 0.8rem;
-      font-weight: 700;
-      border-radius: 8px;
-      background: #ffffff;
-      color: #000000;
-      border: none;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      white-space: nowrap;
-    }
-    .bolt-prompt-btn:hover {
-      background: #e4e4e7;
-    }
-    .bolt-prompt-chips {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: center;
-      gap: 0.4rem;
-      margin-top: 0.85rem;
-    }
-    .bolt-chip {
-      background: #09090b;
-      border: 1px solid #27272a;
-      color: #a1a1aa;
-      font-size: 0.72rem;
-      font-weight: 500;
-      padding: 0.25rem 0.65rem;
-      border-radius: 9999px;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-    .bolt-chip:hover {
-      background: #18181b;
-      border-color: #52525b;
-      color: #ffffff;
-    }
-
-    .hero-cta-row {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 0.75rem;
-      margin-bottom: 2.75rem;
-      flex-wrap: wrap;
-    }
-
-    /* Simulator Window (Monochrome Studio) */
-    .hero-simulator-window {
-      background: #09090b;
-      border: 1px solid #27272a;
-      border-radius: 14px;
-      overflow: hidden;
-      margin-bottom: 3.5rem;
-      text-align: left;
-    }
-    .hero-simulator-header {
-      background: #121215;
-      border-bottom: 1px solid #27272a;
-      padding: 0.75rem 1.25rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-    }
-    .sim-tab-btn {
-      background: transparent;
-      border: none;
-      color: #a1a1aa;
-      font-size: 0.72rem;
-      font-weight: 600;
-      padding: 0.35rem 0.75rem;
-      border-radius: 6px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      transition: all 0.15s ease;
-    }
-    .sim-tab-btn:hover {
-      color: #ffffff;
-      background: #18181b;
-    }
-    .sim-tab-btn.active {
-      background: #ffffff;
-      color: #000000;
-      font-weight: 700;
-    }
-
-    .hero-simulator-grid {
-      display: grid;
-      grid-template-columns: 1.15fr 1.35fr;
-      min-height: 440px;
-    }
-    @media (max-width: 960px) {
-      .hero-simulator-grid { grid-template-columns: 1fr; }
-    }
-    .hero-sim-left {
-      padding: 1.25rem;
-      border-right: 1px solid #27272a;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-      background: #09090b;
-    }
-    .sim-card {
-      background: #121215;
-      border: 1px solid #27272a;
-      border-radius: 10px;
-      padding: 0.85rem;
-    }
-    .hero-sim-right {
-      display: flex;
-      flex-direction: column;
-      background: #09090b;
-      overflow: hidden;
-    }
-    .sim-editor-toolbar {
-      background: #121215;
-      border-bottom: 1px solid #27272a;
-      padding: 0.55rem 1rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .sim-run-btn {
-      font-weight: 700;
-      font-size: 0.75rem;
-      padding: 0.35rem 0.85rem;
-      border-radius: 6px;
-      background: #ffffff;
-      border: none;
-      color: #000000;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      transition: all 0.15s ease;
-    }
-    .sim-run-btn:hover {
-      background: #e4e4e7;
-    }
-    .sim-code-area {
-      flex: 1;
-      position: relative;
-      min-height: 240px;
-    }
-    .sim-code-textarea {
-      width: 100%;
-      height: 100%;
-      min-height: 240px;
-      background: #09090b;
-      color: #ffffff;
-      border: none;
-      outline: none;
-      padding: 1rem;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.775rem;
-      line-height: 1.6;
-      resize: vertical;
-    }
-    .sim-console-output {
-      background: #000000;
-      border-top: 1px solid #27272a;
-      padding: 0.85rem 1rem;
-      min-height: 110px;
-      max-height: 180px;
-      overflow-y: auto;
-    }
-
-    /* =====================================================================
-       RUNNING OUTCOME MARQUEE (Infinite Sliding Benefits with Glowing Effect)
-       ===================================================================== */
-    .if-then-section {
-      margin-bottom: 4rem;
-      position: relative;
-    }
-    .if-then-header {
-      text-align: center;
-      max-width: 680px;
-      margin: 0 auto 2rem;
-    }
-    .marquee-wrapper {
-      position: relative;
-      width: 100%;
-      overflow: hidden;
-      padding: 1.5rem 0;
-      /* Side edge gradient fade */
-      mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,1) 5%, rgba(0,0,0,1) 95%, transparent 100%);
-      -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,1) 5%, rgba(0,0,0,1) 95%, transparent 100%);
-    }
-    .marquee-track {
-      display: flex;
-      gap: 1.5rem;
-      width: max-content;
-      flex-wrap: nowrap;
-      will-change: transform;
-      user-select: none;
-      /* Fallback CSS animation in case JS is slow to start */
-      -webkit-animation: marquee-scroll 24s linear infinite;
-      animation: marquee-scroll 24s linear infinite;
-    }
-    @keyframes marquee-scroll {
-      0% {
-        transform: translate3d(0, 0, 0);
-      }
-      100% {
-        transform: translate3d(-50%, 0, 0);
-      }
-    }
-    @-webkit-keyframes marquee-scroll {
-      0% {
-        -webkit-transform: translate3d(0, 0, 0);
-      }
-      100% {
-        -webkit-transform: translate3d(-50%, 0, 0);
-      }
-    }
-    .glow-marquee-card {
-      width: 295px;
-      flex-shrink: 0;
-      background: rgba(13, 16, 26, 0.92);
-      border: 1px solid rgba(59, 130, 246, 0.32);
-      border-radius: 14px;
-      padding: 0.75rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.65rem;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(59, 130, 246, 0.08);
-      position: relative;
-      overflow: hidden;
-      transition: all 0.25s ease;
-      cursor: default;
-    }
-    .glow-marquee-card:hover {
-      border-color: rgba(96, 165, 250, 0.75);
-      box-shadow: 0 0 25px rgba(59, 130, 246, 0.45), 0 10px 30px rgba(0, 0, 0, 0.85);
-      transform: translateY(-3px);
-    }
-    .glow-marquee-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 15%;
-      right: 15%;
-      height: 2px;
-      background: linear-gradient(90deg, transparent 0%, rgba(56, 189, 248, 0.9) 50%, transparent 100%);
-      box-shadow: 0 0 12px rgba(56, 189, 248, 0.8);
-      pointer-events: none;
-    }
-    .card-img-wrap {
-      width: 100%;
-      height: 155px;
-      border-radius: 9px;
-      overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: #020617;
-      position: relative;
-      box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.6);
-    }
-    .card-img-wrap img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      transition: transform 0.3s ease;
-    }
-    .glow-marquee-card:hover .card-img-wrap img {
-      transform: scale(1.02);
-    }
-    .card-caption {
-      padding: 0.15rem 0.25rem 0.35rem;
-    }
-    .card-title {
-      font-size: 0.92rem;
-      font-weight: 700;
-      color: #ffffff;
-      margin-bottom: 0.3rem;
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-    .card-desc {
-      font-size: 0.78rem;
-      color: #94a3b8;
-      line-height: 1.45;
-      margin: 0;
-    }
-
-    /* Comparison Table (Monochrome) */
-    .compare-section {
-      background: #09090b;
-      border: 1px solid #27272a;
-      border-radius: 14px;
-      padding: 2.25rem 1.75rem;
-      margin-bottom: 3.5rem;
-    }
-    .compare-table-wrapper {
-      overflow-x: auto;
-      margin-top: 1.5rem;
-      border-radius: 8px;
-      border: 1px solid #27272a;
-    }
-    .compare-table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-      font-size: 0.8rem;
-    }
-    .compare-table th, .compare-table td {
-      padding: 0.85rem 1.15rem;
-      border-bottom: 1px solid #27272a;
-    }
-    .compare-table th {
-      font-weight: 700;
-      color: #a1a1aa;
-      font-size: 0.72rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      background: #121215;
-    }
-    .compare-table th.col-highlight {
-      background: #18181b;
-      color: #ffffff;
-      border-left: 2px solid #52525b;
-      border-right: 2px solid #52525b;
-      border-top: 2px solid #52525b;
-    }
-    .compare-table td.col-highlight {
-      background: #121215;
-      border-left: 2px solid #52525b;
-      border-right: 2px solid #52525b;
-      font-weight: 600;
-      color: #ffffff;
-    }
-    .compare-table tr:last-child td.col-highlight {
-      border-bottom: 2px solid #52525b;
-    }
-
-    /* Pricing (Monochrome Cards) */
-    .front-pricing-box {
-      background: #09090b;
-      border: 1px solid #27272a;
-      border-radius: 14px;
-      padding: 2.25rem 1.75rem;
-      margin-bottom: 3rem;
-    }
-    .front-pricing-header {
-      text-align: center;
-      max-width: 640px;
-      margin: 0 auto 2rem;
-    }
-    .front-pricing-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1.25rem;
-    }
-    @media (max-width: 900px) {
-      .front-pricing-grid { grid-template-columns: 1fr; }
-    }
-    .front-pricing-card {
-      background: #121215;
-      border: 1px solid #27272a;
-      border-radius: 12px;
-      padding: 1.75rem 1.35rem;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      transition: all 0.2s ease;
-    }
-    .front-pricing-card:hover {
-      border-color: #52525b;
-    }
-    .front-pricing-card.popular {
-      border-color: #ffffff;
-    }
-    .front-pricing-badge-popular {
-      position: absolute;
-      top: -12px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #ffffff;
-      color: #000000;
-      font-size: 0.65rem;
-      font-weight: 800;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      padding: 0.2rem 0.75rem;
-      border-radius: 999px;
-    }
-    .front-price-row {
-      display: flex;
-      align-items: baseline;
-      gap: 0.45rem;
-      margin: 0.75rem 0 0.2rem;
-    }
-    .front-price-usd {
-      font-size: 1.95rem;
-      font-weight: 800;
-      color: #ffffff;
-      letter-spacing: -0.02em;
-    }
-    .front-price-inr {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: #a1a1aa;
-    }
-    .front-price-sep {
-      color: #71717a;
-    }
-    .front-price-unit {
-      font-size: 0.72rem;
-      color: #71717a;
-      margin-bottom: 1.25rem;
-    }
-    .front-pricing-features {
-      list-style: none;
-      padding: 0;
-      margin: 0 0 1.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.55rem;
-      flex-grow: 1;
-    }
-    .front-pricing-features li {
-      font-size: 0.775rem;
-      color: #a1a1aa;
-      display: flex;
-      align-items: flex-start;
-      gap: 0.5rem;
-    }
-    .front-pricing-features li i {
-      color: #ffffff;
-      font-size: 0.8rem;
-      margin-top: 1px;
-    }
-
-    /* Bottom Banner */
-    .bolt-bottom-banner {
-      background: #121215;
-      border: 1px solid #27272a;
-      border-radius: 14px;
-      padding: 2rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1.5rem;
-      flex-wrap: wrap;
-    }
-
-    .front-blog-card {
-      background: #121215;
-      border: 1px solid #27272a;
-      border-radius: 12px;
-      padding: 1.4rem;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      transition: all 0.2s ease;
-    }
-    .front-blog-card:hover {
-      border-color: #52525b;
-      transform: translateY(-2px);
-    }
-    .front-faq-item {
-      background: #09090b;
-      border: 1px solid #27272a;
-      border-radius: 10px;
-      padding: 1.15rem 1.35rem;
-      margin-bottom: 0.85rem;
-    }
-    .front-faq-question {
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: #ffffff;
-      margin-bottom: 0.35rem;
-    }
-    .front-faq-answer {
-      font-size: 0.8rem;
-      color: #a1a1aa;
-      line-height: 1.55;
-    }
-    .front-stat-card {
-      background: #09090b;
-      border: 1px solid #27272a;
-      border-radius: 12px;
-      padding: 1.5rem 1.25rem;
-      text-align: center;
-    }
-    .front-stat-val {
-      font-size: 2.2rem;
-      font-weight: 800;
-      color: #ffffff;
-      line-height: 1.1;
-      letter-spacing: -0.03em;
-      margin-bottom: 0.25rem;
-    }
-    .front-stat-lbl {
-      font-size: 0.75rem;
-      color: #a1a1aa;
-      font-weight: 500;
-    }
-
-    /* =====================================================================
-       DYNAMIC AMBIENT BLUE SPOTLIGHT & SCROLL-TRACKING LIGHT BEAM
-       ===================================================================== */
-    #ambient-light-container {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 0;
-      overflow: hidden;
-      contain: layout style paint;
-    }
-
-    #ambient-blue-spotlight {
-      position: absolute;
-      top: -120px;
-      left: 50%;
-      transform: translate(-50%, 0px);
-      width: 1000px;
-      max-width: 95vw;
-      height: 700px;
-      background: radial-gradient(ellipse 65% 55% at 50% 30%, 
-        rgba(37, 99, 235, 0.32) 0%, 
-        rgba(59, 130, 246, 0.18) 35%, 
-        rgba(14, 165, 233, 0.08) 60%, 
-        rgba(0, 0, 0, 0) 80%);
-      filter: blur(75px);
-      border-radius: 50%;
-      will-change: transform, margin-left;
-      transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), margin-left 0.1s ease-out;
-      opacity: 0.95;
-    }
-
-    #ambient-blue-secondary {
-      position: absolute;
-      top: 10%;
-      right: -100px;
-      width: 650px;
-      height: 650px;
-      background: radial-gradient(circle, 
-        rgba(30, 64, 175, 0.22) 0%, 
-        rgba(59, 130, 246, 0.10) 45%, 
-        transparent 75%);
-      filter: blur(85px);
-      border-radius: 50%;
-      will-change: transform;
-      transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-      opacity: 0.8;
-    }
-
-    #ambient-blue-left {
-      position: absolute;
-      top: 20%;
-      left: -120px;
-      width: 700px;
-      height: 700px;
-      background: radial-gradient(circle, 
-        rgba(37, 99, 235, 0.25) 0%, 
-        rgba(56, 189, 248, 0.14) 35%, 
-        rgba(30, 64, 175, 0.05) 60%, 
-        transparent 75%);
-      filter: blur(85px);
-      border-radius: 50%;
-      will-change: transform, margin-left;
-      transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), margin-left 0.12s ease-out;
-      opacity: 0.88;
-    }
-
-    #ambient-laser-line {
-      position: fixed;
-      top: 60px;
-      left: 0;
-      right: 0;
-      height: 1.5px;
-      background: linear-gradient(90deg, 
-        transparent 0%, 
-        rgba(59, 130, 246, 0.1) 15%, 
-        rgba(96, 165, 250, 0.85) 50%, 
-        rgba(59, 130, 246, 0.1) 85%, 
-        transparent 100%);
-      z-index: 101;
-      pointer-events: none;
-      box-shadow: 0 0 16px rgba(59, 130, 246, 0.6);
-    }
-
-    /* Ambient Blue Accents & Card Shading */
-    .bolt-prompt-box:focus-within {
-      border-color: rgba(59, 130, 246, 0.65) !important;
-      box-shadow: 0 0 28px rgba(37, 99, 235, 0.25) !important;
-    }
-
-    .bolt-chip:hover {
-      border-color: rgba(59, 130, 246, 0.5) !important;
-      color: #93c5fd !important;
-      background: rgba(30, 58, 138, 0.2) !important;
-    }
-
-    .if-then-card:hover {
-      border-color: rgba(59, 130, 246, 0.45) !important;
-      box-shadow: 0 8px 32px rgba(37, 99, 235, 0.16) !important;
-    }
-
-    .front-blog-card:hover, .front-stat-card:hover, .pricing-card-luxury:hover {
-      border-color: rgba(59, 130, 246, 0.45) !important;
-      box-shadow: 0 10px 32px rgba(37, 99, 235, 0.14) !important;
-    }
-
-    .bolt-pill {
-      border-color: rgba(59, 130, 246, 0.35) !important;
-      box-shadow: 0 0 18px rgba(37, 99, 235, 0.18) !important;
-    }
-
-    .bolt-pill-badge {
-      background: #2563eb !important;
-      color: #ffffff !important;
-    }
-
-    .btn-primary {
-      box-shadow: 0 0 20px rgba(59, 130, 246, 0.28) !important;
-    }
-
-    .btn-primary:hover {
-      box-shadow: 0 0 30px rgba(59, 130, 246, 0.5) !important;
-    }
-
-    /* Ensure content layers cleanly above ambient background light */
-    main {
-      position: relative;
-      z-index: 1;
-    }
-    header {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-
-    /* =====================================================================
-       LAST SECTION: CONTENT REPOSITORY & RESOURCE HUB BANNER
-       (Click-through to the page where all content links live: /blog.html)
-       ===================================================================== */
-    .front-content-hub-banner {
-      position: relative;
-      margin-top: 4.5rem;
-      margin-bottom: 2rem;
-      background: radial-gradient(ellipse at 50% -20%, rgba(37, 99, 235, 0.24) 0%, rgba(9, 9, 11, 0.95) 70%);
-      border: 1px solid rgba(59, 130, 246, 0.35);
-      border-radius: 16px;
-      padding: 3rem 2.5rem;
-      overflow: hidden;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(37, 99, 235, 0.15);
-      transition: all 0.25s ease;
-    }
-    .front-content-hub-banner:hover {
-      border-color: rgba(59, 130, 246, 0.65);
-      box-shadow: 0 16px 50px rgba(0, 0, 0, 0.9), 0 0 45px rgba(37, 99, 235, 0.28);
-    }
-    .hub-banner-glow {
-      position: absolute;
-      top: 0;
-      left: 15%;
-      right: 15%;
-      height: 1.5px;
-      background: linear-gradient(90deg, transparent 0%, rgba(96, 165, 250, 0.85) 50%, transparent 100%);
-      box-shadow: 0 0 18px rgba(59, 130, 246, 0.65);
-      pointer-events: none;
-    }
-    .hub-banner-inner {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 2.5rem;
-      flex-wrap: wrap;
-    }
-    .hub-banner-content {
-      max-width: 650px;
-    }
-    .hub-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.45rem;
-      padding: 0.3rem 0.8rem;
-      border-radius: 99px;
-      background: rgba(37, 99, 235, 0.18);
-      border: 1px solid rgba(59, 130, 246, 0.4);
-      color: #93c5fd;
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      margin-bottom: 0.85rem;
-    }
-    .hub-title {
-      font-size: 1.7rem;
-      font-weight: 800;
-      color: #ffffff;
-      line-height: 1.25;
-      letter-spacing: -0.02em;
-      margin: 0 0 0.65rem 0;
-    }
-    .hub-desc {
-      font-size: 0.85rem;
-      color: #a1a1aa;
-      line-height: 1.55;
-      margin: 0;
-    }
-    .hub-banner-actions {
-      display: flex;
-      gap: 0.85rem;
-      align-items: center;
-      flex-wrap: wrap;
-      flex-shrink: 0;
-    }
-    .hub-main-btn {
-      padding: 0.8rem 1.6rem !important;
-      font-size: 0.875rem !important;
-      font-weight: 700 !important;
-      background: #ffffff !important;
-      color: #000000 !important;
-      border: none !important;
-      box-shadow: 0 0 24px rgba(59, 130, 246, 0.35) !important;
-      transition: all 0.2s ease !important;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      text-decoration: none !important;
-      border-radius: 8px !important;
-    }
-    .hub-main-btn:hover {
-      background: #e4e4e7 !important;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 30px rgba(59, 130, 246, 0.55) !important;
-    }
-    .hub-sec-btn {
-      padding: 0.8rem 1.35rem !important;
-      font-size: 0.875rem !important;
-      font-weight: 600 !important;
-      background: rgba(18, 18, 21, 0.85) !important;
-      border: 1px solid #27272a !important;
-      color: #ffffff !important;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      transition: all 0.2s ease !important;
-      border-radius: 8px !important;
-    }
-    .hub-sec-btn:hover {
-      border-color: rgba(59, 130, 246, 0.5) !important;
-      background: rgba(30, 58, 138, 0.25) !important;
-      color: #93c5fd !important;
-      transform: translateY(-2px);
-    }
-    .front-mini-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1.5rem 0.5rem;
-      border-top: 1px solid #18181b;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-</style>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/app-theme.css">
   <script src="/js/theme.js"></script>
 </head>
 <body>
 
-  <!-- Dynamic Ambient Blue Spotlight & Aurora Light (Scroll-Tracking) -->
-  <div id="ambient-light-container" aria-hidden="true">
-    <div id="ambient-blue-spotlight"></div>
-    <div id="ambient-blue-secondary"></div>
-    <div id="ambient-blue-left"></div>
-    <div id="ambient-laser-line"></div>
-  </div>
-
   <!-- Admin-controlled Global Announcement Banner -->
-  <div id="site-announcement-bar" style="display:none;padding:9px 18px;text-align:center;font-size:.82rem;font-weight:600;border-bottom:1px solid rgba(255,255,255,0.08);"></div>
+  <div id="site-announcement-bar" style="display:none;padding:9px 18px;text-align:center;font-size:.82rem;font-weight:600;border-bottom:1px solid var(--border);"></div>
 
   <!-- Admin-controlled Maintenance Overlay -->
-  <div id="site-maintenance-overlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(10,14,23,0.96);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px;">
-    <div style="max-width:480px;width:100%;background:#111827;border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:28px;text-align:center;color:#f8fafc;">
-      <div style="font-size:2.2rem;color:#fbbf24;margin-bottom:10px;"><i class="bi bi-tools"></i></div>
-      <h2 id="site-maintenance-title" style="margin:0 0 10px;font-size:1.3rem;">Scheduled Maintenance</h2>
-      <p id="site-maintenance-message" style="color:#94a3b8;font-size:.9rem;line-height:1.55;margin:0 0 18px;">Platform is currently undergoing scheduled maintenance. Please check back shortly.</p>
-      <a href="/admin.html" style="font-size:.8rem;color:#818cf8;text-decoration:none;">Admin Control Panel &rarr;</a>
+  <div id="site-maintenance-overlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(9,12,18,0.92);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px;">
+    <div style="max-width:480px;width:100%;background:var(--surface);border:1px solid var(--border-dark);border-radius:14px;padding:28px;text-align:center;color:var(--text);box-shadow:var(--card-shadow);">
+      <div style="font-size:2rem;color:var(--warning);margin-bottom:10px;"><i class="bi bi-tools"></i></div>
+      <h2 id="site-maintenance-title" style="margin:0 0 10px;font-size:1.25rem;">Scheduled Maintenance</h2>
+      <p id="site-maintenance-message" style="color:var(--text-muted);font-size:.88rem;line-height:1.55;margin:0 0 18px;">Platform is currently undergoing scheduled maintenance. Please check back shortly.</p>
+      <a href="/admin.html" style="font-size:.8rem;color:var(--accent);text-decoration:none;font-weight:600;">Admin Control Panel &rarr;</a>
     </div>
   </div>
 
   <!-- Top Navigation Bar -->
   <header>
-    <!-- Left Corner: Logo + Contextual Navigation Tabs -->
     <div class="header-left-group">
       <div class="brand" onclick="if (authToken && currentUser) { switchTab('jobs'); } else { switchFrontTab('home'); }" style="cursor: pointer;" title="RoundOne AI Workspace">
-        <i class="bi bi-cpu-fill"></i>
+        <span class="brand-mark"><i class="bi bi-cpu-fill"></i></span>
         <span id="site-brand-title">RoundOne AI</span>
         <span class="brand-badge" id="site-brand-badge">Autonomous</span>
       </div>
 
-      <!-- Public Visitor Navigation (Hidden when logged into workspace) -->
-      <div id="public-nav-tabs" style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-        <nav class="nav-tabs" id="front-nav-tabs">
+      <!-- Public Visitor Navigation -->
+      <div id="public-nav-tabs" style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+        <nav class="nav-tabs" id="front-nav-tabs" aria-label="Main navigation">
           <button type="button" class="nav-btn active" id="nav-btn-home" onclick="switchFrontTab('home')">Home</button>
           <button type="button" class="nav-btn" id="nav-btn-pricing" onclick="switchFrontTab('pricing')">Pricing</button>
           <button type="button" class="nav-btn" id="nav-btn-blog" onclick="switchFrontTab('blog')">Blog</button>
@@ -2692,8 +46,8 @@
         <div id="dynamic-header-links" style="display:flex;align-items:center;gap:0.35rem;flex-wrap:wrap;"></div>
       </div>
 
-      <!-- Authenticated Recruiter Workspace Navigation (Shown when signed in) -->
-      <nav class="nav-tabs" id="main-nav-tabs" style="display: none;">
+      <!-- Recruiter Workspace Navigation -->
+      <nav class="nav-tabs" id="main-nav-tabs" style="display: none;" aria-label="Workspace navigation">
         <button type="button" class="nav-btn active" data-tab="jobs" onclick="switchTab('jobs')">
           <i class="bi bi-briefcase"></i> Interviews
         </button>
@@ -2709,23 +63,25 @@
       </nav>
     </div>
 
-    <!-- Right Corner: Theme Toggle, Trial CTA, Responses, User Pill, Auth -->
+    <!-- Right Action Controls & Explicit Light/Dark Switch -->
     <div class="header-user">
-      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Theme" aria-label="Switch Theme">
-        <i class="bi bi-sun-fill theme-toggle-icon"></i>
-      </button>
+      <div class="theme-segment-switch" role="group" aria-label="Color theme switcher">
+        <button type="button" class="theme-seg-btn" data-theme-choice="light" onclick="setTheme('light')" title="Switch to Light Mode">
+          <i class="bi bi-sun-fill"></i><span>Light</span>
+        </button>
+        <button type="button" class="theme-seg-btn active" data-theme-choice="dark" onclick="setTheme('dark')" title="Switch to Dark Mode">
+          <i class="bi bi-moon-stars-fill"></i><span>Dark</span>
+        </button>
+      </div>
 
-      <!-- Free Trial Header CTA Button (Public visitors) -->
       <button class="btn btn-primary btn-sm" id="btn-header-trial" onclick="handleStartTrialClick()" title="Claim your 10 free AI technical interviews">
         Start Free Trial
       </button>
 
-      <!-- Feedback Button -->
-      <button class="btn btn-outline btn-sm" id="btn-open-feedback" onclick="openFeedbackModal()" title="Share feedback and receive an instant response">
-        <i class="bi bi-chat-heart"></i> Feedback
+      <button class="btn btn-outline btn-sm" id="btn-open-feedback" onclick="openFeedbackModal()" title="Share feedback">
+        <i class="bi bi-chat-square-text"></i> Feedback
       </button>
 
-      <!-- Responses & Scores Trigger (When logged in) -->
       <button class="btn btn-sm btn-responses-top" id="btn-top-responses" onclick="openResponsesDrawer()" style="display: none;" title="View candidate responses and scores">
         <i class="bi bi-chat-square-quote-fill"></i> Responses &amp; Scores
         <span id="responses-count-badge" class="badge responses-badge">0</span>
@@ -2733,29 +89,28 @@
 
       <span id="user-display" style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500; display: none;"></span>
 
-      <!-- Sign In / Sign Out Button -->
       <button class="btn btn-outline btn-sm" id="btn-auth-switch" onclick="openAuthModal()">
         <i class="bi bi-person"></i> Sign In
       </button>
     </div>
   </header>
 
-    <main>
+  <main>
     <!-- TAB 1: Roles, Skills & Start Hiring -->
     <div id="tab-jobs" class="tab-pane">
 
       <!-- Recruiter Greeting / Quick Launch Bar (Shown when authenticated) -->
       <div id="bolt-recruiter-welcome" class="recruiter-command-bar" style="display: none;">
-        <div style="display: flex; align-items: center; gap: 0.85rem;">
-          <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #4f46e5, #06b6d4); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; flex-shrink: 0;">
-            <i class="bi bi-stars"></i>
+        <div style="display: flex; align-items: center; gap: 0.85rem; min-width: 0;">
+          <div style="width: 38px; height: 38px; border-radius: 9px; background: var(--accent-light); border: 1px solid rgba(59,130,246,0.3); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;">
+            <i class="bi bi-terminal-fill"></i>
           </div>
-          <div>
-            <div style="font-size: 0.95rem; font-weight: 700; color: var(--text);">
+          <div style="min-width: 0;">
+            <div style="font-size: 0.94rem; font-weight: 700; color: var(--text);">
               Welcome back, <span id="recruiter-welcome-name">Recruiter</span>
             </div>
             <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 0.1rem;">
-              <strong id="recruiter-welcome-credits" style="color: #10b981;">10</strong> AI interview credits ready &bull; Create a round, send an invite link, or review candidate scorecards.
+              <strong id="recruiter-welcome-credits" style="color: var(--success);">10</strong> AI interview credits ready &bull; Create a round, invite candidates, or audit scorecards.
             </div>
           </div>
         </div>
@@ -2769,268 +124,368 @@
         </div>
       </div>
 
-<!-- BOLT.NEW STYLE HERO SHOWCASE CONTAINER (Holds dedicated tabs: Home, Pricing, Blog, About Us) -->
-      <div id="bolt-hero-showcase" class="bolt-hero-wrapper" style="padding: 2rem 1.75rem;">
+      <!-- PUBLIC SHOWCASE CONTAINER (Home, Pricing, Blog, About Us) -->
+      <div id="bolt-hero-showcase" class="bolt-hero-wrapper">
 
         <!-- ========================================================
-             TAB VIEW 1: HOME (Hero, Prompt, Outcomes, Comparison, Banner)
+             TAB VIEW 1: HOME
              ======================================================== -->
         <div id="front-tab-home" class="front-tab-view" style="display: block;">
-          <!-- Hero Header -->
-          <div style="text-align: center; margin-bottom: 2.5rem; padding: 1.5rem 0;">
-            <div class="bolt-pill" onclick="handleStartTrialClick()">
-              <span class="bolt-pill-badge">NEW</span>
-              <span>Autonomous Technical Screening • 10 Free Trials Included</span>
-              <i class="bi bi-arrow-right" style="font-size: 0.75rem;"></i>
-            </div>
 
-            <h1 class="bolt-title">
-              The AI that screens software engineers.<br>
-              Before your team spends a single hour.
-            </h1>
+          <!-- Asymmetric 2-Column Editorial Hero + Interactive 3D Product Stage -->
+          <section class="hero-split-grid">
+            <div class="hero-copy-col">
+              <div class="hero-eyebrow hero-stagger" onclick="handleStartTrialClick()">
+                <span class="hero-eyebrow-dot" aria-hidden="true"></span>
+                <span>Autonomous Screening &middot; 10 Free Trials</span>
+                <i class="bi bi-arrow-right"></i>
+              </div>
 
-            <p class="bolt-subhead">
-              Sub-second conversational voice interviews. Live coding in <strong>4,111+ LeetCode problems</strong>. Continuous camera anti-cheat proctoring. Objective scorecards delivered in 30 seconds.
-            </p>
+              <h1 class="bolt-title hero-stagger">
+                Technical screening that compiles, probes, and scores like a staff engineer.
+              </h1>
 
-            <!-- Minimalist Prompt Bar -->
-            <div class="bolt-prompt-container">
-              <div class="bolt-prompt-box">
-                <i class="bi bi-search" style="color: #71717a;"></i>
-                <input type="text" id="bolt-prompt-input" class="bolt-prompt-input" placeholder="Create an interview (e.g. Senior Backend Engineer, React + Node...)" onkeydown="if(event.key==='Enter') handleBoltPromptSubmit()">
-                <button type="button" class="bolt-prompt-btn" onclick="handleBoltPromptSubmit()">
-                  <span>Start Screening</span>
-                  <i class="bi bi-arrow-right"></i>
+              <p class="bolt-subhead hero-stagger">
+                Conduct natural sub-second voice interviews paired with <strong>4,111+ LeetCode DSA Bank</strong> coding tests, continuous anti-cheat proctoring, and 30-second PDF scorecards.
+              </p>
+
+              <!-- Direct Interview Role Launcher -->
+              <div class="bolt-prompt-container hero-stagger">
+                <div class="bolt-prompt-box">
+                  <i class="bi bi-terminal" style="color: var(--text-subtle); flex-shrink: 0;"></i>
+                  <input type="text" id="bolt-prompt-input" class="bolt-prompt-input" placeholder="Describe role to screen (e.g. Senior Backend, React + Node)..." onkeydown="if(event.key==='Enter') handleBoltPromptSubmit()">
+                  <button type="button" class="bolt-prompt-btn" onclick="handleBoltPromptSubmit()">
+                    <span>Launch Round</span>
+                    <i class="bi bi-arrow-right"></i>
+                  </button>
+                </div>
+                <div class="bolt-prompt-chips">
+                  <span style="font-size: 0.71rem; color: var(--text-subtle); font-weight: 600;">Presets:</span>
+                  <button type="button" class="bolt-chip" onclick="handleBoltChipClick('Full-Stack Engineer (React + Node.js)')">Full-Stack</button>
+                  <button type="button" class="bolt-chip" onclick="handleBoltChipClick('Python &amp; Machine Learning Engineer')">Python &amp; AI</button>
+                  <button type="button" class="bolt-chip" onclick="handleBoltChipClick('Java Enterprise Systems Architect')">Java Systems</button>
+                  <button type="button" class="bolt-chip" onclick="handleBoltChipClick('LeetCode DSA Live Coding')">LeetCode DSA</button>
+                </div>
+              </div>
+
+              <!-- Primary Actions -->
+              <div class="hero-cta-row hero-stagger">
+                <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()">
+                  Claim 10 Free AI Interviews <i class="bi bi-arrow-right"></i>
+                </button>
+                <button type="button" class="btn btn-outline" onclick="openQuestionBankModal()">
+                  <i class="bi bi-code-square"></i> Explore 4,111+ Bank
+                </button>
+                <button type="button" class="btn btn-outline" onclick="openAuthModal('login')">
+                  <i class="bi bi-box-arrow-in-right"></i> Sign In
                 </button>
               </div>
-              <!-- Quick Chips -->
-              <div class="bolt-prompt-chips">
-                <span style="font-size: 0.72rem; color: #71717a; margin-right: 0.2rem;">Quick roles:</span>
-                <button type="button" class="bolt-chip" onclick="handleBoltChipClick('Full-Stack Engineer (React + Node.js)')">Full-Stack</button>
-                <button type="button" class="bolt-chip" onclick="handleBoltChipClick('Python &amp; Machine Learning Engineer')">Python &amp; AI</button>
-                <button type="button" class="bolt-chip" onclick="handleBoltChipClick('Java Enterprise Systems Architect')">Java Enterprise</button>
-                <button type="button" class="bolt-chip" onclick="handleBoltChipClick('LeetCode DSA Live Coding')">LeetCode DSA</button>
+
+              <!-- Crisp Proof Signals -->
+              <div class="hero-proof-row hero-stagger">
+                <span class="hero-proof-item"><i class="bi bi-check2-circle"></i> &lt;450ms AI voice turns</span>
+                <span class="hero-proof-item"><i class="bi bi-check2-circle"></i> Camera &amp; keystroke proctoring</span>
+                <span class="hero-proof-item"><i class="bi bi-check2-circle"></i> Starts at $0.50 / interview</span>
               </div>
             </div>
 
-            <!-- CTAs -->
-            <div class="hero-cta-row">
-              <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()" style="padding: 0.72rem 1.65rem; font-size: 0.86rem;">
-                Start Free Trial — 10 Free Rounds
-              </button>
-              <button type="button" class="btn btn-outline" onclick="openAuthModal('login')" style="padding: 0.72rem 1.4rem; font-size: 0.86rem;">
-                <i class="bi bi-box-arrow-in-right"></i> Sign In to Workspace
-              </button>
-              <button type="button" class="btn btn-outline" onclick="openQuestionBankModal()" style="padding: 0.72rem 1.4rem; font-size: 0.86rem;">
-                Explore 4,111+ Question Bank &rarr;
-              </button>
-            </div>
+            <!-- Right Column: Interactive 3D Perspective Product Stage -->
+            <div class="hero-3d-col hero-stagger">
+              <div class="hero-3d-stage" id="hero-3d-stage" aria-label="Interactive Live Interview &amp; Code Sandbox">
 
-            <!-- Quick 3-Step Operating Flow -->
-            <div class="quick-steps-strip">
-              <div class="quick-step-item">
-                <div class="quick-step-num">1</div>
-                <div>
-                  <div style="font-weight: 700; font-size: 0.82rem; color: var(--text); margin-bottom: 0.2rem;">Pick or Describe a Role</div>
-                  <div style="font-size: 0.74rem; color: var(--text-muted); line-height: 1.45;">Paste a JD or pick from 100+ curated templates and 4,111+ DSA coding challenges.</div>
+                <!-- 3D Depth Back Chip: Live AI Interviewer Voice -->
+                <div class="hero-float-voice" aria-hidden="true">
+                  <span class="pulse-live-dot"></span>
+                  <div style="font-size: 0.72rem; font-weight: 700; color: var(--text);">Alex &middot; AI Interviewer</div>
+                  <div class="hero-eq-bars">
+                    <span></span><span></span><span></span><span></span><span></span>
+                  </div>
+                  <span style="font-family: var(--font-mono); font-size: 0.67rem; color: var(--text-muted);">380ms</span>
                 </div>
-              </div>
-              <div class="quick-step-item">
-                <div class="quick-step-num">2</div>
-                <div>
-                  <div style="font-weight: 700; font-size: 0.82rem; color: var(--text); margin-bottom: 0.2rem;">Share 1 Candidate Link</div>
-                  <div style="font-size: 0.74rem; color: var(--text-muted); line-height: 1.45;">Alex runs voice follow-ups, live code compilation, and anti-cheat proctoring 24/7.</div>
+
+                <!-- Center Interactive Studio Window -->
+                <div class="hero-3d-viewport">
+                  <div class="sim-window-bar">
+                    <div class="sim-dots" aria-hidden="true">
+                      <span class="sim-dot" style="background: #ef4444;"></span>
+                      <span class="sim-dot" style="background: #f59e0b;"></span>
+                      <span class="sim-dot" style="background: #10b981;"></span>
+                    </div>
+                    <div class="sim-tabs-strip" role="tablist" aria-label="Interactive product preview tabs">
+                      <button type="button" class="sim-tab-btn active" id="sim-btn-code" onclick="switchSimTab('code')">
+                        <i class="bi bi-terminal"></i> Live Compiler
+                      </button>
+                      <button type="button" class="sim-tab-btn" id="sim-btn-voice" onclick="switchSimTab('voice')">
+                        <i class="bi bi-mic"></i> Voice Probe
+                      </button>
+                      <button type="button" class="sim-tab-btn" id="sim-btn-scorecard" onclick="switchSimTab('scorecard')">
+                        <i class="bi bi-bar-chart"></i> Scorecard
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Panel 1: Live Code Execution Sandbox -->
+                  <div id="sim-panel-code" class="sim-tab-panel" style="display: block;">
+                    <div class="sim-editor-toolbar">
+                      <span class="sim-editor-filename">
+                        <i class="bi bi-filetype-js" style="color: #60a5fa;"></i>
+                        solution.js &middot; LeetCode #1: Two Sum
+                      </span>
+                      <div style="display: flex; align-items: center; gap: 0.4rem;">
+                        <button type="button" class="btn btn-sm" onclick="resetSandboxCode()" title="Reset editor code" style="height: 28px; padding: 0 0.55rem; background: #1e293b; border-color: #334155; color: #cbd5e1; font-size: 0.7rem;">
+                          <i class="bi bi-arrow-counterclockwise"></i>
+                        </button>
+                        <button type="button" id="btn-run-sandbox" class="btn btn-primary btn-sm" onclick="runDemoSandboxCode()" style="height: 28px; padding: 0 0.7rem; font-size: 0.72rem;">
+                          <i class="bi bi-play-fill"></i> Run Test Cases
+                        </button>
+                      </div>
+                    </div>
+                    <textarea id="sandbox-code-editor" class="sim-code-textarea" spellcheck="false" aria-label="Interactive LeetCode Code Editor">/**
+ * LeetCode #1: Two Sum
+ * Time Limit: 2.0s | Memory Limit: 256MB
+ */
+function twoSum(nums, target) {
+  const map = new Map();
+  for (let i = 0; i &lt; nums.length; i++) {
+    const complement = target - nums[i];
+    if (map.has(complement)) {
+      return [map.get(complement), i];
+    }
+    map.set(nums[i], i);
+  }
+  return [];
+}</textarea>
+                    <div id="sandbox-output-console" class="sim-console-output">
+                      <div style="color: #94a3b8; font-size: 0.72rem;">
+                        Click <strong style="color:#e2e8f0;">Run Test Cases</strong> above to verify output, runtime ms, and O(n) scoring live in your browser.
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Panel 2: AI Voice Follow-Up Probe -->
+                  <div id="sim-panel-voice" class="sim-tab-panel sim-panel-surface">
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                      <div style="padding: 0.85rem; border-radius: 9px; background: var(--surface-subtle); border: 1px solid var(--border-dark);">
+                        <div style="font-size: 0.69rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); margin-bottom: 0.3rem;">
+                          <i class="bi bi-soundwave"></i> Alex &middot; AI Interviewer (380ms)
+                        </div>
+                        <div id="sim-alex-speech" style="font-size: 0.82rem; color: var(--text); line-height: 1.5;">
+                          "Your hash map gives O(n) lookup. How would you solve this in O(1) auxiliary space if the input array were already sorted?"
+                        </div>
+                      </div>
+                      <div style="padding: 0.85rem; border-radius: 9px; background: var(--surface-elevated); border: 1px solid var(--border);">
+                        <div style="font-size: 0.69rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--success); margin-bottom: 0.3rem;">
+                          <i class="bi bi-person-check"></i> Candidate Transcript
+                        </div>
+                        <div id="sim-candidate-speech" style="font-size: 0.81rem; color: var(--text-muted); line-height: 1.5;">
+                          "We can place left and right pointers at both ends and move inward based on whether the current sum is above or below target."
+                        </div>
+                      </div>
+                    </div>
+                    <button type="button" id="btn-sim-followup" class="btn btn-outline btn-sm" onclick="simulateAlexFollowup()" style="width: 100%;">
+                      <i class="bi bi-play-circle"></i> Simulate Next AI Follow-up Probe
+                    </button>
+                  </div>
+
+                  <!-- Panel 3: Instant Scorecard Breakdown -->
+                  <div id="sim-panel-scorecard" class="sim-tab-panel sim-panel-surface">
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+                      <div>
+                        <div style="font-size: 0.7rem; color: var(--text-muted); font-family: var(--font-mono);">CANDIDATE SCORECARD #8421</div>
+                        <div style="font-size: 1.05rem; font-weight: 700; color: var(--text);">Aarav Mehta &middot; Senior Backend</div>
+                      </div>
+                      <span class="badge" style="background: var(--success-light); color: var(--success); border-color: rgba(16,185,129,0.35); font-weight: 700;">Strong Hire (94/100)</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem;">
+                      <div style="padding: 0.65rem; border-radius: 8px; background: var(--surface-subtle); border: 1px solid var(--border);">
+                        <div style="font-size: 0.68rem; color: var(--text-muted);">DSA &amp; Complexity</div>
+                        <div style="font-size: 1.15rem; font-weight: 700; color: var(--text); font-family: var(--font-mono);">96/100</div>
+                      </div>
+                      <div style="padding: 0.65rem; border-radius: 8px; background: var(--surface-subtle); border: 1px solid var(--border);">
+                        <div style="font-size: 0.68rem; color: var(--text-muted);">Code Structure</div>
+                        <div style="font-size: 1.15rem; font-weight: 700; color: var(--text); font-family: var(--font-mono);">92/100</div>
+                      </div>
+                      <div style="padding: 0.65rem; border-radius: 8px; background: var(--surface-subtle); border: 1px solid var(--border);">
+                        <div style="font-size: 0.68rem; color: var(--text-muted);">Proctor Trust</div>
+                        <div style="font-size: 1.15rem; font-weight: 700; color: var(--success); font-family: var(--font-mono);">100%</div>
+                      </div>
+                    </div>
+                    <div class="quote-box" style="margin-top: 0;">
+                      <strong style="font-size: 0.7rem; color: var(--accent);">Verified Audio Quote (12:44):</strong>
+                      "Maintained O(n) single-pass lookup first, then cleanly derived O(1) space two-pointer variant under follow-up."
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div class="quick-step-item">
-                <div class="quick-step-num">3</div>
-                <div>
-                  <div style="font-weight: 700; font-size: 0.82rem; color: var(--text); margin-bottom: 0.2rem;">Get Ranked Scorecards</div>
-                  <div style="font-size: 0.74rem; color: var(--text-muted); line-height: 1.45;">Review 0–100 rubric scores, audio quotes, and keystroke replays in 30 seconds.</div>
+
+                <!-- 3D Depth Front Badge: Integrity Verification -->
+                <div class="hero-float-integrity" aria-hidden="true">
+                  <div class="hero-float-score">94</div>
+                  <div>
+                    <div style="font-size: 0.74rem; font-weight: 700; color: var(--text);">Integrity &amp; Sandbox Verified</div>
+                    <div style="font-size: 0.68rem; color: var(--text-muted); font-family: var(--font-mono);">Gaze Centered &middot; 0 Pastes &middot; 14ms</div>
+                  </div>
                 </div>
+
               </div>
             </div>
-          </div>
+          </section>
 
-          <!-- Platform Highlights Marquee -->
-          <div class="if-then-section">
+          <!-- Connected 3-Step Workflow Rail -->
+          <section class="workflow-rail" aria-label="How RoundOne AI works">
+            <div class="workflow-step">
+              <div class="quick-step-num">01</div>
+              <div>
+                <div style="font-weight: 700; font-size: 0.86rem; color: var(--text); margin-bottom: 0.22rem;">Pick or Describe a Role</div>
+                <div style="font-size: 0.76rem; color: var(--text-muted); line-height: 1.5;">Paste any JD or select from 100+ role templates and 4,111+ DSA coding challenges.</div>
+              </div>
+            </div>
+            <div class="workflow-step">
+              <div class="quick-step-num">02</div>
+              <div>
+                <div style="font-weight: 700; font-size: 0.86rem; color: var(--text); margin-bottom: 0.22rem;">Send One Timed Link</div>
+                <div style="font-size: 0.76rem; color: var(--text-muted); line-height: 1.5;">Alex runs adaptive voice follow-ups, live compilation, and dual-camera proctoring 24/7.</div>
+              </div>
+            </div>
+            <div class="workflow-step">
+              <div class="quick-step-num">03</div>
+              <div>
+                <div style="font-weight: 700; font-size: 0.86rem; color: var(--text); margin-bottom: 0.22rem;">Hire From Audited Scorecards</div>
+                <div style="font-size: 0.76rem; color: var(--text-muted); line-height: 1.5;">Inspect 0–100 rubrics, verbatim quotes, and execution telemetry within 30 seconds.</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Platform Capabilities Marquee -->
+          <section class="if-then-section">
             <div class="if-then-header">
-              <h2 style="font-size: 1.55rem; font-weight: 800; color: var(--text); letter-spacing: -0.02em; margin-bottom: 0.35rem;">
-                Platform Capabilities &amp; Live Features
-              </h2>
-              <p style="font-size: 0.84rem; color: var(--text-muted); margin: 0;">
-                Autonomous voice screening, sandboxed code evaluation, and objective hiring telemetry.
-              </p>
+              <div>
+                <h2>End-to-End Autonomous Screening Stack</h2>
+                <p>Built for engineering rigor: real code execution, spoken follow-ups, and verified integrity telemetry.</p>
+              </div>
+              <button type="button" class="btn btn-outline btn-sm" onclick="handleStartTrialClick()">
+                Try With 10 Free Rounds <i class="bi bi-arrow-right"></i>
+              </button>
             </div>
 
             <div class="marquee-wrapper" id="benefits-marquee-wrapper">
               <div class="marquee-track" id="benefits-marquee-track">
-                <!-- CARD 1: Voice AI Assessment -->
                 <div class="glow-marquee-card">
                   <div class="card-img-wrap">
                     <img src="img/card-voice.svg" alt="Autonomous AI Voice Screening" loading="lazy" />
                   </div>
                   <div class="card-caption">
-                    <div class="card-title"><i class="bi bi-mic-fill" style="color: #38bdf8;"></i> Autonomous Voice AI</div>
-                    <div class="card-desc">Alex conducts 45-min rounds with dynamic technical follow-ups in sub-second conversational speech.</div>
+                    <div class="cap-card-head">
+                      <span class="cap-icon-box"><i class="bi bi-mic-fill"></i></span>
+                      <span class="cap-card-title">Autonomous Voice AI</span>
+                    </div>
+                    <p class="card-desc">Conducts 45-min technical conversations with real-time follow-up probes under 450ms.</p>
                   </div>
                 </div>
 
-                <!-- CARD 2: Sandboxed Monaco Code Compiler -->
                 <div class="glow-marquee-card">
                   <div class="card-img-wrap">
-                    <img src="img/card-compiler.svg" alt="Sandboxed Code Editor & Compiler" loading="lazy" />
+                    <img src="img/card-compiler.svg" alt="Sandboxed Code Editor and Compiler" loading="lazy" />
                   </div>
                   <div class="card-caption">
-                    <div class="card-title"><i class="bi bi-code-slash" style="color: #60a5fa;"></i> Live Monaco Compiler</div>
-                    <div class="card-desc">In-browser Node/Python compiler runs live test suites against candidate code, challenging edge cases.</div>
+                    <div class="cap-card-head">
+                      <span class="cap-icon-box"><i class="bi bi-code-slash"></i></span>
+                      <span class="cap-card-title">Live Sandboxed Compiler</span>
+                    </div>
+                    <p class="card-desc">Executes Node, Python, C++, Java, and SQL against automated hidden test suites.</p>
                   </div>
                 </div>
 
-                <!-- CARD 3: Automated PDF Scorecard & Rubrics -->
                 <div class="glow-marquee-card">
                   <div class="card-img-wrap">
                     <img src="img/card-scorecard.svg" alt="Objective Scorecards with Evidence Quotes" loading="lazy" />
                   </div>
                   <div class="card-caption">
-                    <div class="card-title"><i class="bi bi-file-earmark-bar-graph-fill" style="color: #34d399;"></i> Instant Audit Scorecards</div>
-                    <div class="card-desc">0–100 candidate scoring with exact timestamped quotes, code metrics, and downloadable PDF receipts.</div>
+                    <div class="cap-card-head">
+                      <span class="cap-icon-box"><i class="bi bi-file-earmark-bar-graph-fill"></i></span>
+                      <span class="cap-card-title">Audited 0-100 Scorecards</span>
+                    </div>
+                    <p class="card-desc">Delivers timestamped audio evidence quotes, rubric breakdowns, and instant PDF receipts.</p>
                   </div>
                 </div>
 
-                <!-- CARD 4: Multi-Factor Anti-Cheat Proctoring -->
                 <div class="glow-marquee-card">
                   <div class="card-img-wrap">
                     <img src="img/card-proctor.svg" alt="Multi-Factor Anti-Cheat Proctoring" loading="lazy" />
                   </div>
                   <div class="card-caption">
-                    <div class="card-title"><i class="bi bi-shield-check" style="color: #f43f5e;"></i> Dual-Camera Proctoring</div>
-                    <div class="card-desc">Continuous gaze detection, keystroke dynamics, copy-paste lock, and dynamic seed problems.</div>
+                    <div class="cap-card-head">
+                      <span class="cap-icon-box"><i class="bi bi-shield-check"></i></span>
+                      <span class="cap-card-title">Multi-Factor Proctoring</span>
+                    </div>
+                    <p class="card-desc">Tracks gaze focus, tab switches, keystroke dynamics, and clipboard anomalies live.</p>
                   </div>
                 </div>
 
-                <!-- CARD 5: Transparent Pay-As-You-Go Pricing -->
                 <div class="glow-marquee-card">
                   <div class="card-img-wrap">
                     <img src="img/card-pricing.svg" alt="Transparent Pay-As-You-Go Pricing" loading="lazy" />
                   </div>
                   <div class="card-caption">
-                    <div class="card-title"><i class="bi bi-lightning-charge-fill" style="color: #fbbf24;"></i> Pay-As-You-Go ($0.50 / ₹42)</div>
-                    <div class="card-desc">Zero locked yearly contracts. Pay only per completed interview. 10 free rounds included on signup.</div>
+                    <div class="cap-card-head">
+                      <span class="cap-icon-box"><i class="bi bi-lightning-charge-fill"></i></span>
+                      <span class="cap-card-title">Pay-As-You-Go ($0.50 / &#8377;42)</span>
+                    </div>
+                    <p class="card-desc">Zero annual contracts. Pay strictly per completed round with 10 free rounds on signup.</p>
                   </div>
                 </div>
 
-                <!-- DUPLICATE TRACK FOR SEAMLESS INFINITE LOOP (LIKE A TRAIN) -->
-                <!-- CARD 1 (DUP) -->
+                <!-- Seamless Duplicate Loop -->
                 <div class="glow-marquee-card" aria-hidden="true">
-                  <div class="card-img-wrap">
-                    <img src="img/card-voice.svg" alt="Autonomous AI Voice Screening" loading="lazy" />
-                  </div>
+                  <div class="card-img-wrap"><img src="img/card-voice.svg" alt="" loading="lazy" /></div>
                   <div class="card-caption">
-                    <div class="card-title"><i class="bi bi-mic-fill" style="color: #38bdf8;"></i> Autonomous Voice AI</div>
-                    <div class="card-desc">Alex conducts 45-min rounds with dynamic technical follow-ups in sub-second conversational speech.</div>
+                    <div class="cap-card-head"><span class="cap-icon-box"><i class="bi bi-mic-fill"></i></span><span class="cap-card-title">Autonomous Voice AI</span></div>
+                    <p class="card-desc">Conducts 45-min technical conversations with real-time follow-up probes under 450ms.</p>
                   </div>
                 </div>
-
-                <!-- CARD 2 (DUP) -->
                 <div class="glow-marquee-card" aria-hidden="true">
-                  <div class="card-img-wrap">
-                    <img src="img/card-compiler.svg" alt="Sandboxed Code Editor & Compiler" loading="lazy" />
-                  </div>
+                  <div class="card-img-wrap"><img src="img/card-compiler.svg" alt="" loading="lazy" /></div>
                   <div class="card-caption">
-                    <div class="card-title"><i class="bi bi-code-slash" style="color: #60a5fa;"></i> Live Monaco Compiler</div>
-                    <div class="card-desc">In-browser Node/Python compiler runs live test suites against candidate code, challenging edge cases.</div>
+                    <div class="cap-card-head"><span class="cap-icon-box"><i class="bi bi-code-slash"></i></span><span class="cap-card-title">Live Sandboxed Compiler</span></div>
+                    <p class="card-desc">Executes Node, Python, C++, Java, and SQL against automated hidden test suites.</p>
                   </div>
                 </div>
-
-                <!-- CARD 3 (DUP) -->
                 <div class="glow-marquee-card" aria-hidden="true">
-                  <div class="card-img-wrap">
-                    <img src="img/card-scorecard.svg" alt="Objective Scorecards with Evidence Quotes" loading="lazy" />
-                  </div>
+                  <div class="card-img-wrap"><img src="img/card-scorecard.svg" alt="" loading="lazy" /></div>
                   <div class="card-caption">
-                    <div class="card-title"><i class="bi bi-file-earmark-bar-graph-fill" style="color: #34d399;"></i> Instant Audit Scorecards</div>
-                    <div class="card-desc">0–100 candidate scoring with exact timestamped quotes, code metrics, and downloadable PDF receipts.</div>
+                    <div class="cap-card-head"><span class="cap-icon-box"><i class="bi bi-file-earmark-bar-graph-fill"></i></span><span class="cap-card-title">Audited 0-100 Scorecards</span></div>
+                    <p class="card-desc">Delivers timestamped audio evidence quotes, rubric breakdowns, and instant PDF receipts.</p>
                   </div>
                 </div>
-
-                <!-- CARD 4 (DUP) -->
                 <div class="glow-marquee-card" aria-hidden="true">
-                  <div class="card-img-wrap">
-                    <img src="img/card-proctor.svg" alt="Multi-Factor Anti-Cheat Proctoring" loading="lazy" />
-                  </div>
+                  <div class="card-img-wrap"><img src="img/card-proctor.svg" alt="" loading="lazy" /></div>
                   <div class="card-caption">
-                    <div class="card-title"><i class="bi bi-shield-check" style="color: #f43f5e;"></i> Dual-Camera Proctoring</div>
-                    <div class="card-desc">Continuous gaze detection, keystroke dynamics, copy-paste lock, and dynamic seed problems.</div>
+                    <div class="cap-card-head"><span class="cap-icon-box"><i class="bi bi-shield-check"></i></span><span class="cap-card-title">Multi-Factor Proctoring</span></div>
+                    <p class="card-desc">Tracks gaze focus, tab switches, keystroke dynamics, and clipboard anomalies live.</p>
                   </div>
                 </div>
-
-                <!-- CARD 5 (DUP) -->
                 <div class="glow-marquee-card" aria-hidden="true">
-                  <div class="card-img-wrap">
-                    <img src="img/card-pricing.svg" alt="Transparent Pay-As-You-Go Pricing" loading="lazy" />
-                  </div>
+                  <div class="card-img-wrap"><img src="img/card-pricing.svg" alt="" loading="lazy" /></div>
                   <div class="card-caption">
-                    <div class="card-title"><i class="bi bi-lightning-charge-fill" style="color: #fbbf24;"></i> Pay-As-You-Go ($0.50 / ₹42)</div>
-                    <div class="card-desc">Zero locked yearly contracts. Pay only per completed interview. 10 free rounds included on signup.</div>
+                    <div class="cap-card-head"><span class="cap-icon-box"><i class="bi bi-lightning-charge-fill"></i></span><span class="cap-card-title">Pay-As-You-Go ($0.50 / &#8377;42)</span></div>
+                    <p class="card-desc">Zero annual contracts. Pay strictly per completed round with 10 free rounds on signup.</p>
                   </div>
                 </div>
               </div>
             </div>
-
-            <!-- Instant Running Marquee JS Engine -->
-            <script>
-              (function initBenefitsMarquee() {
-                function run() {
-                  var track = document.getElementById('benefits-marquee-track');
-                  if (!track) return;
-
-                  // Clear CSS animation so JS requestAnimationFrame drives smooth 60fps movement
-                  track.style.animation = 'none';
-                  track.style.webkitAnimation = 'none';
-
-                  var pos = 0;
-                  var speed = 1.15; // smooth scrolling pixels per frame
-                  var isPaused = false;
-
-                  track.addEventListener('mouseenter', function() { isPaused = true; });
-                  track.addEventListener('mouseleave', function() { isPaused = false; });
-                  track.addEventListener('touchstart', function() { isPaused = true; }, { passive: true });
-                  track.addEventListener('touchend', function() { isPaused = false; }, { passive: true });
-
-                  function tick() {
-                    if (!isPaused) {
-                      pos += speed;
-                      var half = track.scrollWidth / 2;
-                      if (half > 100 && pos >= half) {
-                        pos -= half;
-                      }
-                      track.style.transform = 'translate3d(-' + pos.toFixed(1) + 'px, 0, 0)';
-                      track.style.webkitTransform = 'translate3d(-' + pos.toFixed(1) + 'px, 0, 0)';
-                    }
-                    requestAnimationFrame(tick);
-                  }
-                  requestAnimationFrame(tick);
-                }
-
-                if (document.readyState === 'loading') {
-                  document.addEventListener('DOMContentLoaded', run);
-                } else {
-                  run();
-                }
-              })();
-            </script>
-          </div>
+          </section>
 
           <!-- Competitor Benchmark Table -->
-          <div class="compare-section">
-            <div style="text-align: center; max-width: 620px; margin: 0 auto 1.5rem;">
-              <h2 style="font-size: 1.45rem; font-weight: 800; color: var(--text); letter-spacing: -0.02em; margin-bottom: 0.35rem;">
-                RoundOne AI vs Legacy Screening
-              </h2>
-              <p style="font-size: 0.82rem; color: var(--text-muted);">
-                Why engineering teams are replacing static tests and expensive Karat interviews.
-              </p>
+          <section class="compare-section">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem;">
+              <div>
+                <h2 style="font-size: 1.35rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em; margin: 0 0 0.25rem;">
+                  RoundOne AI vs Legacy Screening
+                </h2>
+                <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0;">
+                  Why engineering teams replace static coding links and high-cost manual screens.
+                </p>
+              </div>
+              <span class="badge badge-accent">Live Benchmark</span>
             </div>
 
             <div class="compare-table-wrapper">
@@ -3047,24 +502,24 @@
                 <tbody>
                   <tr>
                     <td><strong>Cost per Screen</strong></td>
-                    <td class="col-highlight">$0.50 (₹42) • Pay-as-you-go</td>
-                    <td>$3,500 – $8,000 / yr min</td>
-                    <td>$150 – $250 / interview</td>
-                    <td>$150+ in engineer wages</td>
+                    <td class="col-highlight">$0.50 (&#8377;42) &bull; Pay-as-you-go</td>
+                    <td>$3,500 - $8,000 / yr min</td>
+                    <td>$150 - $250 / interview</td>
+                    <td>$150+ in engineer hours</td>
                   </tr>
                   <tr>
                     <td><strong>Voice Follow-ups</strong></td>
-                    <td class="col-highlight">Yes • Sub-second voice AI (Alex)</td>
-                    <td>No • Silent compiler only</td>
+                    <td class="col-highlight">Yes &bull; Sub-second voice AI (Alex)</td>
+                    <td>No &bull; Silent compiler only</td>
                     <td>Human interviewer only</td>
-                    <td>Yes • Burns senior dev hours</td>
+                    <td>Yes &bull; Burns senior dev time</td>
                   </tr>
                   <tr>
                     <td><strong>Anti-Cheat Telemetry</strong></td>
                     <td class="col-highlight">Webcam + Keystrokes + Window lock</td>
                     <td>Basic tab blur</td>
                     <td>Human proctor</td>
-                    <td>Subjective • Ghost proxy risk</td>
+                    <td>Subjective &bull; Proxy risk</td>
                   </tr>
                   <tr>
                     <td><strong>DSA Problem Bank</strong></td>
@@ -3076,113 +531,110 @@
                   <tr>
                     <td><strong>Scorecard Turnaround</strong></td>
                     <td class="col-highlight">30 Seconds (Rubric &amp; PDF)</td>
-                    <td>2–4 hours manual review</td>
-                    <td>24–48 hours</td>
-                    <td>3–7 business days</td>
+                    <td>2-4 hours manual review</td>
+                    <td>24-48 hours</td>
+                    <td>3-7 business days</td>
                   </tr>
                 </tbody>
               </table>
             </div>
-          </div>
+          </section>
 
           <!-- Bottom CTA Banner -->
           <div class="bolt-bottom-banner">
             <div>
-              <div style="font-size: 1.15rem; font-weight: 800; color: var(--text);">Automate Technical Screening in 60 Seconds</div>
-              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Sign up today and get <strong>10 Free AI Technical Interviews</strong> credited instantly to your workspace.</div>
+              <div style="font-size: 1.12rem; font-weight: 700; color: var(--text);">Automate First-Round Screening in 60 Seconds</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">Sign up free and receive <strong>10 Free AI Technical Interviews</strong> credited immediately.</div>
             </div>
-            <div>
-              <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()" style="padding: 0.65rem 1.4rem;">
-                Claim 10 Free Interviews
-              </button>
-            </div>
+            <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()">
+              Claim 10 Free AI Interviews <i class="bi bi-arrow-right"></i>
+            </button>
           </div>
         </div>
 
         <!-- ========================================================
-             TAB VIEW 2: PRICING (Dedicated Standalone Pricing Page)
+             TAB VIEW 2: PRICING
              ======================================================== -->
         <div id="front-tab-pricing" class="front-tab-view" style="display: none;">
-          <div style="text-align: center; margin-bottom: 2.25rem; padding-top: 0.5rem;">
-            <div class="bolt-pill" onclick="handleStartTrialClick()">
-              <span class="bolt-pill-badge">TRANSPARENT</span>
-              <span>10 Free AI Interviews Included • No Credit Card Required</span>
+          <div class="page-editorial-head">
+            <div class="hero-eyebrow" onclick="handleStartTrialClick()">
+              <span class="hero-eyebrow-dot"></span>
+              <span>Transparent Pricing &middot; 10 Free Trials Included</span>
             </div>
-            <h1 class="bolt-title">
-              Simple, Predictable Pricing.<br>
-              Zero Annual Lock-in.
-            </h1>
+            <h1 class="bolt-title">Simple, Predictable Pricing. Zero Annual Lock-in.</h1>
             <p class="bolt-subhead">
-              Pay only for what you screen. Transparent rates in USD ($) and INR (₹). Start with 10 free trial rounds.
+              Pay strictly for what you screen in USD ($) or INR (&#8377;). Every workspace begins with 10 free interview rounds.
             </p>
           </div>
 
-          <!-- Pricing Cards Grid -->
-          <div class="front-pricing-grid" style="margin-bottom: 2.5rem;">
-            <!-- Plan 1 -->
+          <div class="front-pricing-grid">
             <div class="front-pricing-card">
-              <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Pay-As-You-Go</div>
-              <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text); margin: 0.25rem 0;">Rapid Screening</h3>
+              <div class="pricing-tier-top">
+                <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Pay-As-You-Go</span>
+              </div>
+              <h3 style="font-size: 1.12rem; font-weight: 700; color: var(--text); margin: 0.2rem 0;">Rapid Screening</h3>
               <p style="font-size: 0.76rem; color: var(--text-muted); margin-bottom: 0.5rem;">For startups &amp; hiring on demand.</p>
               <div class="front-price-row">
                 <span class="front-price-usd">$0.50</span>
                 <span class="front-price-sep">/</span>
-                <span class="front-price-inr" style="color: var(--text-muted);">₹42</span>
+                <span class="front-price-inr">&#8377;42</span>
               </div>
-              <div class="front-price-unit">per completed interview • credits never expire</div>
+              <div class="front-price-unit">per completed interview &bull; credits never expire</div>
               <ul class="front-pricing-features">
-                <li><i class="bi bi-check2"></i> <strong>10 Free AI Interviews</strong> on sign up</li>
-                <li><i class="bi bi-check2"></i> 4,111+ LeetCode DSA challenge bank</li>
-                <li><i class="bi bi-check2"></i> AI Tech Lead voice interviewer (Alex)</li>
-                <li><i class="bi bi-check2"></i> Keystroke telemetry &amp; camera anti-cheat</li>
-                <li><i class="bi bi-check2"></i> Instant 0–100 rubric &amp; PDF report</li>
+                <li><i class="bi bi-check2"></i> <span><strong>10 Free AI Interviews</strong> on sign up</span></li>
+                <li><i class="bi bi-check2"></i> <span>4,111+ LeetCode DSA challenge bank</span></li>
+                <li><i class="bi bi-check2"></i> <span>AI Tech Lead voice interviewer (Alex)</span></li>
+                <li><i class="bi bi-check2"></i> <span>Keystroke telemetry &amp; camera anti-cheat</span></li>
+                <li><i class="bi bi-check2"></i> <span>Instant 0-100 rubric &amp; PDF report</span></li>
               </ul>
               <button type="button" class="btn btn-outline" onclick="handleStartTrialClick()" style="width: 100%;">
                 Claim 10 Free Rounds
               </button>
             </div>
 
-            <!-- Plan 2 -->
             <div class="front-pricing-card popular">
-              <span class="front-pricing-badge-popular">Most Popular</span>
-              <div style="font-size: 0.72rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.04em;">Starter Plan</div>
-              <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text); margin: 0.25rem 0;">Growing Teams</h3>
-              <p style="font-size: 0.76rem; color: var(--text-muted); margin-bottom: 0.5rem;">For teams screening 10–50 candidates each month.</p>
+              <div class="pricing-tier-top">
+                <span style="font-size: 0.72rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em;">Starter Plan</span>
+                <span class="front-pricing-badge-popular">Most Popular</span>
+              </div>
+              <h3 style="font-size: 1.12rem; font-weight: 700; color: var(--text); margin: 0.2rem 0;">Growing Teams</h3>
+              <p style="font-size: 0.76rem; color: var(--text-muted); margin-bottom: 0.5rem;">For teams screening 10-50 candidates monthly.</p>
               <div class="front-price-row">
                 <span class="front-price-usd">$49</span>
                 <span class="front-price-sep">/</span>
-                <span class="front-price-inr" style="color: var(--text-muted);">₹4,100</span>
+                <span class="front-price-inr">&#8377;4,100</span>
               </div>
-              <div class="front-price-unit">per month • includes 120 interviews (~$0.41 / ₹34 each)</div>
+              <div class="front-price-unit">per month &bull; 120 interviews (~$0.41 / &#8377;34 each)</div>
               <ul class="front-pricing-features">
-                <li><i class="bi bi-check2"></i> <strong>120 AI Interviews / month</strong> included</li>
-                <li><i class="bi bi-check2"></i> Branded public careers portal</li>
-                <li><i class="bi bi-check2"></i> Bulk candidate invite via CSV &amp; email</li>
-                <li><i class="bi bi-check2"></i> Custom role rubrics &amp; question weighting</li>
-                <li><i class="bi bi-check2"></i> Priority low-latency voice streaming</li>
+                <li><i class="bi bi-check2"></i> <span><strong>120 AI Interviews / month</strong> included</span></li>
+                <li><i class="bi bi-check2"></i> <span>Branded public careers portal</span></li>
+                <li><i class="bi bi-check2"></i> <span>Bulk candidate invite via CSV &amp; email</span></li>
+                <li><i class="bi bi-check2"></i> <span>Custom role rubrics &amp; question weighting</span></li>
+                <li><i class="bi bi-check2"></i> <span>Priority low-latency voice streaming</span></li>
               </ul>
               <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()" style="width: 100%;">
                 Start 14-Day Free Trial
               </button>
             </div>
 
-            <!-- Plan 3 -->
             <div class="front-pricing-card">
-              <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Scale</div>
-              <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text); margin: 0.25rem 0;">High-Volume</h3>
+              <div class="pricing-tier-top">
+                <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Scale</span>
+              </div>
+              <h3 style="font-size: 1.12rem; font-weight: 700; color: var(--text); margin: 0.2rem 0;">High-Volume</h3>
               <p style="font-size: 0.76rem; color: var(--text-muted); margin-bottom: 0.5rem;">For staffing agencies &amp; enterprise hiring.</p>
               <div class="front-price-row">
                 <span class="front-price-usd">$149</span>
                 <span class="front-price-sep">/</span>
-                <span class="front-price-inr" style="color: var(--text-muted);">₹12,400</span>
+                <span class="front-price-inr">&#8377;12,400</span>
               </div>
-              <div class="front-price-unit">per month • includes 450 interviews (~$0.33 / ₹27 each)</div>
+              <div class="front-price-unit">per month &bull; 450 interviews (~$0.33 / &#8377;27 each)</div>
               <ul class="front-pricing-features">
-                <li><i class="bi bi-check2"></i> <strong>450 AI Interviews / month</strong> included</li>
-                <li><i class="bi bi-check2"></i> Multi-recruiter team seats &amp; roles</li>
-                <li><i class="bi bi-check2"></i> ATS integrations &amp; real-time webhooks</li>
-                <li><i class="bi bi-check2"></i> Custom DSA challenges &amp; sandbox environments</li>
-                <li><i class="bi bi-check2"></i> 99.9% uptime SLA &amp; compliance data export</li>
+                <li><i class="bi bi-check2"></i> <span><strong>450 AI Interviews / month</strong> included</span></li>
+                <li><i class="bi bi-check2"></i> <span>Multi-recruiter team seats &amp; RBAC roles</span></li>
+                <li><i class="bi bi-check2"></i> <span>ATS integrations &amp; HMAC-signed webhooks</span></li>
+                <li><i class="bi bi-check2"></i> <span>Custom DSA problems &amp; test suites</span></li>
+                <li><i class="bi bi-check2"></i> <span>99.9% uptime SLA &amp; compliance exports</span></li>
               </ul>
               <button type="button" class="btn btn-outline" onclick="handleStartTrialClick()" style="width: 100%;">
                 Start Enterprise Trial
@@ -3190,9 +642,8 @@
             </div>
           </div>
 
-          <!-- Feature Comparison Matrix -->
-          <div class="front-surface-card" style="margin-bottom: 2.5rem;">
-            <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text); margin-bottom: 1rem;">Plan Comparison</h3>
+          <div class="front-surface-card" style="margin-bottom: 2.25rem;">
+            <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--text); margin: 0 0 1rem;">Plan Comparison</h3>
             <div class="compare-table-wrapper">
               <table class="compare-table">
                 <thead>
@@ -3204,253 +655,149 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td>Included Interviews</td>
-                    <td>Pay per interview ($0.50)</td>
-                    <td class="col-highlight">120 / month</td>
-                    <td>450 / month</td>
-                  </tr>
-                  <tr>
-                    <td>LeetCode Problem Bank</td>
-                    <td>4,111+ Questions</td>
-                    <td class="col-highlight">4,111+ Questions</td>
-                    <td>4,111+ &amp; Custom JDs</td>
-                  </tr>
-                  <tr>
-                    <td>Camera &amp; Keystroke Proctoring</td>
-                    <td>Yes</td>
-                    <td class="col-highlight">Yes</td>
-                    <td>Yes (Advanced)</td>
-                  </tr>
-                  <tr>
-                    <td>Public Careers Portal</td>
-                    <td>Optional add-on</td>
-                    <td class="col-highlight">Included</td>
-                    <td>Custom domain ready</td>
-                  </tr>
-                  <tr>
-                    <td>ATS Webhooks &amp; Exports</td>
-                    <td>PDF export only</td>
-                    <td class="col-highlight">CSV &amp; PDF exports</td>
-                    <td>Full REST API &amp; Webhooks</td>
-                  </tr>
+                  <tr><td>Included Interviews</td><td>Pay per interview ($0.50)</td><td class="col-highlight">120 / month</td><td>450 / month</td></tr>
+                  <tr><td>LeetCode Problem Bank</td><td>4,111+ Questions</td><td class="col-highlight">4,111+ Questions</td><td>4,111+ &amp; Custom JDs</td></tr>
+                  <tr><td>Camera &amp; Keystroke Proctoring</td><td>Included</td><td class="col-highlight">Included</td><td>Included (Advanced)</td></tr>
+                  <tr><td>Public Careers Portal</td><td>Optional add-on</td><td class="col-highlight">Included</td><td>Custom domain ready</td></tr>
+                  <tr><td>ATS Webhooks &amp; Exports</td><td>PDF export only</td><td class="col-highlight">CSV &amp; PDF exports</td><td>Full REST API &amp; Webhooks</td></tr>
                 </tbody>
               </table>
             </div>
           </div>
 
-          <!-- Pricing FAQ -->
-          <div style="max-width: 820px; margin: 0 auto 2.5rem;">
-            <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text); text-align: center; margin-bottom: 1.35rem;">Pricing FAQ</h3>
+          <div style="max-width: 820px; margin: 0 auto 2.25rem;">
+            <h3 style="font-size: 1.18rem; font-weight: 700; color: var(--text); text-align: center; margin-bottom: 1.15rem;">Pricing FAQ</h3>
             <div class="front-faq-item">
               <div class="front-faq-question">What happens when my 10 free trial rounds end?</div>
-              <div class="front-faq-answer">You can easily top up credits at $0.50 (₹42) per interview on pay-as-you-go, or subscribe to the Starter Plan ($49 / month) for 120 interviews. You are never automatically charged without your explicit confirmation.</div>
+              <div class="front-faq-answer">Top up pay-as-you-go credits at $0.50 (&#8377;42) per round or switch to Starter ($49/month). You are never billed automatically without confirmation.</div>
             </div>
             <div class="front-faq-item">
               <div class="front-faq-question">Do pay-as-you-go interview credits expire?</div>
-              <div class="front-faq-answer">No. Pay-as-you-go credits never expire. Use them whenever you need to screen candidates, whether this week or 6 months from now.</div>
+              <div class="front-faq-answer">No. Pay-as-you-go credits never expire and carry over indefinitely.</div>
             </div>
             <div class="front-faq-item">
-              <div class="front-faq-question">Can I use custom Job Descriptions and rubrics?</div>
-              <div class="front-faq-answer">Yes! You can paste any JD or syllabus. Our AI automatically parses requirements and sets up custom voice screening criteria and matching DSA problems.</div>
+              <div class="front-faq-question">Can I use custom Job Descriptions and proprietary coding questions?</div>
+              <div class="front-faq-answer">Yes. Paste any JD to auto-generate matching questions or upload custom JS/Python/SQL problems with hidden test cases in Team &amp; Keys.</div>
             </div>
           </div>
 
-          <!-- Bottom CTA -->
           <div class="bolt-bottom-banner">
             <div>
-              <div style="font-size: 1.15rem; font-weight: 800; color: var(--text);">Ready to screen candidates without annual lock-in?</div>
-              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Claim 10 free interviews on signup. Takes under 60 seconds.</div>
+              <div style="font-size: 1.1rem; font-weight: 700; color: var(--text);">Screen engineers without annual lock-in</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">Claim 10 free interviews on signup. Setup takes under 60 seconds.</div>
             </div>
-            <div>
-              <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()" style="padding: 0.65rem 1.4rem;">
-                Claim 10 Free Rounds
-              </button>
-            </div>
+            <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()">Claim 10 Free Rounds</button>
           </div>
         </div>
 
         <!-- ========================================================
-             TAB VIEW 3: BLOG (Dedicated Standalone Blog & Resources View)
+             TAB VIEW 3: BLOG
              ======================================================== -->
         <div id="front-tab-blog" class="front-tab-view" style="display: none;">
-          <div style="text-align: center; margin-bottom: 2rem; padding-top: 0.5rem;">
-            <div class="bolt-pill" onclick="window.location.href='/blog.html'">
-              <span class="bolt-pill-badge">RESOURCES</span>
-              <span>Engineering Hiring Insights &amp; DSA Benchmarks</span>
+          <div class="page-editorial-head">
+            <div class="hero-eyebrow" onclick="window.location.href='/blog.html'">
+              <span class="hero-eyebrow-dot"></span>
+              <span>Resources &amp; Engineering Research</span>
             </div>
-            <h1 class="bolt-title">
-              Resources &amp; Engineering Research
-            </h1>
-            <p class="bolt-subhead">
-              Insights, technical interview benchmarks, and actionable guides on scaling engineering screening.
-            </p>
+            <h1 class="bolt-title">Hiring Playbooks &amp; Technical Benchmarks</h1>
+            <p class="bolt-subhead">Practical guides on structured engineering interviews, anti-cheat proctoring, and live algorithmic assessment.</p>
           </div>
 
-          <!-- Blog Articles Grid -->
-          <div id="front-blog-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
-            <!-- Dynamically populated or seed fallback -->
-          </div>
+          <div id="front-blog-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.2rem; margin-bottom: 1.85rem;"></div>
 
-          <div style="text-align: center; margin-bottom: 2.25rem;">
-            <a href="/blog.html" class="btn btn-outline" style="text-decoration: none; padding: 0.65rem 1.4rem;">
-              <i class="bi bi-journal-text"></i> Open Full Standalone Blog Portal &rarr;
+          <div style="text-align: center; margin-bottom: 2rem;">
+            <a href="/blog.html" class="btn btn-outline">
+              <i class="bi bi-journal-text"></i> Open Standalone Resources Portal &rarr;
             </a>
           </div>
 
-          <!-- Blog CTA -->
           <div class="bolt-bottom-banner">
             <div>
-              <div style="font-size: 1.15rem; font-weight: 800; color: var(--text);">Stay ahead in technical hiring</div>
-              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Start screening top 5% software engineers with RoundOne AI today.</div>
+              <div style="font-size: 1.1rem; font-weight: 700; color: var(--text);">Upgrade your technical screening pipeline</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">Screen candidates rigorously with live code execution and evidence-backed scorecards.</div>
             </div>
-            <div>
-              <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()" style="padding: 0.65rem 1.4rem;">
-                Start Free Trial
-              </button>
-            </div>
+            <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()">Start Free Trial</button>
           </div>
         </div>
 
         <!-- ========================================================
-             TAB VIEW 4: ABOUT US (Dedicated Standalone About Us Page)
+             TAB VIEW 4: ABOUT US
              ======================================================== -->
         <div id="front-tab-about" class="front-tab-view" style="display: none;">
-          <div style="text-align: center; margin-bottom: 2.25rem; padding-top: 0.5rem;">
-            <div class="bolt-pill">
-              <span class="bolt-pill-badge">MISSION</span>
-              <span>Built by Engineers • For Engineering Teams</span>
+          <div class="page-editorial-head">
+            <div class="hero-eyebrow">
+              <span class="hero-eyebrow-dot"></span>
+              <span>Engineering Mission &middot; Built by Engineers</span>
             </div>
-            <h1 class="bolt-title">
-              Engineering Time is Sacred.<br>
-              Stop Wasting it on First Rounds.
-            </h1>
-            <p class="bolt-subhead">
-              We started RoundOne AI with a single mission: eliminate the 15+ hours senior software engineers lose every week conducting repetitive initial phone screens.
-            </p>
+            <h1 class="bolt-title">Engineering Time Is Finite. Save It for Finalists.</h1>
+            <p class="bolt-subhead">RoundOne AI replaces repetitive initial phone screens and passive multiple-choice quizzes with rigorous, auditable technical interviews.</p>
           </div>
 
-          <!-- 4 Stats Banner -->
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; margin-bottom: 2.25rem;">
-            <div class="front-stat-card">
-              <div class="front-stat-val">4,111+</div>
-              <div class="front-stat-lbl">Curated LeetCode DSA Problems</div>
-            </div>
-            <div class="front-stat-card">
-              <div class="front-stat-val">&lt; 450ms</div>
-              <div class="front-stat-lbl">Real-time Voice Latency</div>
-            </div>
-            <div class="front-stat-card">
-              <div class="front-stat-val">99.8%</div>
-              <div class="front-stat-lbl">Anti-Cheat Detection Accuracy</div>
-            </div>
-            <div class="front-stat-card">
-              <div class="front-stat-val">$0.50</div>
-              <div class="front-stat-lbl">Starting Price (₹42) per Screen</div>
-            </div>
+          <div class="grid-4" style="margin-bottom: 1.75rem;">
+            <div class="front-stat-card"><div class="front-stat-val">4,111+</div><div class="front-stat-lbl">Curated LeetCode DSA Problems</div></div>
+            <div class="front-stat-card"><div class="front-stat-val">&lt; 450ms</div><div class="front-stat-lbl">Real-time Voice Latency</div></div>
+            <div class="front-stat-card"><div class="front-stat-val">99.8%</div><div class="front-stat-lbl">Proctor Telemetry Precision</div></div>
+            <div class="front-stat-card"><div class="front-stat-val">$0.50</div><div class="front-stat-lbl">Pay-As-You-Go (&#8377;42) Rate</div></div>
           </div>
 
-          <!-- Story & Philosophy -->
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem; margin-bottom: 2.25rem;">
+          <div class="grid-2" style="margin-bottom: 1.75rem;">
             <div class="front-surface-card">
-              <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text); margin-bottom: 0.7rem;">
-                Why Technical Screening is Broken
-              </h3>
-              <p style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 0.85rem;">
-                Every hiring season, engineering leads get pulled into dozens of 45-minute screening calls. Most candidates either don't meet minimum requirements, or submitted multiple-choice tests solved by ChatGPT.
-              </p>
-              <p style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.6; margin: 0;">
-                Legacy assessment tools like HackerRank charge $5,000+ upfront for silent code editors, while human interview services like Karat charge $150 to $250 for every single screening call.
-              </p>
+              <h3 style="font-size: 1.08rem; font-weight: 700; color: var(--text); margin: 0 0 0.65rem;">Why First-Round Screening Fails Teams</h3>
+              <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.6; margin: 0 0 0.75rem;">Engineering leads lose 15+ hours weekly running baseline screening calls where most applicants either miss core fundamentals or bypass silent online tests with copy-pasted LLM answers.</p>
+              <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.6; margin: 0;">Legacy assessment tools lock teams into multi-thousand-dollar contracts, while human screening marketplaces charge $150-$250 per individual candidate call.</p>
             </div>
-
             <div class="front-surface-card">
-              <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text); margin-bottom: 0.7rem;">
-                The RoundOne AI Solution
-              </h3>
-              <p style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 0.85rem;">
-                RoundOne AI deploys an autonomous technical lead (Alex) that conducts natural voice interviews, challenges candidate algorithmic choices in real time, and evaluates code execution across 4,111+ LeetCode problems.
-              </p>
-              <p style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.6; margin: 0;">
-                Recruiters receive an objective 0–100 rubric with verbatim audio quote timestamps and PDF summaries within 30 seconds. Your engineering team only interviews pre-vetted top 5% finalists.
-              </p>
+              <h3 style="font-size: 1.08rem; font-weight: 700; color: var(--text); margin: 0 0 0.65rem;">How RoundOne AI Solves It</h3>
+              <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.6; margin: 0 0 0.75rem;">Alex conducts structured conversational interviews, challenges space-time complexity live, and validates code against real runtime test suites inside a sandboxed IDE.</p>
+              <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.6; margin: 0;">Hiring teams inspect verified 0-100 rubrics, verbatim transcript quotes, and anti-cheat telemetry within 30 seconds.</p>
             </div>
           </div>
 
-          <!-- 3 Pillars -->
-          <div style="margin-bottom: 2.5rem;">
-            <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text); text-align: center; margin-bottom: 1.35rem;">Our Core Principles</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.15rem;">
-              <div class="front-surface-card">
-                <div style="font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 0.45rem;">01 • Zero Bias</div>
-                <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.55; margin: 0;">
-                  Every candidate is evaluated strictly on problem-solving clarity, algorithmic trade-offs, and code quality. Every score is backed by verifiable audio quote citations.
-                </p>
-              </div>
-
-              <div class="front-surface-card">
-                <div style="font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 0.45rem;">02 • Real Technical Rigor</div>
-                <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.55; margin: 0;">
-                  No multiple-choice trivia. Candidates write real code in Monaco VS Code editors and answer sub-second live follow-ups on edge cases, O(N) complexity, and memory optimizations.
-                </p>
-              </div>
-
-              <div class="front-surface-card">
-                <div style="font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 0.45rem;">03 • Accessible to Everyone</div>
-                <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.55; margin: 0;">
-                  We rejected enterprise sales extortion. Starting at $0.50 (₹42) per interview with 10 free trial rounds, world-class hiring infrastructure is available to every founder and hiring team.
-                </p>
-              </div>
+          <div class="grid-3" style="margin-bottom: 2.25rem;">
+            <div class="front-surface-card">
+              <div style="font-family: var(--font-mono); font-size: 0.74rem; color: var(--accent); font-weight: 700; margin-bottom: 0.35rem;">01 / VERIFIABLE</div>
+              <div style="font-size: 0.96rem; font-weight: 700; color: var(--text); margin-bottom: 0.4rem;">Zero Black-Box Scoring</div>
+              <p style="font-size: 0.79rem; color: var(--text-muted); line-height: 1.55; margin: 0;">Every score cites exact transcript timestamps and test-case outputs rather than arbitrary pass/fail labels.</p>
+            </div>
+            <div class="front-surface-card">
+              <div style="font-family: var(--font-mono); font-size: 0.74rem; color: var(--accent); font-weight: 700; margin-bottom: 0.35rem;">02 / RIGOROUS</div>
+              <div style="font-size: 0.96rem; font-weight: 700; color: var(--text); margin-bottom: 0.4rem;">Real Compilation &amp; Follow-Ups</div>
+              <p style="font-size: 0.79rem; color: var(--text-muted); line-height: 1.55; margin: 0;">Candidates write and test code interactively while defending algorithmic trade-offs verbally.</p>
+            </div>
+            <div class="front-surface-card">
+              <div style="font-family: var(--font-mono); font-size: 0.74rem; color: var(--accent); font-weight: 700; margin-bottom: 0.35rem;">03 / TRANSPARENT</div>
+              <div style="font-size: 0.96rem; font-weight: 700; color: var(--text); margin-bottom: 0.4rem;">Accessible From $0.50</div>
+              <p style="font-size: 0.79rem; color: var(--text-muted); line-height: 1.55; margin: 0;">Start with 10 free trials and top up per interview without opaque enterprise minimums.</p>
             </div>
           </div>
 
-          <!-- Bottom CTA -->
           <div class="bolt-bottom-banner">
             <div>
-              <div style="font-size: 1.15rem; font-weight: 800; color: var(--text);">Experience autonomous screening today</div>
-              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Claim 10 free AI technical interviews and screen your first candidate in 60 seconds.</div>
+              <div style="font-size: 1.1rem; font-weight: 700; color: var(--text);">Experience autonomous screening today</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">Claim 10 free AI technical interviews and screen your first candidate in 60 seconds.</div>
             </div>
-            <div>
-              <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()" style="padding: 0.65rem 1.4rem;">
-                Claim 10 Free Rounds
-              </button>
-            </div>
+            <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()">Claim 10 Free Rounds</button>
           </div>
         </div>
 
-        <!-- ========================================================
-             LAST SECTION: CONTENT REPOSITORY & RESOURCE HUB BANNER
-             (Click to go to the page where all content links live: /blog.html)
-             ======================================================== -->
+        <!-- Unified Content Hub Banner -->
         <div class="front-content-hub-banner">
-          <div class="hub-banner-glow" aria-hidden="true"></div>
           <div class="hub-banner-inner">
             <div class="hub-banner-content">
-              <div class="hub-pill">
-                <i class="bi bi-collection-fill"></i>
-                <span>ROUNDONE CONTENT REPOSITORY &amp; GUIDES</span>
-              </div>
-              <h2 class="hub-title">
-                Explore All Interview Content, DSA Benchmarks &amp; System Design Playbooks
-              </h2>
-              <p class="hub-desc">
-                Everything you need to master technical hiring and engineering screening. Real rubrics, 4,111+ LeetCode challenge breakdowns, and AI evaluation benchmarks.
-              </p>
+              <div class="hub-pill"><i class="bi bi-collection-fill"></i><span>ROUNDONE CONTENT REPOSITORY</span></div>
+              <h2 class="hub-title">Explore Interview Guides, DSA Benchmarks &amp; Hiring Playbooks</h2>
+              <p class="hub-desc">Structured rubrics, 4,111+ LeetCode challenge references, and engineering assessment research.</p>
             </div>
             <div class="hub-banner-actions">
-              <a href="/blog.html" class="hub-main-btn" title="Explore all content, guides, and articles">
-                <i class="bi bi-journal-text"></i> Explore All Content &amp; Resources &rarr;
-              </a>
-              <button type="button" class="hub-sec-btn" onclick="openQuestionBankModal()" title="Explore all 4,111+ LeetCode questions">
-                <i class="bi bi-collection"></i> 4,111+ Problem Bank
-              </button>
+              <a href="/blog.html" class="btn btn-primary"><i class="bi bi-journal-text"></i> Explore All Content &amp; Resources &rarr;</a>
+              <button type="button" class="btn btn-outline" onclick="openQuestionBankModal()"><i class="bi bi-collection"></i> 4,111+ Problem Bank</button>
             </div>
           </div>
         </div>
 
       </div>
 
-            <!-- SUB-VIEW 1: Clean Interview Dashboard (Default View) -->
+      <!-- SUB-VIEW 1: Clean Interview Dashboard (Default View) -->
       <div id="view-interview-dashboard" style="display: none;">
         <!-- Active Interviews List -->
         <div class="card">
@@ -3471,25 +818,25 @@
               <i class="bi bi-search" style="color: #2563eb; font-size: 0.9rem;"></i>
               <input type="text" id="dashboard-job-search" placeholder="Search any role to configure or browse 100+ roles (e.g. Python, Doctor, Mechanical, Sales, Marketing, Nurse)..." oninput="filterDashboardJobs()" style="margin-bottom: 0; padding: 0.2rem 0.25rem; font-size: 0.82rem; border: none; background: transparent; width: 100%; outline: none; color: var(--text);">
             </div>
-            <select id="dashboard-category-filter" onchange="filterDashboardJobs()" style="flex: 0 0 auto; width: 220px; margin-bottom: 0; padding: 0.45rem 0.65rem; font-size: 0.78rem; font-weight: 500; border-radius: 8px; border: 1.5px solid var(--border);">
+            <select id="dashboard-category-filter" onchange="filterDashboardJobs()" style="flex: 0 0 auto; width: 220px; margin-bottom: 0; font-size: 0.78rem; font-weight: 500;">
               <option value="">All Categories (11)</option>
-              <option value="Software & Tech">💻 Software & Tech</option>
-              <option value="Data, AI & Analytics">🤖 Data, AI & Analytics</option>
-              <option value="Security & Networking">🛡️ Security & Networking</option>
-              <option value="Design & Creative">🎨 Design & Creative</option>
-              <option value="Marketing & Content">📢 Marketing & Content</option>
-              <option value="Sales & Business">📈 Sales & Business</option>
-              <option value="HR & Management">👥 HR & Management</option>
-              <option value="Finance & Legal">🏦 Finance & Legal</option>
-              <option value="Operations & Core Engineering">⚙️ Operations & Engineering</option>
-              <option value="Education, Healthcare & Others">🩺 Healthcare & Education</option>
-              <option value="Non-job Interviews">🎓 Non-job Interviews</option>
+              <option value="Software & Tech">Software &amp; Tech</option>
+              <option value="Data, AI & Analytics">Data, AI &amp; Analytics</option>
+              <option value="Security & Networking">Security &amp; Networking</option>
+              <option value="Design & Creative">Design &amp; Creative</option>
+              <option value="Marketing & Content">Marketing &amp; Content</option>
+              <option value="Sales & Business">Sales &amp; Business</option>
+              <option value="HR & Management">HR &amp; Management</option>
+              <option value="Finance & Legal">Finance &amp; Legal</option>
+              <option value="Operations & Core Engineering">Operations &amp; Engineering</option>
+              <option value="Education, Healthcare & Others">Healthcare &amp; Education</option>
+              <option value="Non-job Interviews">Non-job Interviews</option>
             </select>
-            <select id="dashboard-sort-filter" onchange="filterDashboardJobs()" style="flex: 0 0 auto; width: 145px; margin-bottom: 0; padding: 0.45rem 0.65rem; font-size: 0.78rem; font-weight: 500; border-radius: 8px; border: 1.5px solid var(--border);">
-              <option value="newest">🕐 Newest First</option>
-              <option value="oldest">⏳ Oldest First</option>
-              <option value="title">🔤 Title (A-Z)</option>
-              <option value="duration">⏱️ Duration</option>
+            <select id="dashboard-sort-filter" onchange="filterDashboardJobs()" style="flex: 0 0 auto; width: 150px; margin-bottom: 0; font-size: 0.78rem; font-weight: 500;">
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="title">Title (A-Z)</option>
+              <option value="duration">Duration</option>
             </select>
           </div>
 
@@ -3592,7 +939,7 @@
               <div style="display: flex; flex-wrap: wrap; gap: 0.45rem; margin-bottom: 1rem;">
                 <button type="button" class="btn btn-sm btn-outline duration-pill-btn" data-mins="5" onclick="selectWizardDuration(5)">5 Min</button>
                 <button type="button" class="btn btn-sm btn-outline duration-pill-btn" data-mins="10" onclick="selectWizardDuration(10)">10 Min</button>
-                <button type="button" class="btn btn-sm duration-pill-btn active" data-mins="15" onclick="selectWizardDuration(15)" style="background:#000; color:#fff;">15 Min (Standard)</button>
+                <button type="button" class="btn btn-sm duration-pill-btn active" data-mins="15" onclick="selectWizardDuration(15)">15 Min (Standard)</button>
                 <button type="button" class="btn btn-sm btn-outline duration-pill-btn" data-mins="20" onclick="selectWizardDuration(20)">20 Min</button>
                 <button type="button" class="btn btn-sm btn-outline duration-pill-btn" data-mins="30" onclick="selectWizardDuration(30)">30 Min</button>
                 <button type="button" class="btn btn-sm btn-outline duration-pill-btn" data-mins="45" onclick="selectWizardDuration(45)">45 Min</button>
@@ -3850,8 +1197,8 @@
             </div>
 
             <!-- Compiler Languages selector (shown if terminal is checked) -->
-            <div id="compiler-langs-box" style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 6px; padding: 0.85rem; margin-bottom: 0.85rem;">
-              <label style="margin-bottom: 0.35rem; color: #000;">Available Compiler Languages in Candidate Room:</label>
+            <div id="compiler-langs-box" style="background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 8px; padding: 0.85rem; margin-bottom: 0.85rem;">
+              <label style="margin-bottom: 0.35rem;">Available Compiler Languages in Candidate Room:</label>
               <div style="display: flex; flex-wrap: wrap; gap: 0.85rem; font-size: 0.75rem;">
                 <label style="display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0; cursor: pointer; text-transform: none;">
                   <input type="checkbox" class="compiler-lang-check" value="javascript" checked style="width: auto; margin-bottom: 0;"> JavaScript / Node.js
@@ -3944,18 +1291,18 @@
               
               <!-- Sub-Tab Header -->
               <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
-                <div style="display: flex; gap: 0.4rem;">
+                <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
                   <button type="button" class="btn btn-sm btn-outline active" id="btn-subtab-company-bank" onclick="switchQBankSubTab('company')" style="font-size: 0.78rem; font-weight: 700;">
-                    <i class="bi bi-building"></i> 🏢 Top Tech Giants Bank
+                    <i class="bi bi-building"></i> Top Tech Giants Bank
                   </button>
                   <button type="button" class="btn btn-sm btn-outline" id="btn-subtab-custom-bank" onclick="switchQBankSubTab('custom')" style="font-size: 0.78rem; font-weight: 700;">
-                    <i class="bi bi-star-fill" style="color: #f59e0b;"></i> ⭐ My Custom Question Bank
+                    <i class="bi bi-star-fill" style="color: var(--warning);"></i> My Custom Question Bank
                   </button>
                   <button type="button" class="btn btn-sm btn-outline" id="btn-subtab-raw-text" onclick="switchQBankSubTab('raw')" style="font-size: 0.78rem; font-weight: 700;">
-                    <i class="bi bi-pencil-square"></i> ✏️ Raw Text Input
+                    <i class="bi bi-pencil-square"></i> Raw Text Input
                   </button>
                 </div>
-                <div id="qbank-active-count-pill" style="font-size: 0.75rem; font-weight: 700; color: #059669; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 0.25rem 0.65rem; border-radius: 20px;">
+                <div id="qbank-active-count-pill" style="font-size: 0.75rem; font-weight: 700; color: var(--success); background: var(--success-light); border: 1px solid rgba(16,185,129,0.32); padding: 0.25rem 0.65rem; border-radius: 999px;">
                   <i class="bi bi-check-circle-fill"></i> <span id="qbank-selected-count">0</span> Questions Selected
                 </div>
               </div>
@@ -4010,8 +1357,8 @@
                       Questions saved here are permanently preserved in your account and reusable across any interview round.
                     </p>
                   </div>
-                  <button type="button" class="btn btn-sm" onclick="toggleCustomQuestionBuilder(true)" style="font-size: 0.75rem; font-weight: 700; background: #000; color: #fff;">
-                    <i class="bi bi-plus-lg"></i> + Add New Question to Bank
+                  <button type="button" class="btn btn-primary btn-sm" onclick="toggleCustomQuestionBuilder(true)" style="font-size: 0.75rem;">
+                    <i class="bi bi-plus-lg"></i> Add New Question to Bank
                   </button>
                 </div>
 
@@ -4121,7 +1468,7 @@
                   </div>
                 </div>
 
-                <div style="display: flex; align-items: center; justify-content: space-between; background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 0.75rem; margin-bottom: 0.75rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 8px; padding: 0.55rem 0.8rem; margin-bottom: 0.75rem;">
                   <span style="font-size: 0.72rem; color: var(--text);">
                     <i class="bi bi-shield-lock-fill"></i> <strong>Blind Server Grading:</strong> Execute code on server, hide pass/fail verdict from candidate, and store performance metrics for reviewer.
                   </span>
@@ -4186,17 +1533,17 @@
                 <!-- Problem Preview Card (No Hints, No Company Tags) -->
                 <div id="leetcode-preview-card" class="leetcode-card">
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
-                    <strong style="color: #000; font-size: 0.825rem;" id="lc-preview-title">LeetCode #1: Two Sum</strong>
+                    <strong style="color: var(--text); font-size: 0.84rem;" id="lc-preview-title">LeetCode #1: Two Sum</strong>
                     <div style="display: flex; align-items: center; gap: 0.35rem;">
                       <span class="badge badge-outline" id="lc-preview-limits" style="font-size: 0.65rem;">2000ms · 256MB</span>
                       <span class="badge badge-dark" id="lc-preview-diff">Easy</span>
                     </div>
                   </div>
                   <div id="lc-preview-topics" style="display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.4rem;"></div>
-                  <p style="font-size: 0.75rem; color: #18181b; line-height: 1.45; margin-bottom: 0.5rem;" id="lc-preview-desc">
+                  <p style="font-size: 0.76rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 0.5rem;" id="lc-preview-desc">
                     Given an array of integers <code>nums</code> and an integer <code>target</code>, return indices of the two numbers such that they add up to <code>target</code>.
                   </p>
-                  <div style="font-size: 0.7rem; font-family: monospace; background: #fff; padding: 0.4rem 0.6rem; border-radius: 4px; border: 1px solid var(--border);" id="lc-preview-testcases">
+                  <div style="font-size: 0.71rem; font-family: var(--font-mono); background: var(--surface); color: var(--text); padding: 0.45rem 0.65rem; border-radius: 6px; border: 1px solid var(--border);" id="lc-preview-testcases">
                     Input: nums = [2,7,11,15], target = 9 | Output: [0,1]
                   </div>
                 </div>
@@ -4632,8 +1979,8 @@
 
       <!-- Company Profile & Branding -->
       <div class="card" style="margin-top: 1.5rem;">
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.35rem;">
-          <div class="card-title" style="margin:0;"><i class="bi bi-building"></i> Company Profile &amp; Branding</div>
+        <div class="card-title" style="margin-bottom:0.4rem;">
+          <span class="card-title-group"><i class="bi bi-building"></i> Company Profile &amp; Branding</span>
           <span id="settings-org-name-badge" class="badge badge-dark">Company Name</span>
         </div>
         <p class="card-desc">Your company details appear on candidate interview invitation links, proctoring screens, and evaluation reports.</p>
@@ -4653,7 +2000,7 @@
             </div>
           </div>
           <div style="display:flex; justify-content:flex-end; margin-top:0.9rem;">
-            <button type="submit" class="btn btn-sm btn-primary" style="padding:0.48rem 1.25rem;"><i class="bi bi-check2"></i> Save Company Profile</button>
+            <button type="submit" class="btn btn-sm btn-primary" style="padding:0 1.2rem;"><i class="bi bi-check2"></i> Save Company Profile</button>
           </div>
         </form>
         <div id="settings-co-status" style="display:none; margin-top:0.5rem; font-size:0.75rem; color:var(--success);"></div>
@@ -4662,8 +2009,8 @@
       <!-- Full-Stack Organization Team (RBAC) & Outbound Webhooks -->
       <div class="grid-2" style="margin-top: 1.5rem;">
         <div class="card">
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.35rem;">
-            <div class="card-title" style="margin:0;"><i class="bi bi-people"></i> Organization Team (RBAC)</div>
+          <div class="card-title" style="margin-bottom:0.4rem;">
+            <span class="card-title-group"><i class="bi bi-people"></i> Organization Team (RBAC)</span>
             <span id="org-current-role-badge" class="badge badge-outline">Role: owner</span>
           </div>
           <p class="card-desc">Invite hiring managers or reviewers to share jobs, candidate pipelines &amp; interview reports.</p>
@@ -4678,14 +2025,16 @@
             <button type="submit" class="btn btn-primary btn-sm">Invite</button>
           </form>
 
-          <div id="team-invite-banner" style="display:none; margin-bottom:0.85rem; padding:0.65rem 0.85rem; border-radius:var(--radius-sm); border:1px solid #bfdbfe; background:#eff6ff; font-size:0.78rem;"></div>
+          <div id="team-invite-banner" style="display:none; margin-bottom:0.85rem; padding:0.65rem 0.85rem; border-radius:8px; border:1px solid rgba(59,130,246,0.32); background:var(--accent-light); color:var(--text); font-size:0.78rem;"></div>
           <div id="org-team-list" style="display:flex; flex-direction:column; gap:0.5rem;">
             <div style="font-size:0.78rem; color:var(--text-muted);">Loading organization team...</div>
           </div>
         </div>
 
         <div class="card">
-          <div class="card-title"><i class="bi bi-broadcast-pin"></i> Outbound Signed Webhooks</div>
+          <div class="card-title" style="margin-bottom:0.4rem;">
+            <span class="card-title-group"><i class="bi bi-broadcast-pin"></i> Outbound Signed Webhooks</span>
+          </div>
           <p class="card-desc">Push HMAC-SHA256 signed events (<code>interview.completed</code>, <code>interview.disqualified</code>, <code>candidate.decision_updated</code>) to your ATS or Slack.</p>
 
           <form id="form-org-webhook" class="inline-action-form" style="margin-top:0.75rem;">
@@ -4786,7 +2135,7 @@
           <button class="btn btn-outline btn-sm" id="btn-stripe-portal" onclick="openBillingPortal()" style="display:none; font-weight:600; padding:0.5rem 0.9rem;">
             <i class="bi bi-credit-card-2-front"></i> Manage Subscription &amp; Invoices
           </button>
-          <button class="btn btn-sm" onclick="switchBillingTab('ppu')" style="background:#000; color:#fff; font-weight:600; padding:0.5rem 1rem;">
+          <button class="btn btn-primary btn-sm" onclick="switchBillingTab('ppu')">
             <i class="bi bi-plus-circle-fill"></i> Top-Up Credits
           </button>
         </div>
@@ -4830,7 +2179,7 @@
       </div>
 
       <!-- BILLING INNER TAB NAVIGATION PILLS -->
-      <div style="display:flex; gap:0.5rem; margin-bottom:1.5rem; background:var(--surface-subtle); padding:0.35rem; border-radius:8px; border:1px solid var(--border); width:fit-content;">
+      <div class="billing-tab-strip">
         <button class="nav-btn active" id="btab-ppu" onclick="switchBillingTab('ppu')" style="border-radius:6px; font-weight:600; font-size:0.8rem; padding:0.45rem 1rem;">
           <i class="bi bi-lightning-charge-fill"></i> Pay Per Interview (Credits)
         </button>
@@ -4844,13 +2193,13 @@
 
       <!-- PAY-PER-INTERVIEW CONTENT -->
       <div id="btab-content-ppu">
-        <div style="display:grid; grid-template-columns: 1.15fr 0.85fr; gap:1.5rem; align-items:start;">
+        <div class="ppu-builder-grid">
 
           <!-- Left Column: Interactive Order Builder -->
-          <div>
+          <div style="min-width:0;">
             <!-- Step 1: Duration Selector -->
             <div class="card" style="margin-bottom:1.25rem;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
                 <div>
                   <h3 style="font-size:0.95rem; font-weight:700; color:var(--text); margin:0;">1. Select Interview Duration</h3>
                   <p style="font-size:0.75rem; color:var(--text-muted); margin:0.2rem 0 0 0;">
@@ -4859,7 +2208,7 @@
                 </div>
                 <span class="badge badge-dark" style="font-size:0.7rem;"><i class="bi bi-clock"></i> 6 Tiers</span>
               </div>
-              <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:0.6rem;" id="dur-grid"></div>
+              <div class="dur-grid-cards" id="dur-grid"></div>
             </div>
 
             <!-- Step 2: Quantity Chooser & Preset Chips -->
@@ -4877,29 +2226,29 @@
               <div style="display:flex; flex-wrap:wrap; gap:0.45rem; margin-bottom:1rem;">
                 <button type="button" class="btn btn-sm btn-outline ppu-preset-chip active" data-qty="1" onclick="setPPUQuantityPreset(1)">1 Interview</button>
                 <button type="button" class="btn btn-sm btn-outline ppu-preset-chip" data-qty="5" onclick="setPPUQuantityPreset(5)">5 Interviews</button>
-                <button type="button" class="btn btn-sm btn-outline ppu-preset-chip" data-qty="10" onclick="setPPUQuantityPreset(10)" style="font-weight:700;">10 (+1 FREE 🎁)</button>
-                <button type="button" class="btn btn-sm btn-outline ppu-preset-chip" data-qty="20" onclick="setPPUQuantityPreset(20)" style="font-weight:700;">20 (+2 FREE 🎁)</button>
-                <button type="button" class="btn btn-sm btn-outline ppu-preset-chip" data-qty="50" onclick="setPPUQuantityPreset(50)" style="font-weight:700;">50 (+5 FREE 🎁)</button>
-                <button type="button" class="btn btn-sm btn-outline ppu-preset-chip" data-qty="100" onclick="setPPUQuantityPreset(100)" style="font-weight:700;">100 (+10 FREE 🎁)</button>
+                <button type="button" class="btn btn-sm btn-outline ppu-preset-chip" data-qty="10" onclick="setPPUQuantityPreset(10)" style="font-weight:700;">10 (+1 FREE)</button>
+                <button type="button" class="btn btn-sm btn-outline ppu-preset-chip" data-qty="20" onclick="setPPUQuantityPreset(20)" style="font-weight:700;">20 (+2 FREE)</button>
+                <button type="button" class="btn btn-sm btn-outline ppu-preset-chip" data-qty="50" onclick="setPPUQuantityPreset(50)" style="font-weight:700;">50 (+5 FREE)</button>
+                <button type="button" class="btn btn-sm btn-outline ppu-preset-chip" data-qty="100" onclick="setPPUQuantityPreset(100)" style="font-weight:700;">100 (+10 FREE)</button>
               </div>
 
               <!-- Stepper input -->
               <div style="display:flex; align-items:center; gap:0.5rem;">
                 <button type="button" class="btn btn-outline btn-sm" onclick="stepPPUQuantity(-1)" style="padding:0.4rem 0.8rem; font-weight:800; font-size:1rem;">−</button>
-                <input type="number" id="ppu-qty" value="1" min="1" max="9999" style="width:110px; text-align:center; font-size:1rem; font-weight:700; padding:0.45rem;" oninput="updatePPUQuote()">
+                <input type="number" id="ppu-qty" value="1" min="1" max="9999" style="width:110px; text-align:center; font-size:1rem; font-weight:700; padding:0.45rem; margin-bottom:0;" oninput="updatePPUQuote()">
                 <button type="button" class="btn btn-outline btn-sm" onclick="stepPPUQuantity(1)" style="padding:0.4rem 0.8rem; font-weight:800; font-size:1rem;">+</button>
                 <span style="font-size:0.8rem; color:var(--text-muted); font-weight:500;">Candidate interviews</span>
               </div>
             </div>
 
             <!-- Step 3: Real-Time Order Calculation Card -->
-            <div class="card" style="margin-bottom:0; border:2px solid #000; box-shadow:0 4px 14px rgba(0,0,0,0.06);">
+            <div class="card" style="margin-bottom:0; border:1.5px solid var(--accent);">
               <div class="card-title" style="margin-bottom:0.75rem;">
-                <span style="font-size:0.95rem; font-weight:800;"><i class="bi bi-receipt"></i> 3. Order Summary &amp; Instant Checkout</span>
+                <span class="card-title-group" style="font-size:0.95rem;"><i class="bi bi-receipt"></i> 3. Order Summary &amp; Instant Checkout</span>
               </div>
 
-              <div id="ppu-bulk-notice" style="display:none; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:6px; padding:0.65rem 0.85rem; font-size:0.775rem; margin-bottom:1rem; color:#065f46;">
-                <i class="bi bi-gift-fill" style="color:#10b981;"></i> <span id="ppu-bulk-text"></span>
+              <div id="ppu-bulk-notice" style="display:none; background:var(--success-light); border:1px solid rgba(16,185,129,0.34); border-radius:8px; padding:0.65rem 0.85rem; font-size:0.775rem; margin-bottom:1rem; color:var(--success);">
+                <i class="bi bi-gift-fill"></i> <span id="ppu-bulk-text"></span>
               </div>
 
               <div style="background:var(--surface-subtle); border:1px solid var(--border); border-radius:8px; padding:1rem; margin-bottom:1.15rem; font-size:0.825rem;">
@@ -4920,7 +2269,7 @@
                   <span id="q-base-cost" style="font-weight:600;">$0.50</span>
                 </div>
                 
-                <div id="q-free-row" style="display:none; justify-content:space-between; margin-bottom:0.45rem; background:#dcfce7; padding:0.3rem 0.5rem; border-radius:4px; color:#166534; font-weight:700;">
+                <div id="q-free-row" style="display:none; justify-content:space-between; margin-bottom:0.45rem; background:var(--success-light); padding:0.3rem 0.55rem; border-radius:6px; color:var(--success); font-weight:700;">
                   <span><i class="bi bi-gift-fill"></i> Free Bonus Interviews:</span>
                   <div>
                     <span id="q-free-count" style="margin-right:0.35rem;">+1 FREE</span>
@@ -4991,11 +2340,11 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr style="border-bottom:1px solid var(--border);"><td style="padding:0.45rem; font-weight:600;">10 Interviews</td><td style="text-align:center;">9 Interviews</td><td style="text-align:right; color:#16a34a; font-weight:800;">+1 FREE 🎁</td></tr>
-                  <tr style="border-bottom:1px solid var(--border);"><td style="padding:0.45rem; font-weight:600;">20 Interviews</td><td style="text-align:center;">18 Interviews</td><td style="text-align:right; color:#16a34a; font-weight:800;">+2 FREE 🎁</td></tr>
-                  <tr style="border-bottom:1px solid var(--border);"><td style="padding:0.45rem; font-weight:600;">30 Interviews</td><td style="text-align:center;">27 Interviews</td><td style="text-align:right; color:#16a34a; font-weight:800;">+3 FREE 🎁</td></tr>
-                  <tr style="border-bottom:1px solid var(--border);"><td style="padding:0.45rem; font-weight:600;">50 Interviews</td><td style="text-align:center;">45 Interviews</td><td style="text-align:right; color:#16a34a; font-weight:800;">+5 FREE 🎁</td></tr>
-                  <tr><td style="padding:0.45rem; font-weight:600;">100 Interviews</td><td style="text-align:center;">90 Interviews</td><td style="text-align:right; color:#16a34a; font-weight:800;">+10 FREE 🎁</td></tr>
+                  <tr style="border-bottom:1px solid var(--border);"><td style="padding:0.45rem; font-weight:600;">10 Interviews</td><td style="text-align:center;">9 Interviews</td><td style="text-align:right; color:var(--success); font-weight:700;">+1 FREE</td></tr>
+                  <tr style="border-bottom:1px solid var(--border);"><td style="padding:0.45rem; font-weight:600;">20 Interviews</td><td style="text-align:center;">18 Interviews</td><td style="text-align:right; color:var(--success); font-weight:700;">+2 FREE</td></tr>
+                  <tr style="border-bottom:1px solid var(--border);"><td style="padding:0.45rem; font-weight:600;">30 Interviews</td><td style="text-align:center;">27 Interviews</td><td style="text-align:right; color:var(--success); font-weight:700;">+3 FREE</td></tr>
+                  <tr style="border-bottom:1px solid var(--border);"><td style="padding:0.45rem; font-weight:600;">50 Interviews</td><td style="text-align:center;">45 Interviews</td><td style="text-align:right; color:var(--success); font-weight:700;">+5 FREE</td></tr>
+                  <tr><td style="padding:0.45rem; font-weight:600;">100 Interviews</td><td style="text-align:center;">90 Interviews</td><td style="text-align:right; color:var(--success); font-weight:700;">+10 FREE</td></tr>
                 </tbody>
               </table>
             </div>
@@ -5100,8 +2449,8 @@
 
           <!-- TAB 1: Credit / Debit Card (Stripe / Razorpay) -->
           <div id="pay-panel-card">
-            <div id="pay-card-mode-banner" style="background:#fefce8; border:1px solid #fef08a; border-radius:6px; padding:0.55rem 0.85rem; font-size:0.75rem; color:#854d0e; margin-bottom:0.85rem; text-align:center;">
-              &#9889; Demo Mode — Connect Stripe or Razorpay keys in .env for live card charges.
+            <div id="pay-card-mode-banner" style="background:var(--warning-light); border:1px solid rgba(245,158,11,0.34); border-radius:8px; padding:0.55rem 0.85rem; font-size:0.75rem; color:var(--warning); margin-bottom:0.85rem; text-align:center;">
+              Demo Mode — Connect Stripe or Razorpay keys in .env for live card charges.
             </div>
             <div id="pay-demo-card-fields">
               <div style="margin-bottom:0.85rem;">
@@ -5128,7 +2477,7 @@
             </div>
             
             <div id="pay-upi-detector-box" style="display:none; margin-bottom:0.85rem;">
-              <div style="display:flex; align-items:center; justify-content:center; gap:0.4rem; padding:0.45rem 0.75rem; border-radius:6px; background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; font-size:0.75rem; font-weight:600; margin-bottom:0.6rem;">
+              <div style="display:flex; align-items:center; justify-content:center; gap:0.4rem; padding:0.45rem 0.75rem; border-radius:8px; background:var(--accent-light); border:1px solid rgba(59,130,246,0.3); color:var(--accent); font-size:0.75rem; font-weight:600; margin-bottom:0.6rem;">
                 <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#2563eb; animation: blink 1.2s infinite;"></span>
                 <span>Auto-Detect Active: Listening for your UPI transfer...</span>
               </div>
@@ -5167,7 +2516,7 @@
             </div>
 
             <div id="pay-bank-detector-box" style="display:none; margin-bottom:0.85rem;">
-              <div style="display:flex; align-items:center; justify-content:center; gap:0.4rem; padding:0.45rem 0.75rem; border-radius:6px; background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; font-size:0.75rem; font-weight:600; margin-bottom:0.6rem;">
+              <div style="display:flex; align-items:center; justify-content:center; gap:0.4rem; padding:0.45rem 0.75rem; border-radius:8px; background:var(--accent-light); border:1px solid rgba(59,130,246,0.3); color:var(--accent); font-size:0.75rem; font-weight:600; margin-bottom:0.6rem;">
                 <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#2563eb; animation: blink 1.2s infinite;"></span>
                 <span>Auto-Detect Active: Waiting for bank settlement...</span>
               </div>
@@ -5670,22 +3019,22 @@
           </div>
 
           <!-- Pre-Configured Social Tracking Links -->
-          <div style="background: #fafcff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1rem;">
-            <strong style="font-size: 0.75rem; color: #1e3a8a; display: block; margin-bottom: 0.45rem;">
+          <div style="background: var(--accent-light); border: 1px solid rgba(59,130,246,0.3); border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1rem;">
+            <strong style="font-size: 0.75rem; color: var(--accent); display: block; margin-bottom: 0.45rem;">
               <i class="bi bi-geo-alt-fill"></i> Platform-Specific Tracking Links (With Mandatory Contact Capture):
             </strong>
             <div style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.735rem;">
-              <div style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 0.4rem 0.65rem; border-radius: 5px; border: 1px solid #e2e8f0;">
+              <div style="display: flex; justify-content: space-between; align-items: center; background: var(--surface); padding: 0.4rem 0.65rem; border-radius: 6px; border: 1px solid var(--border);">
                 <span><i class="bi bi-linkedin" style="color: #0a66c2;"></i> <strong>LinkedIn Post / InMail:</strong> <code>?source=linkedin</code></span>
                 <button type="button" class="btn btn-ghost btn-sm" onclick="copyTrackingUrl('linkedin')" style="color: #0a66c2; font-weight: 600;"><i class="bi bi-clipboard"></i> Copy</button>
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 0.4rem 0.65rem; border-radius: 5px; border: 1px solid #e2e8f0;">
-                <span><i class="bi bi-briefcase-fill" style="color: #d97706;"></i> <strong>Job Boards (Indeed/Naukri):</strong> <code>?source=job_board</code></span>
-                <button type="button" class="btn btn-ghost btn-sm" onclick="copyTrackingUrl('job_board')" style="color: #d97706; font-weight: 600;"><i class="bi bi-clipboard"></i> Copy</button>
+              <div style="display: flex; justify-content: space-between; align-items: center; background: var(--surface); padding: 0.4rem 0.65rem; border-radius: 6px; border: 1px solid var(--border);">
+                <span><i class="bi bi-briefcase-fill" style="color: var(--warning);"></i> <strong>Job Boards (Indeed/Naukri):</strong> <code>?source=job_board</code></span>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="copyTrackingUrl('job_board')" style="color: var(--warning); font-weight: 600;"><i class="bi bi-clipboard"></i> Copy</button>
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 0.4rem 0.65rem; border-radius: 5px; border: 1px solid #e2e8f0;">
-                <span><i class="bi bi-mortarboard-fill" style="color: #059669;"></i> <strong>Campus / Placement Drive:</strong> <code>?source=campus</code></span>
-                <button type="button" class="btn btn-ghost btn-sm" onclick="copyTrackingUrl('campus')" style="color: #059669; font-weight: 600;"><i class="bi bi-clipboard"></i> Copy</button>
+              <div style="display: flex; justify-content: space-between; align-items: center; background: var(--surface); padding: 0.4rem 0.65rem; border-radius: 6px; border: 1px solid var(--border);">
+                <span><i class="bi bi-mortarboard-fill" style="color: var(--success);"></i> <strong>Campus / Placement Drive:</strong> <code>?source=campus</code></span>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="copyTrackingUrl('campus')" style="color: var(--success); font-weight: 600;"><i class="bi bi-clipboard"></i> Copy</button>
               </div>
             </div>
           </div>
@@ -5792,11 +3141,11 @@
           </div>
 
           <!-- Dispatched Action Results -->
-          <div id="dispatch-results-container" style="display: none; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1rem;">
-            <div style="font-weight: 700; color: #047857; font-size: 0.82rem; margin-bottom: 0.35rem;">
+          <div id="dispatch-results-container" style="display: none; background: var(--success-light); border: 1px solid rgba(16,185,129,0.34); border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1rem;">
+            <div style="font-weight: 700; color: var(--success); font-size: 0.82rem; margin-bottom: 0.35rem;">
               <i class="bi bi-check-circle-fill"></i> Invitations Dispatched Successfully!
             </div>
-            <p style="font-size: 0.735rem; color: #065f46; margin: 0 0 0.5rem 0;">
+            <p style="font-size: 0.735rem; color: var(--text-muted); margin: 0 0 0.5rem 0;">
               All candidates received their unique timed link and screening instructions. Click below to open direct WhatsApp chats if needed:
             </p>
             <div id="dispatch-whatsapp-links" style="display: flex; flex-direction: column; gap: 0.35rem;"></div>
@@ -5839,7 +3188,7 @@
       <div class="card" style="max-width: 980px; width: 100%; max-height: 90vh; display: flex; flex-direction: column; padding: 1.5rem; background: var(--surface); border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.25);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
           <div style="display: flex; align-items: center; gap: 0.65rem;">
-            <div style="width: 36px; height: 36px; border-radius: 8px; background: #000; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+            <div style="width: 36px; height: 36px; border-radius: 8px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.05rem;">
               <i class="bi bi-collection-fill"></i>
             </div>
             <div>

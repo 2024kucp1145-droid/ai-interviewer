@@ -4,23 +4,40 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pricing — RoundOne AI</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <script src="/js/theme.js"></script>
   <style>
-    :root {
-      --bg: #0f111a;
-      --bg2: #161929;
-      --card: #1c2136;
-      --card2: #222840;
-      --border: #2e3554;
-      --accent: #6c63ff;
-      --accent2: #5a52e0;
-      --accent-glow: rgba(108,99,255,0.25);
-      --green: #22c55e;
+    :root, [data-theme="dark"] {
+      --bg: #090c12;
+      --bg2: #0f141e;
+      --card: #0f141e;
+      --card2: #151c29;
+      --border: rgba(148, 163, 184, 0.16);
+      --accent: #3b82f6;
+      --accent2: #2563eb;
+      --accent-glow: rgba(59, 130, 246, 0.2);
+      --green: #10b981;
       --gold: #f59e0b;
-      --text: #e8eaf6;
-      --muted: #8892b0;
-      --danger: #f87171;
-      --radius: 16px;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --danger: #ef4444;
+      --radius: 14px;
+    }
+    [data-theme="light"] {
+      --bg: #f6f8fb;
+      --bg2: #eef2f7;
+      --card: #ffffff;
+      --card2: #f8fafc;
+      --border: #e2e8f0;
+      --accent: #2563eb;
+      --accent2: #1d4ed8;
+      --accent-glow: rgba(37, 99, 235, 0.16);
+      --green: #059669;
+      --gold: #d97706;
+      --text: #0f172a;
+      --muted: #475569;
+      --danger: #dc2626;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -28,21 +45,23 @@
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      min-height: 100vh;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      min-height: 100dvh;
+      overflow-x: clip;
     }
 
     /* NAV */
     nav {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 16px 40px;
-      background: rgba(15,17,26,0.95);
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+      padding: 14px 32px;
+      background: var(--bg2);
       border-bottom: 1px solid var(--border);
       position: sticky; top: 0; z-index: 100;
       backdrop-filter: blur(12px);
     }
-    .nav-logo { font-size: 1.4rem; font-weight: 800; color: var(--accent); display: flex; align-items: center; gap: 8px; text-decoration: none; }
-    .nav-links { display: flex; gap: 20px; align-items: center; }
+    .nav-logo { font-size: 1.05rem; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo-mark { width: 30px; height: 30px; border-radius: 8px; background: var(--accent); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.95rem; }
+    .nav-links { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
     .nav-links a { color: var(--muted); text-decoration: none; font-size: 0.95rem; transition: color .2s; }
     .nav-links a:hover { color: var(--text); }
     .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 22px; border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; transition: all .2s; text-decoration: none; }
@@ -282,11 +301,12 @@
 
 <!-- NAV -->
 <nav>
-  <a href="/" class="nav-logo">🤖 RoundOne AI</a>
+  <a href="/" class="nav-logo"><span class="nav-logo-mark"><i class="bi bi-cpu-fill"></i></span><span>RoundOne AI</span></a>
   <div class="nav-links">
     <a href="/">Dashboard</a>
-    <a href="/pricing.html" style="color: var(--text)">Pricing</a>
+    <a href="/pricing.html" style="color: var(--text); font-weight: 600;">Pricing</a>
     <a href="/blog.html">Resources</a>
+    <button type="button" class="btn btn-outline theme-toggle-btn" onclick="toggleTheme()" style="padding: 8px 12px;" title="Switch Theme" aria-label="Switch Theme"><i class="bi bi-sun-fill theme-toggle-icon"></i></button>
     <a href="/index.html" class="btn btn-outline">Sign In</a>
   </div>
 </nav>
@@ -297,8 +317,8 @@
   <p>Pay only for what you use. No hidden fees. Scale up or down anytime.</p>
 
   <div class="tab-bar">
-    <button class="tab-btn active" onclick="switchTab('ppu', this)">💳 Pay Per Interview</button>
-    <button class="tab-btn" onclick="switchTab('sub', this)">📅 Monthly / Subscription</button>
+    <button class="tab-btn active" onclick="switchTab('ppu', this)"><i class="bi bi-lightning-charge-fill"></i> Pay Per Interview</button>
+    <button class="tab-btn" onclick="switchTab('sub', this)"><i class="bi bi-calendar2-check-fill"></i> Monthly / Subscription</button>
   </div>
 </div>
 

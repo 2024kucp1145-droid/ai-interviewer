@@ -418,7 +418,7 @@ window.runDemoSandboxCode = function() {
             ✖ Compile / Syntax Error: ${escapeHtml(compileErr.message)}
           </div>
         `;
-        if (btn) { btn.disabled = false; btn.innerHTML = `<i class="bi bi-play-fill"></i> Run Test Cases (Click to Test)`; }
+        if (btn) { btn.disabled = false; btn.innerHTML = `<i class="bi bi-play-fill"></i> Run Test Cases`; }
         return;
       }
 
@@ -428,7 +428,7 @@ window.runDemoSandboxCode = function() {
             ✖ Runtime Error: function "twoSum" is not defined or not returned.
           </div>
         `;
-        if (btn) { btn.disabled = false; btn.innerHTML = `<i class="bi bi-play-fill"></i> Run Test Cases (Click to Test)`; }
+        if (btn) { btn.disabled = false; btn.innerHTML = `<i class="bi bi-play-fill"></i> Run Test Cases`; }
         return;
       }
 
@@ -517,7 +517,7 @@ window.runDemoSandboxCode = function() {
     } finally {
       if (btn) {
         btn.disabled = false;
-        btn.innerHTML = `<i class="bi bi-play-fill"></i> Run Test Cases (Click to Test)`;
+        btn.innerHTML = `<i class="bi bi-play-fill"></i> Run Test Cases`;
       }
     }
   }, 350);
@@ -573,11 +573,11 @@ function setVerifyStatusBanner(text, tone = 'info') {
     return;
   }
   const styles = {
-    success: { bg: '#ecfdf5', border: '#a7f3d0', color: '#065f46' },
-    warning: { bg: '#fffbeb', border: '#fde68a', color: '#92400e' },
-    error: { bg: '#fef2f2', border: '#fecaca', color: '#991b1b' },
-    info: { bg: '#f8fafc', border: '#cbd5e1', color: '#334155' }
-  }[tone] || { bg: '#f8fafc', border: '#cbd5e1', color: '#334155' };
+    success: { bg: 'var(--success-light)', border: 'rgba(16,185,129,0.35)', color: 'var(--success)' },
+    warning: { bg: 'var(--warning-light)', border: 'rgba(245,158,11,0.35)', color: 'var(--warning)' },
+    error: { bg: 'var(--danger-light)', border: 'rgba(239,68,68,0.35)', color: 'var(--danger)' },
+    info: { bg: 'var(--surface-subtle)', border: 'var(--border-dark)', color: 'var(--text-muted)' }
+  }[tone] || { bg: 'var(--surface-subtle)', border: 'var(--border-dark)', color: 'var(--text-muted)' };
   el.style.display = 'block';
   el.style.background = styles.bg;
   el.style.border = `1px solid ${styles.border}`;
@@ -4122,12 +4122,12 @@ function renderDashboardJobsList(jobs, catalogMatches = [], searchQ = '', catego
       html += `
         <div class="card" style="margin-top:1.25rem; padding:1.25rem; background:var(--surface-subtle); border:2px dashed var(--border-dark); text-align:center;">
           <div style="font-size:0.95rem; font-weight:800; color:var(--text); margin-bottom:0.25rem;">
-            <i class="bi bi-magic" style="color:#000;"></i> Create Custom Interview for "${escapeHtml(searchQ)}"
+            <i class="bi bi-magic" style="color:var(--accent);"></i> Create Custom Interview for "${escapeHtml(searchQ)}"
           </div>
           <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.85rem;">
             Can't find the exact job title? You can create a fully customized AI interview round for <strong>"${escapeHtml(searchQ)}"</strong> with adaptive questions and scoring.
           </p>
-          <button class="btn btn-sm" onclick="startInterviewCreationWizardWithRole('${escapeHtml(searchQ).replace(/'/g, "\\'")}', '${categoryQ}')" style="background:#000; color:#fff; font-weight:700;">
+          <button class="btn btn-primary btn-sm" onclick="startInterviewCreationWizardWithRole('${escapeHtml(searchQ).replace(/'/g, "\\'")}', '${categoryQ}')">
             <i class="bi bi-plus-lg"></i> Launch Interview for "${escapeHtml(searchQ)}"
           </button>
         </div>
@@ -4154,7 +4154,7 @@ function renderDashboardJobsList(jobs, catalogMatches = [], searchQ = '', catego
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
           <div>
             <strong style="font-size:0.85rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--text); display:flex; align-items:center; gap:0.4rem;">
-              <i class="bi bi-grid-3x3-gap-fill" style="color:#000;"></i> Role Library — Instant Interview Creation (100+ Roles)
+              <i class="bi bi-grid-3x3-gap-fill" style="color:var(--accent);"></i> Role Library — Instant Interview Creation (100+ Roles)
             </strong>
             <p style="font-size:0.725rem; color:var(--text-muted); margin:0.15rem 0 0 0;">
               Pick any role to start an automated AI screening round with pre-configured skills and questions.
@@ -4970,25 +4970,25 @@ window.applyCandidateFilters = function() {
     const cls = getCandidateClassification(item);
     const rankNum = idx + 1;
 
-    let scoreBadge = `<span class="badge" style="background:#f8fafc; color:#475569; border:1px solid #cbd5e1;">Pending</span>`;
+    let scoreBadge = `<span class="badge" style="background:var(--surface-subtle); color:var(--text-muted); border:1px solid var(--border-dark);">Pending</span>`;
     if (typeof item.score === 'number') {
-      const color = cls.category === 'selected' ? '#047857' : (cls.category === 'borderline' ? '#b45309' : '#b91c1c');
-      const bg = cls.category === 'selected' ? '#ecfdf5' : (cls.category === 'borderline' ? '#fffbeb' : '#fef2f2');
-      const border = cls.category === 'selected' ? '#a7f3d0' : (cls.category === 'borderline' ? '#fde68a' : '#fecaca');
-      scoreBadge = `<span class="badge" style="background:${bg}; color:${color}; border:1px solid ${border}; font-weight:800; font-size:0.8rem;">${item.score}/100 PTS</span>`;
+      const color = cls.category === 'selected' ? 'var(--success)' : (cls.category === 'borderline' ? 'var(--warning)' : 'var(--danger)');
+      const bg = cls.category === 'selected' ? 'var(--success-light)' : (cls.category === 'borderline' ? 'var(--warning-light)' : 'var(--danger-light)');
+      const border = cls.category === 'selected' ? 'rgba(16,185,129,0.34)' : (cls.category === 'borderline' ? 'rgba(245,158,11,0.34)' : 'rgba(239,68,68,0.34)');
+      scoreBadge = `<span class="badge" style="background:${bg}; color:${color}; border:1px solid ${border}; font-weight:700; font-size:0.78rem;">${item.score}/100 PTS</span>`;
     } else if (item.state === 'disqualified') {
-      scoreBadge = `<span class="badge" style="background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; font-weight:800;">0/100 PTS</span>`;
+      scoreBadge = `<span class="badge" style="background:var(--danger-light); color:var(--danger); border:1px solid rgba(239,68,68,0.34); font-weight:700;">0/100 PTS</span>`;
     }
 
     let statusPill = '';
     if (cls.category === 'selected') {
-      statusPill = `<span class="badge" style="background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; font-weight:700;"><i class="bi bi-check-circle-fill" style="color:#10b981;"></i> Selected (Green)</span>`;
+      statusPill = `<span class="badge" style="background:var(--success-light); color:var(--success); border:1px solid rgba(16,185,129,0.34); font-weight:700;"><i class="bi bi-check-circle-fill"></i> Selected</span>`;
     } else if (cls.category === 'borderline') {
-      statusPill = `<span class="badge" style="background:#fffbeb; color:#b45309; border:1px solid #fde68a; font-weight:700;"><i class="bi bi-exclamation-circle-fill" style="color:#f59e0b;"></i> Borderline (Amber)</span>`;
+      statusPill = `<span class="badge" style="background:var(--warning-light); color:var(--warning); border:1px solid rgba(245,158,11,0.34); font-weight:700;"><i class="bi bi-exclamation-circle-fill"></i> Borderline</span>`;
     } else if (cls.category === 'rejected') {
-      statusPill = `<span class="badge" style="background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; font-weight:700;"><i class="bi bi-x-circle-fill" style="color:#ef4444;"></i> Rejected (Red)</span>`;
+      statusPill = `<span class="badge" style="background:var(--danger-light); color:var(--danger); border:1px solid rgba(239,68,68,0.34); font-weight:700;"><i class="bi bi-x-circle-fill"></i> Rejected</span>`;
     } else {
-      statusPill = `<span class="badge" style="background:#f8fafc; color:#475569; border:1px solid #cbd5e1;"><i class="bi bi-clock"></i> Link Sent</span>`;
+      statusPill = `<span class="badge" style="background:var(--surface-subtle); color:var(--text-muted); border:1px solid var(--border-dark);"><i class="bi bi-clock"></i> Link Sent</span>`;
     }
 
     return `
@@ -6099,18 +6099,12 @@ window.selectWizardDuration = function(mins) {
     customInput.value = m;
   }
 
-  // 3. Highlight preset pill buttons
+  // 3. Highlight preset pill buttons via theme-aware CSS
   document.querySelectorAll('.duration-pill-btn').forEach(btn => {
     const btnMins = parseInt(btn.getAttribute('data-mins'), 10);
-    if (btnMins === m) {
-      btn.classList.add('active');
-      btn.style.background = '#000';
-      btn.style.color = '#fff';
-    } else {
-      btn.classList.remove('active');
-      btn.style.background = 'transparent';
-      btn.style.color = 'var(--text)';
-    }
+    btn.classList.toggle('active', btnMins === m);
+    btn.style.background = '';
+    btn.style.color = '';
   });
 
   // 4. Update Step 1 badge
@@ -6893,20 +6887,13 @@ window.updatePPUQuote = function() {
     if (bulkNotice) bulkNotice.style.display = 'none';
   }
 
-  // Highlight active preset chip if matches
+  // Highlight active preset chip via theme-aware CSS
   document.querySelectorAll('.ppu-preset-chip').forEach(chip => {
     const chipQty = parseInt(chip.getAttribute('data-qty'), 10);
-    if (chipQty === qty) {
-      chip.classList.add('active');
-      chip.style.background = '#000';
-      chip.style.color = '#fff';
-      chip.style.borderColor = '#000';
-    } else {
-      chip.classList.remove('active');
-      chip.style.background = 'transparent';
-      chip.style.color = 'var(--text)';
-      chip.style.borderColor = 'var(--border)';
-    }
+    chip.classList.toggle('active', chipQty === qty);
+    chip.style.background = '';
+    chip.style.color = '';
+    chip.style.borderColor = '';
   });
 
   const btnPay = document.getElementById('btn-ppu-checkout');
@@ -6924,40 +6911,41 @@ function renderSubPlans() {
     const isPopular = p.popular;
     return `
       <div onclick="selectSubPlan('${p.id}')" id="subcard-${p.id}" style="
-        border:2px solid ${isPopular ? 'var(--accent)' : 'var(--border)'};
+        border:1.5px solid ${isPopular ? 'var(--accent)' : 'var(--border)'};
         border-radius:12px; padding:1.25rem; background:var(--surface); cursor:pointer;
         transition:all .15s ease; position:relative; display:flex; flex-direction:column; justify-content:space-between;
-        box-shadow:${isPopular ? '0 10px 26px -6px rgba(79,70,229,0.28)' : 'none'};">
-        ${isPopular ? '<div style="position:absolute; top:-10px; left:50%; transform:translateX(-50%); background:linear-gradient(135deg,#4f46e5,#6366f1); color:#fff; font-size:0.65rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; padding:0.2rem 0.65rem; border-radius:20px; white-space:nowrap;"><i class="bi bi-star-fill" style="color:#fde68a;"></i> Most Popular</div>' : ''}
-        
+        box-shadow:${isPopular ? '0 10px 26px -10px rgba(37,99,235,0.28)' : 'var(--card-shadow)'};">
         <div>
-          <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); margin-bottom:0.4rem;">
-            ${p.label} Package
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:0.4rem; margin-bottom:0.4rem;">
+            <span style="font-size:0.74rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:${isPopular ? 'var(--accent)' : 'var(--text-muted)'};">
+              ${p.label} Package
+            </span>
+            ${isPopular ? '<span style="background:var(--accent); color:#fff; font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:0.16rem 0.5rem; border-radius:6px; white-space:nowrap;">Popular</span>' : ''}
           </div>
           <div style="display:flex; align-items:baseline; gap:0.25rem; margin-bottom:0.25rem;">
-            <span style="font-size:2rem; font-weight:900; letter-spacing:-0.03em; color:var(--text);">$${p.priceUsd}</span>
+            <span style="font-size:2rem; font-weight:800; letter-spacing:-0.03em; color:var(--text);">$${p.priceUsd}</span>
             <span style="font-size:0.75rem; color:var(--text-muted);">/ ${p.months === 1 ? 'month' : `${p.months} mos`}</span>
           </div>
-          
-          <div style="background:var(--surface-subtle); border-radius:6px; padding:0.6rem; margin:0.75rem 0; text-align:center;">
-            <div style="font-size:1.05rem; font-weight:800; color:var(--text);">${p.includedInterviews.toLocaleString()} Interviews</div>
+
+          <div style="background:var(--surface-subtle); border:1px solid var(--border); border-radius:8px; padding:0.6rem; margin:0.75rem 0; text-align:center;">
+            <div style="font-size:1.05rem; font-weight:700; color:var(--text);">${p.includedInterviews.toLocaleString()} Interviews</div>
             <div style="font-size:0.72rem; color:var(--text-muted); font-weight:600;">Only <strong>$${cpi}</strong> per interview</div>
           </div>
 
           ${p.savingsLabel ? `
-            <div style="display:inline-block; font-size:0.7rem; color:#16a34a; background:#dcfce7; font-weight:700; padding:0.2rem 0.5rem; border-radius:4px; margin-bottom:0.75rem;">
+            <div style="display:inline-flex; align-items:center; gap:0.3rem; font-size:0.7rem; color:var(--success); background:var(--success-light); border:1px solid rgba(16,185,129,0.3); font-weight:700; padding:0.2rem 0.55rem; border-radius:6px; margin-bottom:0.75rem;">
               <i class="bi bi-tag-fill"></i> ${p.savingsLabel}
             </div>` : '<div style="height:1.6rem;"></div>'}
 
-          <ul style="list-style:none; padding:0; margin:0 0 1rem 0; font-size:0.75rem; color:var(--text-muted); line-height:1.7;">
-            <li><i class="bi bi-check2" style="color:#16a34a; font-weight:bold;"></i> Full AI Voice &amp; Screening</li>
-            <li><i class="bi bi-check2" style="color:#16a34a; font-weight:bold;"></i> Real-Time Proctoring &amp; Screen Lock</li>
-            <li><i class="bi bi-check2" style="color:#16a34a; font-weight:bold;"></i> Instant ATS Scoring &amp; PDF Reports</li>
-            <li><i class="bi bi-check2" style="color:#16a34a; font-weight:bold;"></i> Priority API &amp; Server Concurrency</li>
+          <ul style="list-style:none; padding:0; margin:0 0 1rem 0; font-size:0.75rem; color:var(--text-muted); line-height:1.75;">
+            <li><i class="bi bi-check2" style="color:var(--success);"></i> Full AI Voice &amp; Screening</li>
+            <li><i class="bi bi-check2" style="color:var(--success);"></i> Real-Time Proctoring &amp; Screen Lock</li>
+            <li><i class="bi bi-check2" style="color:var(--success);"></i> Instant ATS Scoring &amp; PDF Reports</li>
+            <li><i class="bi bi-check2" style="color:var(--success);"></i> Priority API &amp; Server Concurrency</li>
           </ul>
         </div>
 
-        <button class="btn btn-sm ${isPopular ? 'btn-primary' : 'btn-outline'}" style="width:100%; font-size:0.8rem; font-weight:700; padding:0.5rem;" onclick="event.stopPropagation(); selectSubPlan('${p.id}')">
+        <button class="btn btn-sm ${isPopular ? 'btn-primary' : 'btn-outline'}" style="width:100%;" onclick="event.stopPropagation(); selectSubPlan('${p.id}')">
           Choose ${p.label} Plan <i class="bi bi-arrow-right"></i>
         </button>
       </div>`;
@@ -7221,7 +7209,7 @@ function finishImmediateBillingSuccess(data, fallbackMsg) {
   loadBillingBalance();
   if (typeof loadBillingHistory === 'function') loadBillingHistory();
   closeBillingModal();
-  alert(`🎉 Success! ${data.message || fallbackMsg}\nTotal Available Credits: ${data.creditsRemaining}`);
+  alert(`Success! ${data.message || fallbackMsg}\nTotal Available Credits: ${data.creditsRemaining}`);
 }
 
 window.selectPaymentMethodTab = function(tab) {
@@ -7272,9 +7260,9 @@ window.openBillingCheckout = async function(type) {
       const demoFields = document.getElementById('pay-demo-card-fields');
       if (checkoutMethodsCache.stripeConfigured) {
         if (banner) {
-          banner.style.background = '#eff6ff';
-          banner.style.borderColor = '#bfdbfe';
-          banner.style.color = '#1e40af';
+          banner.style.background = 'var(--accent-light)';
+          banner.style.borderColor = 'rgba(59,130,246,0.32)';
+          banner.style.color = 'var(--accent)';
           banner.innerHTML = '<i class="bi bi-shield-lock-fill"></i> Secured by <strong>Stripe</strong> — Pay with Credit/Debit Card, Apple Pay, or Google Pay.';
         }
         if (demoFields) demoFields.style.display = 'none';
@@ -8230,8 +8218,8 @@ window.simulateAlexFollowup = function() {
     btn.innerHTML = '<i class="bi bi-broadcast spinning"></i> Alex is speaking...';
   }
 
-  speechEl.innerHTML = '<strong style="color:#a5b4fc;">AI Follow-up Question:</strong> "' + current.q + '"';
-  candEl.innerHTML = '<span style="color:#64748b; font-style:italic;">Candidate thinking & speaking...</span>';
+  speechEl.innerHTML = '<strong style="color:var(--accent);">AI Follow-up Question:</strong> "' + current.q + '"';
+  candEl.innerHTML = '<span style="color:var(--text-subtle); font-style:italic;">Candidate thinking & speaking...</span>';
 
   setTimeout(() => {
     candEl.innerHTML = '"' + current.a + '"';
@@ -8363,7 +8351,7 @@ window.renderFrontBlogGrid = function(articles) {
   grid.innerHTML = articles.map(a => `
     <div class="front-blog-card" onclick="window.openFrontArticle('${a.slug}')">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
-        <span class="bolt-pill-badge" style="font-size:0.62rem; padding:0.16rem 0.5rem; border-radius:999px;">${a.category || 'Article'}</span>
+        <span class="badge badge-accent" style="font-size:0.65rem;">${a.category || 'Article'}</span>
         <span style="font-size:0.72rem; color:var(--text-muted);">${a.read_time_minutes || 5} min read</span>
       </div>
       <h3 style="font-size:1.05rem; font-weight:700; color:var(--text); margin-bottom:0.45rem; line-height:1.35;">${a.title}</h3>
@@ -8389,82 +8377,22 @@ window.addEventListener('DOMContentLoaded', () => {
   initAmbientScrollLight();
 });
 
-// =========================================================================
-// Dynamic Ambient Blue Light (Scroll-Tracking Spotlight & Atmospheric Aurora)
-// =========================================================================
 function initAmbientScrollLight() {
-  const spotlight = document.getElementById('ambient-blue-spotlight');
-  const secondary = document.getElementById('ambient-blue-secondary');
-  const leftAura = document.getElementById('ambient-blue-left');
-  if (!spotlight && !secondary && !leftAura) return;
-
-  let ticking = false;
-
-  function updateLightPosition() {
-    const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
-    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-    const progress = docHeight > 0 ? Math.min(Math.max(scrollY / docHeight, 0), 1) : 0;
-
-    // The primary blue spotlight glides down smoothly with scroll
-    if (spotlight) {
-      // Moves from -120px at top down through viewport
-      const maxTravel = window.innerHeight * 0.75;
-      const yOffset = -120 + (progress * maxTravel);
-      spotlight.style.transform = 'translate(-50%, ' + yOffset.toFixed(1) + 'px)';
-    }
-
-    // Secondary ambient aura travels on the right side with parallax
-    if (secondary) {
-      const ySec = (progress * (window.innerHeight * 0.65)) + 40;
-      secondary.style.transform = 'translateY(' + ySec.toFixed(1) + 'px)';
-    }
-
-    // Left ambient aura travels along the left edge dynamically with scroll
-    if (leftAura) {
-      const yLeft = (progress * (window.innerHeight * 0.7)) + 60;
-      leftAura.style.transform = 'translateY(' + yLeft.toFixed(1) + 'px)';
-    }
-
-    ticking = false;
-  }
-
-  window.addEventListener('scroll', () => {
-    if (!ticking) {
-      window.requestAnimationFrame(updateLightPosition);
-      ticking = true;
-    }
-  }, { passive: true });
-
-  // Gentle subtle mouse drift (-30px to +30px)
-  window.addEventListener('mousemove', (e) => {
-    const normX = (e.clientX / window.innerWidth) - 0.5;
-    if (spotlight) {
-      spotlight.style.marginLeft = (normX * 60).toFixed(1) + 'px';
-    }
-    if (leftAura) {
-      leftAura.style.marginLeft = (normX * 35).toFixed(1) + 'px';
-    }
-    if (secondary) {
-      secondary.style.marginRight = (-normX * 35).toFixed(1) + 'px';
-    }
-  }, { passive: true });
-
-  // Initial call on load
-  updateLightPosition();
-  window.updateAmbientLight = updateLightPosition;
+  // Architectural dot grid replaces ambient gradient blobs; preserve no-op hook safely.
+  window.updateAmbientLight = function() {};
 }
 
-// Global Running Benefits Marquee Runner (Smooth 60fps / 120fps requestAnimationFrame)
 window.startGlobalBenefitsMarquee = function() {
   const track = document.getElementById('benefits-marquee-track');
   if (!track || track.__marqueeStarted) return;
+  if (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   track.__marqueeStarted = true;
 
   track.style.animation = 'none';
   track.style.webkitAnimation = 'none';
 
   let pos = 0;
-  const speed = 1.15;
+  const speed = 1.05;
   let isPaused = false;
 
   track.addEventListener('mouseenter', () => { isPaused = true; });
@@ -8490,6 +8418,17 @@ window.startGlobalBenefitsMarquee = function() {
 window.addEventListener('DOMContentLoaded', () => {
   if (typeof window.startGlobalBenefitsMarquee === 'function') {
     window.startGlobalBenefitsMarquee();
+  }
+  if (window.RoundOneMotion) {
+    if (typeof window.RoundOneMotion.initLanding3DStage === 'function') {
+      window.RoundOneMotion.initLanding3DStage();
+    }
+    if (typeof window.RoundOneMotion.initCardSurfaceSheen === 'function') {
+      window.RoundOneMotion.initCardSurfaceSheen();
+    }
+    if (typeof window.RoundOneMotion.animateHeroEntrance === 'function') {
+      window.RoundOneMotion.animateHeroEntrance();
+    }
   }
   initSupabaseAuth();
 });
