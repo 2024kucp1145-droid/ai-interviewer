@@ -1,0 +1,824 @@
+/* ==========================================================================
+   RoundOne AI - Whitepace SaaS Design System (Figma Community #1156860863353724933)
+   Palette: Deep Navy (#043873), Azure Blue (#4F9CF9), Warm Gold (#FFE492),
+            Sky Tint (#C4DEFD), Crisp White (#FFFFFF), Obsidian Dark (#061124)
+   ========================================================================== */
+
+:root {
+  --wp-navy: #043873;
+  --wp-navy-deep: #032652;
+  --wp-azure: #4f9cf9;
+  --wp-azure-hover: #3b82f6;
+  --wp-gold: #ffe492;
+  --wp-sky: #c4defd;
+  --wp-ink: #212529;
+  --wp-muted: #516075;
+}
+
+/* Override palette variables gently in Light/Dark for Whitepace harmony */
+[data-theme="light"] {
+  --accent: #4f9cf9;
+  --accent-hover: #2f85f5;
+  --accent-dark: #043873;
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-elevated: #f5f9ff;
+}
+
+[data-theme="dark"] {
+  --accent: #4f9cf9;
+  --accent-hover: #60a5fa;
+  --bg: #071122;
+  --surface: #0b192f;
+  --surface-elevated: #112340;
+}
+
+/* Full-bleed edge-to-edge section bands in Visitor Showcase Mode */
+body:not(.is-authenticated) main {
+  max-width: 100% !important;
+  padding: 0 !important;
+  overflow-x: clip;
+}
+
+/* ==========================================================================
+   Signature Whitepace Top Header Navigation
+   ========================================================================== */
+body:not(.is-authenticated) header {
+  background: var(--wp-navy) !important;
+  border-bottom: 1px solid rgba(196, 222, 253, 0.16) !important;
+  padding: 0.85rem clamp(1rem, 3.5vw, 3rem) !important;
+  color: #ffffff;
+}
+
+[data-theme="dark"] body:not(.is-authenticated) header {
+  background: #032248 !important;
+}
+
+body:not(.is-authenticated) header .brand,
+body:not(.is-authenticated) header #site-brand-title {
+  color: #ffffff !important;
+}
+
+body:not(.is-authenticated) header .brand-mark {
+  background: #4f9cf9 !important;
+  color: #ffffff !important;
+}
+
+body:not(.is-authenticated) header .brand-badge {
+  background: rgba(196, 222, 253, 0.15) !important;
+  color: var(--wp-sky) !important;
+  border-color: rgba(196, 222, 253, 0.25) !important;
+}
+
+body:not(.is-authenticated) header #front-nav-tabs {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(196, 222, 253, 0.18) !important;
+}
+
+body:not(.is-authenticated) header #front-nav-tabs .nav-btn {
+  color: rgba(255, 255, 255, 0.82) !important;
+}
+
+body:not(.is-authenticated) header #front-nav-tabs .nav-btn:hover {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+body:not(.is-authenticated) header #front-nav-tabs .nav-btn.active {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+
+body:not(.is-authenticated) header .theme-segment-switch {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(196, 222, 253, 0.2) !important;
+}
+
+body:not(.is-authenticated) header .theme-seg-btn {
+  color: rgba(255, 255, 255, 0.78) !important;
+}
+
+body:not(.is-authenticated) header .theme-seg-btn.active,
+body:not(.is-authenticated) header .theme-seg-btn.active i,
+body:not(.is-authenticated) header .theme-seg-btn.active span {
+  background: var(--wp-azure) !important;
+  color: #ffffff !important;
+}
+
+body:not(.is-authenticated) header #btn-open-feedback {
+  background: transparent !important;
+  border-color: rgba(196, 222, 253, 0.35) !important;
+  color: #ffffff !important;
+}
+
+body:not(.is-authenticated) header #btn-auth-switch {
+  background: var(--wp-gold) !important;
+  border-color: var(--wp-gold) !important;
+  color: var(--wp-navy) !important;
+  font-weight: 700 !important;
+}
+
+body:not(.is-authenticated) header #btn-auth-switch:hover {
+  filter: brightness(0.95);
+}
+
+body:not(.is-authenticated) header #btn-header-trial {
+  background: var(--wp-azure) !important;
+  border-color: var(--wp-azure) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* ==========================================================================
+   Full-Bleed Alternating Whitepace Bands
+   ========================================================================== */
+.wp-band {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.wp-inner {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: clamp(2.5rem, 5vw, 4.4rem) clamp(1rem, 3vw, 2rem);
+  position: relative;
+  z-index: 2;
+}
+
+/* Deep Navy Whitepace Band (#043873) */
+.wp-band-navy {
+  background: var(--wp-navy);
+  color: #ffffff;
+}
+
+[data-theme="dark"] .wp-band-navy {
+  background: linear-gradient(180deg, #042b59 0%, #032248 100%);
+}
+
+.wp-band-navy h1,
+.wp-band-navy h2,
+.wp-band-navy h3,
+.wp-band-navy .bolt-title {
+  color: #ffffff !important;
+}
+
+.wp-band-navy p,
+.wp-band-navy .bolt-subhead {
+  color: rgba(235, 244, 255, 0.88) !important;
+}
+
+.wp-band-navy .bolt-subhead strong {
+  color: var(--wp-gold) !important;
+  font-weight: 700;
+}
+
+/* Crisp White / Dark Surface Alternating Band */
+.wp-band-surface {
+  background: #ffffff;
+  color: var(--wp-ink);
+}
+
+[data-theme="dark"] .wp-band-surface {
+  background: #071122;
+  color: #f1f5f9;
+}
+
+/* Subtle Sky Ice Tint Band */
+.wp-band-soft {
+  background: #f5f9ff;
+  color: var(--wp-ink);
+  border-top: 1px solid rgba(4, 56, 115, 0.06);
+  border-bottom: 1px solid rgba(4, 56, 115, 0.06);
+}
+
+[data-theme="dark"] .wp-band-soft {
+  background: #0a172c;
+  color: #f1f5f9;
+  border-color: rgba(148, 163, 184, 0.12);
+}
+
+/* Signature Whitepace Contour Wave Vector Background */
+.wp-contour-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.24;
+}
+
+.wp-band-navy .nano-hero-backdrop,
+.wp-band-navy .nano-banner-bg {
+  background-image: url('/img/hero-bg-dark.jpg') !important;
+  opacity: 0.36;
+}
+
+.wp-band-navy .nano-banner-bg::after {
+  background: linear-gradient(180deg, rgba(4, 56, 115, 0.45) 0%, rgba(4, 56, 115, 0.88) 100%) !important;
+}
+
+.wp-band-navy .nano-hero-backdrop::after {
+  background:
+    linear-gradient(96deg, rgba(4, 56, 115, 0.96) 0%, rgba(4, 56, 115, 0.82) 48%, rgba(4, 56, 115, 0.56) 100%),
+    linear-gradient(180deg, rgba(4, 56, 115, 0.2) 0%, rgba(4, 56, 115, 0.92) 100%) !important;
+}
+
+[data-theme="dark"] .wp-band-navy .nano-hero-backdrop::after {
+  background:
+    linear-gradient(96deg, rgba(3, 34, 72, 0.96) 0%, rgba(4, 43, 89, 0.78) 48%, rgba(4, 43, 89, 0.5) 100%),
+    linear-gradient(180deg, rgba(3, 34, 72, 0.18) 0%, rgba(3, 34, 72, 0.9) 100%) !important;
+}
+
+/* Adjust hero-split-grid inside Full-Bleed Whitepace Hero Band */
+.wp-band-navy .hero-split-grid {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0.75rem 0 1.25rem !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+}
+
+.wp-band-navy .hero-eyebrow {
+  background: rgba(255, 228, 146, 0.14);
+  border-color: rgba(255, 228, 146, 0.38);
+  color: var(--wp-gold);
+}
+
+.wp-band-navy .hero-eyebrow-dot {
+  background: var(--wp-gold);
+}
+
+.wp-band-navy .hero-metric-pill {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(196, 222, 253, 0.24) !important;
+}
+
+.wp-band-navy .hero-metric-val {
+  color: #ffffff !important;
+}
+
+.wp-band-navy .hero-metric-val.is-accent {
+  color: var(--wp-gold) !important;
+}
+
+.wp-band-navy .hero-metric-lbl {
+  color: rgba(226, 238, 255, 0.78) !important;
+}
+
+.wp-band-navy .bolt-prompt-box {
+  background: rgba(3, 31, 68, 0.85) !important;
+  border-color: rgba(196, 222, 253, 0.3) !important;
+}
+
+.wp-band-navy .bolt-prompt-input {
+  color: #ffffff !important;
+}
+
+.wp-band-navy .bolt-prompt-input::placeholder {
+  color: rgba(196, 222, 253, 0.65) !important;
+}
+
+.wp-band-navy .bolt-chip {
+  background: rgba(255, 255, 255, 0.09) !important;
+  border-color: rgba(196, 222, 253, 0.24) !important;
+  color: #eaf3ff !important;
+}
+
+.wp-band-navy .bolt-chip:hover {
+  background: rgba(79, 156, 249, 0.28) !important;
+  border-color: var(--wp-azure) !important;
+}
+
+.wp-band-navy .hero-cta-row .btn-primary {
+  background: var(--wp-azure) !important;
+  border-color: var(--wp-azure) !important;
+  color: #ffffff !important;
+}
+
+.wp-band-navy .hero-cta-row .btn-outline {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(196, 222, 253, 0.32) !important;
+  color: #ffffff !important;
+}
+
+.wp-band-navy .hero-cta-row .btn-outline:hover {
+  background: rgba(255, 255, 255, 0.16) !important;
+}
+
+.wp-band-navy .hero-proof-item {
+  color: rgba(226, 238, 255, 0.84) !important;
+}
+
+.wp-band-navy .hero-proof-item i {
+  color: var(--wp-gold) !important;
+}
+
+/* Keep the 3D IDE Stage dark-crisp on Navy Hero */
+.wp-band-navy .hero-3d-viewport {
+  box-shadow: 0 28px 65px rgba(2, 16, 40, 0.55) !important;
+  border-color: rgba(196, 222, 253, 0.28) !important;
+}
+
+/* ==========================================================================
+   Signature Whitepace Yellow SVG Curved Brush-Stroke Underline
+   ========================================================================== */
+.wp-brush {
+  position: relative;
+  display: inline-block;
+  z-index: 1;
+}
+
+.wp-brush-svg {
+  position: absolute;
+  left: -3%;
+  bottom: -0.06em;
+  width: 106%;
+  height: 0.34em;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   Whitepace Split Feature Sections & Orbital Ecosystem Diagram
+   ========================================================================== */
+.wp-split-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: clamp(2rem, 5vw, 4rem);
+  align-items: center;
+}
+
+.wp-section-heading {
+  font-size: clamp(1.85rem, 3.6vw, 2.75rem);
+  font-weight: 800;
+  line-height: 1.14;
+  letter-spacing: -0.03em;
+  margin: 0 0 0.85rem;
+}
+
+.wp-section-lead {
+  font-size: 0.96rem;
+  line-height: 1.6;
+  margin: 0 0 1.4rem;
+  color: var(--text-muted);
+}
+
+.wp-band-navy .wp-section-lead {
+  color: rgba(226, 238, 255, 0.84);
+}
+
+.wp-orbital-stage {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wp-orbital-rings {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.wp-orbit-hub {
+  position: relative;
+  z-index: 3;
+  width: 82px;
+  height: 82px;
+  border-radius: 22px;
+  background: var(--wp-navy);
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 16px 38px rgba(4, 56, 115, 0.28);
+  border: 2px solid var(--wp-sky);
+  font-weight: 800;
+  font-size: 0.72rem;
+}
+
+.wp-orbit-hub i {
+  font-size: 1.65rem;
+  color: var(--wp-gold);
+}
+
+.wp-orbit-node {
+  position: absolute;
+  z-index: 2;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid rgba(4, 56, 115, 0.14);
+  box-shadow: 0 10px 26px rgba(4, 56, 115, 0.14);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--wp-navy);
+}
+
+[data-theme="dark"] .wp-orbit-node {
+  background: #102442;
+  color: #ffffff;
+  border-color: rgba(196, 222, 253, 0.25);
+}
+
+.wp-orbit-node i {
+  font-size: 1.05rem;
+  margin-bottom: 1px;
+}
+
+.wp-orbit-node.n1 { top: 6%; left: 50%; transform: translateX(-50%); color: #4f9cf9; }
+.wp-orbit-node.n2 { top: 24%; right: 8%; color: #10b981; }
+.wp-orbit-node.n3 { bottom: 22%; right: 10%; color: #f59e0b; }
+.wp-orbit-node.n4 { bottom: 5%; left: 50%; transform: translateX(-50%); color: #4f9cf9; }
+.wp-orbit-node.n5 { bottom: 24%; left: 8%; color: #10b981; }
+.wp-orbit-node.n6 { top: 24%; left: 8%; color: #3b82f6; }
+
+/* Code Extension Visual Showcase Box (Navy Split Right Card) */
+.wp-code-showcase-frame {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.25rem;
+  border: 6px solid rgba(196, 222, 253, 0.24);
+  box-shadow: 0 24px 55px rgba(2, 16, 40, 0.35);
+  color: var(--wp-ink);
+}
+
+[data-theme="dark"] .wp-code-showcase-frame {
+  background: #0b192f;
+  color: #f1f5f9;
+  border-color: rgba(79, 156, 249, 0.28);
+}
+
+.wp-lang-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+}
+
+.wp-lang-pill {
+  background: #f5f9ff;
+  border: 1px solid rgba(79, 156, 249, 0.22);
+  border-radius: 10px;
+  padding: 0.65rem 0.55rem;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--wp-navy);
+}
+
+[data-theme="dark"] .wp-lang-pill {
+  background: #112545;
+  color: var(--wp-sky);
+}
+
+/* ==========================================================================
+   Signature Whitepace 3-Card Pricing Triad (Gold Borders + Navy Spotlight)
+   ========================================================================== */
+.wp-pricing-triad {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.35rem;
+  align-items: center;
+  margin-top: 2rem;
+}
+
+.wp-plan-card {
+  background: #ffffff;
+  border: 1.5px solid var(--wp-gold);
+  border-radius: 14px;
+  padding: 2rem 1.65rem;
+  color: var(--wp-ink);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+[data-theme="dark"] .wp-plan-card {
+  background: #0d1d38;
+  color: #f1f5f9;
+  border-color: rgba(255, 228, 146, 0.45);
+}
+
+.wp-plan-card.is-featured {
+  background: var(--wp-navy);
+  border-color: var(--wp-navy);
+  color: #ffffff;
+  padding: 2.65rem 1.75rem;
+  box-shadow: 0 24px 55px rgba(4, 56, 115, 0.26);
+}
+
+.wp-plan-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 0.45rem;
+}
+
+.wp-plan-price {
+  font-family: var(--font-mono);
+  font-size: 2.15rem;
+  font-weight: 800;
+  margin-bottom: 0.35rem;
+}
+
+.wp-plan-card.is-featured .wp-plan-price {
+  color: var(--wp-gold);
+}
+
+.wp-plan-desc {
+  font-size: 0.82rem;
+  color: var(--wp-muted);
+  margin-bottom: 1.15rem;
+}
+
+[data-theme="dark"] .wp-plan-desc {
+  color: #94a3b8;
+}
+
+.wp-plan-card.is-featured .wp-plan-desc {
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.wp-plan-list {
+  list-style: none;
+  margin: 0 0 1.45rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.68rem;
+  font-size: 0.82rem;
+}
+
+.wp-plan-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.wp-plan-list li i {
+  color: var(--wp-azure);
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.wp-plan-card.is-featured .wp-plan-list li i {
+  color: var(--wp-gold);
+}
+
+/* ==========================================================================
+   Whitepace Monochrome Tech & Sponsor Bar
+   ========================================================================== */
+.wp-sponsors-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1.75rem;
+  padding-top: 1.75rem;
+}
+
+.wp-sponsor-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--wp-navy);
+  opacity: 0.78;
+  letter-spacing: -0.02em;
+}
+
+[data-theme="dark"] .wp-sponsor-item {
+  color: var(--wp-sky);
+}
+
+/* ==========================================================================
+   Whitepace Split Testimonials ("What Engineering Teams Say": 1 White + 2 Azure)
+   ========================================================================== */
+.wp-testimonials-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin-top: 2rem;
+}
+
+.wp-testimonial-card {
+  background: #ffffff;
+  color: var(--wp-ink);
+  border-radius: 14px;
+  padding: 2rem 1.65rem;
+  box-shadow: 0 15px 40px rgba(4, 56, 115, 0.08);
+  border: 1px solid rgba(4, 56, 115, 0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.25rem;
+}
+
+[data-theme="dark"] .wp-testimonial-card:not(.is-azure) {
+  background: #0d1d38;
+  color: #f1f5f9;
+  border-color: rgba(148, 163, 184, 0.16);
+}
+
+.wp-testimonial-card.is-azure {
+  background: var(--wp-azure);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+.wp-quote-mark {
+  font-size: 2.3rem;
+  line-height: 1;
+  color: var(--wp-navy);
+}
+
+[data-theme="dark"] .wp-testimonial-card:not(.is-azure) .wp-quote-mark {
+  color: var(--wp-gold);
+}
+
+.wp-testimonial-card.is-azure .wp-quote-mark {
+  color: #ffffff;
+}
+
+.wp-quote-text {
+  font-size: 0.86rem;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.wp-testimonial-author {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(4, 56, 115, 0.14);
+}
+
+[data-theme="dark"] .wp-testimonial-card:not(.is-azure) .wp-testimonial-author {
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+.wp-testimonial-card.is-azure .wp-testimonial-author {
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.wp-avatar-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--wp-navy);
+  color: var(--wp-gold);
+  font-weight: 800;
+  font-size: 0.88rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.wp-testimonial-card.is-azure .wp-avatar-circle {
+  background: #ffffff;
+  color: var(--wp-navy);
+}
+
+/* ==========================================================================
+   Whitepace Multi-Column Navy Footer
+   ========================================================================== */
+footer#site-dynamic-footer {
+  background: var(--wp-navy) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  border-top: 1px solid rgba(196, 222, 253, 0.16) !important;
+  padding: 2.6rem clamp(1rem, 3.5vw, 3rem) 1.6rem !important;
+  display: block !important;
+}
+
+[data-theme="dark"] footer#site-dynamic-footer {
+  background: #032248 !important;
+}
+
+.wp-footer-inner {
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+.wp-footer-cols {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr 1fr 1.2fr;
+  gap: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid rgba(196, 222, 253, 0.16);
+}
+
+.wp-footer-col-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.75rem;
+}
+
+.wp-footer-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  font-size: 0.8rem;
+}
+
+footer#site-dynamic-footer a {
+  color: rgba(226, 238, 255, 0.82) !important;
+}
+
+footer#site-dynamic-footer a:hover {
+  color: var(--wp-gold) !important;
+}
+
+.wp-footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-top: 1.25rem;
+  font-size: 0.76rem;
+  color: rgba(226, 238, 255, 0.7);
+}
+
+footer#site-dynamic-footer #site-footer-brand {
+  color: #ffffff !important;
+}
+
+/* ==========================================================================
+   Whitepace Tab Containers (Pricing, Blog, About inner margins when unauth)
+   ========================================================================== */
+body:not(.is-authenticated) #front-tab-pricing,
+body:not(.is-authenticated) #front-tab-blog,
+body:not(.is-authenticated) #front-tab-about {
+  max-width: 1240px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: clamp(1rem, 3vw, 2rem);
+  padding-right: clamp(1rem, 3vw, 2rem);
+}
+
+body:not(.is-authenticated) .front-content-hub-banner {
+  max-width: 1240px;
+  margin: 2rem auto;
+  padding-left: clamp(1rem, 3vw, 2rem);
+  padding-right: clamp(1rem, 3vw, 2rem);
+}
+
+body:not(.is-authenticated) #front-tab-pricing,
+body:not(.is-authenticated) #front-tab-blog,
+body:not(.is-authenticated) #front-tab-about {
+  padding-top: 2.25rem;
+  padding-bottom: 1.5rem;
+}
+
+/* ==========================================================================
+   Responsive Collapse (<= 960px & <= 640px)
+   ========================================================================== */
+@media (max-width: 960px) {
+  .wp-split-section,
+  .wp-pricing-triad,
+  .wp-testimonials-grid {
+    grid-template-columns: 1fr;
+  }
+  .wp-footer-cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .wp-footer-cols {
+    grid-template-columns: 1fr;
+  }
+  .wp-sponsors-row {
+    justify-content: center;
+    gap: 1.2rem;
+  }
+  .wp-orbital-stage {
+    max-width: 310px;
+  }
+  .wp-orbit-node {
+    width: 44px;
+    height: 44px;
+    font-size: 0.56rem;
+  }
+}

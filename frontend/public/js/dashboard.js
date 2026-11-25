@@ -274,6 +274,7 @@ window.updateVisitorUiState = function(isLoggedIn) {
   const authBtn = document.getElementById('btn-auth-switch');
 
   if (isLoggedIn) {
+    document.body.classList.add('is-authenticated');
     if (publicNav) publicNav.style.display = 'none';
     if (mainNav) mainNav.style.display = 'flex';
     if (responsesBtn) responsesBtn.style.display = 'inline-flex';
@@ -297,6 +298,7 @@ window.updateVisitorUiState = function(isLoggedIn) {
       }
     }
   } else {
+    document.body.classList.remove('is-authenticated');
     if (publicNav) publicNav.style.display = 'flex';
     if (mainNav) mainNav.style.display = 'none';
     if (responsesBtn) responsesBtn.style.display = 'none';

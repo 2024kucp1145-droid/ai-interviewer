@@ -97,7 +97,7 @@
 
     if (typeof M.inView === 'function') {
       var revealTargets = document.querySelectorAll(
-        '.telemetry-card, .workflow-step, .bolt-bottom-banner, .front-pricing-card, .front-stat-card, .about-pipe-node, .plan-card, .article-card'
+        '.telemetry-card, .workflow-step, .bolt-bottom-banner, .front-pricing-card, .front-stat-card, .about-pipe-node, .plan-card, .article-card, .wp-plan-card, .wp-testimonial-card, .wp-code-showcase-frame, .wp-orbital-stage'
       );
       if (revealTargets.length > 0) {
         M.inView(revealTargets, function (el) {
@@ -123,15 +123,27 @@
     }
 
     if (typeof M.hover === 'function') {
-      var liftCards = document.querySelectorAll('.hero-metric-pill, .workflow-step, .telemetry-card, .about-pipe-node');
+      var liftCards = document.querySelectorAll('.hero-metric-pill, .workflow-step, .telemetry-card, .about-pipe-node, .wp-plan-card, .wp-testimonial-card, .wp-orbit-node');
       if (liftCards.length > 0) {
         M.hover(liftCards, function (el) {
-          M.animate(el, { y: -3 }, { type: 'spring', stiffness: 360, damping: 24 });
+          M.animate(el, { y: -4 }, { type: 'spring', stiffness: 360, damping: 24 });
           return function () {
             M.animate(el, { y: 0 }, { type: 'spring', stiffness: 360, damping: 26 });
           };
         });
       }
+    }
+
+    var orbitNodes = document.querySelectorAll('.wp-orbit-node');
+    if (orbitNodes.length > 0 && !reducedMotion()) {
+      orbitNodes.forEach(function (node, idx) {
+        animeCall(node, {
+          translateY: [0, idx % 2 === 0 ? -6 : 6, 0],
+          duration: 2800 + idx * 350,
+          loop: true,
+          ease: 'inOutSine'
+        });
+      });
     }
 
     if (typeof M.press === 'function') {

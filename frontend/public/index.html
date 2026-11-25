@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/app-theme.css">
   <link rel="stylesheet" href="/css/visual-upgrade.css">
+  <link rel="stylesheet" href="/css/whitepace-theme.css">
   <script src="/js/theme.js"></script>
 </head>
 <body>
@@ -134,9 +135,17 @@
              ======================================================== -->
         <div id="front-tab-home" class="front-tab-view" style="display: block;">
 
+          <!-- BAND 1 (WHITEPACE DEEP NAVY #043873): Hero + Contour Waves + 3D IDE Stage -->
+          <div class="wp-band wp-band-navy">
+            <div class="nano-hero-backdrop" aria-hidden="true"></div>
+            <svg class="wp-contour-bg" viewBox="0 0 1440 620" preserveAspectRatio="none" fill="none" aria-hidden="true">
+              <path d="M-120 480 C 260 290, 560 540, 960 320 C 1220 180, 1420 260, 1580 120" stroke="#C4DEFD" stroke-width="1.4" stroke-opacity="0.35"/>
+              <path d="M-140 530 C 280 340, 590 590, 990 370 C 1250 230, 1450 310, 1600 170" stroke="#4F9CF9" stroke-width="1.2" stroke-opacity="0.3"/>
+              <path d="M-100 420 C 240 240, 530 490, 930 270 C 1190 130, 1390 210, 1560 70" stroke="#A7CEFC" stroke-width="1" stroke-opacity="0.22"/>
+            </svg>
+            <div class="wp-inner">
           <!-- Asymmetric 2-Column Editorial Hero + Interactive 3D Product Stage -->
           <section class="hero-split-grid">
-            <div class="nano-hero-backdrop" aria-hidden="true"></div>
             <div class="hero-copy-col">
               <div class="hero-eyebrow hero-stagger" onclick="handleStartTrialClick()">
                 <span class="hero-eyebrow-dot" aria-hidden="true"></span>
@@ -145,7 +154,13 @@
               </div>
 
               <h1 class="bolt-title hero-stagger">
-                Screen engineers with live voice, IDE &amp; instant rubrics.
+                Screen engineers with
+                <span class="wp-brush">live voice, IDE
+                  <svg class="wp-brush-svg" viewBox="0 0 280 24" preserveAspectRatio="none" fill="none" aria-hidden="true">
+                    <path d="M4 18 C 75 6, 185 4, 276 14" stroke="#FFE492" stroke-width="10" stroke-linecap="round" stroke-opacity="0.9"/>
+                  </svg>
+                </span>
+                &amp; instant rubrics.
               </h1>
 
               <p class="bolt-subhead hero-stagger">
@@ -347,7 +362,12 @@ function twoSum(nums, target) {
               </div>
             </div>
           </section>
+            </div>
+          </div>
 
+          <!-- BAND 2 (CRISP SURFACE): 3-Step Visual Workflow + Autonomous Stack -->
+          <div class="wp-band wp-band-surface">
+            <div class="wp-inner">
           <!-- Connected 3-Step Visual Workflow Rail -->
           <section class="workflow-rail" aria-label="How RoundOne AI works">
             <div class="workflow-step">
@@ -377,10 +397,10 @@ function twoSum(nums, target) {
           <section class="if-then-section">
             <div class="if-then-header">
               <div>
-                <h2>End-to-End Autonomous Screening Stack</h2>
-                <p>Built for engineering rigor: real code execution, spoken follow-ups, and verified integrity telemetry.</p>
+                <h2>End-to-End <span class="wp-brush">Screening Stack<svg class="wp-brush-svg" viewBox="0 0 260 22" preserveAspectRatio="none" fill="none" aria-hidden="true"><path d="M4 16 C 72 5, 180 4, 256 13" stroke="#FFE492" stroke-width="9" stroke-linecap="round" stroke-opacity="0.88"/></svg></span></h2>
+                <p>Live runtime compilation, adaptive spoken follow-ups, and verified telemetry.</p>
               </div>
-              <button type="button" class="btn btn-outline btn-sm" onclick="handleStartTrialClick()">
+              <button type="button" class="btn btn-primary btn-sm" onclick="handleStartTrialClick()">
                 Try With 10 Free Rounds <i class="bi bi-arrow-right"></i>
               </button>
             </div>
@@ -491,7 +511,50 @@ function twoSum(nums, target) {
               </div>
             </div>
           </section>
+            </div>
+          </div>
 
+          <!-- BAND 3 (SOFT ICE BLUE TINT): Whitepace Orbital Integration Split -->
+          <div class="wp-band wp-band-soft">
+            <div class="wp-inner">
+              <div class="wp-split-section">
+                <div class="wp-orbital-stage" aria-label="RoundOne AI Signal Ecosystem">
+                  <svg class="wp-orbital-rings" viewBox="0 0 400 400" fill="none" aria-hidden="true">
+                    <circle cx="200" cy="200" r="168" stroke="#A7CEFC" stroke-width="1.8" stroke-dasharray="6 6"/>
+                    <circle cx="200" cy="200" r="112" stroke="#4F9CF9" stroke-width="1.5" stroke-dasharray="4 6" stroke-opacity="0.7"/>
+                  </svg>
+                  <div class="wp-orbit-hub">
+                    <i class="bi bi-cpu-fill"></i>
+                    <span>RoundOne</span>
+                  </div>
+                  <div class="wp-orbit-node n1"><i class="bi bi-mic-fill"></i><span>Voice AI</span></div>
+                  <div class="wp-orbit-node n2"><i class="bi bi-filetype-py"></i><span>Python</span></div>
+                  <div class="wp-orbit-node n3"><i class="bi bi-database-check"></i><span>SQL</span></div>
+                  <div class="wp-orbit-node n4"><i class="bi bi-shield-lock-fill"></i><span>Proctor</span></div>
+                  <div class="wp-orbit-node n5"><i class="bi bi-filetype-js"></i><span>Node.js</span></div>
+                  <div class="wp-orbit-node n6"><i class="bi bi-file-earmark-pdf-fill"></i><span>Rubric</span></div>
+                </div>
+
+                <div>
+                  <h2 class="wp-section-heading">
+                    Screen Every Skill <span class="wp-brush">Together<svg class="wp-brush-svg" viewBox="0 0 220 22" preserveAspectRatio="none" fill="none" aria-hidden="true"><path d="M4 16 C 65 5, 160 4, 216 14" stroke="#FFE492" stroke-width="9" stroke-linecap="round"/></svg></span>
+                  </h2>
+                  <p class="wp-section-lead">
+                    Voice follow-ups, multi-language compilation, proctoring telemetry, and instant ATS webhooks converge into a single 0&ndash;100 candidate dossier.
+                  </p>
+                  <div class="hero-cta-row">
+                    <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()">
+                      Try It Free <i class="bi bi-arrow-right"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- BAND 4 (CRISP SURFACE): Interactive ROI & Funnel Telemetry Charts -->
+          <div class="wp-band wp-band-surface">
+            <div class="wp-inner">
           <!-- Visual Telemetry & Interactive Benchmark Visualizer -->
           <section id="visual-telemetry-suite" class="telemetry-suite" aria-label="Cost and Screening Visualizations">
             <div class="telemetry-suite-header">
@@ -624,12 +687,114 @@ function twoSum(nums, target) {
               </div>
             </div>
           </section>
+            </div>
+          </div>
 
+          <!-- BAND 5 (WHITEPACE DEEP NAVY #043873): 4,111+ DSA Bank & Blind Judge -->
+          <div class="wp-band wp-band-navy">
+            <div class="wp-inner">
+              <div class="wp-split-section">
+                <div>
+                  <h2 class="wp-section-heading">
+                    Use <span class="wp-brush">4,111+ DSA<svg class="wp-brush-svg" viewBox="0 0 240 22" preserveAspectRatio="none" fill="none" aria-hidden="true"><path d="M4 16 C 70 6, 175 5, 236 14" stroke="#FFE492" stroke-width="9" stroke-linecap="round"/></svg></span> &amp; Custom JDs
+                  </h2>
+                  <p class="wp-section-lead">
+                    Evaluate candidates across verified runtime test cases, bug-fix challenges, and system design probes with strict blind server grading.
+                  </p>
+                  <div class="hero-cta-row">
+                    <button type="button" class="btn btn-primary" onclick="openQuestionBankModal()">
+                      Explore 4,111+ Bank <i class="bi bi-arrow-right"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="wp-code-showcase-frame">
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                    <strong style="font-size: 0.9rem;">Blind Runtime Matrix</strong>
+                    <span class="badge badge-success">100% Automated</span>
+                  </div>
+                  <div style="font-size: 0.78rem; color: var(--text-muted);">
+                    Real compilation against hidden edge cases with zero leaked hints.
+                  </div>
+                  <div class="wp-lang-grid">
+                    <div class="wp-lang-pill">JavaScript</div>
+                    <div class="wp-lang-pill">Python 3</div>
+                    <div class="wp-lang-pill">C++ / g++</div>
+                    <div class="wp-lang-pill">Java JDK</div>
+                    <div class="wp-lang-pill">Go / Rust</div>
+                    <div class="wp-lang-pill">SQL Engine</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- BAND 6 (WHITEPACE SIGNATURE 3-TIER PRICING TRIAD) -->
+          <div class="wp-band wp-band-surface">
+            <div class="wp-inner">
+              <div style="text-align: center; max-width: 640px; margin: 0 auto;">
+                <h2 class="wp-section-heading">
+                  Choose <span class="wp-brush">Your Plan<svg class="wp-brush-svg" viewBox="0 0 210 22" preserveAspectRatio="none" fill="none" aria-hidden="true"><path d="M4 16 C 65 5, 155 4, 206 14" stroke="#FFE492" stroke-width="9" stroke-linecap="round"/></svg></span>
+                </h2>
+                <p class="wp-section-lead" style="margin-bottom: 0;">
+                  Start with 10 free interviews. Scale on-demand or monthly with zero lock-in.
+                </p>
+              </div>
+
+              <div class="wp-pricing-triad">
+                <div class="wp-plan-card">
+                  <div class="wp-plan-name">Pay-As-You-Go</div>
+                  <div class="wp-plan-price">$0.50 <span style="font-size: 0.85rem; font-weight: 500; opacity: 0.7;">/ round</span></div>
+                  <div class="wp-plan-desc">On-demand credits that never expire</div>
+                  <ul class="wp-plan-list">
+                    <li><i class="bi bi-check2-circle"></i> <span>10 Free AI Interviews at signup</span></li>
+                    <li><i class="bi bi-check2-circle"></i> <span>4,111+ LeetCode DSA Problem Bank</span></li>
+                    <li><i class="bi bi-check2-circle"></i> <span>Webcam &amp; keystroke proctoring</span></li>
+                    <li><i class="bi bi-check2-circle"></i> <span>30s PDF scorecards</span></li>
+                  </ul>
+                  <button type="button" class="btn btn-outline" onclick="handleStartTrialClick()" style="width: 100%; border-color: var(--wp-gold);">Get Started</button>
+                </div>
+
+                <div class="wp-plan-card is-featured">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem;">
+                    <div class="wp-plan-name" style="margin: 0;">Starter</div>
+                    <span class="badge" style="background: rgba(255,228,146,0.18); color: #FFE492; border-color: rgba(255,228,146,0.45);">Most Popular</span>
+                  </div>
+                  <div class="wp-plan-price">$49 <span style="font-size: 0.85rem; font-weight: 500; opacity: 0.8;">/ month</span></div>
+                  <div class="wp-plan-desc">120 rounds / mo (~$0.41 per interview)</div>
+                  <ul class="wp-plan-list">
+                    <li><i class="bi bi-check2-circle"></i> <span>120 AI technical interviews included</span></li>
+                    <li><i class="bi bi-check2-circle"></i> <span>Branded public careers portal</span></li>
+                    <li><i class="bi bi-check2-circle"></i> <span>Bulk CSV &amp; email invites</span></li>
+                    <li><i class="bi bi-check2-circle"></i> <span>Custom rubrics &amp; priority voice AI</span></li>
+                  </ul>
+                  <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()" style="width: 100%;">Get Started</button>
+                </div>
+
+                <div class="wp-plan-card">
+                  <div class="wp-plan-name">Scale Organization</div>
+                  <div class="wp-plan-price">$149 <span style="font-size: 0.85rem; font-weight: 500; opacity: 0.7;">/ month</span></div>
+                  <div class="wp-plan-desc">High-volume engineering &amp; agency teams</div>
+                  <ul class="wp-plan-list">
+                    <li><i class="bi bi-check2-circle"></i> <span>450 AI technical interviews included</span></li>
+                    <li><i class="bi bi-check2-circle"></i> <span>Multi-recruiter RBAC &amp; seats</span></li>
+                    <li><i class="bi bi-check2-circle"></i> <span>HMAC webhooks &amp; REST API</span></li>
+                    <li><i class="bi bi-check2-circle"></i> <span>Custom domain &amp; compliance exports</span></li>
+                  </ul>
+                  <button type="button" class="btn btn-outline" onclick="handleStartTrialClick()" style="width: 100%; border-color: var(--wp-gold);">Get Started</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- BAND 7 (SOFT ICE TINT): Benchmark Matrix + Monochrome Sponsors Bar -->
+          <div class="wp-band wp-band-soft">
+            <div class="wp-inner">
           <!-- Scannable Competitor Matrix -->
-          <section class="compare-section">
+          <section class="compare-section" style="margin-top: 0;">
             <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
               <div>
-                <h2 style="font-size: 1.28rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em; margin: 0;">
+                <h2 style="font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; margin: 0;">
                   At-a-Glance Benchmark
                 </h2>
               </div>
@@ -688,16 +853,92 @@ function twoSum(nums, target) {
             </div>
           </section>
 
-          <!-- Bottom CTA Banner -->
-          <div class="bolt-bottom-banner">
-            <div class="nano-banner-bg" aria-hidden="true"></div>
-            <div>
-              <div style="font-size: 1.12rem; font-weight: 700; color: var(--text);">Launch Your First Autonomous Round in 60s</div>
-              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;"><strong>10 Free AI Technical Interviews</strong> included at signup.</div>
+          <div style="text-align: center; margin-top: 2.5rem;">
+            <div style="font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);">Powered by Verified Infrastructure</div>
+            <div class="wp-sponsors-row">
+              <span class="wp-sponsor-item"><i class="bi bi-database-fill"></i> PostgreSQL</span>
+              <span class="wp-sponsor-item"><i class="bi bi-shield-check"></i> Supabase Auth</span>
+              <span class="wp-sponsor-item"><i class="bi bi-filetype-js"></i> Node.js Runtime</span>
+              <span class="wp-sponsor-item"><i class="bi bi-terminal-fill"></i> LLVM C++ Judge</span>
+              <span class="wp-sponsor-item"><i class="bi bi-broadcast"></i> WebRTC Voice</span>
             </div>
-            <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()">
-              Claim 10 Free AI Interviews <i class="bi bi-arrow-right"></i>
-            </button>
+          </div>
+            </div>
+          </div>
+
+          <!-- BAND 8 (WHITEPACE SPLIT TESTIMONIALS: 1 CLEAN WHITE + 2 AZURE #4F9CF9) -->
+          <div class="wp-band wp-band-surface">
+            <div class="wp-inner">
+              <div style="text-align: center; max-width: 620px; margin: 0 auto;">
+                <h2 class="wp-section-heading">
+                  What Engineering Teams <span class="wp-brush">Say<svg class="wp-brush-svg" viewBox="0 0 110 20" preserveAspectRatio="none" fill="none" aria-hidden="true"><path d="M4 14 C 35 4, 75 4, 106 13" stroke="#FFE492" stroke-width="9" stroke-linecap="round"/></svg></span>
+                </h2>
+              </div>
+
+              <div class="wp-testimonials-grid">
+                <div class="wp-testimonial-card">
+                  <div>
+                    <div class="wp-quote-mark"><i class="bi bi-quote"></i></div>
+                    <p class="wp-quote-text">"RoundOne cut 16 hours of weekly senior screening calls down to reviewing verified 94/100 scorecards and code playback."</p>
+                  </div>
+                  <div class="wp-testimonial-author">
+                    <span class="wp-avatar-circle">AM</span>
+                    <div>
+                      <div style="font-weight: 700; font-size: 0.85rem;">Arjun Mehta</div>
+                      <div style="font-size: 0.74rem; color: var(--text-muted);">VP Engineering, FinStack</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="wp-testimonial-card is-azure">
+                  <div>
+                    <div class="wp-quote-mark"><i class="bi bi-quote"></i></div>
+                    <p class="wp-quote-text">"Candidates explain Big-O complexity verbally while compiling C++ and Python live. Copy-paste proxies get flagged immediately."</p>
+                  </div>
+                  <div class="wp-testimonial-author">
+                    <span class="wp-avatar-circle">SL</span>
+                    <div>
+                      <div style="font-weight: 700; font-size: 0.85rem;">Dr. Sarah Lin</div>
+                      <div style="font-size: 0.74rem; opacity: 0.88;">Head of Talent Architecture</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="wp-testimonial-card is-azure">
+                  <div>
+                    <div class="wp-quote-mark"><i class="bi bi-quote"></i></div>
+                    <p class="wp-quote-text">"At $0.50 per full interview instead of $150 marketplaces, we evaluate 5x more engineering applicants fairly."</p>
+                  </div>
+                  <div class="wp-testimonial-author">
+                    <span class="wp-avatar-circle">RK</span>
+                    <div>
+                      <div style="font-weight: 700; font-size: 0.85rem;">Rohan Kapoor</div>
+                      <div style="font-size: 0.74rem; opacity: 0.88;">CTO, Northstar Cloud</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- BAND 9 (WHITEPACE DEEP NAVY #043873 FINAL CTA) -->
+          <div class="wp-band wp-band-navy">
+            <div class="nano-banner-bg" aria-hidden="true"></div>
+            <div class="wp-inner" style="text-align: center; padding-top: 3.5rem; padding-bottom: 3.5rem;">
+              <h2 class="wp-section-heading" style="margin-bottom: 0.65rem;">Try RoundOne AI today</h2>
+              <p class="wp-section-lead" style="max-width: 520px; margin: 0 auto 1.5rem;">
+                Get started with 10 Free AI Technical Interviews &middot; Add your team as you grow.
+              </p>
+              <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()" style="padding: 0.85rem 1.8rem; font-size: 0.95rem;">
+                Claim 10 Free AI Interviews <i class="bi bi-arrow-right"></i>
+              </button>
+              <div style="display: flex; justify-content: center; gap: 1.5rem; margin-top: 1.5rem; font-size: 1.35rem; color: rgba(255,255,255,0.78);" aria-hidden="true">
+                <i class="bi bi-apple"></i>
+                <i class="bi bi-windows"></i>
+                <i class="bi bi-ubuntu"></i>
+                <i class="bi bi-browser-chrome"></i>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -3505,19 +3746,58 @@ function twoSum(nums, target) {
 
   </main>
 
-  <footer id="site-dynamic-footer" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:.78rem;">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <i class="bi bi-cpu-fill" style="color:var(--accent);"></i>
-      <strong id="site-footer-brand">RoundOne AI</strong>
-      <span id="site-footer-tagline">&copy; 2026 • Autonomous Technical Screening Platform</span>
-      <a id="site-support-link" href="mailto:support@roundone.ai" style="display:none;"></a>
-    </div>
-    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-      <a href="/blog.html" style="color:var(--accent); font-weight:600;"><i class="bi bi-folder2-open"></i> All Content Links</a>
-      <a href="javascript:void(0)" onclick="openFeedbackModal()">Feedback</a>
-      <a href="/privacy.html">Privacy</a>
-      <a href="/terms.html">Terms</a>
-      <div id="dynamic-footer-links" style="display:inline-flex;align-items:center;gap:12px;flex-wrap:wrap;"></div>
+  <footer id="site-dynamic-footer">
+    <div class="wp-footer-inner">
+      <div class="wp-footer-cols">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.75rem;">
+            <span class="brand-mark" style="background:#4F9CF9;color:#fff;"><i class="bi bi-cpu-fill"></i></span>
+            <strong id="site-footer-brand" style="font-size:1.1rem;">RoundOne AI</strong>
+          </div>
+          <p id="site-footer-tagline" style="font-size:0.8rem;line-height:1.55;margin:0;opacity:0.82;">&copy; 2026 • Autonomous Technical Screening Platform</p>
+          <a id="site-support-link" href="mailto:support@roundone.ai" style="display:none;"></a>
+        </div>
+
+        <div>
+          <div class="wp-footer-col-title">Product</div>
+          <ul class="wp-footer-links">
+            <li><a href="#home" onclick="switchFrontTab('home')">Live Sandbox</a></li>
+            <li><a href="#pricing" onclick="switchFrontTab('pricing')">Pricing ($0.50/round)</a></li>
+            <li><a href="/pricing.html">Full Pricing Calculator</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="wp-footer-col-title">Resources</div>
+          <ul class="wp-footer-links">
+            <li><a href="/blog.html">Guides &amp; Research</a></li>
+            <li><a href="javascript:void(0)" onclick="openQuestionBankModal()">4,111+ DSA Bank</a></li>
+            <li><a href="#about" onclick="switchFrontTab('about')">About Us</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="wp-footer-col-title">Company</div>
+          <ul class="wp-footer-links">
+            <li><a href="/privacy.html">Privacy Policy</a></li>
+            <li><a href="/terms.html">Terms of Service</a></li>
+            <li><a href="javascript:void(0)" onclick="openFeedbackModal()">Feedback</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="wp-footer-col-title">Try It Today</div>
+          <p style="font-size:0.78rem;line-height:1.5;margin:0 0 0.85rem;opacity:0.82;">Start free with 10 AI interviews for your team.</p>
+          <button type="button" class="btn btn-primary btn-sm" onclick="handleStartTrialClick()" style="background:#4F9CF9;border-color:#4F9CF9;color:#fff;">
+            Start Today <i class="bi bi-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="wp-footer-bottom">
+        <div>&copy; 2026 RoundOne AI. Built for engineering hiring rigor.</div>
+        <div id="dynamic-footer-links" style="display:inline-flex;align-items:center;gap:12px;flex-wrap:wrap;"></div>
+      </div>
     </div>
   </footer>
 
