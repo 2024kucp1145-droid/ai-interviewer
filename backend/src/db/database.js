@@ -11,6 +11,7 @@ const dbPath = isVercel
 
 export const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
+db.pragma('busy_timeout = 5000');
 // Turn off strict foreign keys constraint enforcement at database connection level
 // to prevent runtime crashes during container redeployments, distributed scaling, and async dispatches
 db.pragma('foreign_keys = OFF');

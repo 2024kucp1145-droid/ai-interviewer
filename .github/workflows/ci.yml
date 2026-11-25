@@ -31,6 +31,7 @@ jobs:
 
       - name: Syntax check backend and frontend JS modules
         run: |
+          node --check backend/src/db/database.js
           node --check backend/src/server.js
           node --check backend/src/billing/billingRoutes.js
           node --check backend/src/admin/adminRoutes.js
@@ -45,18 +46,17 @@ jobs:
           node --check frontend/public/js/candidate.js
           node --check frontend/public/js/proctor.js
 
-      - name: Run unit, admin & full-stack integration tests
+      - name: Run unit & Supabase/CAPTCHA test suites
         run: |
-          # 1. Run unit & Supabase/CAPTCHA test suites
           npm test
           node tests/test_supabase_integration.js
 
-          # 2. Start backend server in background for HTTP integration tests
+      - name: Run HTTP integration & full-stack verification suites
+        run: |
           node backend/src/server.js &
           SERVER_PID=$!
           trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
 
-          # Wait up to 30 seconds for health check endpoint to respond
           echo "Waiting for backend server to be ready on port 3001..."
           for i in {1..30}; do
             if curl -s http://127.0.0.1:3001/health > /dev/null 2>&1; then
@@ -67,7 +67,6 @@ jobs:
           done
           curl -sf http://127.0.0.1:3001/health > /dev/null
 
-          # 3. Run full HTTP integration suites
           node tests/test_admin_system.js
           node tests/test_problems_1_2_3.js
           node tests/test_fullstack_features.js
