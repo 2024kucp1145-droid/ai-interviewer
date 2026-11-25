@@ -117,8 +117,8 @@
         var pctEl = document.getElementById('wp-scroll-pct');
         try {
           M.scroll(function (progress) {
-            // Map visible traversal cleanly [0.16..0.48] -> [0..1]
-            var rawT = Math.max(0, Math.min(1, (progress - 0.16) / 0.32));
+            // Map visible traversal smoothly [0.10..0.48] -> [0..1]
+            var rawT = Math.max(0, Math.min(1, (progress - 0.10) / 0.38));
             var t = 1 - Math.pow(1 - rawT, 3);
             var mobile = window.innerWidth <= 860;
 
@@ -128,11 +128,17 @@
             }
 
             cards.forEach(function (card, idx) {
-              var spreadX = mobile ? 0 : (idx === 0 ? 46 * (1 - t) : (idx === 2 ? -46 * (1 - t) : 0));
+              var spreadX = mobile ? 0 : (idx === 0 ? 48 * (1 - t) : (idx === 2 ? -48 * (1 - t) : 0));
               var rotZ = mobile ? 0 : (idx === 0 ? -3.5 * (1 - t) : (idx === 2 ? 3.5 * (1 - t) : 0));
-              var liftY = (1 - t) * (idx === 1 ? 26 : 16);
+              var liftY = (1 - t) * (idx === 1 ? 28 : 16);
               var sc = (0.93 + 0.07 * t).toFixed(4);
+              card.style.opacity = (0.55 + 0.45 * t).toFixed(3);
               card.style.transform = 'translate3d(' + spreadX.toFixed(2) + 'px, ' + liftY.toFixed(2) + 'px, 0) rotate(' + rotZ.toFixed(2) + 'deg) scale(' + sc + ')';
+              if (t >= 0.15 + idx * 0.30) {
+                card.classList.add('is-active');
+              } else {
+                card.classList.remove('is-active');
+              }
             });
           }, { target: sceneEl, offset: ['start end', 'end start'] });
         } catch (e) {

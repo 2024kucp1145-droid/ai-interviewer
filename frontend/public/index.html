@@ -135,57 +135,95 @@
              ======================================================== -->
         <div id="front-tab-home" class="front-tab-view" style="display: block;">
 
-          <!-- BAND 1 (WHITEPACE DEEP NAVY #043873): Calm Minimal Hero Showcase -->
-          <div class="wp-band wp-band-navy">
+          <!-- BAND 1 (WHITEPACE DEEP NAVY #043873): Cinematic Full-Viewport Hero -->
+          <div class="wp-band wp-band-navy wp-hero-cinema">
             <div class="nano-hero-backdrop" aria-hidden="true"></div>
-            <svg class="wp-contour-bg" viewBox="0 0 1440 620" preserveAspectRatio="none" fill="none" aria-hidden="true">
-              <path d="M-120 480 C 260 290, 560 540, 960 320 C 1220 180, 1420 260, 1580 120" stroke="#C4DEFD" stroke-width="1.4" stroke-opacity="0.35"/>
-              <path d="M-140 530 C 280 340, 590 590, 990 370 C 1250 230, 1450 310, 1600 170" stroke="#4F9CF9" stroke-width="1.2" stroke-opacity="0.3"/>
+            <!-- Animated particle dots grid -->
+            <div class="wp-particle-grid" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span>
+              <span></span><span></span><span></span><span></span><span></span>
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <!-- Curved contour lines -->
+            <svg class="wp-contour-bg" viewBox="0 0 1440 700" preserveAspectRatio="none" fill="none" aria-hidden="true">
+              <path d="M-120 500 C 260 310, 580 570, 980 340 C 1240 200, 1440 280, 1600 140" stroke="#C4DEFD" stroke-width="1.6" stroke-opacity="0.28"/>
+              <path d="M-60 580 C 300 400, 620 640, 1020 410 C 1280 270, 1480 350, 1640 210" stroke="#4F9CF9" stroke-width="1.1" stroke-opacity="0.22"/>
+              <ellipse cx="1180" cy="160" rx="320" ry="320" stroke="#4F9CF9" stroke-width="0.8" stroke-opacity="0.12"/>
+              <ellipse cx="1180" cy="160" rx="220" ry="220" stroke="#FFE492" stroke-width="0.6" stroke-opacity="0.1"/>
             </svg>
             <div class="wp-inner">
-              <section class="wp-hero-minimal-grid">
-                <div class="wp-hero-minimal-copy">
-                  <div class="hero-eyebrow hero-stagger" onclick="handleStartTrialClick()">
-                    <span class="hero-eyebrow-dot" aria-hidden="true"></span>
-                    <span>AI Technical Interviewer</span>
-                    <i class="bi bi-arrow-right"></i>
-                  </div>
+              <!-- Eyebrow pill -->
+              <div class="wp-hero-cinema-eyebrow hero-stagger" onclick="handleStartTrialClick()">
+                <span class="pulse-live-dot"></span>
+                <span>AI Technical Interviewer &mdash; Live Now</span>
+                <i class="bi bi-arrow-right"></i>
+              </div>
 
-                  <h1 class="bolt-title hero-stagger">
-                    Hire Engineers With
-                    <span class="wp-brush">Live Voice &amp; Code
-                      <svg class="wp-brush-svg" viewBox="0 0 280 24" preserveAspectRatio="none" fill="none" aria-hidden="true">
-                        <path d="M4 18 C 75 6, 185 4, 276 14" stroke="#FFE492" stroke-width="10" stroke-linecap="round" stroke-opacity="0.9"/>
+              <!-- Split: tagline left, visual right -->
+              <section class="wp-hero-cinema-grid">
+                <div class="wp-hero-cinema-left">
+                  <h1 class="wp-hero-cinema-h1 hero-stagger">
+                    Hire the Best<br>
+                    Engineers,
+                    <span class="wp-brush">Autonomously
+                      <svg class="wp-brush-svg" viewBox="0 0 320 24" preserveAspectRatio="none" fill="none" aria-hidden="true">
+                        <path d="M4 18 C 90 5, 230 4, 316 15" stroke="#FFE492" stroke-width="10" stroke-linecap="round" stroke-opacity="0.92"/>
                       </svg>
                     </span>
                   </h1>
 
-                  <p class="wp-hero-minimal-sub hero-stagger">
-                    Autonomous AI technical interviews, live code grading, and instant 30-second scorecards.
+                  <p class="wp-hero-cinema-sub hero-stagger">
+                    Voice AI interviews, live code execution &amp; instant scorecards. <strong>No humans needed.</strong>
                   </p>
 
-                  <div class="hero-cta-row hero-stagger">
-                    <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()" style="padding: 0.78rem 1.45rem; font-size: 0.92rem;">
+                  <div class="hero-cta-row hero-stagger" style="margin-top: 2rem;">
+                    <button type="button" class="btn btn-primary wp-cta-primary" onclick="handleStartTrialClick()">
                       Claim 10 Free AI Interviews <i class="bi bi-arrow-right"></i>
                     </button>
-                    <a href="#interactive-studio-band" class="btn btn-outline" style="padding: 0.78rem 1.3rem;">
-                      Try Live Demo <i class="bi bi-arrow-down"></i>
+                    <a href="#interactive-studio-band" class="btn wp-cta-ghost">
+                      Watch Demo <i class="bi bi-play-circle-fill"></i>
                     </a>
+                  </div>
+
+                  <!-- Trust strip -->
+                  <div class="wp-hero-trust-strip hero-stagger">
+                    <span><i class="bi bi-shield-check"></i> 4,111+ LeetCode DSA Bank</span>
+                    <span><i class="bi bi-lightning-charge-fill"></i> 30s Scorecard</span>
+                    <span><i class="bi bi-stars"></i> $0.50 / Round</span>
                   </div>
                 </div>
 
-                <!-- Visual Centerpiece: Nano Banana 3D Artwork + Minimal Live Signal Pills -->
-                <div class="hero-stagger">
+                <!-- Right: Nano Banana 3D Hero Stage + Floating Glassmorphic SaaS Telemetry -->
+                <div class="wp-hero-cinema-right hero-stagger">
                   <div class="wp-hero-art-card">
                     <img src="/img/wp-hero-stage.jpg" alt="RoundOne AI Technical Interview Visual" class="wp-hero-art-img" />
-                    <div class="wp-hero-art-pill top-left">
-                      <span class="pulse-live-dot"></span>
-                      <span>Alex &middot; Live AI Voice</span>
-                      <div class="hero-eq-bars" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+                  </div>
+
+                  <!-- Floating mini-cards -->
+                  <div class="wp-cinema-float-card wp-float-score hero-float-a">
+                    <div class="wp-float-score-ring">
+                      <svg viewBox="0 0 44 44" fill="none"><circle cx="22" cy="22" r="18" stroke="rgba(79,156,249,0.2)" stroke-width="4"/><circle cx="22" cy="22" r="18" stroke="#10b981" stroke-width="4" stroke-dasharray="113" stroke-dashoffset="20" stroke-linecap="round" transform="rotate(-90 22 22)"/></svg>
+                      <span class="wp-float-score-num">94</span>
                     </div>
-                    <div class="wp-hero-art-pill bottom-right">
-                      <i class="bi bi-check-circle-fill" style="color: #10b981; font-size: 0.95rem;"></i>
-                      <span>94/100 Fit &middot; 30s Verdict</span>
+                    <div>
+                      <div class="wp-float-label">Fit Score</div>
+                      <div class="wp-float-sub">Strong Hire &check;</div>
+                    </div>
+                  </div>
+
+                  <div class="wp-cinema-float-card wp-float-voice hero-float-b">
+                    <span class="pulse-live-dot"></span>
+                    <div class="wp-cinema-eq-mini" aria-hidden="true">
+                      <span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                    <div class="wp-float-label">Alex &bull; AI Voice Live</div>
+                  </div>
+
+                  <div class="wp-cinema-float-card wp-float-dsa hero-float-c">
+                    <i class="bi bi-database-fill-check" style="color:#FFE492; font-size:1.1rem;"></i>
+                    <div>
+                      <div class="wp-float-label">DSA Bank</div>
+                      <div class="wp-float-sub">4,111+ Problems</div>
                     </div>
                   </div>
                 </div>
@@ -198,10 +236,11 @@
             <div class="wp-inner">
               <div class="wp-scroll-head">
                 <div>
+                  <div class="wp-scroll-eyebrow">How it works</div>
                   <h2 class="wp-section-heading" style="margin-bottom: 0.35rem;">
-                    From Role to Verdict in <span class="wp-brush">Motion<svg class="wp-brush-svg" viewBox="0 0 180 22" preserveAspectRatio="none" fill="none" aria-hidden="true"><path d="M4 16 C 55 5, 130 4, 176 14" stroke="#FFE492" stroke-width="9" stroke-linecap="round"/></svg></span>
+                    Zero to Scorecard in <span class="wp-brush">60 Seconds<svg class="wp-brush-svg" viewBox="0 0 260 22" preserveAspectRatio="none" fill="none" aria-hidden="true"><path d="M4 16 C 80 5, 190 4, 256 14" stroke="#FFE492" stroke-width="9" stroke-linecap="round"/></svg></span>
                   </h2>
-                  <p class="wp-section-lead" style="margin: 0;">Scroll to watch how RoundOne conducts an autonomous round.</p>
+                  <p class="wp-section-lead" style="margin: 0;">Scroll to watch an autonomous technical round unfold.</p>
                 </div>
                 <span class="wp-scroll-badge">
                   <i class="bi bi-magic"></i>
@@ -216,48 +255,63 @@
                 </svg>
 
                 <div class="wp-scene-grid">
+                  <!-- Card 1: Role Config -->
                   <div class="wp-scene-card" data-scene-idx="0">
+                    <div class="wp-scene-icon-wrap">
+                      <i class="bi bi-sliders2"></i>
+                    </div>
                     <div class="wp-scene-step-row">
                       <span class="wp-scene-num">01</span>
-                      <span class="wp-scene-timing">0.0s Setup</span>
+                      <span class="wp-scene-timing">Setup</span>
                     </div>
-                    <h3 class="wp-scene-title">Role &amp; DSA Match</h3>
-                    <div class="wp-scene-visual">
+                    <h3 class="wp-scene-title">Configure Role</h3>
+                    <p class="wp-scene-desc">Pick stack, difficulty &amp; DSA topics in seconds.</p>
+                    <div class="wp-scene-visual" style="margin-top: auto;">
                       <div class="wp-scene-chips">
-                        <span class="wp-scene-chip">Backend</span>
                         <span class="wp-scene-chip">Python</span>
-                        <span class="wp-scene-chip">Two Sum</span>
+                        <span class="wp-scene-chip">Arrays</span>
+                        <span class="wp-scene-chip">DP</span>
                       </div>
-                      <i class="bi bi-stars" style="color: var(--wp-azure); font-size: 1.25rem;"></i>
+                      <i class="bi bi-stars" style="color: var(--wp-azure); font-size: 1.2rem;"></i>
                     </div>
                   </div>
 
+                  <!-- Card 2: Live Interview -->
                   <div class="wp-scene-card" data-scene-idx="1">
+                    <div class="wp-scene-icon-wrap wp-scene-icon-azure">
+                      <i class="bi bi-soundwave"></i>
+                    </div>
                     <div class="wp-scene-step-row">
                       <span class="wp-scene-num">02</span>
-                      <span class="wp-scene-timing">&lt; 450ms Voice</span>
+                      <span class="wp-scene-timing">&lt; 450ms</span>
                     </div>
-                    <h3 class="wp-scene-title">Live AI Probe &amp; Compile</h3>
-                    <div class="wp-scene-visual">
+                    <h3 class="wp-scene-title">AI Conducts Live</h3>
+                    <p class="wp-scene-desc">Voice probes, code execution &amp; dynamic follow-ups.</p>
+                    <div class="wp-scene-visual" style="margin-top: auto;">
                       <div class="wp-scene-eq" aria-hidden="true">
-                        <span style="height: 10px;"></span><span style="height: 18px;"></span><span style="height: 12px;"></span><span style="height: 21px;"></span><span style="height: 14px;"></span>
+                        <span></span><span></span><span></span><span></span><span></span>
                       </div>
-                      <span class="cmp-chip win"><i class="bi bi-check2"></i> Tests Passed</span>
+                      <span class="cmp-chip win"><i class="bi bi-check2"></i> Live</span>
                     </div>
                   </div>
 
+                  <!-- Card 3: Scorecard -->
                   <div class="wp-scene-card" data-scene-idx="2">
+                    <div class="wp-scene-icon-wrap wp-scene-icon-gold">
+                      <i class="bi bi-award-fill"></i>
+                    </div>
                     <div class="wp-scene-step-row">
                       <span class="wp-scene-num">03</span>
                       <span class="wp-scene-timing">30s Output</span>
                     </div>
-                    <h3 class="wp-scene-title">Verified Rubric Scorecard</h3>
-                    <div class="wp-scene-visual">
-                      <div>
-                        <div style="font-family: var(--font-mono); font-size: 1.35rem; font-weight: 800; color: #10b981; line-height: 1;">94/100</div>
-                        <div style="font-size: 0.68rem; color: var(--text-muted); font-weight: 600;">Strong Hire PDF</div>
+                    <h3 class="wp-scene-title">Instant Verdict</h3>
+                    <p class="wp-scene-desc">Rubric scorecard, code replay &amp; PDF in one click.</p>
+                    <div class="wp-scene-visual" style="margin-top: auto;">
+                      <div class="wp-scene-score-row" style="padding-top:0; margin-top:0;">
+                        <span class="wp-scene-score-num">94</span>
+                        <span class="wp-scene-score-label">Strong Hire <i class="bi bi-check-circle-fill" style="color:#10b981;"></i></span>
                       </div>
-                      <i class="bi bi-file-earmark-check-fill" style="color: #10b981; font-size: 1.5rem;"></i>
+                      <i class="bi bi-file-earmark-check-fill" style="color: #10b981; font-size: 1.45rem;"></i>
                     </div>
                   </div>
                 </div>
