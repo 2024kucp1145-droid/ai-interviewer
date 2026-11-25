@@ -329,6 +329,7 @@ body:not(.is-authenticated) header #btn-header-trial {
 .wp-brush {
   position: relative;
   display: inline-block;
+  margin-left: 0.08em;
   z-index: 1;
 }
 
@@ -907,5 +908,174 @@ body:not(.is-authenticated) #front-tab-about {
     grid-template-columns: 1fr;
     gap: 2rem;
     padding: 1rem 0 1.75rem;
+  }
+}
+
+/* ==========================================================================
+   Scroll-Driven Figma Animation Scene (#wp-scroll-scene)
+   ========================================================================== */
+.wp-scroll-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  margin-bottom: 2.1rem;
+}
+
+.wp-scroll-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--wp-navy);
+  background: rgba(79, 156, 249, 0.14);
+  border: 1px solid rgba(79, 156, 249, 0.3);
+  padding: 0.34rem 0.78rem;
+  border-radius: 999px;
+}
+
+[data-theme="dark"] .wp-scroll-badge {
+  color: var(--wp-gold);
+  background: rgba(255, 228, 146, 0.12);
+  border-color: rgba(255, 228, 146, 0.3);
+}
+
+.wp-scroll-stage {
+  position: relative;
+  padding-top: 1.35rem;
+}
+
+.wp-scroll-connector {
+  position: relative;
+  width: 78%;
+  height: 22px;
+  margin: 0 auto 1.25rem;
+  display: block;
+}
+
+.wp-scene-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+  perspective: 1100px;
+}
+
+.wp-scene-card {
+  background: #ffffff;
+  border: 1px solid rgba(4, 56, 115, 0.12);
+  border-radius: 16px;
+  padding: 1.45rem 1.3rem;
+  box-shadow: 0 18px 42px rgba(4, 56, 115, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  will-change: transform, opacity;
+  min-width: 0;
+}
+
+[data-theme="dark"] .wp-scene-card {
+  background: #0d1d38;
+  border-color: rgba(196, 222, 253, 0.18);
+  box-shadow: 0 20px 44px rgba(2, 10, 26, 0.45);
+}
+
+.wp-scene-step-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wp-scene-num {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #ffffff;
+  background: var(--wp-navy);
+  padding: 0.2rem 0.56rem;
+  border-radius: 7px;
+}
+
+[data-theme="dark"] .wp-scene-num {
+  background: var(--wp-azure);
+}
+
+.wp-scene-timing {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--wp-azure);
+}
+
+.wp-scene-title {
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: var(--wp-navy);
+  margin: 0;
+}
+
+[data-theme="dark"] .wp-scene-title {
+  color: #ffffff;
+}
+
+.wp-scene-visual {
+  background: #f5f9ff;
+  border: 1px solid rgba(79, 156, 249, 0.18);
+  border-radius: 12px;
+  padding: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  min-height: 74px;
+}
+
+[data-theme="dark"] .wp-scene-visual {
+  background: #09152b;
+  border-color: rgba(196, 222, 253, 0.16);
+}
+
+.wp-scene-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.wp-scene-chip {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.22rem 0.5rem;
+  border-radius: 6px;
+  background: rgba(79, 156, 249, 0.14);
+  color: var(--wp-navy);
+}
+
+[data-theme="dark"] .wp-scene-chip {
+  color: var(--wp-sky);
+}
+
+.wp-scene-eq {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 24px;
+}
+
+.wp-scene-eq span {
+  display: block;
+  width: 3.5px;
+  border-radius: 99px;
+  background: var(--wp-azure);
+}
+
+@media (max-width: 860px) {
+  .wp-scroll-connector {
+    display: none;
+  }
+  .wp-scene-grid {
+    grid-template-columns: 1fr;
   }
 }

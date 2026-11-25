@@ -2,9 +2,9 @@ name: RoundOne AI CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
 
 jobs:
   verify:
@@ -45,11 +45,15 @@ jobs:
           node --check frontend/public/js/admin.js
           node --check frontend/public/js/candidate.js
           node --check frontend/public/js/proctor.js
+          node --check frontend/public/js/roundone-animations.js
+          node --check frontend/public/js/visual-telemetry.js
+          node --check frontend/public/js/theme.js
 
-      - name: Run unit & Supabase/CAPTCHA test suites
+      - name: Run unit, MCP & Supabase/CAPTCHA test suites
         run: |
           npm test
           node tests/test_supabase_integration.js
+          npm run mcp:test
 
       - name: Run HTTP integration & full-stack verification suites
         run: |
@@ -67,6 +71,7 @@ jobs:
           done
           curl -sf http://127.0.0.1:3001/health > /dev/null
 
+          node tests/test_bolt_landing_and_auth.js
           node tests/test_admin_system.js
           node tests/test_problems_1_2_3.js
           node tests/test_fullstack_features.js

@@ -77,17 +77,118 @@
     }
 
     var heroBackdrop = document.querySelector('.nano-hero-backdrop');
-    if (heroBackdrop && typeof M.scroll === 'function') {
+    var heroArt = document.querySelector('.wp-hero-art-card');
+    var heroContour = document.querySelector('.wp-contour-bg');
+    var topPill = document.querySelector('.wp-hero-art-pill.top-left');
+    var botPill = document.querySelector('.wp-hero-art-pill.bottom-right');
+
+    if (typeof M.scroll === 'function') {
       try {
         M.scroll(function (progress) {
           var clamped = Math.max(0, Math.min(1, progress || 0));
-          var shiftY = -(clamped * 28).toFixed(2);
-          var scale = (1 + clamped * 0.06).toFixed(4);
-          heroBackdrop.style.transform = 'translate3d(0, ' + shiftY + 'px, 0) scale(' + scale + ')';
+          if (heroBackdrop) {
+            var shiftY = -(clamped * 28).toFixed(2);
+            var scale = (1 + clamped * 0.06).toFixed(4);
+            heroBackdrop.style.transform = 'translate3d(0, ' + shiftY + 'px, 0) scale(' + scale + ')';
+          }
+          if (heroContour) {
+            heroContour.style.transform = 'translate3d(0, ' + (clamped * 22).toFixed(2) + 'px, 0)';
+          }
+          if (heroArt) {
+            var artTilt = Math.min(8, clamped * 16).toFixed(2);
+            heroArt.style.transform = 'translate3d(0, ' + (-(clamped * 20)).toFixed(2) + 'px, 0) rotateX(' + artTilt + 'deg)';
+          }
+          if (topPill) {
+            topPill.style.transform = 'translate3d(0, ' + (-(clamped * 14)).toFixed(2) + 'px, 0)';
+          }
+          if (botPill) {
+            botPill.style.transform = 'translate3d(0, ' + (clamped * 14).toFixed(2) + 'px, 0)';
+          }
         });
       } catch (e) {
         // Safe fallback
       }
+
+      // Dedicated Scroll-Scrubbed Storyboard Scene (#wp-scroll-scene)
+      var sceneEl = document.getElementById('wp-scroll-scene');
+      if (sceneEl) {
+        var cards = sceneEl.querySelectorAll('.wp-scene-card');
+        var lineFill = document.getElementById('wp-scroll-line-fill');
+        var pctEl = document.getElementById('wp-scroll-pct');
+        try {
+          M.scroll(function (progress) {
+            // Map visible traversal cleanly [0.16..0.48] -> [0..1]
+            var rawT = Math.max(0, Math.min(1, (progress - 0.16) / 0.32));
+            var t = 1 - Math.pow(1 - rawT, 3);
+            var mobile = window.innerWidth <= 860;
+
+            if (pctEl) pctEl.textContent = Math.round(t * 100) + '% Synced';
+            if (lineFill) {
+              lineFill.style.strokeDashoffset = String(Math.round(900 * (1 - t)));
+            }
+
+            cards.forEach(function (card, idx) {
+              var spreadX = mobile ? 0 : (idx === 0 ? 46 * (1 - t) : (idx === 2 ? -46 * (1 - t) : 0));
+              var rotZ = mobile ? 0 : (idx === 0 ? -3.5 * (1 - t) : (idx === 2 ? 3.5 * (1 - t) : 0));
+              var liftY = (1 - t) * (idx === 1 ? 26 : 16);
+              var sc = (0.93 + 0.07 * t).toFixed(4);
+              card.style.transform = 'translate3d(' + spreadX.toFixed(2) + 'px, ' + liftY.toFixed(2) + 'px, 0) rotate(' + rotZ.toFixed(2) + 'deg) scale(' + sc + ')';
+            });
+          }, { target: sceneEl, offset: ['start end', 'end start'] });
+        } catch (e) {
+          // Graceful fallback if target scroll unsupported
+        }
+      }
+
+      // Orbital ring gentle scroll spin
+      var orbitStage = document.querySelector('.wp-orbital-stage');
+      var orbitRings = document.querySelector('.wp-orbital-rings');
+      if (orbitStage && orbitRings) {
+        try {
+          M.scroll(function (progress) {
+            var deg = ((progress || 0) * 52).toFixed(2);
+            orbitRings.style.transform = 'rotate(' + deg + 'deg)';
+          }, { target: orbitStage, offset: ['start end', 'end start'] });
+        } catch (e) {
+          // Safe fallback
+        }
+      }
+    }
+
+    // Brush-stroke SVG auto-draw on viewport enter
+    if (typeof M.inView === 'function') {
+      var brushPaths = document.querySelectorAll('.wp-brush-svg path');
+      if (brushPaths.length > 0) {
+        M.inView(brushPaths, function (pathEl) {
+          if (pathEl.dataset.drawn === '1') return;
+          pathEl.dataset.drawn = '1';
+          try {
+            var len = pathEl.getTotalLength ? Math.ceil(pathEl.getTotalLength()) : 280;
+            pathEl.style.strokeDasharray = String(len);
+            pathEl.style.strokeDashoffset = String(len);
+            animeCall(pathEl, {
+              strokeDashoffset: [len, 0],
+              duration: 720,
+              ease: 'outCubic'
+            });
+          } catch (e) {
+            // Safe fallback
+          }
+        }, { amount: 0.4 });
+      }
+    }
+
+    // Animated equalizer bars inside Scene Card 2
+    var sceneBars = document.querySelectorAll('.wp-scene-eq span');
+    if (sceneBars.length > 0) {
+      sceneBars.forEach(function (bar, idx) {
+        animeCall(bar, {
+          height: ['7px', (15 + (idx % 3) * 5) + 'px', '8px'],
+          duration: 620 + idx * 110,
+          loop: true,
+          ease: 'inOutSine'
+        });
+      });
     }
   }
 
@@ -123,7 +224,7 @@
     }
 
     if (typeof M.hover === 'function') {
-      var liftCards = document.querySelectorAll('.hero-metric-pill, .workflow-step, .telemetry-card, .about-pipe-node, .wp-plan-card, .wp-testimonial-card, .wp-orbit-node');
+      var liftCards = document.querySelectorAll('.hero-metric-pill, .workflow-step, .telemetry-card, .about-pipe-node, .wp-plan-card, .wp-testimonial-card, .wp-orbit-node, .wp-scene-card');
       if (liftCards.length > 0) {
         M.hover(liftCards, function (el) {
           M.animate(el, { y: -4 }, { type: 'spring', stiffness: 360, damping: 24 });

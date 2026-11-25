@@ -4318,3 +4318,5 @@ app.listen(PORT, () => {
   console.log(`=======================================================`);
   startSupabaseLiveSync();
 });
+
+export default app;
