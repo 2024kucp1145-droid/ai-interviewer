@@ -9,9 +9,11 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/app-theme.css">
+  <link rel="stylesheet" href="/css/visual-upgrade.css">
   <script src="/js/theme.js"></script>
 </head>
 <body>
+  <div class="motion-scroll-bar" aria-hidden="true"></div>
 
   <!-- Admin-controlled Global Announcement Banner -->
   <div id="site-announcement-bar" style="display:none;padding:9px 18px;text-align:center;font-size:.82rem;font-weight:600;border-bottom:1px solid var(--border);"></div>
@@ -134,6 +136,7 @@
 
           <!-- Asymmetric 2-Column Editorial Hero + Interactive 3D Product Stage -->
           <section class="hero-split-grid">
+            <div class="nano-hero-backdrop" aria-hidden="true"></div>
             <div class="hero-copy-col">
               <div class="hero-eyebrow hero-stagger" onclick="handleStartTrialClick()">
                 <span class="hero-eyebrow-dot" aria-hidden="true"></span>
@@ -142,18 +145,34 @@
               </div>
 
               <h1 class="bolt-title hero-stagger">
-                Technical screening that compiles, probes, and scores like a staff engineer.
+                Screen engineers with live voice, IDE &amp; instant rubrics.
               </h1>
 
               <p class="bolt-subhead hero-stagger">
-                Conduct natural sub-second voice interviews paired with <strong>4,111+ LeetCode DSA Bank</strong> coding tests, continuous anti-cheat proctoring, and 30-second PDF scorecards.
+                Sub-second voice AI + <strong>4,111+ LeetCode DSA Bank</strong> + anti-cheat telemetry.
               </p>
+
+              <!-- Scannable Visual Metric Strip -->
+              <div class="hero-visual-metrics hero-stagger">
+                <div class="hero-metric-pill">
+                  <div class="hero-metric-val is-accent">&lt; 450ms</div>
+                  <div class="hero-metric-lbl">Voice AI Turn</div>
+                </div>
+                <div class="hero-metric-pill">
+                  <div class="hero-metric-val">15+ Langs</div>
+                  <div class="hero-metric-lbl">Live Sandbox</div>
+                </div>
+                <div class="hero-metric-pill">
+                  <div class="hero-metric-val">$0.50</div>
+                  <div class="hero-metric-lbl">Per Full Screen</div>
+                </div>
+              </div>
 
               <!-- Direct Interview Role Launcher -->
               <div class="bolt-prompt-container hero-stagger">
                 <div class="bolt-prompt-box">
                   <i class="bi bi-terminal" style="color: var(--text-subtle); flex-shrink: 0;"></i>
-                  <input type="text" id="bolt-prompt-input" class="bolt-prompt-input" placeholder="Describe role to screen (e.g. Senior Backend, React + Node)..." onkeydown="if(event.key==='Enter') handleBoltPromptSubmit()">
+                  <input type="text" id="bolt-prompt-input" class="bolt-prompt-input" placeholder="Describe role (e.g. Senior Backend, React + Node)..." onkeydown="if(event.key==='Enter') handleBoltPromptSubmit()">
                   <button type="button" class="bolt-prompt-btn" onclick="handleBoltPromptSubmit()">
                     <span>Launch Round</span>
                     <i class="bi bi-arrow-right"></i>
@@ -174,7 +193,7 @@
                   Claim 10 Free AI Interviews <i class="bi bi-arrow-right"></i>
                 </button>
                 <button type="button" class="btn btn-outline" onclick="openQuestionBankModal()">
-                  <i class="bi bi-code-square"></i> Explore 4,111+ Bank
+                  <i class="bi bi-code-square"></i> 4,111+ DSA Bank
                 </button>
                 <button type="button" class="btn btn-outline" onclick="openAuthModal('login')">
                   <i class="bi bi-box-arrow-in-right"></i> Sign In
@@ -183,9 +202,8 @@
 
               <!-- Crisp Proof Signals -->
               <div class="hero-proof-row hero-stagger">
-                <span class="hero-proof-item"><i class="bi bi-check2-circle"></i> &lt;450ms AI voice turns</span>
                 <span class="hero-proof-item"><i class="bi bi-check2-circle"></i> Camera &amp; keystroke proctoring</span>
-                <span class="hero-proof-item"><i class="bi bi-check2-circle"></i> Starts at $0.50 / interview</span>
+                <span class="hero-proof-item"><i class="bi bi-check2-circle"></i> 30s audited PDF scorecards</span>
               </div>
             </div>
 
@@ -330,27 +348,27 @@ function twoSum(nums, target) {
             </div>
           </section>
 
-          <!-- Connected 3-Step Workflow Rail -->
+          <!-- Connected 3-Step Visual Workflow Rail -->
           <section class="workflow-rail" aria-label="How RoundOne AI works">
             <div class="workflow-step">
               <div class="quick-step-num">01</div>
               <div>
-                <div style="font-weight: 700; font-size: 0.86rem; color: var(--text); margin-bottom: 0.22rem;">Pick or Describe a Role</div>
-                <div style="font-size: 0.76rem; color: var(--text-muted); line-height: 1.5;">Paste any JD or select from 100+ role templates and 4,111+ DSA coding challenges.</div>
+                <div style="font-weight: 700; font-size: 0.86rem; color: var(--text);">Pick Role or Paste JD</div>
+                <div class="workflow-step-badge"><i class="bi bi-lightning-charge-fill"></i> 100+ Roles &middot; 4,111+ DSA</div>
               </div>
             </div>
             <div class="workflow-step">
               <div class="quick-step-num">02</div>
               <div>
-                <div style="font-weight: 700; font-size: 0.86rem; color: var(--text); margin-bottom: 0.22rem;">Send One Timed Link</div>
-                <div style="font-size: 0.76rem; color: var(--text-muted); line-height: 1.5;">Alex runs adaptive voice follow-ups, live compilation, and dual-camera proctoring 24/7.</div>
+                <div style="font-weight: 700; font-size: 0.86rem; color: var(--text);">Send One Timed Link</div>
+                <div class="workflow-step-badge"><i class="bi bi-mic-fill"></i> Voice AI + IDE + Proctor</div>
               </div>
             </div>
             <div class="workflow-step">
               <div class="quick-step-num">03</div>
               <div>
-                <div style="font-weight: 700; font-size: 0.86rem; color: var(--text); margin-bottom: 0.22rem;">Hire From Audited Scorecards</div>
-                <div style="font-size: 0.76rem; color: var(--text-muted); line-height: 1.5;">Inspect 0–100 rubrics, verbatim quotes, and execution telemetry within 30 seconds.</div>
+                <div style="font-weight: 700; font-size: 0.86rem; color: var(--text);">Review 30s Scorecard</div>
+                <div class="workflow-step-badge"><i class="bi bi-file-earmark-check-fill"></i> 0&ndash;100 Rubric &amp; PDF</div>
               </div>
             </div>
           </section>
@@ -474,66 +492,196 @@ function twoSum(nums, target) {
             </div>
           </section>
 
-          <!-- Competitor Benchmark Table -->
-          <section class="compare-section">
-            <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem;">
+          <!-- Visual Telemetry & Interactive Benchmark Visualizer -->
+          <section id="visual-telemetry-suite" class="telemetry-suite" aria-label="Cost and Screening Visualizations">
+            <div class="telemetry-suite-header">
               <div>
-                <h2 style="font-size: 1.35rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em; margin: 0 0 0.25rem;">
-                  RoundOne AI vs Legacy Screening
-                </h2>
-                <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0;">
-                  Why engineering teams replace static coding links and high-cost manual screens.
-                </p>
+                <h2>Visual ROI &amp; Screening Telemetry</h2>
+                <p>Compare cost, turnaround, and funnel conversion across screening volume.</p>
               </div>
-              <span class="badge badge-accent">Live Benchmark</span>
+              <div class="telemetry-volume-tabs" role="group" aria-label="Candidate volume selector">
+                <button type="button" class="telemetry-vol-btn" data-vol="10" onclick="RoundOneTelemetry.setVolume(10)">10 Rounds</button>
+                <button type="button" class="telemetry-vol-btn active" data-vol="100" onclick="RoundOneTelemetry.setVolume(100)">100 Rounds</button>
+                <button type="button" class="telemetry-vol-btn" data-vol="500" onclick="RoundOneTelemetry.setVolume(500)">500 Rounds</button>
+              </div>
+            </div>
+
+            <div class="telemetry-grid-2">
+              <!-- Card 1: Interactive Cost & Turnaround Bar Visualizer -->
+              <div class="telemetry-card">
+                <div class="telemetry-card-head">
+                  <div class="telemetry-card-title"><i class="bi bi-bar-chart-line-fill"></i> Screening Spend &amp; Latency</div>
+                  <span class="badge badge-accent">Live Calculator</span>
+                </div>
+
+                <div class="telemetry-kpi-strip">
+                  <div class="telemetry-kpi-box">
+                    <div id="viz-kpi-saved-usd" class="telemetry-kpi-num emerald">$18,450</div>
+                    <div class="telemetry-kpi-label">Budget Saved vs Manual</div>
+                  </div>
+                  <div class="telemetry-kpi-box">
+                    <div id="viz-kpi-saved-hrs" class="telemetry-kpi-num cobalt">148 hrs</div>
+                    <div class="telemetry-kpi-label">Senior Eng Time Saved</div>
+                  </div>
+                </div>
+
+                <div class="viz-bars-list">
+                  <div class="viz-bar-row is-winner">
+                    <div class="viz-bar-meta">
+                      <span>RoundOne AI (Voice + Live IDE)</span>
+                      <span id="viz-cost-roundone" class="viz-bar-val">$50 ($0.50/ea)</span>
+                    </div>
+                    <div class="viz-bar-track">
+                      <div class="viz-bar-fill is-cobalt" data-target-width="6%"></div>
+                    </div>
+                  </div>
+
+                  <div class="viz-bar-row">
+                    <div class="viz-bar-meta">
+                      <span>Human Screening Marketplace</span>
+                      <span id="viz-cost-karat" class="viz-bar-val">$15,000</span>
+                    </div>
+                    <div class="viz-bar-track">
+                      <div class="viz-bar-fill is-amber" data-target-width="82%"></div>
+                    </div>
+                  </div>
+
+                  <div class="viz-bar-row">
+                    <div class="viz-bar-meta">
+                      <span>In-House Engineer Calls</span>
+                      <span id="viz-cost-manual" class="viz-bar-val">$18,500</span>
+                    </div>
+                    <div class="viz-bar-track">
+                      <div class="viz-bar-fill is-slate" data-target-width="100%"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card 2: Candidate Signal Donut & Funnel Flow -->
+              <div class="telemetry-card">
+                <div class="telemetry-card-head">
+                  <div class="telemetry-card-title"><i class="bi bi-funnel-fill"></i> Funnel &amp; Integrity Score</div>
+                  <span class="badge badge-success">Verified Rubric</span>
+                </div>
+
+                <div class="telemetry-split-inner">
+                  <div class="donut-gauge-wrap">
+                    <svg class="donut-gauge-svg" viewBox="0 0 110 110" aria-hidden="true">
+                      <defs>
+                        <linearGradient id="telemetryCobaltGradHome" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stop-color="#3b82f6"/>
+                          <stop offset="100%" stop-color="#10b981"/>
+                        </linearGradient>
+                      </defs>
+                      <circle class="donut-track" cx="55" cy="55" r="46"></circle>
+                      <circle id="telemetry-donut-arc" class="donut-arc" cx="55" cy="55" r="46" data-offset="17" stroke="url(#telemetryCobaltGradHome)"></circle>
+                    </svg>
+                    <div class="donut-center">
+                      <div id="telemetry-donut-score" class="donut-score">94</div>
+                      <div class="donut-sub">Fit Index</div>
+                    </div>
+                  </div>
+
+                  <div class="funnel-stages">
+                    <div class="funnel-row">
+                      <span class="funnel-lbl">Invited</span>
+                      <div class="funnel-bar-bg"><div class="funnel-bar-fill" data-target-width="100%"></div></div>
+                      <span class="funnel-count">1,000</span>
+                    </div>
+                    <div class="funnel-row">
+                      <span class="funnel-lbl">Completed</span>
+                      <div class="funnel-bar-bg"><div class="funnel-bar-fill" data-target-width="84%"></div></div>
+                      <span class="funnel-count">840</span>
+                    </div>
+                    <div class="funnel-row">
+                      <span class="funnel-lbl">Shortlisted</span>
+                      <div class="funnel-bar-bg"><div class="funnel-bar-fill" data-target-width="24%"></div></div>
+                      <span class="funnel-count">112</span>
+                    </div>
+                    <div class="funnel-row stage-final">
+                      <span class="funnel-lbl">Final Hires</span>
+                      <div class="funnel-bar-bg"><div class="funnel-bar-fill" data-target-width="12%"></div></div>
+                      <span class="funnel-count">18</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="signal-pulse-strip">
+                  <div class="signal-mini-box">
+                    <div class="signal-mini-val">&lt; 450ms</div>
+                    <div class="signal-mini-lbl">Voice Response</div>
+                  </div>
+                  <div class="signal-mini-box">
+                    <div class="signal-mini-val">120ms</div>
+                    <div class="signal-mini-lbl">Runtime Exec</div>
+                  </div>
+                  <div class="signal-mini-box">
+                    <div class="signal-mini-val">99.8%</div>
+                    <div class="signal-mini-lbl">Anti-Cheat Lock</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Scannable Competitor Matrix -->
+          <section class="compare-section">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+              <div>
+                <h2 style="font-size: 1.28rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em; margin: 0;">
+                  At-a-Glance Benchmark
+                </h2>
+              </div>
+              <span class="badge badge-accent">Live Matrix</span>
             </div>
 
             <div class="compare-table-wrapper">
               <table class="compare-table">
                 <thead>
                   <tr>
-                    <th>Capability</th>
-                    <th class="col-highlight">RoundOne AI (Autonomous)</th>
+                    <th>Metric</th>
+                    <th class="col-highlight">RoundOne AI</th>
                     <th>HackerRank / Codility</th>
-                    <th>Karat ($150/screen)</th>
-                    <th>Manual Phone Screen</th>
+                    <th>Karat</th>
+                    <th>Manual Call</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td><strong>Cost per Screen</strong></td>
-                    <td class="col-highlight">$0.50 (&#8377;42) &bull; Pay-as-you-go</td>
-                    <td>$3,500 - $8,000 / yr min</td>
-                    <td>$150 - $250 / interview</td>
-                    <td>$150+ in engineer hours</td>
+                    <td><strong>Cost / Round</strong></td>
+                    <td class="col-highlight"><span class="cmp-chip win">$0.50 (&#8377;42)</span></td>
+                    <td><span class="cmp-chip muted">$3.5k&ndash;$8k/yr</span></td>
+                    <td><span class="cmp-chip muted">$150&ndash;$250</span></td>
+                    <td><span class="cmp-chip muted">$150+ eng hr</span></td>
                   </tr>
                   <tr>
-                    <td><strong>Voice Follow-ups</strong></td>
-                    <td class="col-highlight">Yes &bull; Sub-second voice AI (Alex)</td>
-                    <td>No &bull; Silent compiler only</td>
-                    <td>Human interviewer only</td>
-                    <td>Yes &bull; Burns senior dev time</td>
+                    <td><strong>Live Voice AI</strong></td>
+                    <td class="col-highlight"><span class="cmp-chip win"><i class="bi bi-check-lg"></i> &lt;450ms Alex</span></td>
+                    <td><span class="cmp-chip muted"><i class="bi bi-x-lg"></i> Silent IDE</span></td>
+                    <td><span class="cmp-chip muted">Human</span></td>
+                    <td><span class="cmp-chip muted">Human dev</span></td>
                   </tr>
                   <tr>
-                    <td><strong>Anti-Cheat Telemetry</strong></td>
-                    <td class="col-highlight">Webcam + Keystrokes + Window lock</td>
-                    <td>Basic tab blur</td>
-                    <td>Human proctor</td>
-                    <td>Subjective &bull; Proxy risk</td>
+                    <td><strong>Proctoring</strong></td>
+                    <td class="col-highlight"><span class="cmp-chip win">Cam + Keys + Lock</span></td>
+                    <td><span class="cmp-chip muted">Tab blur</span></td>
+                    <td><span class="cmp-chip muted">Human</span></td>
+                    <td><span class="cmp-chip muted">None</span></td>
                   </tr>
                   <tr>
-                    <td><strong>DSA Problem Bank</strong></td>
-                    <td class="col-highlight">4,111+ LeetCode Bank + Custom JDs</td>
-                    <td>Fixed vendor catalog</td>
-                    <td>Closed proprietary set</td>
-                    <td>Ad-hoc whiteboard</td>
+                    <td><strong>Question Bank</strong></td>
+                    <td class="col-highlight"><span class="cmp-chip win">4,111+ DSA + JD</span></td>
+                    <td><span class="cmp-chip muted">Vendor set</span></td>
+                    <td><span class="cmp-chip muted">Closed set</span></td>
+                    <td><span class="cmp-chip muted">Ad-hoc</span></td>
                   </tr>
                   <tr>
-                    <td><strong>Scorecard Turnaround</strong></td>
-                    <td class="col-highlight">30 Seconds (Rubric &amp; PDF)</td>
-                    <td>2-4 hours manual review</td>
-                    <td>24-48 hours</td>
-                    <td>3-7 business days</td>
+                    <td><strong>Verdict Speed</strong></td>
+                    <td class="col-highlight"><span class="cmp-chip win">30 Seconds</span></td>
+                    <td><span class="cmp-chip muted">2&ndash;4 hrs</span></td>
+                    <td><span class="cmp-chip muted">24&ndash;48 hrs</span></td>
+                    <td><span class="cmp-chip muted">3&ndash;7 days</span></td>
                   </tr>
                 </tbody>
               </table>
@@ -542,9 +690,10 @@ function twoSum(nums, target) {
 
           <!-- Bottom CTA Banner -->
           <div class="bolt-bottom-banner">
+            <div class="nano-banner-bg" aria-hidden="true"></div>
             <div>
-              <div style="font-size: 1.12rem; font-weight: 700; color: var(--text);">Automate First-Round Screening in 60 Seconds</div>
-              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">Sign up free and receive <strong>10 Free AI Technical Interviews</strong> credited immediately.</div>
+              <div style="font-size: 1.12rem; font-weight: 700; color: var(--text);">Launch Your First Autonomous Round in 60s</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;"><strong>10 Free AI Technical Interviews</strong> included at signup.</div>
             </div>
             <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()">
               Claim 10 Free AI Interviews <i class="bi bi-arrow-right"></i>
@@ -666,25 +815,26 @@ function twoSum(nums, target) {
           </div>
 
           <div style="max-width: 820px; margin: 0 auto 2.25rem;">
-            <h3 style="font-size: 1.18rem; font-weight: 700; color: var(--text); text-align: center; margin-bottom: 1.15rem;">Pricing FAQ</h3>
+            <h3 style="font-size: 1.18rem; font-weight: 700; color: var(--text); text-align: center; margin-bottom: 1.15rem;">Quick Answers</h3>
             <div class="front-faq-item">
-              <div class="front-faq-question">What happens when my 10 free trial rounds end?</div>
-              <div class="front-faq-answer">Top up pay-as-you-go credits at $0.50 (&#8377;42) per round or switch to Starter ($49/month). You are never billed automatically without confirmation.</div>
+              <div class="front-faq-question">After 10 free rounds?</div>
+              <div class="front-faq-answer">$0.50 (&#8377;42) pay-as-you-go or Starter ($49/mo). Zero auto-billing.</div>
             </div>
             <div class="front-faq-item">
-              <div class="front-faq-question">Do pay-as-you-go interview credits expire?</div>
-              <div class="front-faq-answer">No. Pay-as-you-go credits never expire and carry over indefinitely.</div>
+              <div class="front-faq-question">Do credits expire?</div>
+              <div class="front-faq-answer">Never. Pay-as-you-go credits roll over forever.</div>
             </div>
             <div class="front-faq-item">
-              <div class="front-faq-question">Can I use custom Job Descriptions and proprietary coding questions?</div>
-              <div class="front-faq-answer">Yes. Paste any JD to auto-generate matching questions or upload custom JS/Python/SQL problems with hidden test cases in Team &amp; Keys.</div>
+              <div class="front-faq-question">Custom JDs &amp; proprietary tests?</div>
+              <div class="front-faq-answer">Supported. Auto-generate rounds from any JD or add custom hidden test suites.</div>
             </div>
           </div>
 
           <div class="bolt-bottom-banner">
+            <div class="nano-banner-bg" aria-hidden="true"></div>
             <div>
-              <div style="font-size: 1.1rem; font-weight: 700; color: var(--text);">Screen engineers without annual lock-in</div>
-              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">Claim 10 free interviews on signup. Setup takes under 60 seconds.</div>
+              <div style="font-size: 1.1rem; font-weight: 700; color: var(--text);">Zero Lock-In Technical Screening</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">10 free interviews included &middot; Live in 60 seconds.</div>
             </div>
             <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()">Claim 10 Free Rounds</button>
           </div>
@@ -724,57 +874,111 @@ function twoSum(nums, target) {
              TAB VIEW 4: ABOUT US
              ======================================================== -->
         <div id="front-tab-about" class="front-tab-view" style="display: none;">
-          <div class="page-editorial-head">
+          <div class="page-editorial-head page-hero-visual" style="border-radius: 18px; border: 1px solid var(--border); padding: 2rem 1.5rem; margin-bottom: 1.5rem;">
+            <div class="nano-banner-bg" aria-hidden="true"></div>
             <div class="hero-eyebrow">
               <span class="hero-eyebrow-dot"></span>
-              <span>Engineering Mission &middot; Built by Engineers</span>
+              <span>Engineering Mission</span>
             </div>
-            <h1 class="bolt-title">Engineering Time Is Finite. Save It for Finalists.</h1>
-            <p class="bolt-subhead">RoundOne AI replaces repetitive initial phone screens and passive multiple-choice quizzes with rigorous, auditable technical interviews.</p>
+            <h1 class="bolt-title">Keep Senior Engineers Building.</h1>
+            <p class="bolt-subhead">Autonomous voice rounds, live code tests, and instant audited rubrics.</p>
           </div>
 
-          <div class="grid-4" style="margin-bottom: 1.75rem;">
-            <div class="front-stat-card"><div class="front-stat-val">4,111+</div><div class="front-stat-lbl">Curated LeetCode DSA Problems</div></div>
-            <div class="front-stat-card"><div class="front-stat-val">&lt; 450ms</div><div class="front-stat-lbl">Real-time Voice Latency</div></div>
-            <div class="front-stat-card"><div class="front-stat-val">99.8%</div><div class="front-stat-lbl">Proctor Telemetry Precision</div></div>
-            <div class="front-stat-card"><div class="front-stat-val">$0.50</div><div class="front-stat-lbl">Pay-As-You-Go (&#8377;42) Rate</div></div>
+          <div class="grid-4" style="margin-bottom: 1.5rem;">
+            <div class="front-stat-card"><div class="front-stat-val">4,111+</div><div class="front-stat-lbl">LeetCode DSA Bank</div></div>
+            <div class="front-stat-card"><div class="front-stat-val">&lt; 450ms</div><div class="front-stat-lbl">Voice AI Latency</div></div>
+            <div class="front-stat-card"><div class="front-stat-val">99.8%</div><div class="front-stat-lbl">Anti-Cheat Precision</div></div>
+            <div class="front-stat-card"><div class="front-stat-val">$0.50</div><div class="front-stat-lbl">Per Full Interview</div></div>
           </div>
 
-          <div class="grid-2" style="margin-bottom: 1.75rem;">
+          <!-- Visual Time Reclaimed + Evaluation Flow Diagrams -->
+          <div class="grid-2" style="margin-bottom: 1.5rem;">
             <div class="front-surface-card">
-              <h3 style="font-size: 1.08rem; font-weight: 700; color: var(--text); margin: 0 0 0.65rem;">Why First-Round Screening Fails Teams</h3>
-              <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.6; margin: 0 0 0.75rem;">Engineering leads lose 15+ hours weekly running baseline screening calls where most applicants either miss core fundamentals or bypass silent online tests with copy-pasted LLM answers.</p>
-              <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.6; margin: 0;">Legacy assessment tools lock teams into multi-thousand-dollar contracts, while human screening marketplaces charge $150-$250 per individual candidate call.</p>
+              <div class="telemetry-card-head" style="margin-bottom: 0.75rem;">
+                <div class="telemetry-card-title"><i class="bi bi-clock-history"></i> Weekly Engineering Hours Reclaimed</div>
+                <span class="badge badge-success">94% Saved</span>
+              </div>
+              <div class="telemetry-split-inner" style="margin-bottom: 0.4rem;">
+                <div class="donut-gauge-wrap">
+                  <svg class="donut-gauge-svg" viewBox="0 0 110 110" aria-hidden="true">
+                    <defs>
+                      <linearGradient id="telemetryCobaltGradAbout" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#2563eb"/>
+                        <stop offset="100%" stop-color="#10b981"/>
+                      </linearGradient>
+                    </defs>
+                    <circle class="donut-track" cx="55" cy="55" r="46"></circle>
+                    <circle id="about-efficiency-arc" class="donut-arc" cx="55" cy="55" r="46" data-offset="18" stroke="url(#telemetryCobaltGradAbout)"></circle>
+                  </svg>
+                  <div class="donut-center">
+                    <div class="donut-score">94%</div>
+                    <div class="donut-sub">Reclaimed</div>
+                  </div>
+                </div>
+
+                <div class="viz-bars-list">
+                  <div class="viz-bar-row">
+                    <div class="viz-bar-meta"><span>Legacy Phone Screens</span><span class="viz-bar-val">15 hrs / wk</span></div>
+                    <div class="viz-bar-track"><div class="viz-bar-fill is-slate" data-target-width="100%"></div></div>
+                  </div>
+                  <div class="viz-bar-row is-winner">
+                    <div class="viz-bar-meta"><span>RoundOne Review Time</span><span class="viz-bar-val">45 mins / wk</span></div>
+                    <div class="viz-bar-track"><div class="viz-bar-fill is-cobalt" data-target-width="10%"></div></div>
+                  </div>
+                </div>
+              </div>
             </div>
+
             <div class="front-surface-card">
-              <h3 style="font-size: 1.08rem; font-weight: 700; color: var(--text); margin: 0 0 0.65rem;">How RoundOne AI Solves It</h3>
-              <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.6; margin: 0 0 0.75rem;">Alex conducts structured conversational interviews, challenges space-time complexity live, and validates code against real runtime test suites inside a sandboxed IDE.</p>
-              <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.6; margin: 0;">Hiring teams inspect verified 0-100 rubrics, verbatim transcript quotes, and anti-cheat telemetry within 30 seconds.</p>
+              <div class="telemetry-card-head" style="margin-bottom: 0.5rem;">
+                <div class="telemetry-card-title"><i class="bi bi-diagram-3-fill"></i> Autonomous Signal Pipeline</div>
+                <span class="badge badge-accent">4 Live Stages</span>
+              </div>
+              <div class="about-pipeline-flow">
+                <div class="about-pipe-node">
+                  <div class="about-pipe-icon"><i class="bi bi-file-earmark-code"></i></div>
+                  <div class="about-pipe-title">JD Match</div>
+                  <div class="about-pipe-stat">4,111+ Qs</div>
+                </div>
+                <div class="about-pipe-node">
+                  <div class="about-pipe-icon"><i class="bi bi-soundwave"></i></div>
+                  <div class="about-pipe-title">Voice Probe</div>
+                  <div class="about-pipe-stat">&lt; 450ms</div>
+                </div>
+                <div class="about-pipe-node">
+                  <div class="about-pipe-icon"><i class="bi bi-terminal"></i></div>
+                  <div class="about-pipe-title">IDE Run</div>
+                  <div class="about-pipe-stat">15+ Langs</div>
+                </div>
+                <div class="about-pipe-node">
+                  <div class="about-pipe-icon"><i class="bi bi-award"></i></div>
+                  <div class="about-pipe-title">Rubric PDF</div>
+                  <div class="about-pipe-stat">30 Secs</div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="grid-3" style="margin-bottom: 2.25rem;">
-            <div class="front-surface-card">
-              <div style="font-family: var(--font-mono); font-size: 0.74rem; color: var(--accent); font-weight: 700; margin-bottom: 0.35rem;">01 / VERIFIABLE</div>
-              <div style="font-size: 0.96rem; font-weight: 700; color: var(--text); margin-bottom: 0.4rem;">Zero Black-Box Scoring</div>
-              <p style="font-size: 0.79rem; color: var(--text-muted); line-height: 1.55; margin: 0;">Every score cites exact transcript timestamps and test-case outputs rather than arbitrary pass/fail labels.</p>
+          <div class="grid-3" style="margin-bottom: 2rem;">
+            <div class="front-surface-card" style="text-align: center;">
+              <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--accent); font-weight: 700;">01 / VERIFIABLE</div>
+              <div style="font-size: 0.96rem; font-weight: 700; color: var(--text); margin-top: 0.25rem;">Zero Black-Box Scores</div>
             </div>
-            <div class="front-surface-card">
-              <div style="font-family: var(--font-mono); font-size: 0.74rem; color: var(--accent); font-weight: 700; margin-bottom: 0.35rem;">02 / RIGOROUS</div>
-              <div style="font-size: 0.96rem; font-weight: 700; color: var(--text); margin-bottom: 0.4rem;">Real Compilation &amp; Follow-Ups</div>
-              <p style="font-size: 0.79rem; color: var(--text-muted); line-height: 1.55; margin: 0;">Candidates write and test code interactively while defending algorithmic trade-offs verbally.</p>
+            <div class="front-surface-card" style="text-align: center;">
+              <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--accent); font-weight: 700;">02 / RIGOROUS</div>
+              <div style="font-size: 0.96rem; font-weight: 700; color: var(--text); margin-top: 0.25rem;">Live Compile + Voice</div>
             </div>
-            <div class="front-surface-card">
-              <div style="font-family: var(--font-mono); font-size: 0.74rem; color: var(--accent); font-weight: 700; margin-bottom: 0.35rem;">03 / TRANSPARENT</div>
-              <div style="font-size: 0.96rem; font-weight: 700; color: var(--text); margin-bottom: 0.4rem;">Accessible From $0.50</div>
-              <p style="font-size: 0.79rem; color: var(--text-muted); line-height: 1.55; margin: 0;">Start with 10 free trials and top up per interview without opaque enterprise minimums.</p>
+            <div class="front-surface-card" style="text-align: center;">
+              <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--accent); font-weight: 700;">03 / TRANSPARENT</div>
+              <div style="font-size: 0.96rem; font-weight: 700; color: var(--text); margin-top: 0.25rem;">$0.50 Pay-As-You-Go</div>
             </div>
           </div>
 
           <div class="bolt-bottom-banner">
+            <div class="nano-banner-bg" aria-hidden="true"></div>
             <div>
-              <div style="font-size: 1.1rem; font-weight: 700; color: var(--text);">Experience autonomous screening today</div>
-              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">Claim 10 free AI technical interviews and screen your first candidate in 60 seconds.</div>
+              <div style="font-size: 1.1rem; font-weight: 700; color: var(--text);">Screen Smarter Today</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">10 Free AI Technical Interviews &middot; Ready in 60s.</div>
             </div>
             <button type="button" class="btn btn-primary" onclick="handleStartTrialClick()">Claim 10 Free Rounds</button>
           </div>
@@ -3319,9 +3523,11 @@ function twoSum(nums, target) {
 
   <!-- Supabase JS Client (Free Auth, PostgreSQL & Storage) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Anime.js v4 & RoundOne Enterprise Motion Engine -->
+  <!-- Anime.js v4, Motion.dev v12 & RoundOne Enterprise Motion Engine -->
+  <script src="/vendor/motion.js"></script>
   <script src="/vendor/anime.min.js"></script>
   <script src="/js/roundone-animations.js"></script>
+  <script src="/js/visual-telemetry.js"></script>
   <script src="/js/dashboard.js"></script>
 </body>
 </html>

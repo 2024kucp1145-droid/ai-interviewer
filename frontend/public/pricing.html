@@ -6,6 +6,7 @@
   <title>Pricing — RoundOne AI</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/visual-upgrade.css" />
   <script src="/js/theme.js"></script>
   <style>
     :root, [data-theme="dark"] {
@@ -312,9 +313,10 @@
 </nav>
 
 <!-- HERO -->
-<div class="hero">
+<div class="hero page-hero-visual">
+  <div class="nano-banner-bg" aria-hidden="true"></div>
   <h1>Simple, Transparent<br><span>Pricing</span></h1>
-  <p>Pay only for what you use. No hidden fees. Scale up or down anytime.</p>
+  <p>Pay per interview or scale monthly. Zero hidden minimums.</p>
 
   <div class="tab-bar">
     <button class="tab-btn active" onclick="switchTab('ppu', this)"><i class="bi bi-lightning-charge-fill"></i> Pay Per Interview</button>
@@ -785,5 +787,8 @@
 
   init();
 </script>
+<script src="/vendor/motion.js"></script>
+<script src="/vendor/anime.min.js"></script>
+<script src="/js/visual-telemetry.js"></script>
 </body>
 </html>

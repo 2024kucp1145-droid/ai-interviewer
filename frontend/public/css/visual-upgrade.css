@@ -1,0 +1,700 @@
+/* ==========================================================================
+   RoundOne AI - Visual Telemetry, Nano Banana Backdrop & Motion Polish
+   Dual-Theme Parity: Obsidian Slate Dark + Architectural Gallery Light
+   ========================================================================== */
+
+/* Top Scroll Progress Indicator (driven by Motion.scroll) */
+.motion-scroll-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2.5px;
+  background: linear-gradient(90deg, var(--accent) 0%, #60a5fa 60%, #10b981 100%);
+  transform-origin: 0% 50%;
+  transform: scaleX(0);
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.92;
+}
+
+/* ==========================================================================
+   Nano Banana Architectural Hero Backdrop (Dark & Light Parity)
+   ========================================================================== */
+#bolt-hero-showcase {
+  position: relative;
+  isolation: isolate;
+}
+
+#front-tab-home {
+  position: relative;
+}
+
+.hero-split-grid {
+  position: relative;
+  border-radius: 20px;
+  padding: 1.5rem 1.35rem;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: var(--card-shadow);
+  background: var(--surface);
+}
+
+.nano-hero-backdrop {
+  position: absolute;
+  inset: -6% 0 -6% 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url('/img/hero-bg-dark.jpg');
+  background-size: cover;
+  background-position: right center;
+  background-repeat: no-repeat;
+  will-change: transform;
+  opacity: 0.94;
+}
+
+[data-theme="light"] .nano-hero-backdrop {
+  background-image: url('/img/hero-bg-light.jpg');
+  opacity: 0.96;
+}
+
+/* Directional gradient scrim keeps text contrast >10:1 while exposing 3D architectural glass */
+.nano-hero-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(96deg, rgba(9, 12, 18, 0.95) 0%, rgba(9, 12, 18, 0.82) 44%, rgba(9, 12, 18, 0.34) 100%),
+    linear-gradient(180deg, rgba(9, 12, 18, 0.25) 0%, rgba(9, 12, 18, 0.65) 100%);
+}
+
+[data-theme="light"] .nano-hero-backdrop::after {
+  background:
+    linear-gradient(96deg, rgba(248, 250, 252, 0.97) 0%, rgba(246, 248, 251, 0.84) 44%, rgba(246, 248, 251, 0.26) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(246, 248, 251, 0.68) 100%);
+}
+
+.hero-split-grid > .hero-copy-col,
+.hero-split-grid > .hero-3d-col,
+.hero-split-grid > .hero-stage-col {
+  position: relative;
+  z-index: 1;
+}
+
+/* Scannable Hero Metric Strip (replaces long descriptive paragraphs) */
+.hero-visual-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin: 0.25rem 0 0.85rem;
+}
+
+.hero-metric-pill {
+  background: rgba(15, 20, 30, 0.72);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem;
+  backdrop-filter: blur(8px);
+  min-width: 0;
+}
+
+[data-theme="light"] .hero-metric-pill {
+  background: rgba(255, 255, 255, 0.86);
+  border-color: rgba(148, 163, 184, 0.28);
+}
+
+.hero-metric-val {
+  font-family: var(--font-mono);
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.15;
+}
+
+.hero-metric-val.is-accent {
+  color: var(--accent);
+}
+
+.hero-metric-lbl {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Subtle Nano Backdrop on CTA Banners & Page Headers */
+.bolt-bottom-banner,
+.page-hero-visual {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.nano-banner-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: url('/img/hero-bg-dark.jpg') right center / cover no-repeat;
+  opacity: 0.48;
+  -webkit-mask-image: linear-gradient(95deg, transparent 5%, rgba(0, 0, 0, 0.92) 72%, rgba(0, 0, 0, 0.65) 100%);
+  mask-image: linear-gradient(95deg, transparent 5%, rgba(0, 0, 0, 0.92) 72%, rgba(0, 0, 0, 0.65) 100%);
+}
+
+[data-theme="light"] .nano-banner-bg {
+  background-image: url('/img/hero-bg-light.jpg');
+  opacity: 0.62;
+}
+
+.nano-banner-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 55%, var(--surface, var(--bg)) 100%);
+}
+
+.hero-banner.page-hero-visual {
+  max-width: 1180px;
+  margin: 22px auto 6px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--card, var(--surface));
+  padding: 34px 28px;
+}
+
+.bolt-bottom-banner > *:not(.nano-banner-bg),
+.page-hero-visual > *:not(.nano-banner-bg) {
+  position: relative;
+  z-index: 1;
+}
+
+/* ==========================================================================
+   Visual Workflow Connector Rail (Anime.js Signal Pulse)
+   ========================================================================== */
+.workflow-rail {
+  position: relative;
+}
+
+.workflow-step {
+  position: relative;
+  z-index: 1;
+  transition: transform 0.22s ease, border-color 0.22s ease;
+}
+
+.workflow-step-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.67rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  padding: 0.16rem 0.5rem;
+  border-radius: 999px;
+  margin-top: 0.35rem;
+}
+
+/* ==========================================================================
+   Visual Telemetry & ROI Suite (#visual-telemetry-suite)
+   ========================================================================== */
+.telemetry-suite {
+  margin: 2.25rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.telemetry-suite-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.telemetry-suite-header h2 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  margin: 0;
+  color: var(--text);
+}
+
+.telemetry-suite-header p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0.2rem 0 0;
+}
+
+.telemetry-volume-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.24rem;
+}
+
+.telemetry-vol-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.38rem 0.72rem;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.telemetry-vol-btn.active {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.telemetry-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.15rem;
+}
+
+.telemetry-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.telemetry-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.telemetry-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.94rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.telemetry-card-title i {
+  color: var(--accent);
+}
+
+.telemetry-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin-bottom: 1.1rem;
+}
+
+.telemetry-kpi-box {
+  background: var(--surface-2, rgba(148, 163, 184, 0.06));
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  padding: 0.7rem 0.85rem;
+}
+
+[data-theme="light"] .telemetry-kpi-box {
+  background: #f8fafc;
+}
+
+.telemetry-kpi-num {
+  font-family: var(--font-mono);
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.telemetry-kpi-num.emerald {
+  color: #10b981;
+}
+
+[data-theme="light"] .telemetry-kpi-num.emerald {
+  color: #059669;
+}
+
+.telemetry-kpi-num.cobalt {
+  color: var(--accent);
+}
+
+.telemetry-kpi-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+/* Interactive Cost & Turnaround Horizontal Bars */
+.viz-bars-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.78rem;
+}
+
+.viz-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.viz-bar-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.viz-bar-meta .viz-bar-val {
+  font-family: var(--font-mono);
+  font-size: 0.73rem;
+  color: var(--text-muted);
+}
+
+.viz-bar-row.is-winner .viz-bar-meta {
+  color: var(--accent);
+}
+
+.viz-bar-row.is-winner .viz-bar-val {
+  color: #10b981;
+  font-weight: 700;
+}
+
+[data-theme="light"] .viz-bar-row.is-winner .viz-bar-val {
+  color: #059669;
+}
+
+.viz-bar-track {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.14);
+  overflow: hidden;
+  position: relative;
+}
+
+.viz-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  width: 0%;
+  background: rgba(148, 163, 184, 0.55);
+}
+
+.viz-bar-fill.is-cobalt {
+  background: linear-gradient(90deg, #2563eb, #10b981);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.32);
+}
+
+.viz-bar-fill.is-amber {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.viz-bar-fill.is-slate {
+  background: rgba(100, 116, 139, 0.55);
+}
+
+/* Funnel & Donut Integrity Visualization */
+.telemetry-split-inner {
+  display: grid;
+  grid-template-columns: 126px minmax(0, 1fr);
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.donut-gauge-wrap {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.donut-gauge-svg {
+  width: 120px;
+  height: 120px;
+  transform: rotate(-90deg);
+}
+
+.donut-track {
+  fill: none;
+  stroke: rgba(148, 163, 184, 0.18);
+  stroke-width: 10;
+}
+
+.donut-arc {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-dasharray: 289;
+  stroke-dashoffset: 17;
+}
+
+.donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.donut-score {
+  font-family: var(--font-mono);
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+}
+
+.donut-sub {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-top: 0.2rem;
+}
+
+/* Screening Funnel Stages */
+.funnel-stages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.52rem;
+}
+
+.funnel-row {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) 46px;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.funnel-lbl {
+  font-size: 0.71rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.funnel-bar-bg {
+  height: 16px;
+  background: rgba(148, 163, 184, 0.12);
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+.funnel-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  width: 0%;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.85), rgba(96, 165, 250, 0.95));
+}
+
+.funnel-row.stage-final .funnel-bar-fill {
+  background: linear-gradient(90deg, #059669, #10b981);
+}
+
+.funnel-count {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text);
+  text-align: right;
+}
+
+/* Mini Live Telemetry Spark Strip */
+.signal-pulse-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
+.signal-mini-box {
+  background: rgba(148, 163, 184, 0.06);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 0.5rem 0.6rem;
+  text-align: center;
+}
+
+[data-theme="light"] .signal-mini-box {
+  background: #f8fafc;
+}
+
+.signal-mini-val {
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.signal-mini-lbl {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 0.12rem;
+}
+
+/* ==========================================================================
+   About Us Tab Visual Pipeline & Time Allocation Diagram
+   ========================================================================== */
+.about-pipeline-flow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+}
+
+.about-pipe-node {
+  background: rgba(148, 163, 184, 0.06);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.85rem 0.75rem;
+  text-align: center;
+  position: relative;
+}
+
+[data-theme="light"] .about-pipe-node {
+  background: #f8fafc;
+}
+
+.about-pipe-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: rgba(59, 130, 246, 0.14);
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  margin-bottom: 0.45rem;
+}
+
+.about-pipe-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.about-pipe-stat {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #10b981;
+  margin-top: 0.2rem;
+}
+
+[data-theme="light"] .about-pipe-stat {
+  color: #059669;
+}
+
+/* Scannable Table Highlight Tags */
+.cmp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.52rem;
+  border-radius: 6px;
+}
+
+.cmp-chip.win {
+  background: rgba(16, 185, 129, 0.14);
+  color: #10b981;
+}
+
+[data-theme="light"] .cmp-chip.win {
+  background: rgba(5, 150, 105, 0.12);
+  color: #047857;
+}
+
+.cmp-chip.muted {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   Responsive Mobile Breakpoints (390px - 900px)
+   ========================================================================== */
+@media (max-width: 960px) {
+  .telemetry-grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .about-pipeline-flow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-split-grid {
+    padding: 1rem 0.9rem;
+    border-radius: 14px;
+  }
+  .nano-hero-backdrop {
+    background-position: center center;
+    opacity: 0.78;
+  }
+  .hero-visual-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+  .hero-metric-pill {
+    padding: 0.45rem 0.48rem;
+  }
+  .hero-metric-val {
+    font-size: 0.84rem;
+  }
+  .telemetry-split-inner {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  .funnel-row {
+    grid-template-columns: 76px minmax(0, 1fr) 40px;
+  }
+  .signal-pulse-strip {
+    grid-template-columns: 1fr;
+  }
+  .about-pipeline-flow {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-scroll-bar {
+    display: none;
+  }
+}

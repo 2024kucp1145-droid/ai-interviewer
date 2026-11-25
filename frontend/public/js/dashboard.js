@@ -8281,6 +8281,10 @@ window.switchFrontTab = function(tabName) {
     loadFrontBlogArticles();
   }
 
+  if (window.RoundOneTelemetry && typeof window.RoundOneTelemetry.refreshTab === 'function') {
+    window.RoundOneTelemetry.refreshTab(tabName);
+  }
+
   window.scrollTo({ top: 0, behavior: 'smooth' });
   if (window.updateAmbientLight) {
     setTimeout(window.updateAmbientLight, 100);
