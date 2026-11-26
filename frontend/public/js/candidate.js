@@ -110,8 +110,8 @@ function setVoiceBarState(state) {
   if (!voiceStatusPulse || !voiceStateTitle) return;
   if (state === 'speaking') {
     if (interruptBtn) interruptBtn.style.display = 'inline-flex';
-    voiceStatusPulse.style.background = '#CFCFCF';
-    voiceStatusPulse.style.boxShadow = '0 0 10px #CFCFCF';
+    voiceStatusPulse.style.background = '#38bdf8';
+    voiceStatusPulse.style.boxShadow = '0 0 10px #38bdf8';
     voiceStatusPulse.style.animation = 'none';
     voiceStateTitle.textContent = 'RoundOne AI Speaking...';
     voiceStateSubtitle.textContent = 'Please listen to the question carefully.';
@@ -669,7 +669,7 @@ window.renderActiveProblemCard = function() {
     if (list.length > 1) {
       tabsEl.style.display = 'flex';
       tabsEl.innerHTML = list.map((p, idx) => `
-        <button type="button" onclick="switchCandidateProblem(${idx})" class="hud-pill-btn" style="font-size:0.68rem; padding:0.25rem 0.6rem; ${idx === window.activeLeetCodeProblemIdx ? 'background:#545454;color:#fff;border-color:#545454;' : ''}">
+        <button type="button" onclick="switchCandidateProblem(${idx})" class="hud-pill-btn" style="font-size:0.68rem; padding:0.25rem 0.6rem; ${idx === window.activeLeetCodeProblemIdx ? 'background:#2563eb;color:#fff;border-color:#2563eb;' : ''}">
           Q${idx + 1}: ${p.frontend_id ? `#${p.frontend_id} ` : ''}${p.title}
         </button>
       `).join('');
@@ -1017,7 +1017,7 @@ window.runLeetCodeJudge = async function() {
     : `Problem #${problemId}`;
 
   terminalConsoleOutput.innerHTML = `
-    <div style="color: #CFCFCF; font-family: monospace;">
+    <div style="color: #60a5fa; font-family: monospace;">
       <i class="bi bi-cloud-arrow-up" style="animation: spin 1s linear infinite;"></i>
       Submitting <strong>${probTitle}</strong> (${lang.toUpperCase()}) to server for evaluation...
     </div>
@@ -1681,7 +1681,7 @@ window.runPreflightPingCheck = async function() {
 let isTestingMic = false;
 btnTestMic.addEventListener('click', async () => {
   if (!isTestingMic) {
-    micTestStatus.innerHTML = '<span style="color:#545454;"><i class="bi bi-hourglass-split"></i> Initializing microphone stream...</span>';
+    micTestStatus.innerHTML = '<span style="color:#2563eb;"><i class="bi bi-hourglass-split"></i> Initializing microphone stream...</span>';
     const started = await voice.startListening();
     if (!started && !voice.mediaStream) {
       micTestStatus.innerHTML = '<span style="color:#ef4444;"><i class="bi bi-exclamation-triangle"></i> Microphone access denied or unavailable. Please check browser permissions.</span>';

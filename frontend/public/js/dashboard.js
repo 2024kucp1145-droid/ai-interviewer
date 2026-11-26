@@ -387,7 +387,7 @@ window.resetSandboxCode = function() {
   const outEl = document.getElementById('sandbox-output-console');
   if (outEl) {
     outEl.innerHTML = `
-      <div style="color: #7D7D7D; font-size: 0.72rem; font-family: 'JetBrains Mono', monospace;">
+      <div style="color: #94a3b8; font-size: 0.72rem; font-family: 'JetBrains Mono', monospace;">
         💡 Click <strong>"Run Test Cases"</strong> above to see our sandboxed compiler execute the solution against LeetCode test suites live.
       </div>
     `;
@@ -406,7 +406,7 @@ window.runDemoSandboxCode = function() {
   }
 
   outEl.style.display = 'block';
-  outEl.innerHTML = `<span style="color:#7D7D7D; font-family:'JetBrains Mono',monospace; font-size:0.72rem;">▶ Compiling solution and executing sandboxed test runner...</span>`;
+  outEl.innerHTML = `<span style="color:#94a3b8; font-family:'JetBrains Mono',monospace; font-size:0.72rem;">▶ Compiling solution and executing sandboxed test runner...</span>`;
 
   setTimeout(() => {
     try {
@@ -485,7 +485,7 @@ window.runDemoSandboxCode = function() {
       testResults.forEach(tr => {
         if (tr.passed) {
           html += `<div style="color:#10b981; margin-bottom:0.25rem;">
-            <i class="bi bi-check-circle-fill"></i> <strong>Case ${tr.idx}:</strong> nums=${tr.nums}, target=${tr.target} ➔ [${tr.res}] <span style="color:#7D7D7D; font-size:0.7rem;">(${tr.latency}ms • Passed)</span>
+            <i class="bi bi-check-circle-fill"></i> <strong>Case ${tr.idx}:</strong> nums=${tr.nums}, target=${tr.target} ➔ [${tr.res}] <span style="color:#64748b; font-size:0.7rem;">(${tr.latency}ms • Passed)</span>
           </div>`;
         } else {
           html += `<div style="color:#ef4444; margin-bottom:0.25rem;">
@@ -500,7 +500,7 @@ window.runDemoSandboxCode = function() {
             <div style="font-weight:700; font-size:0.8rem; display:flex; align-items:center; gap:0.4rem;">
               <i class="bi bi-patch-check-fill"></i> All Test Cases Accepted • 100/100 Score
             </div>
-            <div style="font-size:0.7rem; color:#7D7D7D; margin-top:0.2rem;">
+            <div style="font-size:0.7rem; color:#94a3b8; margin-top:0.2rem;">
               Runtime: ${totalLatency}ms • Memory: 41.2 MB • Time Complexity: O(n) Hash Map • Anti-Cheat: 0 Flags
             </div>
           </div>
@@ -2287,12 +2287,12 @@ const COMPANY_STYLE_MAP = {
   'Google': { color: '#ea4335', bg: '#fef2f2', border: '#fca5a5', icon: 'bi-google' },
   'Microsoft': { color: '#00a4ef', bg: '#f0f9ff', border: '#bae6fd', icon: 'bi-microsoft' },
   'Amazon': { color: '#d97706', bg: '#fffbeb', border: '#fde68a', icon: 'bi-cart-check' },
-  'Meta': { color: '#0668e1', bg: '#CFCFCF', border: '#CFCFCF', icon: 'bi-meta' },
+  'Meta': { color: '#0668e1', bg: '#eff6ff', border: '#bfdbfe', icon: 'bi-meta' },
   'Netflix': { color: '#e50914', bg: '#fef2f2', border: '#fca5a5', icon: 'bi-film' },
   'Apple': { color: '#374151', bg: '#f3f4f6', border: '#d1d5db', icon: 'bi-apple' },
-  'Uber': { color: '#2d2d2d', bg: '#f9fafb', border: '#e5e7eb', icon: 'bi-car-front' },
+  'Uber': { color: '#111827', bg: '#f9fafb', border: '#e5e7eb', icon: 'bi-car-front' },
   'Oracle': { color: '#c026d3', bg: '#fdf4ff', border: '#f5d0fe', icon: 'bi-database' },
-  'Goldman Sachs': { color: '#545454', bg: '#f0f9ff', border: '#bae6fd', icon: 'bi-bank' }
+  'Goldman Sachs': { color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd', icon: 'bi-bank' }
 };
 
 window.selectQuestionMode = function(mode) {
@@ -2590,7 +2590,7 @@ window.renderCustomQuestionsList = function() {
       <div style="border: 1.5px solid ${isAdded ? '#059669' : 'var(--border)'}; border-radius: 6px; padding: 0.75rem 0.85rem; background: ${isAdded ? '#f0fdf4' : 'var(--surface)'};">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.35rem;">
           <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center;">
-            <span style="font-size: 0.68rem; font-weight: 700; color: #545454; background: #e0f2fe; border: 1px solid #bae6fd; padding: 0.1rem 0.45rem; border-radius: 4px;">
+            <span style="font-size: 0.68rem; font-weight: 700; color: #0284c7; background: #e0f2fe; border: 1px solid #bae6fd; padding: 0.1rem 0.45rem; border-radius: 4px;">
               ${escapeHtml(q.difficulty || 'Medium')}
             </span>
             ${q.skill ? `<span style="font-size: 0.68rem; font-weight: 600; color: var(--text-muted); background: var(--surface-subtle); padding: 0.1rem 0.45rem; border-radius: 4px; border: 1px solid var(--border);">${escapeHtml(q.skill)}</span>` : ''}
@@ -3428,7 +3428,7 @@ window.loadLeetCodeCatalog = async function(page = 1) {
         const diffColor = p.difficulty === 'Easy' ? '#16a34a' : (p.difficulty === 'Hard' ? '#dc2626' : '#d97706');
         const topicsBadges = (p.topics || []).slice(0, 3).map(t => `<span class="badge badge-outline" style="font-size:0.62rem; padding:0.08rem 0.35rem;">${escapeHtml(t)}</span>`).join('');
         return `
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; padding:0.42rem 0.6rem; border:1px solid ${isAdded ? '#252525' : 'var(--border)'}; background:${isAdded ? 'var(--surface-subtle)' : 'var(--surface)'}; border-radius:6px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; padding:0.42rem 0.6rem; border:1px solid ${isAdded ? '#0f172a' : 'var(--border)'}; background:${isAdded ? 'var(--surface-subtle)' : 'var(--surface)'}; border-radius:6px;">
             <div style="min-width:0; flex:1;">
               <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
                 <strong style="font-size:0.75rem; color:var(--text);">#${p.frontend_id}. ${escapeHtml(p.title)}</strong>
@@ -3895,7 +3895,7 @@ function escapeHtml(str) {
 }
 
 const CATEGORY_STYLES = {
-  'Software & Tech': { color: '#252525', bg: '#CFCFCF', border: '#CFCFCF', icon: 'bi-code-slash' },
+  'Software & Tech': { color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe', icon: 'bi-code-slash' },
   'Data, AI & Analytics': { color: '#6d28d9', bg: '#f5f3ff', border: '#ddd6fe', icon: 'bi-cpu' },
   'Security & Networking': { color: '#b91c1c', bg: '#fef2f2', border: '#fecaca', icon: 'bi-shield-lock' },
   'Design & Creative': { color: '#c2410c', bg: '#fff7ed', border: '#fed7aa', icon: 'bi-palette' },
@@ -3905,23 +3905,23 @@ const CATEGORY_STYLES = {
   'Finance & Legal': { color: '#4338ca', bg: '#eef2ff', border: '#c7d2fe', icon: 'bi-bank' },
   'Operations & Core Engineering': { color: '#0f766e', bg: '#f0fdfa', border: '#99f6e4', icon: 'bi-gear-wide-connected' },
   'Education, Healthcare & Others': { color: '#be123c', bg: '#fff1f2', border: '#fecdd3', icon: 'bi-heart-pulse' },
-  'Non-job Interviews': { color: '#545454', bg: '#f8fafc', border: '#cbd5e1', icon: 'bi-mortarboard' }
+  'Non-job Interviews': { color: '#475569', bg: '#f8fafc', border: '#cbd5e1', icon: 'bi-mortarboard' }
 };
 
 window.getCategoryBadge = function(category) {
   const cat = category || 'Software & Tech';
-  const meta = CATEGORY_STYLES[cat] || { color: '#545454', bg: '#CFCFCF', border: '#CFCFCF', icon: 'bi-tag' };
+  const meta = CATEGORY_STYLES[cat] || { color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', icon: 'bi-tag' };
   return `<span class="category-badge-pill" onclick="event.stopPropagation(); setCategoryFilter('${escapeHtml(cat)}')" style="--cat-color:${meta.color}; --cat-bg:${meta.bg}; --cat-border:${meta.border};" title="Click to filter by ${escapeHtml(cat)}"><i class="bi ${meta.icon}"></i> ${escapeHtml(cat)}</span>`;
 };
 
 function renderConfiguredJobCard(j) {
   const categoryBadge = getCategoryBadge(j.category);
-  const purposeBadge = `<span class="badge" style="background:#252525; color:#fff; font-size:0.62rem; font-weight:700; padding:0.18rem 0.45rem; border-radius:4px;">${escapeHtml((j.purpose || 'JOB').toUpperCase())}</span>`;
-  const expBadge = j.experience_required ? `<span class="badge" style="background:#f1f5f9; color:#545454; border:1px solid #e2e8f0; font-size:0.65rem; font-weight:600; padding:0.18rem 0.45rem; border-radius:4px;">${escapeHtml(j.experience_required)}</span>` : '';
+  const purposeBadge = `<span class="badge" style="background:#0f172a; color:#fff; font-size:0.62rem; font-weight:700; padding:0.18rem 0.45rem; border-radius:4px;">${escapeHtml((j.purpose || 'JOB').toUpperCase())}</span>`;
+  const expBadge = j.experience_required ? `<span class="badge" style="background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; font-size:0.65rem; font-weight:600; padding:0.18rem 0.45rem; border-radius:4px;">${escapeHtml(j.experience_required)}</span>` : '';
   const dsaBadge = j.leetcode_problem ? `<span class="badge" style="background:#fefce8; color:#854d0e; border:1px solid #fef08a; font-weight:700; font-size:0.65rem; padding:0.18rem 0.45rem; border-radius:4px;"><i class="bi bi-code-slash"></i> ${escapeHtml(j.leetcode_problem.split(':')[0])}</span>` : '';
 
   const tools = [];
-  if (j.terminal_required) tools.push('<i class="bi bi-terminal" style="color:#545454;"></i> Compiler');
+  if (j.terminal_required) tools.push('<i class="bi bi-terminal" style="color:#2563eb;"></i> Compiler');
   if (j.word_editor_required) tools.push('<i class="bi bi-file-earmark-word" style="color:#059669;"></i> Word Pad');
   if (j.resume_required) tools.push('<i class="bi bi-file-earmark-person" style="color:#7c3aed;"></i> Resume');
 
@@ -3975,7 +3975,7 @@ function renderConfiguredJobCard(j) {
 
       <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:0.6rem; font-size:0.72rem; color:var(--text-muted); flex-wrap:wrap; gap:0.5rem;">
         <div style="display:flex; gap:0.85rem; align-items:center; flex-wrap:wrap;">
-          <span style="display:inline-flex; align-items:center; gap:0.3rem;"><i class="bi bi-clock-history" style="color:#545454;"></i> <strong>${j.max_minutes || 15} Mins</strong>${j.show_timer === 0 ? ' (Untimed)' : ' (Timed)'}</span>
+          <span style="display:inline-flex; align-items:center; gap:0.3rem;"><i class="bi bi-clock-history" style="color:#2563eb;"></i> <strong>${j.max_minutes || 15} Mins</strong>${j.show_timer === 0 ? ' (Untimed)' : ' (Timed)'}</span>
           <span style="display:inline-flex; align-items:center; gap:0.3rem;"><i class="bi bi-question-circle" style="color:#7c3aed;"></i> <strong>${j.max_questions || 6}</strong> Questions</span>
           <span style="display:inline-flex; align-items:center; gap:0.3rem;"><i class="bi bi-robot" style="color:#059669;"></i> ${j.question_mode === 'custom_questions' ? 'Custom Questions' : 'Adaptive AI'}</span>
           ${tools.length ? `<span>${tools.join(' · ')}</span>` : ''}
@@ -4168,10 +4168,10 @@ function renderDashboardJobsList(jobs, catalogMatches = [], searchQ = '', catego
         <!-- Quick Category Selector Pills -->
         <div style="display:flex; flex-wrap:wrap; gap:0.45rem; margin-bottom:1.15rem;">
           ${ROLE_CATEGORIES.map(g => {
-            const meta = CATEGORY_STYLES[g.category] || { color: '#545454', bg: '#CFCFCF', border: '#CFCFCF', icon: 'bi-tag' };
+            const meta = CATEGORY_STYLES[g.category] || { color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', icon: 'bi-tag' };
             const isActive = categoryQ === g.category;
             return `
-              <button type="button" class="btn btn-sm" onclick="document.getElementById('dashboard-category-filter').value='${isActive ? '' : g.category}'; filterDashboardJobs();" style="font-size:0.72rem; padding:0.3rem 0.65rem; border-radius:6px; font-weight:600; display:inline-flex; align-items:center; gap:0.35rem; transition:all 0.15s ease; ${isActive ? 'background:#252525; color:#fff; border:1px solid #252525;' : 'background:' + meta.bg + '; color:' + meta.color + '; border:1px solid ' + meta.border + ';'}">
+              <button type="button" class="btn btn-sm" onclick="document.getElementById('dashboard-category-filter').value='${isActive ? '' : g.category}'; filterDashboardJobs();" style="font-size:0.72rem; padding:0.3rem 0.65rem; border-radius:6px; font-weight:600; display:inline-flex; align-items:center; gap:0.35rem; transition:all 0.15s ease; ${isActive ? 'background:#0f172a; color:#fff; border:1px solid #0f172a;' : 'background:' + meta.bg + '; color:' + meta.color + '; border:1px solid ' + meta.border + ';'}">
                 <i class="bi ${meta.icon}"></i> ${escapeHtml(g.category)} <span style="opacity:0.75; font-size:0.65rem;">(${g.roles.length})</span>
               </button>
             `;
@@ -4568,7 +4568,7 @@ window.renderInterviewBlocks = function() {
   if (!allLoadedJobs || allLoadedJobs.length === 0) {
     container.innerHTML = `
       <div style="grid-column: 1 / -1; padding: 2.5rem 1rem; text-align: center; color: var(--text-muted); background: var(--surface-subtle); border-radius: 8px; border: 1.5px dashed var(--border);">
-        <i class="bi bi-briefcase" style="font-size: 2rem; color: #7D7D7D; display: block; margin-bottom: 0.5rem;"></i>
+        <i class="bi bi-briefcase" style="font-size: 2rem; color: #94a3b8; display: block; margin-bottom: 0.5rem;"></i>
         <strong style="font-size: 0.95rem; color: var(--text);">No Interview Rounds Created Yet</strong>
         <p style="font-size: 0.78rem; margin-top: 0.25rem; margin-bottom: 0.85rem;">Create your first AI interview assessment round to begin screening candidates.</p>
         <button class="btn btn-primary btn-sm" onclick="switchTab('jobs')"><i class="bi bi-plus-circle"></i> Create Interview Round</button>
@@ -4607,7 +4607,7 @@ window.renderInterviewBlocks = function() {
         <div>
           <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.45rem;">
             <strong style="font-size: 0.95rem; color: var(--text); line-height: 1.3;">${escapeHtml(job.title)}</strong>
-            ${isActive ? `<span class="badge" style="background: #CFCFCF; color: #252525; border: 1px solid #CFCFCF; font-size: 0.65rem; font-weight: 700; flex-shrink: 0;"><i class="bi bi-check-circle-fill" style="color: #545454;"></i> Selected</span>` : ''}
+            ${isActive ? `<span class="badge" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 0.65rem; font-weight: 700; flex-shrink: 0;"><i class="bi bi-check-circle-fill" style="color: #2563eb;"></i> Selected</span>` : ''}
           </div>
           <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
             <span class="badge badge-outline" style="font-size: 0.65rem;">${escapeHtml(levelLabel)}</span>
@@ -4800,7 +4800,7 @@ window.applyCandidateFilters = function() {
 
     cardsContainer.innerHTML = `
       <div style="padding: 2.5rem 1rem; text-align: center; color: var(--text-muted); background: var(--surface-subtle); border-radius: 8px; border: 1.5px dashed var(--border);">
-        <i class="bi bi-people" style="font-size: 2rem; color: #7D7D7D; display: block; margin-bottom: 0.5rem;"></i>
+        <i class="bi bi-people" style="font-size: 2rem; color: #94a3b8; display: block; margin-bottom: 0.5rem;"></i>
         <strong style="font-size: 0.95rem; color: var(--text);">No Candidates Found</strong>
         <p style="font-size: 0.78rem; margin-top: 0.25rem; margin-bottom: 0.85rem;">${emptyMsg}</p>
         <a href="#card-invite-candidate" class="btn btn-primary btn-sm"><i class="bi bi-send-fill"></i> Invite First Candidate</a>
@@ -4859,7 +4859,7 @@ window.applyCandidateFilters = function() {
     let sourceBadge = `<span class="badge badge-outline" style="font-size:0.65rem;"><i class="bi bi-link-45deg"></i> Direct Invite</span>`;
     const src = (item.interview_source || item.candidate_source || '').toLowerCase();
     if (src.includes('linkedin')) {
-      sourceBadge = `<span class="badge" style="background:#CFCFCF; color:#0a66c2; border:1px solid #CFCFCF; font-size:0.65rem; font-weight:700;"><i class="bi bi-linkedin"></i> LinkedIn</span>`;
+      sourceBadge = `<span class="badge" style="background:#eff6ff; color:#0a66c2; border:1px solid #bfdbfe; font-size:0.65rem; font-weight:700;"><i class="bi bi-linkedin"></i> LinkedIn</span>`;
     } else if (src.includes('job_board') || src.includes('indeed') || src.includes('naukri')) {
       sourceBadge = `<span class="badge" style="background:#fffbeb; color:#d97706; border:1px solid #fde68a; font-size:0.65rem; font-weight:700;"><i class="bi bi-briefcase-fill"></i> Job Board</span>`;
     } else if (src.includes('campus')) {
@@ -4900,7 +4900,7 @@ window.applyCandidateFilters = function() {
           <i class="bi bi-file-earmark-text"></i> View Full AI Report &amp; Transcript
         </button>
         <a href="/interview.html?token=${item.interview_id}" target="_blank" class="btn btn-outline btn-sm">
-          <i class="bi bi-play-circle" style="color:#545454;"></i> Simulate Room
+          <i class="bi bi-play-circle" style="color:#2563eb;"></i> Simulate Room
         </a>
       `;
     } else {
@@ -5213,10 +5213,10 @@ function renderResponsesList(list) {
     const report = item.report;
     const isCompleted = item.state === 'completed' || item.state === 'report_ready' || item.state === 'disqualified' || Boolean(report);
 
-    let verdictBadge = `<span class="badge" style="background:#f1f5f9; color:#545454; border:1px solid #cbd5e1;"><i class="bi bi-clock"></i> Session Created</span>`;
+    let verdictBadge = `<span class="badge" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;"><i class="bi bi-clock"></i> Session Created</span>`;
     let scoreDisplay = `<span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Score Pending</span>`;
     let clarificationText = `Interview link active (Expires in ${item.link_timer_minutes || 60}m). Candidate has not finished the screening evaluation yet.`;
-    let cardLeftColor = '#7D7D7D';
+    let cardLeftColor = '#94a3b8';
 
     if (item.state === 'disqualified' || (report && (report.disqualified || report.candidate_verdict === 'DISQUALIFIED'))) {
       cardLeftColor = '#dc2626';
@@ -5236,15 +5236,15 @@ function renderResponsesList(list) {
         verdictBadge = `<span class="badge" style="background:#fffbeb; color:#b45309; border:1px solid #fde68a; font-weight:700;"><i class="bi bi-question-circle-fill" style="color:#d97706;"></i> POTENTIAL HIRE</span>`;
         scoreDisplay = `<strong style="font-size:1.25rem; color:#d97706; font-weight:800;">${score}</strong><span style="font-size:0.75rem; color:var(--text-muted);"> / 100</span>`;
       } else {
-        cardLeftColor = '#7D7D7D';
-        verdictBadge = `<span class="badge" style="background:#f1f5f9; color:#545454; border:1px solid #cbd5e1; font-weight:700;"><i class="bi bi-x-circle-fill" style="color:#7D7D7D;"></i> NOT RECOMMENDED</span>`;
-        scoreDisplay = `<strong style="font-size:1.25rem; color:#545454; font-weight:800;">${score}</strong><span style="font-size:0.75rem; color:var(--text-muted);"> / 100</span>`;
+        cardLeftColor = '#64748b';
+        verdictBadge = `<span class="badge" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; font-weight:700;"><i class="bi bi-x-circle-fill" style="color:#64748b;"></i> NOT RECOMMENDED</span>`;
+        scoreDisplay = `<strong style="font-size:1.25rem; color:#475569; font-weight:800;">${score}</strong><span style="font-size:0.75rem; color:var(--text-muted);"> / 100</span>`;
       }
 
       clarificationText = report.hiring_clarification || report.overall_summary || 'Evaluation report ready.';
     }
 
-    const typeBadge = item.interview_type ? `<span class="badge" style="background:#CFCFCF; color:#252525; border:1px solid #CFCFCF; font-size:0.65rem; font-weight:700;">${item.interview_type.toUpperCase()}</span>` : '';
+    const typeBadge = item.interview_type ? `<span class="badge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-size:0.65rem; font-weight:700;">${item.interview_type.toUpperCase()}</span>` : '';
 
     return `
       <div class="response-card" style="border-left: 4px solid ${cardLeftColor};">
@@ -5275,7 +5275,7 @@ function renderResponsesList(list) {
           <div style="display:flex; gap:0.4rem;">
             ${isCompleted
               ? `<button class="btn btn-sm btn-primary" onclick="openReportModal('${item.interview_id}')"><i class="bi bi-journal-text"></i> Full Conversation & Analysis</button>`
-              : `<a href="/interview.html?token=${item.interview_id}" target="_blank" class="btn btn-outline btn-sm"><i class="bi bi-play-circle" style="color:#545454;"></i> Open Room</a>`
+              : `<a href="/interview.html?token=${item.interview_id}" target="_blank" class="btn btn-outline btn-sm"><i class="bi bi-play-circle" style="color:#2563eb;"></i> Open Room</a>`
             }
           </div>
         </div>
@@ -6358,7 +6358,7 @@ window.switchShareModalTab = function(tab) {
     if (subtabDispatch) subtabDispatch.style.display = 'block';
   } else {
     if (btnDirect) {
-      btnDirect.style.background = '#545454';
+      btnDirect.style.background = '#2563eb';
       btnDirect.style.color = '#fff';
       btnDirect.style.border = 'none';
     }
@@ -6520,10 +6520,10 @@ window.renderDispatchQueue = function() {
         ${c.name}
       </td>
       <td style="color: var(--text-muted); padding: 0.5rem 0.65rem; font-size: 0.735rem;">
-        ${c.email ? `<span style="color: #545454; font-weight: 500;"><i class="bi bi-envelope"></i> ${c.email}</span>` : '<span style="color:#7D7D7D; font-style:italic;">Not provided</span>'}
+        ${c.email ? `<span style="color: #2563eb; font-weight: 500;"><i class="bi bi-envelope"></i> ${c.email}</span>` : '<span style="color:#94a3b8; font-style:italic;">Not provided</span>'}
       </td>
       <td style="color: var(--text-muted); padding: 0.5rem 0.65rem; font-size: 0.735rem;">
-        ${c.phone ? `<span style="color: #059669; font-weight: 500;"><i class="bi bi-whatsapp"></i> ${c.phone}</span>` : '<span style="color:#7D7D7D; font-style:italic;">Not provided</span>'}
+        ${c.phone ? `<span style="color: #059669; font-weight: 500;"><i class="bi bi-whatsapp"></i> ${c.phone}</span>` : '<span style="color:#94a3b8; font-style:italic;">Not provided</span>'}
       </td>
       <td style="padding: 0.5rem 0.65rem;">
         <span class="badge badge-outline" style="font-size: 0.65rem; color: #16a34a; border-color: #bbf7d0; background: #f0fdf4;">Ready</span>
@@ -6623,7 +6623,7 @@ window.submitBatchDispatch = async function() {
             html += `
               <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.65rem 0.85rem; margin-bottom: 0.5rem; font-size: 0.75rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span><i class="bi bi-envelope-fill" style="color: #545454;"></i> <strong>Email:</strong> ${r.email}</span>
+                  <span><i class="bi bi-envelope-fill" style="color: #2563eb;"></i> <strong>Email:</strong> ${r.email}</span>
                   <span class="badge ${r.email_method === 'live_smtp' ? 'badge-dark' : 'badge-outline'}" style="font-size: 0.68rem;">
                     ${r.email_method === 'live_smtp' ? 'Sent via Live SMTP' : 'Email Invitation Ready'}
                   </span>
@@ -6916,7 +6916,7 @@ function renderSubPlans() {
         border:1.5px solid ${isPopular ? 'var(--accent)' : 'var(--border)'};
         border-radius:12px; padding:1.25rem; background:var(--surface); cursor:pointer;
         transition:all .15s ease; position:relative; display:flex; flex-direction:column; justify-content:space-between;
-        box-shadow:${isPopular ? '0 10px 26px -10px rgba(84, 84, 84,0.28)' : 'var(--card-shadow)'};">
+        box-shadow:${isPopular ? '0 10px 26px -10px rgba(37,99,235,0.28)' : 'var(--card-shadow)'};">
         <div>
           <div style="display:flex; justify-content:space-between; align-items:center; gap:0.4rem; margin-bottom:0.4rem;">
             <span style="font-size:0.74rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:${isPopular ? 'var(--accent)' : 'var(--text-muted)'};">
@@ -7263,7 +7263,7 @@ window.openBillingCheckout = async function(type) {
       if (checkoutMethodsCache.stripeConfigured) {
         if (banner) {
           banner.style.background = 'var(--accent-light)';
-          banner.style.borderColor = 'rgba(125, 125, 125,0.32)';
+          banner.style.borderColor = 'rgba(59,130,246,0.32)';
           banner.style.color = 'var(--accent)';
           banner.innerHTML = '<i class="bi bi-shield-lock-fill"></i> Secured by <strong>Stripe</strong> — Pay with Credit/Debit Card, Apple Pay, or Google Pay.';
         }
@@ -7690,7 +7690,7 @@ window.renderRegisteredUsersTable = function(users) {
     const initials = name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() || 'U';
     
     // Deterministic avatar color based on name
-    const colors = ['#545454', '#7c3aed', '#059669', '#d97706', '#dc2626', '#0891b2', '#4f46e5'];
+    const colors = ['#2563eb', '#7c3aed', '#059669', '#d97706', '#dc2626', '#0891b2', '#4f46e5'];
     let hash = 0;
     for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
     const avatarBg = colors[Math.abs(hash) % colors.length];
@@ -7736,7 +7736,7 @@ window.renderRegisteredUsersTable = function(users) {
         <!-- Email & Phone -->
         <td style="padding: 0.75rem 0.85rem; vertical-align: middle;">
           <div style="display: flex; flex-direction: column; gap: 0.2rem;">
-            <a href="mailto:${escapeHtml(u.email)}" style="color: #545454; text-decoration: none; font-weight: 600;">
+            <a href="mailto:${escapeHtml(u.email)}" style="color: #2563eb; text-decoration: none; font-weight: 600;">
               <i class="bi bi-envelope"></i> ${escapeHtml(u.email)}
             </a>
             ${u.phone ? `
@@ -7755,7 +7755,7 @@ window.renderRegisteredUsersTable = function(users) {
             ${u.org_industry ? `<span>${escapeHtml(u.org_industry)}</span>` : ''}
             ${u.org_size ? `<span>· ${escapeHtml(u.org_size)} emp</span>` : ''}
             ${u.org_country ? `<span>· ${escapeHtml(u.org_country)}</span>` : ''}
-            ${u.org_website ? `<span>· <a href="${u.org_website.startsWith('http') ? u.org_website : 'https://' + u.org_website}" target="_blank" style="color: #545454; text-decoration: none;"><i class="bi bi-box-arrow-up-right"></i> Web</a></span>` : ''}
+            ${u.org_website ? `<span>· <a href="${u.org_website.startsWith('http') ? u.org_website : 'https://' + u.org_website}" target="_blank" style="color: #2563eb; text-decoration: none;"><i class="bi bi-box-arrow-up-right"></i> Web</a></span>` : ''}
           </div>
         </td>
 

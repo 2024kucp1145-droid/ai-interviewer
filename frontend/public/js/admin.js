@@ -994,7 +994,7 @@ function renderOverviewFunnel(funnel, completionRate) {
   const pct = (val) => Math.max(0, Math.min(100, Math.round((val / invited) * 100)));
   const stages = [
     { label: 'Invited / Link Generated', val: invited, pct: 100, color: '#6366f1' },
-    { label: 'Started / Attempted', val: attempted, pct: pct(attempted), color: '#7D7D7D' },
+    { label: 'Started / Attempted', val: attempted, pct: pct(attempted), color: '#0ea5e9' },
     { label: 'Completed & Evaluated', val: completed, pct: pct(completed), color: '#10b981' },
     { label: 'Disqualified (Integrity)', val: disqualified, pct: pct(disqualified), color: '#ef4444' }
   ];
@@ -1043,7 +1043,7 @@ function renderOverviewScoreChart(buckets) {
         return `
           <div class="score-hist-col" title="${v.range} score: ${v.count} candidate(s)">
             <span class="score-hist-count">${v.count > 0 ? v.count : ''}</span>
-            <div class="score-hist-bar" style="height:${barHeight}%; background:${v.count > 0 ? color : 'rgba(125, 125, 125,0.18)'};"></div>
+            <div class="score-hist-bar" style="height:${barHeight}%; background:${v.count > 0 ? color : 'rgba(148,163,184,0.18)'};"></div>
             <span class="score-hist-label">${escapeHtml(v.range)}</span>
           </div>
         `;
@@ -1175,7 +1175,7 @@ let activityChartInstance = null;
 function renderOverviewCharts(charts) {
   try {
     const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-    const textColor = isDark ? '#7D7D7D' : '#475467';
+    const textColor = isDark ? '#94a3b8' : '#475467';
     const gridColor = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
 
     // Chart 1: Interview Volume
@@ -1189,12 +1189,12 @@ function renderOverviewCharts(charts) {
           datasets: [{
             label: 'Interviews Started',
             data: charts.interviews,
-            borderColor: '#7D7D7D',
-            backgroundColor: 'rgba(125, 125, 125, 0.15)',
+            borderColor: '#0ea5e9',
+            backgroundColor: 'rgba(14, 165, 233, 0.15)',
             borderWidth: 2.5,
             fill: true,
             tension: 0.35,
-            pointBackgroundColor: '#7D7D7D',
+            pointBackgroundColor: '#0ea5e9',
             pointRadius: 4,
             pointHoverRadius: 6
           }]
@@ -1207,7 +1207,7 @@ function renderOverviewCharts(charts) {
             tooltip: {
               backgroundColor: isDark ? '#1a253b' : '#ffffff',
               titleColor: isDark ? '#ffffff' : '#101828',
-              bodyColor: isDark ? '#7D7D7D' : '#475467',
+              bodyColor: isDark ? '#94a3b8' : '#475467',
               borderColor: isDark ? '#243047' : '#cbd5e1',
               borderWidth: 1,
               padding: 10,
@@ -1269,7 +1269,7 @@ function renderOverviewCharts(charts) {
             tooltip: {
               backgroundColor: isDark ? '#1a253b' : '#ffffff',
               titleColor: isDark ? '#ffffff' : '#101828',
-              bodyColor: isDark ? '#7D7D7D' : '#475467',
+              bodyColor: isDark ? '#94a3b8' : '#475467',
               borderColor: isDark ? '#243047' : '#cbd5e1',
               borderWidth: 1,
               padding: 10
@@ -1715,7 +1715,7 @@ function renderJobFolderNode(job, searchTerm, stateFilter, fallbackInterviewer =
         <div class="company-box-head-top">
           <div style="min-width: 0; flex: 1;">
             <div style="font-size: 0.92rem; font-weight: 700; color: var(--text); display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
-              <i class="bi bi-briefcase-fill" style="color:#7D7D7D;"></i>
+              <i class="bi bi-briefcase-fill" style="color:#0ea5e9;"></i>
               <span>${escapeHtml(job.title || 'Untitled Interview')}</span>
               <span class="badge badge-info">${escapeHtml(job.category || 'General')}</span>
             </div>
@@ -1904,7 +1904,7 @@ function renderOrgFolderNode(org, searchTerm, stateFilter) {
 
       <div>
         <div class="section-subhead">
-          <span><i class="bi bi-grid-3x3-gap-fill" style="color:#7D7D7D;"></i> Interviews Conducted by ${escapeHtml(org.name || 'This Company')} (${renderedJobs.length} Boxes)</span>
+          <span><i class="bi bi-grid-3x3-gap-fill" style="color:#0ea5e9;"></i> Interviews Conducted by ${escapeHtml(org.name || 'This Company')} (${renderedJobs.length} Boxes)</span>
           <span>Click any interview box below to inspect every candidate&apos;s exact timing &amp; score</span>
         </div>
         ${renderedJobs.length
@@ -2070,11 +2070,11 @@ window.loadActivityStream = async function(isSilent = false) {
 function renderActivityItem(act, isCompact = false) {
   const actionStyles = {
     USER_SIGNUP: { icon: 'bi-person-plus-fill', color: '#6366f1', label: 'New Recruiter Signup' },
-    USER_LOGIN: { icon: 'bi-box-arrow-in-right', color: '#7D7D7D', label: 'Recruiter Login' },
+    USER_LOGIN: { icon: 'bi-box-arrow-in-right', color: '#3b82f6', label: 'Recruiter Login' },
     USER_VERIFIED: { icon: 'bi-patch-check-fill', color: '#10b981', label: 'Email Verified' },
     USER_PASSWORD_RESET: { icon: 'bi-key-fill', color: '#f59e0b', label: 'Password Reset' },
     COMPANY_PROFILE_UPDATED: { icon: 'bi-building', color: '#8b5cf6', label: 'Company Profile Set' },
-    JOB_CREATED: { icon: 'bi-plus-square-fill', color: '#7D7D7D', label: 'Job Role Created' },
+    JOB_CREATED: { icon: 'bi-plus-square-fill', color: '#0ea5e9', label: 'Job Role Created' },
     JOB_DELETED: { icon: 'bi-trash3-fill', color: '#ef4444', label: 'Job Deleted' },
     INTERVIEW_DISPATCHED: { icon: 'bi-send-fill', color: '#10b981', label: 'Interview Invitation Sent' },
     INTERVIEW_STARTED: { icon: 'bi-play-circle-fill', color: '#f59e0b', label: 'Candidate Started Screening' },
@@ -2935,7 +2935,7 @@ window.inspectInterview = async function(interviewId) {
               <span id="admin-replay-meta" style="font-size:0.72rem; color:var(--text-muted);">Frame ${maxIdx + 1}/${data.code_history.length} &middot; ${formatExactClock(latest.t)} &middot; ${(latest.code || '').length} chars</span>
             </div>
             <input type="range" min="0" max="${maxIdx}" value="${maxIdx}" style="width:100%; margin-bottom:0.5rem;" oninput="(function(idx){ const f = (window._adminReplayFrames || [])[Number(idx)]; if(!f) return; document.getElementById('admin-replay-code').textContent = f.code || ''; document.getElementById('admin-replay-meta').innerHTML = 'Frame ' + (Number(idx)+1) + '/' + window._adminReplayFrames.length + ' &middot; ' + new Date(f.t).toLocaleTimeString() + ' &middot; ' + (f.code||'').length + ' chars' + ((f.pasteDelta||0)>=120 ? ' &middot; <strong style=color:var(--danger)>Paste +' + f.pasteDelta + ' chars</strong>' : ''); })(this.value)">
-            <pre id="admin-replay-code" style="max-height:220px; overflow:auto; background:#252525; color:#e2e8f0; padding:0.7rem; border-radius:8px; font-size:0.74rem; margin:0; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">${escapeHtml(latest.code || '')}</pre>
+            <pre id="admin-replay-code" style="max-height:220px; overflow:auto; background:#0f172a; color:#e2e8f0; padding:0.7rem; border-radius:8px; font-size:0.74rem; margin:0; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">${escapeHtml(latest.code || '')}</pre>
           </div>
         `;
       })() : ''}

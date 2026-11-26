@@ -100,7 +100,7 @@ export class ProctorEngine {
       <div class="proctor-pip-card">
         <div class="proctor-pip-header">
           <div class="proctor-pip-status">
-            <span class="proctor-pip-dot" id="proctor-status-dot" style="background: #7D7D7D; box-shadow: 0 0 8px #7D7D7D;"></span>
+            <span class="proctor-pip-dot" id="proctor-status-dot" style="background: #3b82f6; box-shadow: 0 0 8px #3b82f6;"></span>
             <span id="proctor-status-title">Warmup (15s)</span>
           </div>
           <div style="display: flex; align-items: center; gap: 0.4rem;">
@@ -109,7 +109,7 @@ export class ProctorEngine {
               <span class="pill-badge" id="pip-pill-2">2</span>
               <span class="pill-badge" id="pip-pill-3">3</span>
             </div>
-            <button type="button" id="btn-minimize-pip" style="background: none; border: none; color: #7D7D7D; cursor: pointer; padding: 0 0.15rem; font-size: 0.75rem;" title="Minimize / Restore Camera">
+            <button type="button" id="btn-minimize-pip" style="background: none; border: none; color: #94a3b8; cursor: pointer; padding: 0 0.15rem; font-size: 0.75rem;" title="Minimize / Restore Camera">
               <i class="bi bi-dash-lg" id="pip-toggle-icon"></i>
             </button>
           </div>
@@ -125,9 +125,9 @@ export class ProctorEngine {
           <span id="proctor-footer-detail"><i class="bi bi-camera-video-fill"></i> Camera Initializing...</span>
           <span id="proctor-model-badge" style="font-size:0.65rem; color:var(--text-muted);"><i class="bi bi-shield-check"></i> Vision AI</span>
         </div>
-        <div class="proctor-security-badges" style="display:flex; gap:4px; padding:4px 8px; font-size:0.6rem; color:#7D7D7D; background:rgba(0,0,0,0.45); border-top:1px solid rgba(255,255,255,0.06); justify-content:space-between;">
+        <div class="proctor-security-badges" style="display:flex; gap:4px; padding:4px 8px; font-size:0.6rem; color:#94a3b8; background:rgba(0,0,0,0.45); border-top:1px solid rgba(255,255,255,0.06); justify-content:space-between;">
           <span title="Right-click & shortcuts locked"><i class="bi bi-lock-fill" style="color:#10b981;"></i> Security Lock</span>
-          <span title="Periodic camera verification active"><i class="bi bi-camera-fill" style="color:#CFCFCF;"></i> Heartbeat Sync</span>
+          <span title="Periodic camera verification active"><i class="bi bi-camera-fill" style="color:#38bdf8;"></i> Heartbeat Sync</span>
           <span title="DevTools inspection blocked"><i class="bi bi-shield-lock-fill" style="color:#a855f7;"></i> Anti-Inspect</span>
         </div>
       </div>
@@ -229,9 +229,9 @@ export class ProctorEngine {
         top: 24px;
         left: 50%;
         transform: translateX(-50%);
-        background: #252525;
+        background: #0f172a;
         color: #f8fafc;
-        border: 1px solid #545454;
+        border: 1px solid #334155;
         border-left: 4px solid #f59e0b;
         padding: 0.6rem 1.2rem;
         border-radius: 6px;
@@ -269,7 +269,7 @@ export class ProctorEngine {
         console.log('[ProctorEngine] COCO-SSD model loaded successfully.');
         const modelBadge = document.getElementById('proctor-model-badge');
         if (modelBadge) {
-          modelBadge.innerHTML = '<i class="bi bi-cpu-fill" style="color:#545454;"></i> Neural Vision';
+          modelBadge.innerHTML = '<i class="bi bi-cpu-fill" style="color:#2563eb;"></i> Neural Vision';
         }
       } catch (err) {
         console.warn('[ProctorEngine] Could not load COCO-SSD from CDN, fallback active:', err);
@@ -833,7 +833,7 @@ export class ProctorEngine {
               <p>${reason}</p>
             </div>
             
-            <div style="background: rgba(0,0,0,0.5); border: 1px solid #545454; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.75rem; text-align: left;">
+            <div style="background: rgba(0,0,0,0.5); border: 1px solid #334155; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.75rem; text-align: left;">
               <strong style="color: #f87171; display: block; margin-bottom: 0.35rem;">
                 <i class="bi bi-clipboard-x-fill"></i> Recorded Security Violations (${this.violations.length}):
               </strong>

@@ -1,36 +1,36 @@
 /* ==========================================================================
-   RoundOne AI - 4-Color Monochrome Graphite Design System
-   Palette: Charcoal (#252525), Crisp Silver (#CFCFCF), Slate Gray (#7D7D7D),
-            Graphite (#545454)
+   RoundOne AI - Whitepace SaaS Design System (Figma Community #1156860863353724933)
+   Palette: Deep Navy (#043873), Azure Blue (#4F9CF9), Warm Gold (#FFE492),
+            Sky Tint (#C4DEFD), Crisp White (#FFFFFF), Obsidian Dark (#061124)
    ========================================================================== */
 
 :root {
-  --wp-navy: #252525;
-  --wp-navy-deep: #252525;
-  --wp-azure: #545454;
-  --wp-azure-hover: #7D7D7D;
-  --wp-gold: #CFCFCF;
-  --wp-sky: #CFCFCF;
-  --wp-ink: #252525;
-  --wp-muted: #545454;
+  --wp-navy: #043873;
+  --wp-navy-deep: #032652;
+  --wp-azure: #4f9cf9;
+  --wp-azure-hover: #3b82f6;
+  --wp-gold: #ffe492;
+  --wp-sky: #c4defd;
+  --wp-ink: #212529;
+  --wp-muted: #516075;
 }
 
-/* Override palette variables gently in Light/Dark for 4-color harmony */
+/* Override palette variables gently in Light/Dark for Whitepace harmony */
 [data-theme="light"] {
-  --accent: #252525;
-  --accent-hover: #545454;
-  --accent-dark: #252525;
-  --bg: #CFCFCF;
-  --surface: #e6e6e6;
-  --surface-elevated: #CFCFCF;
+  --accent: #4f9cf9;
+  --accent-hover: #2f85f5;
+  --accent-dark: #043873;
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-elevated: #f5f9ff;
 }
 
 [data-theme="dark"] {
-  --accent: #CFCFCF;
-  --accent-hover: #7D7D7D;
-  --bg: #252525;
-  --surface: #2e2e2e;
-  --surface-elevated: #545454;
+  --accent: #4f9cf9;
+  --accent-hover: #60a5fa;
+  --bg: #071122;
+  --surface: #0b192f;
+  --surface-elevated: #112340;
 }
 
 /* Full-bleed edge-to-edge section bands in Visitor Showcase Mode */
@@ -41,39 +41,38 @@ body:not(.is-authenticated) main {
 }
 
 /* ==========================================================================
-   Signature Top Header Navigation (#252525 + #545454 + #7D7D7D + #CFCFCF)
+   Signature Whitepace Top Header Navigation
    ========================================================================== */
 body:not(.is-authenticated) header {
-  background: #252525 !important;
-  border-bottom: 1px solid #545454 !important;
+  background: var(--wp-navy) !important;
+  border-bottom: 1px solid rgba(196, 222, 253, 0.16) !important;
   padding: 0.85rem clamp(1rem, 3.5vw, 3rem) !important;
-  color: #CFCFCF;
+  color: #ffffff;
 }
 
 [data-theme="dark"] body:not(.is-authenticated) header {
-  background: #252525 !important;
+  background: #032248 !important;
 }
 
 body:not(.is-authenticated) header .brand,
 body:not(.is-authenticated) header #site-brand-title {
-  color: #CFCFCF !important;
+  color: #ffffff !important;
 }
 
 body:not(.is-authenticated) header .brand-mark {
-  background: #545454 !important;
-  color: #CFCFCF !important;
-  border: 1px solid #7D7D7D !important;
+  background: #4f9cf9 !important;
+  color: #ffffff !important;
 }
 
 body:not(.is-authenticated) header .brand-badge {
-  background: rgba(207, 207, 207, 0.15) !important;
+  background: rgba(196, 222, 253, 0.15) !important;
   color: var(--wp-sky) !important;
-  border-color: rgba(207, 207, 207, 0.25) !important;
+  border-color: rgba(196, 222, 253, 0.25) !important;
 }
 
 body:not(.is-authenticated) header #front-nav-tabs {
   background: rgba(255, 255, 255, 0.08) !important;
-  border-color: rgba(207, 207, 207, 0.18) !important;
+  border-color: rgba(196, 222, 253, 0.18) !important;
 }
 
 body:not(.is-authenticated) header #front-nav-tabs .nav-btn {
@@ -92,7 +91,7 @@ body:not(.is-authenticated) header #front-nav-tabs .nav-btn.active {
 
 body:not(.is-authenticated) header .theme-segment-switch {
   background: rgba(255, 255, 255, 0.1) !important;
-  border-color: rgba(207, 207, 207, 0.2) !important;
+  border-color: rgba(196, 222, 253, 0.2) !important;
 }
 
 body:not(.is-authenticated) header .theme-seg-btn {
@@ -108,7 +107,7 @@ body:not(.is-authenticated) header .theme-seg-btn.active span {
 
 body:not(.is-authenticated) header #btn-open-feedback {
   background: transparent !important;
-  border-color: rgba(207, 207, 207, 0.35) !important;
+  border-color: rgba(196, 222, 253, 0.35) !important;
   color: #ffffff !important;
 }
 
@@ -149,56 +148,56 @@ body:not(.is-authenticated) header #btn-header-trial {
   z-index: 2;
 }
 
-/* Deep Navy Whitepace Band (#252525) */
+/* Deep Navy Whitepace Band (#043873) */
 .wp-band-navy {
-  background: #252525;
-  color: #CFCFCF;
+  background: var(--wp-navy);
+  color: #ffffff;
 }
 
 [data-theme="dark"] .wp-band-navy {
-  background: linear-gradient(180deg, #252525 0%, #1d1d1d 100%);
+  background: linear-gradient(180deg, #042b59 0%, #032248 100%);
 }
 
 .wp-band-navy h1,
 .wp-band-navy h2,
 .wp-band-navy h3,
 .wp-band-navy .bolt-title {
-  color: #CFCFCF !important;
+  color: #ffffff !important;
 }
 
 .wp-band-navy p,
 .wp-band-navy .bolt-subhead {
-  color: rgba(207, 207, 207, 0.88) !important;
+  color: rgba(235, 244, 255, 0.88) !important;
 }
 
 .wp-band-navy .bolt-subhead strong {
-  color: #CFCFCF !important;
+  color: var(--wp-gold) !important;
   font-weight: 700;
 }
 
-/* Crisp Silver / Charcoal Alternating Band */
+/* Crisp White / Dark Surface Alternating Band */
 .wp-band-surface {
-  background: #CFCFCF;
-  color: #252525;
+  background: #ffffff;
+  color: var(--wp-ink);
 }
 
 [data-theme="dark"] .wp-band-surface {
-  background: #252525;
+  background: #071122;
   color: #f1f5f9;
 }
 
 /* Subtle Sky Ice Tint Band */
 .wp-band-soft {
-  background: #CFCFCF;
+  background: #f5f9ff;
   color: var(--wp-ink);
-  border-top: 1px solid rgba(37, 37, 37, 0.06);
-  border-bottom: 1px solid rgba(37, 37, 37, 0.06);
+  border-top: 1px solid rgba(4, 56, 115, 0.06);
+  border-bottom: 1px solid rgba(4, 56, 115, 0.06);
 }
 
 [data-theme="dark"] .wp-band-soft {
   background: #0a172c;
   color: #f1f5f9;
-  border-color: rgba(125, 125, 125, 0.12);
+  border-color: rgba(148, 163, 184, 0.12);
 }
 
 /* Signature Whitepace Contour Wave Vector Background */
@@ -217,19 +216,19 @@ body:not(.is-authenticated) header #btn-header-trial {
 }
 
 .wp-band-navy .nano-banner-bg::after {
-  background: linear-gradient(180deg, rgba(37, 37, 37, 0.45) 0%, rgba(37, 37, 37, 0.88) 100%) !important;
+  background: linear-gradient(180deg, rgba(4, 56, 115, 0.45) 0%, rgba(4, 56, 115, 0.88) 100%) !important;
 }
 
 .wp-band-navy .nano-hero-backdrop::after {
   background:
-    linear-gradient(96deg, rgba(37, 37, 37, 0.96) 0%, rgba(37, 37, 37, 0.82) 48%, rgba(37, 37, 37, 0.56) 100%),
-    linear-gradient(180deg, rgba(37, 37, 37, 0.2) 0%, rgba(37, 37, 37, 0.92) 100%) !important;
+    linear-gradient(96deg, rgba(4, 56, 115, 0.96) 0%, rgba(4, 56, 115, 0.82) 48%, rgba(4, 56, 115, 0.56) 100%),
+    linear-gradient(180deg, rgba(4, 56, 115, 0.2) 0%, rgba(4, 56, 115, 0.92) 100%) !important;
 }
 
 [data-theme="dark"] .wp-band-navy .nano-hero-backdrop::after {
   background:
-    linear-gradient(96deg, rgba(37, 37, 37, 0.96) 0%, rgba(37, 37, 37, 0.82) 48%, rgba(84, 84, 84, 0.45) 100%),
-    linear-gradient(180deg, rgba(37, 37, 37, 0.22) 0%, rgba(37, 37, 37, 0.92) 100%) !important;
+    linear-gradient(96deg, rgba(3, 34, 72, 0.96) 0%, rgba(4, 43, 89, 0.78) 48%, rgba(4, 43, 89, 0.5) 100%),
+    linear-gradient(180deg, rgba(3, 34, 72, 0.18) 0%, rgba(3, 34, 72, 0.9) 100%) !important;
 }
 
 /* Adjust hero-split-grid inside Full-Bleed Whitepace Hero Band */
@@ -244,8 +243,8 @@ body:not(.is-authenticated) header #btn-header-trial {
 }
 
 .wp-band-navy .hero-eyebrow {
-  background: rgba(207, 207, 207, 0.14);
-  border-color: rgba(207, 207, 207, 0.38);
+  background: rgba(255, 228, 146, 0.14);
+  border-color: rgba(255, 228, 146, 0.38);
   color: var(--wp-gold);
 }
 
@@ -255,7 +254,7 @@ body:not(.is-authenticated) header #btn-header-trial {
 
 .wp-band-navy .hero-metric-pill {
   background: rgba(255, 255, 255, 0.08) !important;
-  border-color: rgba(207, 207, 207, 0.24) !important;
+  border-color: rgba(196, 222, 253, 0.24) !important;
 }
 
 .wp-band-navy .hero-metric-val {
@@ -272,7 +271,7 @@ body:not(.is-authenticated) header #btn-header-trial {
 
 .wp-band-navy .bolt-prompt-box {
   background: rgba(3, 31, 68, 0.85) !important;
-  border-color: rgba(207, 207, 207, 0.3) !important;
+  border-color: rgba(196, 222, 253, 0.3) !important;
 }
 
 .wp-band-navy .bolt-prompt-input {
@@ -280,17 +279,17 @@ body:not(.is-authenticated) header #btn-header-trial {
 }
 
 .wp-band-navy .bolt-prompt-input::placeholder {
-  color: rgba(207, 207, 207, 0.65) !important;
+  color: rgba(196, 222, 253, 0.65) !important;
 }
 
 .wp-band-navy .bolt-chip {
   background: rgba(255, 255, 255, 0.09) !important;
-  border-color: rgba(207, 207, 207, 0.24) !important;
+  border-color: rgba(196, 222, 253, 0.24) !important;
   color: #eaf3ff !important;
 }
 
 .wp-band-navy .bolt-chip:hover {
-  background: rgba(125, 125, 125, 0.28) !important;
+  background: rgba(79, 156, 249, 0.28) !important;
   border-color: var(--wp-azure) !important;
 }
 
@@ -302,7 +301,7 @@ body:not(.is-authenticated) header #btn-header-trial {
 
 .wp-band-navy .hero-cta-row .btn-outline {
   background: rgba(255, 255, 255, 0.08) !important;
-  border-color: rgba(207, 207, 207, 0.32) !important;
+  border-color: rgba(196, 222, 253, 0.32) !important;
   color: #ffffff !important;
 }
 
@@ -321,7 +320,7 @@ body:not(.is-authenticated) header #btn-header-trial {
 /* Keep the 3D IDE Stage dark-crisp on Navy Hero */
 .wp-band-navy .hero-3d-viewport {
   box-shadow: 0 28px 65px rgba(2, 16, 40, 0.55) !important;
-  border-color: rgba(207, 207, 207, 0.28) !important;
+  border-color: rgba(196, 222, 253, 0.28) !important;
 }
 
 /* ==========================================================================
@@ -404,7 +403,7 @@ body:not(.is-authenticated) header #btn-header-trial {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 16px 38px rgba(37, 37, 37, 0.28);
+  box-shadow: 0 16px 38px rgba(4, 56, 115, 0.28);
   border: 2px solid var(--wp-sky);
   font-weight: 800;
   font-size: 0.72rem;
@@ -422,8 +421,8 @@ body:not(.is-authenticated) header #btn-header-trial {
   height: 54px;
   border-radius: 50%;
   background: #ffffff;
-  border: 1px solid rgba(37, 37, 37, 0.14);
-  box-shadow: 0 10px 26px rgba(37, 37, 37, 0.14);
+  border: 1px solid rgba(4, 56, 115, 0.14);
+  box-shadow: 0 10px 26px rgba(4, 56, 115, 0.14);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -436,7 +435,7 @@ body:not(.is-authenticated) header #btn-header-trial {
 [data-theme="dark"] .wp-orbit-node {
   background: #102442;
   color: #ffffff;
-  border-color: rgba(207, 207, 207, 0.25);
+  border-color: rgba(196, 222, 253, 0.25);
 }
 
 .wp-orbit-node i {
@@ -444,27 +443,27 @@ body:not(.is-authenticated) header #btn-header-trial {
   margin-bottom: 1px;
 }
 
-.wp-orbit-node.n1 { top: 6%; left: 50%; transform: translateX(-50%); color: #7D7D7D; }
+.wp-orbit-node.n1 { top: 6%; left: 50%; transform: translateX(-50%); color: #4f9cf9; }
 .wp-orbit-node.n2 { top: 24%; right: 8%; color: #10b981; }
 .wp-orbit-node.n3 { bottom: 22%; right: 10%; color: #f59e0b; }
-.wp-orbit-node.n4 { bottom: 5%; left: 50%; transform: translateX(-50%); color: #7D7D7D; }
+.wp-orbit-node.n4 { bottom: 5%; left: 50%; transform: translateX(-50%); color: #4f9cf9; }
 .wp-orbit-node.n5 { bottom: 24%; left: 8%; color: #10b981; }
-.wp-orbit-node.n6 { top: 24%; left: 8%; color: #7D7D7D; }
+.wp-orbit-node.n6 { top: 24%; left: 8%; color: #3b82f6; }
 
 /* Code Extension Visual Showcase Box (Navy Split Right Card) */
 .wp-code-showcase-frame {
   background: #ffffff;
   border-radius: 16px;
   padding: 1.25rem;
-  border: 6px solid rgba(207, 207, 207, 0.24);
+  border: 6px solid rgba(196, 222, 253, 0.24);
   box-shadow: 0 24px 55px rgba(2, 16, 40, 0.35);
   color: var(--wp-ink);
 }
 
 [data-theme="dark"] .wp-code-showcase-frame {
-  background: #2d2d2d;
+  background: #0b192f;
   color: #f1f5f9;
-  border-color: rgba(125, 125, 125, 0.28);
+  border-color: rgba(79, 156, 249, 0.28);
 }
 
 .wp-lang-grid {
@@ -475,8 +474,8 @@ body:not(.is-authenticated) header #btn-header-trial {
 }
 
 .wp-lang-pill {
-  background: #CFCFCF;
-  border: 1px solid rgba(125, 125, 125, 0.22);
+  background: #f5f9ff;
+  border: 1px solid rgba(79, 156, 249, 0.22);
   border-radius: 10px;
   padding: 0.65rem 0.55rem;
   text-align: center;
@@ -514,7 +513,7 @@ body:not(.is-authenticated) header #btn-header-trial {
 [data-theme="dark"] .wp-plan-card {
   background: #0d1d38;
   color: #f1f5f9;
-  border-color: rgba(207, 207, 207, 0.45);
+  border-color: rgba(255, 228, 146, 0.45);
 }
 
 .wp-plan-card.is-featured {
@@ -522,7 +521,7 @@ body:not(.is-authenticated) header #btn-header-trial {
   border-color: var(--wp-navy);
   color: #ffffff;
   padding: 2.65rem 1.75rem;
-  box-shadow: 0 24px 55px rgba(37, 37, 37, 0.26);
+  box-shadow: 0 24px 55px rgba(4, 56, 115, 0.26);
 }
 
 .wp-plan-name {
@@ -549,7 +548,7 @@ body:not(.is-authenticated) header #btn-header-trial {
 }
 
 [data-theme="dark"] .wp-plan-desc {
-  color: #7D7D7D;
+  color: #94a3b8;
 }
 
 .wp-plan-card.is-featured .wp-plan-desc {
@@ -624,8 +623,8 @@ body:not(.is-authenticated) header #btn-header-trial {
   color: var(--wp-ink);
   border-radius: 14px;
   padding: 2rem 1.65rem;
-  box-shadow: 0 15px 40px rgba(37, 37, 37, 0.08);
-  border: 1px solid rgba(37, 37, 37, 0.08);
+  box-shadow: 0 15px 40px rgba(4, 56, 115, 0.08);
+  border: 1px solid rgba(4, 56, 115, 0.08);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -635,7 +634,7 @@ body:not(.is-authenticated) header #btn-header-trial {
 [data-theme="dark"] .wp-testimonial-card:not(.is-azure) {
   background: #0d1d38;
   color: #f1f5f9;
-  border-color: rgba(125, 125, 125, 0.16);
+  border-color: rgba(148, 163, 184, 0.16);
 }
 
 .wp-testimonial-card.is-azure {
@@ -669,11 +668,11 @@ body:not(.is-authenticated) header #btn-header-trial {
   align-items: center;
   gap: 0.85rem;
   padding-top: 1rem;
-  border-top: 1px solid rgba(37, 37, 37, 0.14);
+  border-top: 1px solid rgba(4, 56, 115, 0.14);
 }
 
 [data-theme="dark"] .wp-testimonial-card:not(.is-azure) .wp-testimonial-author {
-  border-color: rgba(125, 125, 125, 0.2);
+  border-color: rgba(148, 163, 184, 0.2);
 }
 
 .wp-testimonial-card.is-azure .wp-testimonial-author {
@@ -705,13 +704,13 @@ body:not(.is-authenticated) header #btn-header-trial {
 footer#site-dynamic-footer {
   background: var(--wp-navy) !important;
   color: rgba(255, 255, 255, 0.85) !important;
-  border-top: 1px solid rgba(207, 207, 207, 0.16) !important;
+  border-top: 1px solid rgba(196, 222, 253, 0.16) !important;
   padding: 2.6rem clamp(1rem, 3.5vw, 3rem) 1.6rem !important;
   display: block !important;
 }
 
 [data-theme="dark"] footer#site-dynamic-footer {
-  background: #252525 !important;
+  background: #032248 !important;
 }
 
 .wp-footer-inner {
@@ -724,7 +723,7 @@ footer#site-dynamic-footer {
   grid-template-columns: 1.6fr 1fr 1fr 1fr 1.2fr;
   gap: 2rem;
   padding-bottom: 2rem;
-  border-bottom: 1px solid rgba(207, 207, 207, 0.16);
+  border-bottom: 1px solid rgba(196, 222, 253, 0.16);
 }
 
 .wp-footer-col-title {
@@ -864,9 +863,9 @@ body:not(.is-authenticated) #front-tab-about {
   position: relative;
   border-radius: 20px;
   overflow: hidden;
-  border: 1px solid rgba(207, 207, 207, 0.28);
+  border: 1px solid rgba(196, 222, 253, 0.28);
   box-shadow: 0 32px 72px rgba(2, 16, 40, 0.5);
-  background: #1e1e1e;
+  background: #032652;
   aspect-ratio: 4 / 3;
 }
 
@@ -887,7 +886,7 @@ body:not(.is-authenticated) #front-tab-about {
   border-radius: 999px;
   background: rgba(4, 38, 82, 0.86);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(207, 207, 207, 0.35);
+  border: 1px solid rgba(196, 222, 253, 0.35);
   color: #ffffff;
   font-size: 0.76rem;
   font-weight: 700;
@@ -932,16 +931,16 @@ body:not(.is-authenticated) #front-tab-about {
   font-size: 0.72rem;
   font-weight: 700;
   color: var(--wp-navy);
-  background: rgba(125, 125, 125, 0.14);
-  border: 1px solid rgba(125, 125, 125, 0.3);
+  background: rgba(79, 156, 249, 0.14);
+  border: 1px solid rgba(79, 156, 249, 0.3);
   padding: 0.34rem 0.78rem;
   border-radius: 999px;
 }
 
 [data-theme="dark"] .wp-scroll-badge {
   color: var(--wp-gold);
-  background: rgba(207, 207, 207, 0.12);
-  border-color: rgba(207, 207, 207, 0.3);
+  background: rgba(255, 228, 146, 0.12);
+  border-color: rgba(255, 228, 146, 0.3);
 }
 
 .wp-scroll-stage {
@@ -966,10 +965,10 @@ body:not(.is-authenticated) #front-tab-about {
 
 .wp-scene-card {
   background: #ffffff;
-  border: 1px solid rgba(37, 37, 37, 0.12);
+  border: 1px solid rgba(4, 56, 115, 0.12);
   border-radius: 16px;
   padding: 1.45rem 1.3rem;
-  box-shadow: 0 18px 42px rgba(37, 37, 37, 0.08);
+  box-shadow: 0 18px 42px rgba(4, 56, 115, 0.08);
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
@@ -979,7 +978,7 @@ body:not(.is-authenticated) #front-tab-about {
 
 [data-theme="dark"] .wp-scene-card {
   background: #0d1d38;
-  border-color: rgba(207, 207, 207, 0.18);
+  border-color: rgba(196, 222, 253, 0.18);
   box-shadow: 0 20px 44px rgba(2, 10, 26, 0.45);
 }
 
@@ -1022,8 +1021,8 @@ body:not(.is-authenticated) #front-tab-about {
 }
 
 .wp-scene-visual {
-  background: #CFCFCF;
-  border: 1px solid rgba(125, 125, 125, 0.18);
+  background: #f5f9ff;
+  border: 1px solid rgba(79, 156, 249, 0.18);
   border-radius: 12px;
   padding: 0.95rem;
   display: flex;
@@ -1035,7 +1034,7 @@ body:not(.is-authenticated) #front-tab-about {
 
 [data-theme="dark"] .wp-scene-visual {
   background: #09152b;
-  border-color: rgba(207, 207, 207, 0.16);
+  border-color: rgba(196, 222, 253, 0.16);
 }
 
 .wp-scene-chips {
@@ -1050,7 +1049,7 @@ body:not(.is-authenticated) #front-tab-about {
   font-weight: 700;
   padding: 0.22rem 0.5rem;
   border-radius: 6px;
-  background: rgba(125, 125, 125, 0.14);
+  background: rgba(79, 156, 249, 0.14);
   color: var(--wp-navy);
 }
 
@@ -1110,7 +1109,7 @@ body:not(.is-authenticated) #front-tab-about {
   width: 3px;
   height: 3px;
   border-radius: 50%;
-  background: rgba(207, 207, 207, 0.18);
+  background: rgba(196, 222, 253, 0.18);
   place-self: center;
   animation: particlePulse 3.4s ease-in-out infinite;
 }
@@ -1131,8 +1130,8 @@ body:not(.is-authenticated) #front-tab-about {
   font-weight: 700;
   letter-spacing: 0.03em;
   color: var(--wp-gold);
-  background: rgba(207, 207, 207, 0.1);
-  border: 1px solid rgba(207, 207, 207, 0.3);
+  background: rgba(255, 228, 146, 0.1);
+  border: 1px solid rgba(255, 228, 146, 0.3);
   border-radius: 999px;
   padding: 0.38rem 0.9rem 0.38rem 0.6rem;
   margin-bottom: 1.4rem;
@@ -1140,8 +1139,8 @@ body:not(.is-authenticated) #front-tab-about {
   transition: background 0.2s, border-color 0.2s;
 }
 .wp-hero-cinema-eyebrow:hover {
-  background: rgba(207, 207, 207, 0.18);
-  border-color: rgba(207, 207, 207, 0.52);
+  background: rgba(255, 228, 146, 0.18);
+  border-color: rgba(255, 228, 146, 0.52);
 }
 
 /* Cinematic 2-col layout */
@@ -1184,15 +1183,15 @@ body:not(.is-authenticated) #front-tab-about {
   padding: 0.85rem 1.6rem !important;
   border-radius: 10px !important;
   transition: transform 0.18s, box-shadow 0.18s !important;
-  box-shadow: 0 4px 20px rgba(125, 125, 125, 0.38) !important;
+  box-shadow: 0 4px 20px rgba(79, 156, 249, 0.38) !important;
 }
 .wp-cta-primary:hover {
   transform: translateY(-2px) !important;
-  box-shadow: 0 8px 28px rgba(125, 125, 125, 0.52) !important;
+  box-shadow: 0 8px 28px rgba(79, 156, 249, 0.52) !important;
 }
 .wp-cta-ghost {
   background: rgba(255,255,255,0.08) !important;
-  border: 1px solid rgba(207, 207, 207, 0.28) !important;
+  border: 1px solid rgba(196, 222, 253, 0.28) !important;
   color: #fff !important;
   font-weight: 600 !important;
   font-size: 0.95rem !important;
@@ -1219,7 +1218,7 @@ body:not(.is-authenticated) #front-tab-about {
 .wp-hero-trust-strip span {
   font-size: 0.75rem;
   font-weight: 600;
-  color: rgba(207, 207, 207, 0.8);
+  color: rgba(196, 222, 253, 0.8);
   display: flex;
   align-items: center;
   gap: 0.3rem;
@@ -1242,7 +1241,7 @@ body:not(.is-authenticated) #front-tab-about {
 
 .wp-hero-cinema-right .wp-hero-art-card {
   width: 100%;
-  box-shadow: 0 28px 68px rgba(2, 14, 38, 0.58), 0 0 0 1px rgba(207, 207, 207, 0.22);
+  box-shadow: 0 28px 68px rgba(2, 14, 38, 0.58), 0 0 0 1px rgba(196, 222, 253, 0.22);
 }
 
 /* Floating mini-cards */
@@ -1252,7 +1251,7 @@ body:not(.is-authenticated) #front-tab-about {
   align-items: center;
   gap: 0.6rem;
   background: rgba(4, 30, 68, 0.9);
-  border: 1px solid rgba(207, 207, 207, 0.34);
+  border: 1px solid rgba(196, 222, 253, 0.34);
   border-radius: 13px;
   padding: 0.6rem 0.88rem;
   box-shadow: 0 14px 32px rgba(2, 10, 30, 0.5);
@@ -1267,7 +1266,7 @@ body:not(.is-authenticated) #front-tab-about {
 }
 .wp-float-sub {
   font-size: 0.65rem;
-  color: rgba(207, 207, 207, 0.75);
+  color: rgba(196, 222, 253, 0.75);
   margin-top: 0.08rem;
 }
 
@@ -1380,12 +1379,12 @@ body:not(.is-authenticated) #front-tab-about {
 }
 
 .wp-scene-card.is-active {
-  border-color: rgba(125, 125, 125, 0.42);
-  box-shadow: 0 22px 48px rgba(37, 37, 37, 0.14);
+  border-color: rgba(79, 156, 249, 0.42);
+  box-shadow: 0 22px 48px rgba(4, 56, 115, 0.14);
 }
 
 [data-theme="dark"] .wp-scene-card.is-active {
-  border-color: rgba(125, 125, 125, 0.5);
+  border-color: rgba(79, 156, 249, 0.5);
   box-shadow: 0 22px 48px rgba(2, 12, 34, 0.6);
 }
 
@@ -1401,14 +1400,14 @@ body:not(.is-authenticated) #front-tab-about {
 }
 
 [data-theme="dark"] .wp-scene-desc {
-  color: rgba(207, 207, 207, 0.76);
+  color: rgba(196, 222, 253, 0.76);
 }
 
 .wp-scene-icon-wrap {
   width: 40px; height: 40px;
   border-radius: 11px;
-  background: rgba(125, 125, 125, 0.12);
-  border: 1px solid rgba(125, 125, 125, 0.24);
+  background: rgba(79, 156, 249, 0.12);
+  border: 1px solid rgba(79, 156, 249, 0.24);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1421,20 +1420,20 @@ body:not(.is-authenticated) #front-tab-about {
 }
 
 .wp-scene-icon-azure {
-  background: rgba(125, 125, 125, 0.16);
-  border-color: rgba(125, 125, 125, 0.34);
+  background: rgba(79, 156, 249, 0.16);
+  border-color: rgba(79, 156, 249, 0.34);
   color: var(--wp-azure) !important;
 }
 
 .wp-scene-icon-gold {
-  background: rgba(207, 207, 207, 0.28);
+  background: rgba(255, 228, 146, 0.28);
   border-color: rgba(217, 119, 6, 0.32);
   color: #b45309;
 }
 
 [data-theme="dark"] .wp-scene-icon-gold {
-  background: rgba(207, 207, 207, 0.14);
-  border-color: rgba(207, 207, 207, 0.32);
+  background: rgba(255, 228, 146, 0.14);
+  border-color: rgba(255, 228, 146, 0.32);
   color: var(--wp-gold);
 }
 
@@ -1474,8 +1473,8 @@ body:not(.is-authenticated) #front-tab-about {
 .wp-band-navy .wp-orbit-hub {
   background: #ffffff;
   color: var(--wp-navy);
-  border-color: rgba(207, 207, 207, 0.55);
-  box-shadow: 0 20px 50px rgba(2, 16, 40, 0.55), 0 0 0 8px rgba(125, 125, 125, 0.14);
+  border-color: rgba(196, 222, 253, 0.55);
+  box-shadow: 0 20px 50px rgba(2, 16, 40, 0.55), 0 0 0 8px rgba(79, 156, 249, 0.14);
 }
 .wp-band-navy .wp-orbit-hub i {
   color: var(--wp-azure);
@@ -1483,7 +1482,7 @@ body:not(.is-authenticated) #front-tab-about {
 .wp-band-navy .wp-orbit-node {
   background: #ffffff;
   color: var(--wp-navy);
-  border-color: rgba(207, 207, 207, 0.45);
+  border-color: rgba(196, 222, 253, 0.45);
   box-shadow: 0 14px 34px rgba(2, 16, 40, 0.48);
 }
 
@@ -1491,11 +1490,11 @@ body:not(.is-authenticated) #front-tab-about {
 .wp-sponsors-bar {
   margin-top: 2.5rem;
   padding-top: 1.75rem;
-  border-top: 1px solid rgba(37, 37, 37, 0.08);
+  border-top: 1px solid rgba(4, 56, 115, 0.08);
   text-align: center;
 }
 [data-theme="dark"] .wp-sponsors-bar {
-  border-color: rgba(125, 125, 125, 0.14);
+  border-color: rgba(148, 163, 184, 0.14);
 }
 .wp-sponsors-label {
   font-size: 0.72rem;
@@ -1531,15 +1530,15 @@ body:not(.is-authenticated) #front-tab-about {
 }
 [data-theme="dark"] .wp-plan-btn-outline {
   color: #ffffff;
-  border-color: rgba(207, 207, 207, 0.58);
+  border-color: rgba(255, 228, 146, 0.58);
 }
 .wp-plan-btn-outline:hover {
   background: var(--wp-gold);
   color: var(--wp-navy);
 }
 [data-theme="dark"] .wp-plan-card.is-featured {
-  border: 1.5px solid rgba(125, 125, 125, 0.56);
-  box-shadow: 0 24px 60px rgba(125, 125, 125, 0.2);
+  border: 1.5px solid rgba(79, 156, 249, 0.56);
+  box-shadow: 0 24px 60px rgba(79, 156, 249, 0.2);
 }
 
 /* Testimonials Author Alignment in Dark/Light */
@@ -1571,7 +1570,7 @@ body:not(.is-authenticated) #front-tab-about {
 
 body:not(.is-authenticated) footer#site-dynamic-footer {
   background: #02254d !important;
-  border-top: 1px solid rgba(207, 207, 207, 0.22) !important;
+  border-top: 1px solid rgba(196, 222, 253, 0.22) !important;
 }
 [data-theme="dark"] body:not(.is-authenticated) footer#site-dynamic-footer {
   background: #021530 !important;
