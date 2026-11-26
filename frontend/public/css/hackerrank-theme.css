@@ -9,28 +9,28 @@
   --hr-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --hr-font-mono: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
 
-  --hr-bg: #090d16;
-  --hr-bg-subtle: #0f172a;
-  --hr-surface: #111827;
+  --hr-bg: #252525;
+  --hr-bg-subtle: #252525;
+  --hr-surface: #2d2d2d;
   --hr-surface-glass: rgba(17, 24, 39, 0.88);
-  --hr-surface-subtle: #1e293b;
-  --hr-border: #1f293d;
-  --hr-border-bright: #334155;
+  --hr-surface-subtle: #545454;
+  --hr-border: #545454;
+  --hr-border-bright: #545454;
   --hr-text: #f8fafc;
-  --hr-text-muted: #94a3b8;
-  --hr-text-subtle: #64748b;
+  --hr-text-muted: #7D7D7D;
+  --hr-text-subtle: #7D7D7D;
 
   --hr-green: #00ea64;
   --hr-green-hover: #00c853;
   --hr-green-dim: rgba(0, 234, 100, 0.12);
   --hr-green-glow: 0 0 16px rgba(0, 234, 100, 0.35);
 
-  --hr-cyan: #38bdf8;
-  --hr-cyan-glow: 0 0 14px rgba(56, 189, 248, 0.35);
+  --hr-cyan: #CFCFCF;
+  --hr-cyan-glow: 0 0 14px rgba(207, 207, 207, 0.35);
 
   --hr-amber: #f59e0b;
   --hr-rose: #f43f5e;
-  --hr-blue: #3b82f6;
+  --hr-blue: #7D7D7D;
 
   --hr-radius-sm: 6px;
   --hr-radius-md: 10px;
@@ -50,15 +50,15 @@
   --hr-surface-subtle: #f8fafc;
   --hr-border: #e2e8f0;
   --hr-border-bright: #cbd5e1;
-  --hr-text: #0f172a;
-  --hr-text-muted: #64748b;
-  --hr-text-subtle: #94a3b8;
+  --hr-text: #252525;
+  --hr-text-muted: #7D7D7D;
+  --hr-text-subtle: #7D7D7D;
   --hr-green: #059669;
   --hr-green-hover: #047857;
   --hr-green-dim: rgba(5, 150, 105, 0.1);
   --hr-green-glow: 0 0 12px rgba(5, 150, 105, 0.25);
   --hr-shadow-card: 0 4px 20px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);
-  --hr-shadow-float: 0 20px 40px -10px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.08);
+  --hr-shadow-float: 0 20px 40px -10px rgba(37, 37, 37, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.08);
 }
 
 /* Global Reset */
@@ -100,7 +100,7 @@ code, pre, .font-mono, #terminal-code-input, #terminal-console-output, .badge-mo
 }
 
 [data-theme="light"] .floating-hud-dock {
-  border-color: rgba(15, 23, 42, 0.1);
+  border-color: rgba(37, 37, 37, 0.1);
 }
 
 .floating-hud-dock:hover {
@@ -402,13 +402,13 @@ code, pre, .font-mono, #terminal-code-input, #terminal-console-output, .badge-mo
   justify-content: space-between;
   align-items: center;
   padding: 0.65rem 0.95rem;
-  background: #090d16;
+  background: #252525;
   border-bottom: 1px solid var(--hr-border);
   border-radius: var(--hr-radius-md) var(--hr-radius-md) 0 0;
 }
 
 .hr-lang-select {
-  background: #111827;
+  background: #2d2d2d;
   color: var(--hr-text);
   border: 1px solid var(--hr-border);
   padding: 0.35rem 0.65rem;
@@ -440,9 +440,9 @@ code, pre, .font-mono, #terminal-code-input, #terminal-console-output, .badge-mo
 }
 
 .hr-ide-btn-judge {
-  background: #1f293d !important;
+  background: #545454 !important;
   color: var(--hr-cyan) !important;
-  border: 1px solid rgba(56, 189, 248, 0.3) !important;
+  border: 1px solid rgba(207, 207, 207, 0.3) !important;
   font-weight: 700 !important;
   padding: 0.35rem 0.85rem !important;
   border-radius: 5px !important;
@@ -455,7 +455,7 @@ code, pre, .font-mono, #terminal-code-input, #terminal-console-output, .badge-mo
 }
 
 .hr-ide-btn-judge:hover {
-  background: rgba(56, 189, 248, 0.1) !important;
+  background: rgba(207, 207, 207, 0.1) !important;
   border-color: var(--hr-cyan) !important;
 }
 
@@ -483,7 +483,7 @@ code, pre, .font-mono, #terminal-code-input, #terminal-console-output, .badge-mo
 
 /* Tabbed Test Case Output Drawer */
 .hr-testcase-drawer {
-  background: #090d16;
+  background: #252525;
   border: 1px solid var(--hr-border);
   border-radius: 0 0 var(--hr-radius-md) var(--hr-radius-md);
   margin-top: -1px;
@@ -557,7 +557,7 @@ code, pre, .font-mono, #terminal-code-input, #terminal-console-output, .badge-mo
 }
 
 #proctor-pip-widget .proctor-pip-header {
-  background: #090d16;
+  background: #252525;
   padding: 0.45rem 0.75rem;
   display: flex;
   justify-content: space-between;
@@ -623,7 +623,7 @@ code, pre, .font-mono, #terminal-code-input, #terminal-console-output, .badge-mo
 }
 
 .hr-timer-pill {
-  background: #090d16;
+  background: #252525;
   color: var(--hr-text);
   border: 1px solid var(--hr-border-bright);
   padding: 0.25rem 0.75rem;

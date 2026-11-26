@@ -14,10 +14,10 @@
       --surface-subtle: #f1f5f9;
       --border: #e2e8f0;
       --border-dark: #cbd5e1;
-      --text: #0f172a;
-      --text-muted: #64748b;
-      --accent: #2563eb;
-      --accent-hover: #1d4ed8;
+      --text: #252525;
+      --text-muted: #7D7D7D;
+      --accent: #545454;
+      --accent-hover: #252525;
       --success: #059669;
       --danger: #dc2626;
     }
@@ -46,10 +46,10 @@
       z-index: 40;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
     }
-    .brand { font-size: 1rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 0.5rem; letter-spacing: -0.02em; }
-    .brand i { color: #2563eb; font-size: 1.25rem; }
+    .brand { font-size: 1rem; font-weight: 800; color: #252525; display: flex; align-items: center; gap: 0.5rem; letter-spacing: -0.02em; }
+    .brand i { color: #545454; font-size: 1.25rem; }
     .status-badge {
-      background-color: #0f172a;
+      background-color: #252525;
       color: #ffffff;
       padding: 0.25rem 0.65rem;
       border-radius: 6px;
@@ -78,27 +78,27 @@
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
       transition: all 0.2s ease;
     }
-    .title { font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 0.35rem; letter-spacing: -0.02em; }
+    .title { font-size: 1.25rem; font-weight: 800; color: #252525; margin-bottom: 0.35rem; letter-spacing: -0.02em; }
     .subtitle { color: var(--text-muted); font-size: 0.785rem; margin-bottom: 1.35rem; }
     .notice-box {
       background-color: #f8fafc;
       border: 1px solid #e2e8f0;
-      border-left: 4px solid #2563eb;
+      border-left: 4px solid #545454;
       padding: 0.95rem 1.15rem;
       border-radius: 8px;
       margin-bottom: 1.35rem;
       font-size: 0.775rem;
       line-height: 1.6;
-      color: #1e293b;
+      color: #545454;
     }
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 0.45rem;
-      background-color: #2563eb;
+      background-color: #545454;
       color: #fff;
-      border: 1px solid #2563eb;
+      border: 1px solid #545454;
       border-radius: 6px;
       padding: 0.55rem 1.15rem;
       font-weight: 600;
@@ -106,19 +106,19 @@
       cursor: pointer;
       transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
       width: 100%;
-      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+      box-shadow: 0 2px 6px rgba(84, 84, 84, 0.25);
     }
-    .btn:hover { background-color: #1d4ed8; border-color: #1d4ed8; transform: translateY(-0.5px); box-shadow: 0 4px 10px rgba(37, 99, 235, 0.35); }
+    .btn:hover { background-color: #252525; border-color: #252525; transform: translateY(-0.5px); box-shadow: 0 4px 10px rgba(84, 84, 84, 0.35); }
     .btn-secondary {
       background-color: #fff;
-      color: #334155;
+      color: #545454;
       border: 1px solid var(--border-dark);
       margin-top: 0.5rem;
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
     }
-    .btn-secondary:hover { background-color: #f8fafc; color: #0f172a; transform: translateY(-0.5px); }
+    .btn-secondary:hover { background-color: #f8fafc; color: #252525; transform: translateY(-0.5px); }
     .btn-record {
-      background: linear-gradient(135deg, #0f172a, #1e293b);
+      background: linear-gradient(135deg, #252525, #545454);
       color: #ffffff;
       border: none;
       font-size: 0.88rem;
@@ -129,12 +129,12 @@
       min-width: 200px;
       margin: 1.15rem auto;
       display: flex;
-      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
+      box-shadow: 0 4px 14px rgba(37, 37, 37, 0.25);
       transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .btn-record:hover {
       transform: scale(1.02);
-      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.35);
+      box-shadow: 0 6px 18px rgba(37, 37, 37, 0.35);
     }
     .btn-record.recording {
       background: linear-gradient(135deg, #dc2626, #b91c1c);
@@ -149,7 +149,7 @@
     .ai-avatar {
       width: 56px;
       height: 56px;
-      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      background: linear-gradient(135deg, #545454, #7c3aed);
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -157,35 +157,35 @@
       font-size: 1.5rem;
       margin: 0 auto 1.15rem;
       color: #ffffff;
-      box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
+      box-shadow: 0 4px 16px rgba(84, 84, 84, 0.3);
       transition: transform 0.2s ease;
     }
     .ai-avatar.speaking {
       animation: speakPulse 0.8s infinite alternate;
     }
     @keyframes speakPulse {
-      from { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+      from { transform: scale(1); box-shadow: 0 0 0 0 rgba(84, 84, 84, 0.4); }
       to { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(124, 58, 237, 0); }
     }
     .question-box {
       background-color: #fafcff;
-      border: 1px solid #bfdbfe;
-      border-left: 4px solid #2563eb;
+      border: 1px solid #CFCFCF;
+      border-left: 4px solid #545454;
       border-radius: 8px;
       padding: 1.1rem 1.35rem;
       margin-bottom: 1.35rem;
       font-size: 0.9rem;
       line-height: 1.55;
       font-weight: 500;
-      color: #0f172a;
-      box-shadow: 0 1px 3px rgba(37, 99, 235, 0.05);
+      color: #252525;
+      box-shadow: 0 1px 3px rgba(84, 84, 84, 0.05);
     }
     textarea {
       width: 100%;
       min-height: 100px;
       background-color: #ffffff;
       border: 1.5px solid var(--border);
-      color: #0f172a;
+      color: #252525;
       padding: 0.75rem 0.85rem;
       border-radius: 6px;
       font-family: inherit;
@@ -194,7 +194,7 @@
       margin-bottom: 0.85rem;
       transition: all 0.15s ease;
     }
-    textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+    textarea:focus { outline: none; border-color: #545454; box-shadow: 0 0 0 3px rgba(84, 84, 84, 0.12); }
     .progress-bar-container {
       background-color: var(--border);
       height: 4px;
@@ -203,7 +203,7 @@
       overflow: hidden;
     }
     .progress-fill {
-      background: linear-gradient(90deg, #2563eb, #7c3aed);
+      background: linear-gradient(90deg, #545454, #7c3aed);
       height: 100%;
       width: 100%;
       transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -786,7 +786,7 @@
       padding: 0;
     }
     .disqualified-notice {
-      color: #94a3b8;
+      color: #7D7D7D;
       font-size: 0.75rem;
       line-height: 1.5;
       margin-bottom: 1.5rem;
@@ -872,7 +872,7 @@
       margin: 0.45rem 0;
     }
     [data-theme="dark"] .audio-vu-meter {
-      background: #090d16;
+      background: #252525;
     }
     .vu-segment {
       flex: 1;
@@ -882,7 +882,7 @@
       transition: height 0.08s ease, background 0.08s ease;
     }
     [data-theme="dark"] .vu-segment {
-      background: #334155;
+      background: #545454;
     }
     .vu-segment.active-low { background: #10b981; }
     .vu-segment.active-mid { background: #f59e0b; }
@@ -892,14 +892,14 @@
     .ide-drawer-tabs {
       display: flex;
       align-items: center;
-      background: #090d16;
+      background: #252525;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       padding: 0 0.5rem;
     }
     .ide-tab-btn {
       background: transparent;
       border: none;
-      color: #94a3b8;
+      color: #7D7D7D;
       padding: 0.45rem 0.85rem;
       font-size: 0.72rem;
       font-weight: 600;
@@ -912,29 +912,29 @@
     }
     .ide-tab-btn:hover { color: #f8fafc; }
     .ide-tab-btn.active {
-      color: #38bdf8;
-      border-bottom-color: #38bdf8;
-      background: rgba(56, 189, 248, 0.08);
+      color: #CFCFCF;
+      border-bottom-color: #CFCFCF;
+      background: rgba(207, 207, 207, 0.08);
     }
     .testcase-chip {
       padding: 0.25rem 0.6rem;
       font-size: 0.7rem;
       font-weight: 700;
       border-radius: 6px;
-      background: #1e293b;
-      color: #94a3b8;
+      background: #545454;
+      color: #7D7D7D;
       border: 1px solid rgba(255, 255, 255, 0.08);
       cursor: pointer;
       transition: all 0.15s ease;
     }
     .testcase-chip:hover {
-      background: #334155;
+      background: #545454;
       color: #fff;
     }
     .testcase-chip.active {
-      background: #2563eb;
+      background: #545454;
       color: #fff;
-      border-color: #60a5fa;
+      border-color: #CFCFCF;
     }
     .testcase-chip.passed {
       color: #34d399;
@@ -997,7 +997,7 @@
 
       <form id="candidate-self-reg-form" onsubmit="handleCandidateSelfRegSubmit(event)">
         <div id="reg-source-badge-container" style="margin-bottom: 0.75rem; display: none;">
-          <span id="reg-source-badge" class="badge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-size:0.72rem; font-weight:700;">
+          <span id="reg-source-badge" class="badge" style="background:#CFCFCF; color:#252525; border:1px solid #CFCFCF; font-size:0.72rem; font-weight:700;">
             <i class="bi bi-box-arrow-up-right"></i> External Candidate Application
           </span>
         </div>
@@ -1018,7 +1018,7 @@
           </div>
           <div>
             <label style="font-size: 0.75rem; font-weight: 700; color: var(--text); display: block; margin-bottom: 0.35rem;">
-              WhatsApp / Phone <span style="color: #2563eb;">*</span>
+              WhatsApp / Phone <span style="color: #545454;">*</span>
             </label>
             <input type="tel" id="reg-candidate-phone" placeholder="+91 98765 43210" style="width: 100%; padding: 0.6rem 0.75rem; font-size: 0.85rem; border: 1.5px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text);">
           </div>
@@ -1091,7 +1091,7 @@
     <div id="mic-screen" class="card" style="display: none; max-width: 780px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
         <span class="badge badge-dark"><i class="bi bi-shield-lock-fill"></i> Proctored Pre-Flight Check</span>
-        <span id="preflight-status-badge" class="badge" style="background: rgba(37,99,235,0.12); color: #2563eb; font-weight: 700;">
+        <span id="preflight-status-badge" class="badge" style="background: rgba(84, 84, 84,0.12); color: #545454; font-weight: 700;">
           <i class="bi bi-gear-wide-connected"></i> 3 Core Verification Checks
         </span>
       </div>
@@ -1114,7 +1114,7 @@
         <!-- 1. Microphone & Audio Level Meter -->
         <div class="preflight-card" id="preflight-mic-card">
           <div class="preflight-card-header">
-            <span><i class="bi bi-mic-fill" style="color: #2563eb;"></i> 1. Microphone</span>
+            <span><i class="bi bi-mic-fill" style="color: #545454;"></i> 1. Microphone</span>
             <span id="check-mic-badge" class="badge" style="background: rgba(100,116,139,0.15); color: var(--text-muted); font-size: 0.65rem;">Pending</span>
           </div>
 
@@ -1200,7 +1200,7 @@
 
       <!-- Readiness Checklist Status & Enter Button -->
       <div style="display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.5rem;">
-        <button id="btn-start-interview-voice" class="btn" style="padding: 0.85rem; font-size: 0.95rem; font-weight: 700; background: #2563eb; color: #fff; box-shadow: 0 4px 15px rgba(37,99,235,0.35);">
+        <button id="btn-start-interview-voice" class="btn" style="padding: 0.85rem; font-size: 0.95rem; font-weight: 700; background: #545454; color: #fff; box-shadow: 0 4px 15px rgba(84, 84, 84,0.35);">
           <i class="bi bi-mic-fill"></i> Enter Live Conversational Interview
         </button>
         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; color: var(--text-muted);">
@@ -1235,7 +1235,7 @@
           </div>
 
           <!-- RoundOne AI Visualizer Avatar -->
-          <div id="avatar" class="ai-avatar" style="box-shadow: 0 0 25px rgba(37, 99, 235, 0.35);">
+          <div id="avatar" class="ai-avatar" style="box-shadow: 0 0 25px rgba(84, 84, 84, 0.35);">
             <i class="bi bi-robot"></i>
           </div>
 
@@ -1334,21 +1334,21 @@
             <p id="spec-problem-desc" style="font-size: 0.76rem; color: var(--hr-text-muted); line-height: 1.55; margin-bottom: 0.45rem; white-space: pre-line;">
               Problem description...
             </p>
-            <div id="spec-problem-constraints" style="display: none; font-size: 0.69rem; color: #94a3b8; margin-bottom: 0.45rem;"></div>
+            <div id="spec-problem-constraints" style="display: none; font-size: 0.69rem; color: #7D7D7D; margin-bottom: 0.45rem;"></div>
             <div id="spec-problem-testcases" style="font-family: var(--hr-font-mono); font-size: 0.7rem; color: var(--hr-cyan); background: #06090f; padding: 0.45rem 0.75rem; border-radius: 4px; border: 1px solid var(--hr-border);">
               Sample Examples Loading...
             </div>
           </div>
 
           <!-- Monaco Editor Shell -->
-          <div id="monaco-editor-shell" style="width: 100%; height: 350px; background: #0f172a; border-top: 1px solid #1e293b; border-bottom: 1px solid #1e293b; position: relative; display: none;">
+          <div id="monaco-editor-shell" style="width: 100%; height: 350px; background: #252525; border-top: 1px solid #545454; border-bottom: 1px solid #545454; position: relative; display: none;">
             <div id="monaco-editor-instance" style="width: 100%; height: 100%;"></div>
           </div>
 
           <!-- Fallback Code Editor Area with Line Numbers -->
-          <div id="terminal-editor-shell" style="display:flex;flex:1;min-height:240px;background:#0f172a;border-top:1px solid #1e293b;border-bottom:1px solid #1e293b;overflow:hidden;">
-            <pre id="terminal-line-numbers" aria-hidden="true" style="margin:0;padding:0.85rem 0.65rem 0.85rem 0.5rem;min-width:42px;text-align:right;background:#0b1220;color:#64748b;border-right:1px solid #1e293b;font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.82rem;line-height:1.55;user-select:none;overflow:hidden;">1</pre>
-            <textarea id="terminal-code-input" class="hr-code-editor" spellcheck="false" style="flex:1;border:none;outline:none;border-radius:0;padding:0.85rem;font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.82rem;line-height:1.55;background:#0f172a;color:#e2e8f0;resize:none;" placeholder="// Write or fix your solution here... (Tab indents, Ctrl+Enter submits)"></textarea>
+          <div id="terminal-editor-shell" style="display:flex;flex:1;min-height:240px;background:#252525;border-top:1px solid #545454;border-bottom:1px solid #545454;overflow:hidden;">
+            <pre id="terminal-line-numbers" aria-hidden="true" style="margin:0;padding:0.85rem 0.65rem 0.85rem 0.5rem;min-width:42px;text-align:right;background:#0b1220;color:#7D7D7D;border-right:1px solid #545454;font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.82rem;line-height:1.55;user-select:none;overflow:hidden;">1</pre>
+            <textarea id="terminal-code-input" class="hr-code-editor" spellcheck="false" style="flex:1;border:none;outline:none;border-radius:0;padding:0.85rem;font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.82rem;line-height:1.55;background:#252525;color:#e2e8f0;resize:none;" placeholder="// Write or fix your solution here... (Tab indents, Ctrl+Enter submits)"></textarea>
           </div>
 
           <!-- Tabbed Console & Submission Drawer -->
@@ -1377,31 +1377,31 @@
             </div>
 
             <!-- Tab 1 Pane: Test Cases & Examples -->
-            <div id="ide-tab-pane-cases" style="padding: 0.75rem 0.95rem; background: #090d16; font-family: var(--hr-font-mono);">
+            <div id="ide-tab-pane-cases" style="padding: 0.75rem 0.95rem; background: #252525; font-family: var(--hr-font-mono);">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
                 <div id="testcase-chips-row" style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
                   <button type="button" class="testcase-chip active" id="tc-chip-1" onclick="selectTestCaseTab(1)">Case 1</button>
                   <button type="button" class="testcase-chip" id="tc-chip-2" onclick="selectTestCaseTab(2)">Case 2</button>
                   <button type="button" class="testcase-chip" id="tc-chip-3" onclick="selectTestCaseTab(3)">Case 3</button>
                 </div>
-                <label style="font-size: 0.68rem; color: #94a3b8; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                <label style="font-size: 0.68rem; color: #7D7D7D; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
                   <input type="checkbox" id="chk-custom-testcase" onchange="toggleCustomTestCaseInput()">
                   <span>Custom Input (stdin)</span>
                 </label>
               </div>
 
               <!-- Case Detail Box -->
-              <div id="testcase-detail-box" style="background: #0f172a; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 0.65rem 0.85rem; font-size: 0.75rem; color: #e2e8f0; line-height: 1.5;">
-                <div style="color: #94a3b8; font-size: 0.68rem; margin-bottom: 0.2rem;">Input:</div>
-                <div id="tc-detail-input" style="color: #38bdf8; margin-bottom: 0.45rem;">nums = [2,7,11,15], target = 9</div>
-                <div style="color: #94a3b8; font-size: 0.68rem; margin-bottom: 0.2rem;">Expected Output:</div>
+              <div id="testcase-detail-box" style="background: #252525; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 0.65rem 0.85rem; font-size: 0.75rem; color: #e2e8f0; line-height: 1.5;">
+                <div style="color: #7D7D7D; font-size: 0.68rem; margin-bottom: 0.2rem;">Input:</div>
+                <div id="tc-detail-input" style="color: #CFCFCF; margin-bottom: 0.45rem;">nums = [2,7,11,15], target = 9</div>
+                <div style="color: #7D7D7D; font-size: 0.68rem; margin-bottom: 0.2rem;">Expected Output:</div>
                 <div id="tc-detail-expected" style="color: #34d399;">[0,1]</div>
               </div>
 
               <!-- Custom Test Case Input Area -->
               <div id="custom-testcase-container" style="display: none; margin-top: 0.5rem;">
-                <div style="font-size: 0.68rem; color: #94a3b8; margin-bottom: 0.25rem;">Custom Input JSON arguments:</div>
-                <textarea id="custom-testcase-input" style="width: 100%; min-height: 60px; background: #0f172a; border: 1px solid #38bdf8; border-radius: 6px; padding: 0.5rem; font-family: var(--hr-font-mono); font-size: 0.75rem; color: #f8fafc;" placeholder='{"nums": [3, 2, 4], "target": 6}'></textarea>
+                <div style="font-size: 0.68rem; color: #7D7D7D; margin-bottom: 0.25rem;">Custom Input JSON arguments:</div>
+                <textarea id="custom-testcase-input" style="width: 100%; min-height: 60px; background: #252525; border: 1px solid #CFCFCF; border-radius: 6px; padding: 0.5rem; font-family: var(--hr-font-mono); font-size: 0.75rem; color: #f8fafc;" placeholder='{"nums": [3, 2, 4], "target": 6}'></textarea>
               </div>
             </div>
 
@@ -1411,8 +1411,8 @@
             </div>
 
             <!-- Tab 3 Pane: Notes -->
-            <div id="ide-tab-pane-notes" style="display: none; padding: 0.75rem 0.95rem; background: #090d16;">
-              <textarea id="ide-quick-notes" style="width: 100%; min-height: 110px; background: #0f172a; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 0.65rem; color: #f8fafc; font-family: var(--hr-font-mono); font-size: 0.75rem; resize: vertical;" placeholder="Quick engineering scratchpad: note algorithmic complexities (e.g. Time: O(N), Space: O(N) using HashMap)..."></textarea>
+            <div id="ide-tab-pane-notes" style="display: none; padding: 0.75rem 0.95rem; background: #252525;">
+              <textarea id="ide-quick-notes" style="width: 100%; min-height: 110px; background: #252525; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 0.65rem; color: #f8fafc; font-family: var(--hr-font-mono); font-size: 0.75rem; resize: vertical;" placeholder="Quick engineering scratchpad: note algorithmic complexities (e.g. Time: O(N), Space: O(N) using HashMap)..."></textarea>
             </div>
           </div>
         </div>
@@ -1520,8 +1520,8 @@
 
       <!-- Screen 4: Interview Completed & Issues/Problem Reporting -->
       <div id="candidate-feedback-card" style="text-align: left; margin-top: 1.25rem; padding: 1.25rem; border: 1px solid #e5e7eb; border-radius: 10px; background: #fafafa;">
-        <div style="font-weight: 700; font-size: 0.95rem; color: #111827; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.4rem;">
-          <i class="bi bi-question-diamond-fill" style="color: #2563eb;"></i> Did you face any problems during the interview?
+        <div style="font-weight: 700; font-size: 0.95rem; color: #2d2d2d; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.4rem;">
+          <i class="bi bi-question-diamond-fill" style="color: #545454;"></i> Did you face any problems during the interview?
         </div>
         <p style="font-size: 0.78rem; color: #6b7280; margin-bottom: 0.85rem;">
           Let us know if you encountered any technical, audio, or question clarity issues so our team can review your session.
@@ -1584,7 +1584,7 @@
             <textarea id="cand-fb-message" rows="2" placeholder="Tell us more about any problem or suggestions for improvement..." style="width: 100%; padding: 0.45rem 0.6rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.8rem;"></textarea>
           </div>
 
-          <button type="submit" id="btn-cand-feedback" class="btn" style="align-self: flex-start; padding: 0.55rem 1.15rem; font-size: 0.8rem; background: #2563eb; color: #fff;">
+          <button type="submit" id="btn-cand-feedback" class="btn" style="align-self: flex-start; padding: 0.55rem 1.15rem; font-size: 0.8rem; background: #545454; color: #fff;">
             Submit Feedback & Issues <i class="bi bi-send-fill"></i>
           </button>
         </form>

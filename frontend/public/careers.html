@@ -14,10 +14,10 @@
       --surface: #ffffff;
       --surface-subtle: #f1f5f9;
       --border: #e2e8f0;
-      --text: #0f172a;
-      --text-muted: #64748b;
-      --accent: #2563eb;
-      --accent-hover: #1d4ed8;
+      --text: #252525;
+      --text-muted: #7D7D7D;
+      --accent: #545454;
+      --accent-hover: #252525;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -39,7 +39,7 @@
       gap: 0.75rem;
     }
     .hero {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      background: linear-gradient(135deg, #252525 0%, #545454 100%);
       color: #fff;
       padding: 2.75rem 1.5rem;
       text-align: center;
@@ -75,7 +75,7 @@
       align-items: center;
       gap: 1.25rem;
       flex-wrap: wrap;
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      box-shadow: 0 1px 2px rgba(37, 37, 37, 0.04);
     }
     .badge {
       display: inline-flex;
@@ -118,7 +118,7 @@
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(15, 23, 42, 0.55);
+      background: rgba(37, 37, 37, 0.55);
       display: none;
       align-items: center;
       justify-content: center;
@@ -132,7 +132,7 @@
       max-width: 440px;
       padding: 1.5rem;
       border: 1px solid var(--border);
-      box-shadow: 0 20px 30px rgba(15, 23, 42, 0.2);
+      box-shadow: 0 20px 30px rgba(37, 37, 37, 0.2);
     }
     .form-group { margin-bottom: 0.9rem; }
     .form-group label { display: block; font-weight: 600; font-size: 0.78rem; margin-bottom: 0.3rem; }
@@ -148,7 +148,7 @@
 <body>
   <header>
     <div style="display:flex;align-items:center;gap:0.6rem;font-weight:800;font-size:1rem;">
-      <span style="width:30px;height:30px;border-radius:7px;background:#0f172a;color:#fff;display:inline-flex;align-items:center;justify-content:center;">
+      <span style="width:30px;height:30px;border-radius:7px;background:#252525;color:#fff;display:inline-flex;align-items:center;justify-content:center;">
         <i class="bi bi-building"></i>
       </span>
       <span id="org-header-name">Company Careers</span>

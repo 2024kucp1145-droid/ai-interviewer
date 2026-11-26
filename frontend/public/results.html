@@ -15,11 +15,11 @@
       --surface-subtle: #f1f5f9;
       --border: #e2e8f0;
       --border-dark: #cbd5e1;
-      --text: #0f172a;
-      --text-muted: #64748b;
-      --accent: #2563eb;
-      --accent-hover: #1d4ed8;
-      --accent-light: #eff6ff;
+      --text: #252525;
+      --text-muted: #7D7D7D;
+      --accent: #545454;
+      --accent-hover: #252525;
+      --accent-light: #CFCFCF;
       --success: #059669;
       --success-light: #ecfdf5;
       --warning: #d97706;
@@ -36,9 +36,9 @@
       --border-dark: #3f3f46;
       --text: #f4f4f5;
       --text-muted: #a1a1aa;
-      --accent: #3b82f6;
-      --accent-hover: #2563eb;
-      --accent-light: #1e293b;
+      --accent: #7D7D7D;
+      --accent-hover: #545454;
+      --accent-light: #545454;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -77,7 +77,7 @@
     .brand {
       font-size: 1rem;
       font-weight: 800;
-      color: #0f172a;
+      color: #252525;
       display: flex;
       align-items: center;
       gap: 0.5rem;
@@ -120,7 +120,7 @@
     }
 
     .badge-dark {
-      background: #0f172a;
+      background: #252525;
       color: #ffffff;
     }
 
@@ -257,7 +257,7 @@
     .section-header-grey {
       background: #f8fafc;
       border-color: #cbd5e1;
-      color: #334155;
+      color: #545454;
     }
 
     [data-theme="dark"] .section-header-green {
@@ -281,7 +281,7 @@
     [data-theme="dark"] .section-header-grey {
       background: #18181b;
       border-color: #27272a;
-      color: #94a3b8;
+      color: #7D7D7D;
     }
 
     .section-body {
@@ -337,7 +337,7 @@
     .card-grey {
       background: #f8fafc;
       border: 1.5px solid #e2e8f0;
-      border-left: 5px solid #94a3b8;
+      border-left: 5px solid #7D7D7D;
     }
 
     [data-theme="dark"] .card-green {
@@ -361,7 +361,7 @@
     [data-theme="dark"] .card-grey {
       background: #18181b;
       border-color: #27272a;
-      border-left-color: #64748b;
+      border-left-color: #7D7D7D;
     }
 
     .empty-section-notice {
@@ -527,9 +527,9 @@
         <i class="bi bi-arrow-left"></i> Back to Dashboard
       </a>
       <a href="/index.html" class="brand">
-        <i class="bi bi-robot" style="color: #2563eb;"></i>
+        <i class="bi bi-robot" style="color: #545454;"></i>
         <span>RoundOne AI</span>
-        <span class="badge badge-dark" style="background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; font-size:0.65rem;">Candidate Results</span>
+        <span class="badge badge-dark" style="background:#CFCFCF; color:#545454; border:1px solid #CFCFCF; font-size:0.65rem;">Candidate Results</span>
       </a>
     </div>
 
@@ -554,7 +554,7 @@
           </button>
           <div class="download-menu-divider"></div>
           <button type="button" class="download-menu-item" onclick="downloadHtmlReport()">
-            <i class="bi bi-filetype-html" style="color:#3b82f6;"></i> Offline HTML Dossier (.html)
+            <i class="bi bi-filetype-html" style="color:#7D7D7D;"></i> Offline HTML Dossier (.html)
           </button>
           <button type="button" class="download-menu-item" onclick="exportJobCsv('current')">
             <i class="bi bi-filetype-csv" style="color:#10b981;"></i> Excel CSV (Current Scope)
@@ -602,7 +602,7 @@
       <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
         <div>
           <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.35rem;">
-            <span class="badge badge-dark" style="background: #2563eb; color: #fff;">Interview Assessment Round</span>
+            <span class="badge badge-dark" style="background: #545454; color: #fff;">Interview Assessment Round</span>
             <span id="job-company-badge" class="badge" style="background:var(--surface-subtle); color:var(--text); border:1px solid var(--border); display:none; align-items:center; gap:0.35rem;"><i class="bi bi-building"></i> <span id="job-company-name"></span></span>
             <span id="job-level-badge" class="badge badge-outline">Mid-Level</span>
             <span id="job-type-badge" class="badge badge-outline">Technical</span>
@@ -710,7 +710,7 @@
     <!-- Analytics / Score Summary Strip -->
     <div class="metric-grid">
       <div class="metric-tile">
-        <div class="metric-tile-icon" style="background: #eff6ff; color: #2563eb;">
+        <div class="metric-tile-icon" style="background: #CFCFCF; color: #545454;">
           <i class="bi bi-people-fill"></i>
         </div>
         <div>
@@ -750,7 +750,7 @@
       </div>
 
       <div class="metric-tile">
-        <div class="metric-tile-icon" style="background: #f8fafc; color: #475569;">
+        <div class="metric-tile-icon" style="background: #f8fafc; color: #545454;">
           <i class="bi bi-trophy-fill" style="color: #fbbf24;"></i>
         </div>
         <div>
@@ -779,7 +779,7 @@
           <a href="#section-rejected" class="btn btn-outline btn-sm" style="border-color: #fecaca; color: #b91c1c; background: #fef2f2;">
             <i class="bi bi-x-circle-fill"></i> Rejected (<span id="jump-count-rejected">0</span>)
           </a>
-          <a href="#section-pending" class="btn btn-outline btn-sm" style="border-color: #cbd5e1; color: #475569; background: #f8fafc;">
+          <a href="#section-pending" class="btn btn-outline btn-sm" style="border-color: #cbd5e1; color: #545454; background: #f8fafc;">
             <i class="bi bi-clock"></i> Pending (<span id="jump-count-pending">0</span>)
           </a>
         </div>
@@ -855,7 +855,7 @@
     <div class="section-container" id="section-pending">
       <div class="section-header section-header-grey">
         <div style="display: flex; align-items: center; gap: 0.6rem;">
-          <i class="bi bi-clock-history" style="font-size: 1.15rem; color: #64748b;"></i>
+          <i class="bi bi-clock-history" style="font-size: 1.15rem; color: #7D7D7D;"></i>
           <div>
             <strong style="font-size: 0.95rem;">4. Pending Invitations &amp; Tests In-Progress</strong>
             <div style="font-size: 0.72rem; opacity: 0.85;">Candidate links generated &bull; Awaiting test submission</div>
@@ -877,7 +877,7 @@
     <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 820px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
       <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); background: var(--surface-subtle);">
         <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <span class="badge badge-dark" style="background:#2563eb; color:#fff;">AI Audit Report</span>
+          <span class="badge badge-dark" style="background:#545454; color:#fff;">AI Audit Report</span>
           <strong id="modal-candidate-name" style="font-size: 1rem; color: var(--text);">Candidate Report</strong>
         </div>
         <button class="btn btn-ghost btn-sm" onclick="closeResultsReportModal()"><i class="bi bi-x-lg"></i></button>
@@ -885,7 +885,7 @@
       <div id="modal-report-content" style="padding: 1.25rem; overflow-y: auto; flex: 1;">
         <!-- Loaded dynamically -->
       </div>
-      <div id="modal-share-banner" style="display:none; padding: 0.6rem 1.25rem; background: #eff6ff; border-top: 1px solid #bfdbfe; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+      <div id="modal-share-banner" style="display:none; padding: 0.6rem 1.25rem; background: #CFCFCF; border-top: 1px solid #CFCFCF; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
         <span style="font-size: 0.78rem; color: #1e40af;"><i class="bi bi-link-45deg"></i> Shareable link (7-day expiry): <a id="modal-share-url-link" href="#" target="_blank" style="font-weight: 700; text-decoration: underline;"></a></span>
         <button class="btn btn-outline btn-sm" onclick="copyShareReportUrl()"><i class="bi bi-clipboard"></i> Copy</button>
       </div>
@@ -914,15 +914,15 @@
     <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 680px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.6);">
       <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 1.25rem; border-bottom: 1px solid var(--border); background: var(--surface-subtle);">
         <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <span id="lightbox-badge" class="badge badge-dark" style="background:#2563eb; color:#fff;">Forensic Evidence</span>
+          <span id="lightbox-badge" class="badge badge-dark" style="background:#545454; color:#fff;">Forensic Evidence</span>
           <strong id="lightbox-title" style="font-size: 0.95rem; color: var(--text);">Camera Audit Inspection</strong>
         </div>
         <button class="btn btn-ghost btn-sm" onclick="closeSnapshotLightbox()"><i class="bi bi-x-lg"></i></button>
       </div>
       <div style="padding: 1rem; background: #09090b; display: flex; align-items: center; justify-content: center; min-height: 320px; position: relative;">
         <img id="lightbox-img" src="" alt="Proctor Snapshot" style="max-width: 100%; max-height: 460px; object-fit: contain; border-radius: 6px; box-shadow: 0 8px 30px rgba(0,0,0,0.8);">
-        <button id="lightbox-btn-prev" onclick="navigateLightbox(-1)" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.7); border: 1px solid #334155; color: #fff; border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s;" title="Previous Snapshot (Left Arrow)"><i class="bi bi-chevron-left"></i></button>
-        <button id="lightbox-btn-next" onclick="navigateLightbox(1)" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.7); border: 1px solid #334155; color: #fff; border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s;" title="Next Snapshot (Right Arrow)"><i class="bi bi-chevron-right"></i></button>
+        <button id="lightbox-btn-prev" onclick="navigateLightbox(-1)" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.7); border: 1px solid #545454; color: #fff; border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s;" title="Previous Snapshot (Left Arrow)"><i class="bi bi-chevron-left"></i></button>
+        <button id="lightbox-btn-next" onclick="navigateLightbox(1)" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.7); border: 1px solid #545454; color: #fff; border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s;" title="Next Snapshot (Right Arrow)"><i class="bi bi-chevron-right"></i></button>
       </div>
       <div style="padding: 0.85rem 1.25rem; border-top: 1px solid var(--border); background: var(--surface-subtle); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
         <div>
@@ -935,12 +935,12 @@
   </div>
 
   <!-- Floating Candidate Comparison Bar -->
-  <div id="compare-floating-bar" class="no-print" style="display: none; position: fixed; bottom: 1.25rem; left: 50%; transform: translateX(-50%); background: #0f172a; color: #fff; padding: 0.65rem 1.15rem; border-radius: 999px; box-shadow: 0 12px 30px rgba(0,0,0,0.3); z-index: 95; align-items: center; gap: 0.85rem;">
+  <div id="compare-floating-bar" class="no-print" style="display: none; position: fixed; bottom: 1.25rem; left: 50%; transform: translateX(-50%); background: #252525; color: #fff; padding: 0.65rem 1.15rem; border-radius: 999px; box-shadow: 0 12px 30px rgba(0,0,0,0.3); z-index: 95; align-items: center; gap: 0.85rem;">
     <span id="compare-selected-label" style="font-size: 0.8rem; font-weight: 600;">0 candidates selected</span>
     <button id="btn-open-compare" class="btn btn-primary btn-sm" onclick="openCompareModal()" disabled>
       <i class="bi bi-columns-gap"></i> Compare (2–4)
     </button>
-    <button class="btn btn-outline btn-sm" style="color: #cbd5e1; border-color: #334155;" onclick="clearCompareSelection()">Clear</button>
+    <button class="btn btn-outline btn-sm" style="color: #cbd5e1; border-color: #545454;" onclick="clearCompareSelection()">Clear</button>
   </div>
 
   <!-- Side-by-Side Candidate Comparison Modal -->
@@ -948,7 +948,7 @@
     <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 1080px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 45px rgba(0,0,0,0.35);">
       <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); background: var(--surface-subtle);">
         <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <span class="badge badge-dark" style="background:#0f172a; color:#fff;"><i class="bi bi-columns-gap"></i> Candidate Comparison Matrix</span>
+          <span class="badge badge-dark" style="background:#252525; color:#fff;"><i class="bi bi-columns-gap"></i> Candidate Comparison Matrix</span>
           <strong style="font-size: 0.9rem;" id="compare-modal-subtitle">Side-by-Side Evaluation</strong>
         </div>
         <button class="btn btn-outline btn-sm" onclick="closeCompareModal()"><i class="bi bi-x-lg"></i></button>
@@ -1715,7 +1715,7 @@
           <div class="result-candidate-card card-grey">
             <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
               <div style="display: flex; align-items: center; gap: 0.85rem;">
-                <div style="width: 38px; height: 38px; border-radius: 50%; background: #f1f5f9; color: #475569; font-weight: 700; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; border: 1.5px solid #cbd5e1;">
+                <div style="width: 38px; height: 38px; border-radius: 50%; background: #f1f5f9; color: #545454; font-weight: 700; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; border: 1.5px solid #cbd5e1;">
                   ${initials}
                 </div>
                 <div>
@@ -1838,7 +1838,7 @@
       }).join('');
 
       const htmlDoc = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${escapeHtml(jobTitle)} — Candidate Report</title>
-<style>body{font-family:system-ui,-apple-system,sans-serif;padding:28px;color:#0f172a;max-width:1100px;margin:0 auto;}h1{margin:0 0 6px;font-size:22px;}.meta{color:#475569;font-size:13px;margin-bottom:18px;}table{width:100%;border-collapse:collapse;font-size:13px;}th,td{border:1px solid #cbd5e1;padding:8px 10px;text-align:left;vertical-align:top;}th{background:#f1f5f9;}.cat{padding:2px 7px;border-radius:4px;font-weight:700;font-size:11px;}.cat-selected{background:#dcfce7;color:#166534;}.cat-borderline{background:#fef3c7;color:#92400e;}.cat-rejected{background:#fee2e2;color:#991b1b;}.cat-pending{background:#e2e8f0;color:#334155;}</style>
+<style>body{font-family:system-ui,-apple-system,sans-serif;padding:28px;color:#252525;max-width:1100px;margin:0 auto;}h1{margin:0 0 6px;font-size:22px;}.meta{color:#545454;font-size:13px;margin-bottom:18px;}table{width:100%;border-collapse:collapse;font-size:13px;}th,td{border:1px solid #cbd5e1;padding:8px 10px;text-align:left;vertical-align:top;}th{background:#f1f5f9;}.cat{padding:2px 7px;border-radius:4px;font-weight:700;font-size:11px;}.cat-selected{background:#dcfce7;color:#166534;}.cat-borderline{background:#fef3c7;color:#92400e;}.cat-rejected{background:#fee2e2;color:#991b1b;}.cat-pending{background:#e2e8f0;color:#545454;}</style>
 </head><body>
 <h1>${escapeHtml(customConfig.reportTitle)}</h1>
 <div class="meta">Role: <strong>${escapeHtml(jobTitle)}</strong> &middot; Cutoffs: Selected &ge; ${customConfig.selectedCutoff}, Borderline &ge; ${customConfig.borderlineCutoff} &middot; Exported: ${new Date().toLocaleString()} &middot; Candidates: ${items.length}</div>
@@ -1998,8 +1998,8 @@
           } else if (r.includes('baseline')) {
             type = 'heartbeat';
             label = 'Baseline Identity';
-            badgeColor = '#0284c7';
-            borderClr = '#0284c7';
+            badgeColor = '#545454';
+            borderClr = '#545454';
           }
 
           return { ...s, idx, type, label, badgeColor, borderClr, isViolation };
@@ -2172,7 +2172,7 @@
             </div>
             <div style="text-align:right;">
               <div style="font-size:0.75rem; color:var(--text-muted);">Audit Score</div>
-              <strong id="modal-audit-score" style="font-size:1.45rem; color:#2563eb;">${typeof scoreDisp === 'number' ? '0/100' : scoreDisp}</strong>
+              <strong id="modal-audit-score" style="font-size:1.45rem; color:#545454;">${typeof scoreDisp === 'number' ? '0/100' : scoreDisp}</strong>
             </div>
           </div>
 
@@ -2202,7 +2202,7 @@
                   <span id="results-replay-meta" style="font-size:0.72rem; color:var(--text-muted);">Frame ${maxIdx + 1}/${code_history.length} &middot; ${new Date(latest.t).toLocaleTimeString()} &middot; ${(latest.code || '').length} chars</span>
                 </div>
                 <input type="range" min="0" max="${maxIdx}" value="${maxIdx}" style="width:100%; margin-bottom:0.45rem;" oninput="updateResultsCodeReplay(this.value)">
-                <pre id="results-replay-code" style="max-height:210px; overflow:auto; background:#0f172a; color:#e2e8f0; padding:0.7rem; border-radius:6px; font-size:0.74rem; margin:0; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">${escapeHtml(latest.code || '')}</pre>
+                <pre id="results-replay-code" style="max-height:210px; overflow:auto; background:#252525; color:#e2e8f0; padding:0.7rem; border-radius:6px; font-size:0.74rem; margin:0; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">${escapeHtml(latest.code || '')}</pre>
               </div>
             `;
           })() : ''}
@@ -2228,7 +2228,7 @@
       if (!activeModalReportData?.interview) return;
       const { interview, report, turns } = activeModalReportData;
       const doc = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${escapeHtml(interview.candidate_name)} — Evaluation</title>
-<style>body{font-family:system-ui,sans-serif;max-width:850px;margin:28px auto;padding:0 18px;color:#0f172a;line-height:1.55;}h1{margin-bottom:4px;}.box{border:1px solid #cbd5e1;border-radius:8px;padding:14px;margin:12px 0;background:#f8fafc;}.turn{border-bottom:1px dashed #cbd5e1;padding:6px 0;}</style>
+<style>body{font-family:system-ui,sans-serif;max-width:850px;margin:28px auto;padding:0 18px;color:#252525;line-height:1.55;}h1{margin-bottom:4px;}.box{border:1px solid #cbd5e1;border-radius:8px;padding:14px;margin:12px 0;background:#f8fafc;}.turn{border-bottom:1px dashed #cbd5e1;padding:6px 0;}</style>
 </head><body>
 <h1>${escapeHtml(interview.candidate_name)} — AI Interview Audit</h1>
 <p><strong>Role:</strong> ${escapeHtml(interview.job_title)} &middot; <strong>Email:</strong> ${escapeHtml(interview.candidate_email)} &middot; <strong>Score:</strong> ${report?.overall_score ?? '--'}/100 &middot; <strong>Verdict:</strong> ${escapeHtml(report?.candidate_verdict || interview.state)}</p>
@@ -2348,7 +2348,7 @@
       if (title) title.textContent = item.label || 'Integrity Snapshot';
       if (badge) {
         badge.textContent = item.isViolation ? 'Violation Flag' : 'Verified Identity';
-        badge.style.background = item.badgeColor || '#2563eb';
+        badge.style.background = item.badgeColor || '#545454';
       }
       if (reason) reason.textContent = item.reason || 'Proctoring Snapshot';
       if (meta) meta.textContent = `Timestamp: ${new Date(item.created_at).toLocaleString()} · Evidence ID: ${item.id || 'N/A'}`;

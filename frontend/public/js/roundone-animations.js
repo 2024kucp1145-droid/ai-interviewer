@@ -145,7 +145,7 @@
 
     animeRun(targets, {
       scale: 1,
-      boxShadow: '0 0 10px rgba(37, 99, 235, 0.25)',
+      boxShadow: '0 0 10px rgba(84, 84, 84, 0.25)',
       duration: 350,
       ease: 'outQuad'
     });

@@ -16,8 +16,8 @@
       --border: #243047;
       --border-bright: #334361;
       --text: #f8fafc;
-      --text-muted: #94a3b8;
-      --text-subtle: #64748b;
+      --text-muted: #7D7D7D;
+      --text-subtle: #7D7D7D;
       --primary: #465fff;
       --primary-hover: #3c50e0;
       --primary-subtle: rgba(70, 95, 255, 0.14);
@@ -27,12 +27,12 @@
       --warning-subtle: rgba(245, 158, 11, 0.14);
       --danger: #ef4444;
       --danger-subtle: rgba(239, 68, 68, 0.14);
-      --info: #38bdf8;
-      --info-subtle: rgba(56, 189, 248, 0.14);
-      --sidebar-bg: #111827;
+      --info: #CFCFCF;
+      --info-subtle: rgba(207, 207, 207, 0.14);
+      --sidebar-bg: #2d2d2d;
       --sidebar-border: #1f2937;
       --sidebar-text: #cbd5e1;
-      --sidebar-muted: #64748b;
+      --sidebar-muted: #7D7D7D;
       --sidebar-hover: rgba(255, 255, 255, 0.06);
       --sidebar-active-bg: rgba(70, 95, 255, 0.16);
       --sidebar-active-text: #ffffff;
@@ -59,7 +59,7 @@
       --warning-subtle: #fffaeb;
       --danger: #d92d20;
       --danger-subtle: #fef3f2;
-      --info: #0284c7;
+      --info: #545454;
       --info-subtle: #f0f9ff;
       --sidebar-bg: #ffffff;
       --sidebar-border: #e2e8f0;
@@ -934,7 +934,7 @@
     .badge-info {
       background-color: var(--info-subtle);
       color: var(--info);
-      border: 1px solid rgba(14, 165, 233, 0.25);
+      border: 1px solid rgba(125, 125, 125, 0.25);
     }
 
     .badge-neutral {
@@ -1064,7 +1064,7 @@
 
     .folder-node.level-job {
       background-color: var(--surface-elevated);
-      border-left: 3px solid #0ea5e9;
+      border-left: 3px solid #7D7D7D;
       border-radius: 8px;
     }
 
@@ -1256,7 +1256,7 @@
     .interview-box-card.is-open {
       grid-column: 1 / -1;
       border-color: var(--info);
-      box-shadow: 0 8px 22px rgba(14, 165, 233, 0.15);
+      box-shadow: 0 8px 22px rgba(125, 125, 125, 0.15);
     }
 
     .interview-box-head {
@@ -1410,7 +1410,7 @@
 
     .quick-action-pill.tone-warning { border-color: rgba(245, 158, 11, 0.45); background: var(--warning-subtle); color: var(--warning); }
     .quick-action-pill.tone-danger { border-color: rgba(239, 68, 68, 0.45); background: var(--danger-subtle); color: var(--danger); }
-    .quick-action-pill.tone-info { border-color: rgba(14, 165, 233, 0.45); background: var(--info-subtle); color: var(--info); }
+    .quick-action-pill.tone-info { border-color: rgba(125, 125, 125, 0.45); background: var(--info-subtle); color: var(--info); }
 
     .bento-analytics-grid {
       display: grid;
@@ -1436,7 +1436,7 @@
     .funnel-bar-track {
       width: 100%;
       height: 11px;
-      background-color: rgba(148, 163, 184, 0.14);
+      background-color: rgba(125, 125, 125, 0.14);
       border-radius: 999px;
       overflow: hidden;
     }
@@ -1510,7 +1510,7 @@
 
     .modal-skill-track {
       height: 7px;
-      background-color: rgba(148, 163, 184, 0.16);
+      background-color: rgba(125, 125, 125, 0.16);
       border-radius: 999px;
       overflow: hidden;
     }
@@ -1635,7 +1635,7 @@
 
     [data-theme="light"] .code-box {
       background-color: #f8fafc;
-      color: #0f172a;
+      color: #252525;
     }
 
     @keyframes slideIn {
@@ -2138,7 +2138,7 @@
         <div class="card">
           <div class="card-header">
             <div class="card-title">
-              <i class="bi bi-graph-up-arrow" style="color: #0ea5e9;"></i> Candidate Interview Volume (7 Days)
+              <i class="bi bi-graph-up-arrow" style="color: #7D7D7D;"></i> Candidate Interview Volume (7 Days)
             </div>
             <span class="badge badge-primary">Daily Trend</span>
           </div>
@@ -2165,7 +2165,7 @@
         <div class="card">
           <div class="card-header">
             <div class="card-title">
-              <i class="bi bi-funnel-fill" style="color: #0ea5e9;"></i> Candidate Pipeline Funnel
+              <i class="bi bi-funnel-fill" style="color: #7D7D7D;"></i> Candidate Pipeline Funnel
             </div>
             <span id="funnel-health-badge" class="badge badge-info">0% Conversion</span>
           </div>
