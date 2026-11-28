@@ -4309,14 +4309,16 @@ app.use((err, req, res, next) => {
   res.status(err?.status || 500).json({ error: err?.message || 'Internal Server Error' });
 });
 
-app.listen(PORT, () => {
-  console.log(`=======================================================`);
-  console.log(`🚀 RoundOne AI running at http://localhost:${PORT}`);
-  console.log(`   - Recruiter Dashboard: http://localhost:${PORT}`);
-  console.log(`   - Candidate Interview: http://localhost:${PORT}/interview.html?token=<token>`);
-  console.log(`   - Health check:        http://localhost:${PORT}/health`);
-  console.log(`=======================================================`);
-  startSupabaseLiveSync();
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`=======================================================`);
+    console.log(`🚀 RoundOne AI running at http://localhost:${PORT}`);
+    console.log(`   - Recruiter Dashboard: http://localhost:${PORT}`);
+    console.log(`   - Candidate Interview: http://localhost:${PORT}/interview.html?token=<token>`);
+    console.log(`   - Health check:        http://localhost:${PORT}/health`);
+    console.log(`=======================================================`);
+    startSupabaseLiveSync();
+  });
+}
 
 export default app;

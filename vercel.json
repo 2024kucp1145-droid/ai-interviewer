@@ -1,0 +1,61 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/(css|js|img|vendor)/(.*)",
+      "destination": "/frontend/public/$1/$2"
+    },
+    {
+      "source": "/(admin|blog|careers|index|interview|pricing|privacy|results|share|terms)\\.html",
+      "destination": "/frontend/public/$1.html"
+    },
+    {
+      "source": "/favicon.ico",
+      "destination": "/frontend/public/favicon.ico"
+    },
+    {
+      "source": "/auth/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/jobs(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/interviews(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/candidates(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/org/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/public/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/billing/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/",
+      "destination": "/frontend/public/index.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/api/index.js"
+    }
+  ]
+}

@@ -16,3 +16,6 @@ docs
 scripts
 legacy_manual_system_backup
 mcp
+Dockerfile
+.dockerignore
+render.yaml
